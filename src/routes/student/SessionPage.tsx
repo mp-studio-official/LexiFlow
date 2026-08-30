@@ -22,7 +22,7 @@ import {
   type VerdictOutcome,
 } from '../../domain/session';
 import { formatDueDate } from '../../domain/dueDate';
-import { TASK_DIRECTION_LABELS } from '../../domain/schema';
+import { TASK_DIRECTION_LABELS, type TaskDirection } from '../../domain/schema';
 import type { AnswerCheckResult, AnswerVerdict } from '../../domain/answerCheck';
 
 interface Tally {
@@ -37,6 +37,22 @@ const FEEDBACK_TITLE: Record<AnswerVerdict, string> = {
   wrong: 'Noch nicht richtig',
 };
 
+/**
+ * Zustand der Speicherung einer Antwort.
+ *
+ * Das Feedback erscheint sofort, weitergeschaltet wird aber erst, wenn der
+ * Lernstand tatsächlich in IndexedDB liegt. Sonst könnte die Folgerundenplanung
+ * veraltete Daten lesen.
+ */
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+/** Die eine Antwort, die gerade gespeichert wird oder gespeichert wurde. */
+interface PendingAnswer {
+  entryId: string;
+  direction: TaskDirection;
+  verdict: AnswerVerdict;
+}
+
 export function SessionPage() {
   const { packId = '' } = useParams();
   const [params] = useSearchParams();
@@ -49,7 +65,11 @@ export function SessionPage() {
   const [outcome, setOutcome] = useState<VerdictOutcome | null>(null);
   const [tally, setTally] = useState<Tally>({ correct: 0, almost: 0, wrong: 0 });
   const [announcement, setAnnouncement] = useState('');
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [pendingAnswer, setPendingAnswer] = useState<PendingAnswer | null>(null);
   const continueRef = useRef<HTMLButtonElement>(null);
+  /** Läuft, sobald die Runde beginnt – die erste Antwort wartet darauf. */
+  const sessionStartRef = useRef<Promise<void> | null>(null);
 
   const requestedKinds = (params.get('kinds') ?? '')
     .split(',')
@@ -100,8 +120,20 @@ export function SessionPage() {
       setSession(createSessionState(tasks));
       setResult(null);
       setOutcome(null);
+      setSaveState('idle');
+      setPendingAnswer(null);
       setTally({ correct: 0, almost: 0, wrong: 0 });
-      if (tasks.length > 0) await startSession(packId);
+
+      // Nicht abwarten, aber auch nicht verlieren: Die erste Antwort wartet
+      // auf diese Transaktion, damit sie sich nicht mit ihr überschneidet.
+      sessionStartRef.current = null;
+      if (tasks.length > 0) {
+        const started = startSession(packId);
+        // Verhindert eine unbehandelte Rejection; der Fehler wird beim ersten
+        // Speichern sichtbar, weil dort auf dieselbe Zusage gewartet wird.
+        started.catch(() => undefined);
+        sessionStartRef.current = started;
+      }
     })();
     return () => {
       active = false;
@@ -111,9 +143,15 @@ export function SessionPage() {
 
   const finished = session !== null && session.items.length > 0 && isFinished(session);
 
-  // Nach der Runde: Was steht als Nächstes an?
+  /**
+   * Folgerundenplanung erst, wenn keine Speicherung mehr aussteht. Da
+   * „Weiter“ nur nach erfolgreicher Speicherung freigeschaltet wird, ist beim
+   * Rundenende bereits alles geschrieben; die Bedingung hält das explizit fest.
+   */
+  const readyToPlanNextRound = finished && saveState === 'idle';
+
   useEffect(() => {
-    if (!finished) return;
+    if (!readyToPlanNextRound) return;
     let active = true;
     void (async () => {
       const pack = await getPack(packId);
@@ -127,13 +165,45 @@ export function SessionPage() {
     return () => {
       active = false;
     };
-  }, [finished, packId, length]);
+  }, [readyToPlanNextRound, packId, length]);
 
   const item = session ? currentItem(session) : undefined;
 
+  /** Wartet auf den Rundenstart und startet ihn nach einem Fehler neu. */
+  const ensureSessionStarted = useCallback(async (): Promise<void> => {
+    if (!sessionStartRef.current) {
+      const started = startSession(packId);
+      started.catch(() => undefined);
+      sessionStartRef.current = started;
+    }
+    try {
+      await sessionStartRef.current;
+    } catch (error: unknown) {
+      sessionStartRef.current = null;
+      throw error;
+    }
+  }, [packId]);
+
+  const persist = useCallback(
+    async (answer: PendingAnswer): Promise<void> => {
+      setSaveState('saving');
+      try {
+        await ensureSessionStarted();
+        await recordAnswer(packId, answer.entryId, answer.direction, answer.verdict);
+        setSaveState('saved');
+      } catch {
+        // Kein stiller Fehler: Die Aufgabe gilt weiter als offen.
+        setSaveState('error');
+      }
+    },
+    [ensureSessionStarted, packId],
+  );
+
   const handleSubmit = useCallback(
     (checked: AnswerCheckResult) => {
-      if (!session || !item) return;
+      // Doppelte Bewertung und doppelte Schreibvorgänge ausschließen.
+      if (!session || !item || result !== null) return;
+
       setResult(checked);
       // Rein berechnet, angewendet erst beim Weiterblättern: So weiß die
       // Oberfläche schon jetzt, ob die Wiederholung wirklich kommt.
@@ -142,21 +212,37 @@ export function SessionPage() {
       setAnnouncement(
         `${FEEDBACK_TITLE[checked.verdict]}. Richtige Antwort: ${checked.expected.join(', ')}.`,
       );
-      void recordAnswer(packId, item.task.entryId, item.task.direction, checked.verdict);
+
+      const answer: PendingAnswer = {
+        entryId: item.task.entryId,
+        direction: item.task.direction,
+        verdict: checked.verdict,
+      };
+      setPendingAnswer(answer);
+      void persist(answer);
     },
-    [session, item, packId],
+    [session, item, result, persist],
   );
 
+  function retrySave(): void {
+    if (!pendingAnswer || saveState !== 'error') return;
+    void persist(pendingAnswer);
+  }
+
   function goOn(): void {
+    // Erst nach erfolgreicher Speicherung weiterschalten.
+    if (saveState !== 'saved') return;
     if (outcome) setSession(outcome.state);
     setResult(null);
     setOutcome(null);
+    setPendingAnswer(null);
+    setSaveState('idle');
     setAnnouncement('');
   }
 
   useEffect(() => {
-    if (result) continueRef.current?.focus();
-  }, [result]);
+    if (saveState === 'saved') continueRef.current?.focus();
+  }, [saveState]);
 
   if (session === null || plan === null) return <p className="muted">Übung wird vorbereitet …</p>;
 
@@ -186,7 +272,9 @@ export function SessionPage() {
 
   if (finished || !item) {
     const answered = tally.correct + tally.almost + tally.wrong;
-    const canContinue = nextRound === null || nextRound.plannedCount > 0;
+    const checkingNextRound = nextRound === null;
+    const canContinue = nextRound !== null && nextRound.plannedCount > 0;
+
     return (
       <div className="stack exercise">
         <h1>Runde abgeschlossen</h1>
@@ -207,7 +295,7 @@ export function SessionPage() {
           ) : null}
         </Card>
 
-        {!canContinue ? (
+        {!checkingNextRound && !canContinue ? (
           <Alert tone="info">
             {nextRound?.nextDueAt ? (
               <>
@@ -224,9 +312,10 @@ export function SessionPage() {
           <Button
             variant="primary"
             disabled={!canContinue}
+            aria-busy={checkingNextRound}
             onClick={() => setRoundSeed(Date.now() >>> 0)}
           >
-            Neue Runde
+            {checkingNextRound ? 'Nächste Runde wird geprüft …' : 'Neue Runde'}
           </Button>
           <Link className="btn" to={`/lernen/${packId}`}>
             Zurück zum Paket
@@ -291,11 +380,33 @@ export function SessionPage() {
         </div>
       ) : null}
 
+      {saveState === 'error' ? (
+        <Alert tone="error" title="Der Lernstand konnte nicht gespeichert werden.">
+          <p style={{ margin: '0.35rem 0 0.6rem' }}>
+            Deine Antwort wurde noch nicht gesichert. Solange gilt die Aufgabe als offen.
+          </p>
+          <Button onClick={retrySave}>Erneut versuchen</Button>
+        </Alert>
+      ) : null}
+
       <div className="row row--end">
         {result ? (
-          <Button ref={continueRef} variant="primary" onClick={goOn}>
-            {isLast && !outcome?.requeued ? 'Runde beenden' : 'Weiter'}
-          </Button>
+          <>
+            {saveState === 'saving' ? (
+              <span className="small muted" role="status">
+                Lernstand wird gespeichert …
+              </span>
+            ) : null}
+            <Button
+              ref={continueRef}
+              variant="primary"
+              disabled={saveState !== 'saved'}
+              aria-busy={saveState === 'saving'}
+              onClick={goOn}
+            >
+              {isLast && !outcome?.requeued ? 'Runde beenden' : 'Weiter'}
+            </Button>
+          </>
         ) : (
           <Link className="btn btn--quiet" to={`/lernen/${packId}`}>
             Übung abbrechen

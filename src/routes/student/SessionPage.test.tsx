@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { SessionPage } from './SessionPage';
@@ -61,7 +61,10 @@ async function answer(user: ReturnType<typeof userEvent.setup>, known: boolean):
 }
 
 async function next(user: ReturnType<typeof userEvent.setup>): Promise<void> {
-  await user.click(screen.getByRole('button', { name: /Weiter|Runde beenden/ }));
+  // Weitergeschaltet wird erst, wenn der Lernstand gespeichert ist.
+  const button = screen.getByRole('button', { name: /Weiter|Runde beenden/ });
+  await waitFor(() => expect(button).toBeEnabled());
+  await user.click(button);
 }
 
 beforeEach(async () => {

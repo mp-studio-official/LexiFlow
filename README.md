@@ -13,6 +13,8 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 1.3** – Leitner-Korrektheit und transparente Rundenplanung: eine
   zentrale Planungsfunktion, keine vorgezogenen Karten, ehrliche Rundenwahl und
   wahrheitsgemäße Wiedervorlage-Ankündigung.
+* **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
+  nach erfolgreicher Speicherung des Lernstands.
 
 ---
 
@@ -294,6 +296,24 @@ vorgesehen; er wird hier nicht durch die Hintertür simuliert.
 Die Paketseite und die Übungsseite verwenden denselben Seed (`?seed=` in der
 URL), damit die angezeigte Zahl „… werden eingeplant“ exakt der Runde
 entspricht, die anschließend gebaut wird.
+
+### Speichern vor Weiterschalten
+
+Das Feedback erscheint sofort, „Weiter“ bzw. „Runde beenden“ bleibt jedoch
+gesperrt (`disabled`, mit `aria-busy` und dem Hinweis „Lernstand wird
+gespeichert …“), bis `recordAnswer` die IndexedDB-Transaktion abgeschlossen hat.
+Erst danach rückt die Warteschlange vor. Scheitert das Schreiben, gilt die
+Aufgabe weiter als offen: Es erscheint eine verständliche Fehlermeldung mit
+„Erneut versuchen“, und es wird nicht weitergeschaltet.
+
+`startSession` läuft ebenfalls nicht als Fire-and-forget: Die Zusage wird
+festgehalten, die erste Antwort wartet darauf, und ein Fehler dort wird über
+denselben Weg gemeldet und beim erneuten Versuch wiederholt.
+
+Die Folgerundenplanung startet erst, wenn keine Speicherung mehr aussteht.
+Solange ihr Ergebnis fehlt (`nextRound === null`), heißt die Schaltfläche
+„Nächste Runde wird geprüft …“ und ist gesperrt; `canContinue` wird erst wahr,
+wenn ein Plan vorliegt **und** `plannedCount > 0` ist.
 
 ### Reihenfolge und Abstände
 
