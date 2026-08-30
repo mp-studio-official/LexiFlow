@@ -94,15 +94,16 @@ describe('PackDetailPage – bereite Aufgaben', () => {
 });
 
 describe('PackDetailPage – Leerzustand', () => {
-  it('deaktiviert den Start und nennt den nächsten Termin', async () => {
+  it('sperrt den Lernplan und nennt den nächsten Termin', async () => {
     await seed(4, 'en-de');
     const dueAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     await makeEverythingLater(4, dueAt);
     renderDetail();
 
     expect(await screen.findByText(/Gerade ist nichts fällig/)).toBeInTheDocument();
-    expect(screen.getByText(/in 3 Tagen/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Übung starten' })).toBeDisabled();
+    expect(screen.getAllByText(/in 3 Tagen/).length).toBeGreaterThan(0);
+    // Seit Sprint 2A.2 ist der Lernplan gesperrt – nicht die ganze Seite.
+    expect(screen.getByRole('radio', { name: /Lernplan/ })).toBeDisabled();
     expect(screen.queryByRole('option', { name: /Alle bereiten/ })).not.toBeInTheDocument();
   });
 
@@ -111,6 +112,6 @@ describe('PackDetailPage – Leerzustand', () => {
     renderDetail();
 
     expect(await screen.findByText(/Dieses Paket enthält keine Vokabeln/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Übung starten' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
   });
 });

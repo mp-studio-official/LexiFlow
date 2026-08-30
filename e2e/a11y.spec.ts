@@ -82,7 +82,7 @@ test.describe('Barrierefreiheit – Axe', () => {
 
   test('@a11y laufende Übung und sichtbares Feedback', async ({ page }) => {
     await seedPack(page, 'A11y Übung', 'en-de');
-    await page.getByRole('button', { name: 'Übung starten' }).click();
+    await page.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(page.getByText('Aufgabe 1 von 4')).toBeVisible();
     await expectNoSeriousViolations(page, 'laufende Übung');
 
@@ -132,7 +132,7 @@ test.describe('Barrierefreiheit – Bedienung', () => {
     await seedPack(page, 'A11y Tastatur', 'en-de');
 
     // Übung per Tastatur starten.
-    await page.getByRole('button', { name: 'Übung starten' }).focus();
+    await page.getByRole('button', { name: 'Lernrunde starten' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByText('Aufgabe 1 von 4')).toBeVisible();
 
@@ -151,7 +151,7 @@ test.describe('Barrierefreiheit – Bedienung', () => {
   test('@a11y Multiple Choice über die Zifferntasten', async ({ page }) => {
     await seedPack(page, 'A11y Ziffern', 'en-de');
     await page.getByRole('checkbox', { name: /Multiple Choice/ }).check();
-    await page.getByRole('button', { name: 'Übung starten' }).click();
+    await page.getByRole('button', { name: 'Lernrunde starten' }).click();
 
     await expect(page.getByText('Aufgabe 1 von 4')).toBeVisible();
     await page.keyboard.press('1');
@@ -208,7 +208,7 @@ test.describe('Barrierefreiheit – Smartphone-Breite', () => {
     await seedPack(page, 'A11y Mobil', 'both');
     await expectNoPageOverflow(page, 'Paketdetail');
 
-    await page.getByRole('button', { name: 'Übung starten' }).click();
+    await page.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(page.getByText(/Aufgabe 1 von/)).toBeVisible();
     await expectNoPageOverflow(page, 'Übung');
 

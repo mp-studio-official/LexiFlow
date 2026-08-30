@@ -11,6 +11,7 @@ import {
   planSession,
   type ExerciseKind,
 } from '../../domain/exercises';
+import { planFreeSession } from '../../domain/freePractice';
 import {
   activeDirections,
   DIRECTION_LABELS,
@@ -33,6 +34,15 @@ import { directionKey } from '../../domain/ids';
 /** Obergrenzen für eine Runde – es werden nie mehr als die bereiten Aufgaben geplant. */
 const LENGTH_LIMITS = [10, 15, 25, 50] as const;
 
+/**
+ * Zwei klar getrennte Übungsarten.
+ *
+ * `scheduled` ist der Lernplan: nur neue und fällige Aufgaben, und die Runde
+ * schreibt Lernstände. `free` ist freies Üben: alles Freigeschaltete, auch
+ * später Fälliges – und die Runde verändert **nichts** am Lernstand.
+ */
+type PracticeMode = 'scheduled' | 'free';
+
 interface DirectionStand {
   direction: TaskDirection;
   breakdown: DirectionBreakdown;
@@ -53,6 +63,8 @@ export function PackDetailPage() {
   const [selectedKinds, setSelectedKinds] = useState<ExerciseKind[]>([]);
   const [length, setLength] = useState<number>(15);
   const [confirmReset, setConfirmReset] = useState(false);
+  /** `null` = noch keine bewusste Wahl; dann gilt die sinnvolle Vorauswahl. */
+  const [chosenMode, setChosenMode] = useState<PracticeMode | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   /**
    * Derselbe Seed geht an die Übungsseite. Nur so entspricht die angezeigte
@@ -117,8 +129,14 @@ export function PackDetailPage() {
     );
   }, [pack, progress, length, seed]);
 
+  // Getrennte Planung mit demselben Seed – Vorschau und Runde bleiben gleich.
+  const freePlan = useMemo(() => {
+    if (!pack) return null;
+    return planFreeSession(pack.entries, progress, pack.meta.direction, length, mulberry32(seed));
+  }, [pack, progress, length, seed]);
+
   if (loading) return <p className="muted">Paket wird geladen …</p>;
-  if (!pack || !plan) {
+  if (!pack || !plan || !freePlan) {
     return (
       <div className="stack">
         <h1>Paket nicht gefunden</h1>
@@ -131,8 +149,28 @@ export function PackDetailPage() {
 
   const possibleKinds = kindsAvailableInPack(pack.entries, pack.meta.direction);
   const bothDirections = pack.meta.direction === 'both';
-  const canStart = plan.plannedCount > 0;
   const lockedTotal = stands.reduce((sum, stand) => sum + stand.breakdown.locked, 0);
+
+  const scheduledPossible = plan.readyCount > 0;
+  const freePossible = freePlan.availableCount > 0;
+  // Vorauswahl: der Lernplan hat Vorrang, freies Üben springt ein, wenn gerade
+  // nichts fällig ist. Ohne Vokabeln ist beides nicht wählbar.
+  const mode: PracticeMode = chosenMode ?? (scheduledPossible || !freePossible ? 'scheduled' : 'free');
+  const free = mode === 'free';
+  const canStart = free ? freePlan.plannedCount > 0 : plan.plannedCount > 0;
+  const availableForRound = free ? freePlan.availableCount : plan.readyCount;
+
+  /**
+   * Beim Moduswechsel kann „Alle bereiten/verfügbaren (n)“ verschwinden. Dann
+   * fiele die Auswahl auf einen Wert ohne Option zurück – lieber ehrlich auf
+   * die Standardgröße zurücksetzen.
+   */
+  function chooseMode(next: PracticeMode): void {
+    setChosenMode(next);
+    setLength((current) =>
+      (LENGTH_LIMITS as readonly number[]).includes(current) ? current : 15,
+    );
+  }
 
   function toggleKind(kind: ExerciseKind): void {
     setSelectedKinds((current) =>
@@ -145,6 +183,8 @@ export function PackDetailPage() {
     if (selectedKinds.length > 0) params.set('kinds', selectedKinds.join(','));
     params.set('length', String(length));
     params.set('seed', String(seed));
+    // Freies Üben wird ausdrücklich transportiert; ohne `mode` gilt der Lernplan.
+    if (free) params.set('mode', 'free');
     navigate(`/lernen/${packId}/uebung?${params.toString()}`);
   }
 
@@ -259,31 +299,13 @@ export function PackDetailPage() {
       <Card>
         <h2>Übung starten</h2>
 
-        {canStart ? (
-          <p style={{ marginBottom: '1rem' }}>
-            <strong>{plan.readyCount}</strong>{' '}
-            {plan.readyCount === 1 ? 'Aufgabe ist' : 'Aufgaben sind'} jetzt bereit.
-            {plan.plannedCount !== plan.readyCount ? (
-              <>
-                {' '}
-                <strong>{plan.plannedCount}</strong>{' '}
-                {plan.plannedCount === 1 ? 'Aufgabe wird' : 'Aufgaben werden'} für diese Runde
-                eingeplant.
-                <br />
-                <span className="small muted">
-                  Die übrigen {plan.remainingReadyCount} folgen in einer weiteren Runde – wegen
-                  der gewählten Rundengröße oder weil zwischen beiden Richtungen einer Vokabel
-                  Abstand bleiben muss.
-                </span>
-              </>
-            ) : null}
-          </p>
-        ) : (
+        {!scheduledPossible ? (
           <Alert tone="info">
             {plan.nextDueAt ? (
               <>
                 Gerade ist nichts fällig – gut so. Die nächste Wiederholung steht{' '}
                 <strong>{formatDueDate(plan.nextDueAt)}</strong> an.
+                {freePossible ? ' Frei üben kannst du trotzdem jederzeit.' : ''}
               </>
             ) : lockedTotal > 0 ? (
               <>
@@ -296,7 +318,95 @@ export function PackDetailPage() {
               <>Für dieses Paket gibt es gerade nichts zu üben.</>
             )}
           </Alert>
-        )}
+        ) : null}
+
+        <fieldset className="modes" style={{ border: 0, padding: 0, margin: '0 0 1rem' }}>
+          <legend style={{ fontWeight: 560, fontSize: '0.92rem', padding: 0 }}>Was möchtest du üben?</legend>
+
+          {/* Der zugängliche Name ist bewusst nur der Modusname; die Erklärung
+              hängt über `aria-describedby` daran. */}
+          <label className="mode">
+            <input
+              type="radio"
+              name="practice-mode"
+              value="scheduled"
+              aria-label="Lernplan"
+              aria-describedby="mode-scheduled-info"
+              checked={mode === 'scheduled'}
+              disabled={!scheduledPossible}
+              onChange={() => chooseMode('scheduled')}
+            />
+            <span>
+              <strong>Lernplan</strong>
+              <span id="mode-scheduled-info">
+                <span className="small muted">
+                  {' '}
+                  – neue und jetzt fällige Aufgaben. Diese Runde zählt für deine Fächer und
+                  Termine.
+                </span>
+                <br />
+                <span className="small muted">
+                  Bereit: {plan.readyCount} {plan.readyCount === 1 ? 'Aufgabe' : 'Aufgaben'}
+                  {plan.nextDueAt ? (
+                    <> · nächste Wiederholung {formatDueDate(plan.nextDueAt)}</>
+                  ) : null}
+                </span>
+              </span>
+            </span>
+          </label>
+
+          <label className="mode">
+            <input
+              type="radio"
+              name="practice-mode"
+              value="free"
+              aria-label="Frei üben"
+              aria-describedby="mode-free-info"
+              checked={mode === 'free'}
+              disabled={!freePossible}
+              onChange={() => chooseMode('free')}
+            />
+            <span>
+              <strong>Frei üben</strong>
+              <span id="mode-free-info">
+                <span className="small muted"> – Übe unabhängig vom Lernplan.</span>
+                <br />
+                <span className="small muted">
+                  Diese Runde verändert deinen Lernplan und die Fälligkeiten nicht.
+                </span>
+                <br />
+                <span className="small muted">
+                  Verfügbar: {freePlan.availableCount}{' '}
+                  {freePlan.availableCount === 1 ? 'Aufgabe' : 'Aufgaben'}
+                </span>
+              </span>
+            </span>
+          </label>
+        </fieldset>
+
+        {canStart ? (
+          <p style={{ marginBottom: '1rem' }}>
+            <strong>{availableForRound}</strong>{' '}
+            {availableForRound === 1 ? 'Aufgabe ist' : 'Aufgaben sind'}{' '}
+            {free ? 'zum freien Üben verfügbar' : 'jetzt bereit'}.
+            {(free ? freePlan.plannedCount : plan.plannedCount) !== availableForRound ? (
+              <>
+                {' '}
+                <strong>{free ? freePlan.plannedCount : plan.plannedCount}</strong>{' '}
+                {(free ? freePlan.plannedCount : plan.plannedCount) === 1
+                  ? 'Aufgabe wird'
+                  : 'Aufgaben werden'}{' '}
+                für diese Runde eingeplant.
+                <br />
+                <span className="small muted">
+                  Die übrigen {free ? freePlan.remainingAvailableCount : plan.remainingReadyCount}{' '}
+                  folgen in einer weiteren Runde – wegen der gewählten Rundengröße oder weil
+                  zwischen beiden Richtungen einer Vokabel Abstand bleiben muss.
+                </span>
+              </>
+            ) : null}
+          </p>
+        ) : null}
 
         <fieldset
           style={{ border: 0, padding: 0, margin: '0 0 1rem' }}
@@ -328,7 +438,11 @@ export function PackDetailPage() {
 
         <Field
           label="Umfang der Runde"
-          hint="Obergrenze. Es werden nie mehr Aufgaben geplant, als gerade bereit sind."
+          hint={
+            free
+              ? 'Obergrenze. Es werden nie mehr Aufgaben geplant, als gerade verfügbar sind.'
+              : 'Obergrenze. Es werden nie mehr Aufgaben geplant, als gerade bereit sind.'
+          }
         >
           {(props) => (
             <select
@@ -342,9 +456,11 @@ export function PackDetailPage() {
                   Bis zu {value} Aufgaben
                 </option>
               ))}
-              {plan.readyCount > 0 ? (
-                <option key="all-ready" value={plan.readyCount}>
-                  Alle bereiten ({plan.readyCount})
+              {availableForRound > 0 ? (
+                <option key="all-available" value={availableForRound}>
+                  {free
+                    ? `Alle verfügbaren (${availableForRound})`
+                    : `Alle bereiten (${availableForRound})`}
                 </option>
               ) : null}
             </select>
@@ -358,7 +474,7 @@ export function PackDetailPage() {
 
         <div className="row" style={{ marginTop: '1rem' }}>
           <Button variant="primary" onClick={start} disabled={!canStart}>
-            Übung starten
+            {free ? 'Frei üben' : 'Lernrunde starten'}
           </Button>
           <Link className="btn" to="/lernen">
             Zurück

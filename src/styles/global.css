@@ -789,3 +789,35 @@ progress {
 .steps li::before {
   content: counter(list-item) '. ';
 }
+
+/* Wahl der Übungsart: zwei gut trennbare, große Klickflächen. */
+.modes {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mode {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.mode:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.mode:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mode input {
+  margin-top: 0.2rem;
+  flex: none;
+}

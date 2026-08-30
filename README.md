@@ -15,6 +15,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
   wahrheitsgemäße Wiedervorlage-Ankündigung.
 * **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
   nach erfolgreicher Speicherung des Lernstands.
+* **Sprint 2A.2** – Freies Üben: jede freigeschaltete Vokabel ist jederzeit
+  übbar, auch außerhalb des Leitner-Plans – ohne Wirkung auf Fächer, Termine
+  und Statistik.
 * **Sprint 2A** – Inhaltswerkstatt: aus einem englischen Text lokal
   Vokabelkandidaten gewinnen, Originalsätze prüfen und in den vorhandenen
   Entwurfs-Workflow übergeben. Optionale Übersetzungsvorschläge nur in Chrome,
@@ -39,6 +42,9 @@ Weitere Befehle:
 | `npm run e2e` | Alle Playwright-Tests (baut vorher automatisch) |
 | `npm run e2e:smoke` | Nur der End-to-End-Smoke-Test |
 | `npm run e2e:a11y` | Nur die Barrierefreiheitstests (Axe, Tastatur, 390 px) |
+| `npx vitest run src/domain/freePractice.test.ts` | Nur die Planung des freien Übens |
+| `npx vitest run src/routes/student/freePractice.test.tsx` | Nur Modusauswahl und wirkungsfreie freie Runde |
+| `npx playwright test e2e/free-practice.spec.ts` | Nur der E2E-Ablauf zum freien Üben |
 | `npm run build` | Typecheck + Produktions-Build nach `dist/` |
 | `npm run preview` | Produktions-Build lokal ausliefern (Port 4173) |
 | `npm run verify` | Typecheck → Tests → Build → alle E2E-Tests |
@@ -83,6 +89,7 @@ src/
     answerCheck.ts   Antwortprüfung (richtig / fast richtig / falsch)
     leitner.ts       Leitner-System, Mastery über alle aktiven Richtungen
     exercises.ts     Aufgabenbau und Auswahl der (Vokabel, Richtung)-Paare
+    freePractice.ts  Planung für freies Üben – ohne Fälligkeit, ohne Wirkung
     session.ts       Warteschlange einer Runde inkl. Wiedervorlage
     dueDate.ts       verständliche Formulierung von Fälligkeitsterminen
     packDiff.ts      Fingerprint lernrelevanter Felder, Paketvergleich
@@ -125,7 +132,8 @@ weder React noch die Datenbank und ist deshalb vollständig ohne Mocks testbar.
 | `/material/:packId` | Paketeditor (Metadaten und Vokabeln) |
 | `/lernen` | Lokale Paketsammlung mit Lernstand |
 | `/lernen/:packId` | Paketdetails, Leitner-Übersicht je Richtung, Optionen |
-| `/lernen/:packId/uebung` | Übungssitzung |
+| `/lernen/:packId/uebung` | Übungssitzung nach Lernplan |
+| `/lernen/:packId/uebung?mode=free` | freie Übungsrunde (verändert keine Lernstände) |
 | `/datenschutz` | Was gespeichert wird und wie es gelöscht wird |
 
 `HashRouter` statt `BrowserRouter`, damit Unterseiten auf GitHub Pages auch beim
@@ -390,6 +398,55 @@ Bewertung im Schülerbereich.
 
 ---
 
+## Zwei Übungsarten: Lernplan und freies Üben
+
+Auf der Paketseite wird ausgewählt, *was* geübt wird. Die beiden Arten sind
+technisch und fachlich getrennt.
+
+| | Lernplan | Frei üben |
+| --- | --- | --- |
+| Planung | `planSession` | `planFreeSession` |
+| Aufgaben | neu **oder** jetzt fällig | alles Freigeschaltete, auch später Fälliges |
+| Fälligkeit | entscheidet mit | spielt keine Rolle |
+| Schreibt Lernstände | ja (`startSession`, `recordAnswer`) | **nein** |
+| Zählt als Übungsrunde | ja | nein |
+| Startschaltfläche | „Lernrunde starten“ | „Frei üben“ |
+| Rundengröße | „Alle bereiten (n)“ | „Alle verfügbaren (n)“ |
+| URL | ohne `mode` bzw. `mode=scheduled` | `mode=free` |
+
+**Freies Üben verändert nichts.** Eine freie Runde ruft weder `startSession`
+noch `recordAnswer` auf und löst keinen Schreibvorgang in IndexedDB aus. Nach
+ihr sind `directionProgress` und `packProgress` Feld für Feld unverändert –
+Fach, Fälligkeit, `correctCount`, `wrongCount`, `streak`, `sessionCount`,
+`answeredCount` und `lastPracticedAt` eingeschlossen. Ein Test vergleicht den
+kompletten Lernstand vor und nach einer vollständigen freien Runde.
+
+Rückmeldung, Zwischenstand und die einmalige Wiedervorlage innerhalb der Runde
+gibt es trotzdem – diese Daten leben nur so lange wie die Runde selbst. Weil
+nichts gespeichert wird, entfällt auch das Warten: „Weiter“ ist unmittelbar nach
+dem Feedback frei, und der Hinweis „Lernstand wird gespeichert …“ erscheint
+nicht.
+
+**Was gleich bleibt:** die Freischaltung. `planFreeSession` benutzt dasselbe
+`isDirectionUnlocked`; bei Paketen mit „beide Richtungen“ bleibt Deutsch →
+Englisch also auch beim freien Üben gesperrt, bis die rezeptive Richtung Fach 2
+erreicht hat. Ebenso gilt weiterhin der Abstand zwischen den beiden Richtungen
+derselben Vokabel (`arrangeTargets`), und die gewählte Rundengröße ist eine
+Obergrenze.
+
+**Eigene Begriffe.** Freies Üben spricht von *verfügbaren* Aufgaben
+(`availableCount`, `plannedCount`, `remainingAvailableCount`), der Lernplan von
+*bereiten* (`readyCount`, `nextDueAt`). Gezählt werden in beiden Fällen
+Aufgaben, also Kombinationen aus Vokabel und Richtung – bei „beide Richtungen“
+kann eine Vokabel zwei Aufgaben stellen. Die Oberfläche benennt das so.
+
+**Vorauswahl.** Stehen reguläre Aufgaben an, ist „Lernplan“ gewählt. Steht
+nichts an, ist „Frei üben“ gewählt und der Lernplan gesperrt – der nächste
+reguläre Termin bleibt aber sichtbar. Ein Paket ohne Vokabeln lässt beides
+gesperrt.
+
+---
+
 ## Übungsformen
 
 | Form | Voraussetzung |
@@ -622,6 +679,9 @@ Zusätzlich getestet:
   Schülerbereich, Datenschutz, Importvorschau, Paketdetail, Übung und Feedback
 * die breite Lehrkraft-Tabelle scrollt in ihrem eigenen Container
   (`.table-wrap`), ohne die Seite zu verbreitern
+* `e2e/free-practice.spec.ts`: freie Runde ohne fällige Aufgaben, Axe auf
+  Modusauswahl und laufender Runde, Tastaturbedienung inklusive Pfeiltasten in
+  der Radiogruppe, 390 px ohne Überlauf
 * `e2e/text-workshop.spec.ts`: Textwerkstatt von der Analyse bis zur Übung,
   Axe-Prüfung der Kandidatenansicht, Fokus auf der Ergebnisüberschrift,
   Tastaturbedienung und 390 px ohne Überlauf
@@ -687,6 +747,16 @@ funktioniert vollständig offline.
 18. **Registry statt globalem Singleton.** Anbieter sind Zustand mit Lebenszeit
     (geladene Modelle); ein Modul-Singleton wäre in Tests und beim Wechsel des
     Anbieters nicht sauber zurückzusetzen.
+19. **Freies Üben als eigene Planungsfunktion.** `planSession` bleibt
+    unverändert die einzige Quelle des Lernplans. Eine Option („auch später
+    Fälliges“) hätte diese eine Funktion mehrdeutig gemacht – und genau die
+    Mehrdeutigkeit war der Grund für die Trennung in Sprint 1.3.
+20. **Freie Runden schreiben nichts – auch keinen Zähler.** Eine „nur halb
+    gezählte“ Runde wäre nicht erklärbar. Wer frei übt, soll ohne Folgen üben
+    können.
+21. **Der Modus steht in der URL.** Eine freie Runde ist damit teilbar und
+    direkt aufrufbar; ein fehlender oder unbekannter Wert fällt auf den
+    Lernplan zurück, nie umgekehrt.
 
 ## Bekannte Restprobleme und offene Fragen
 
@@ -723,5 +793,11 @@ funktioniert vollständig offline.
 * **Translator-API nicht in der E2E-Stufe.** Der Chrome-Pfad ist über
   Vertragstests mit einer nachgebauten API abgesichert, nicht gegen den echten
   Browser – ein echtes Modell würde die Tests vom Netz abhängig machen.
+* **Freie Runden hinterlassen keine Spur.** Wer viel frei übt, sieht das
+  nirgends – bewusst so, aber für manche Lernende vielleicht unbefriedigend.
+* **Keine Auswahl einzelner Vokabeln.** Freies Üben nimmt immer das ganze
+  freigeschaltete Paket; gezielt „nur die schweren“ geht noch nicht.
+* **Übungsform richtet sich weiter nach dem Leitner-Fach.** Auch beim freien
+  Üben, solange keine Form ausgewählt ist – das kann überraschen.
 * **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
   Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.

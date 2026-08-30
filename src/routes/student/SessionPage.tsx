@@ -13,6 +13,7 @@ import {
   type ExerciseKind,
   type SessionPlan,
 } from '../../domain/exercises';
+import { planFreeSession, type FreeSessionPlan } from '../../domain/freePractice';
 import {
   createSessionState,
   currentItem,
@@ -38,6 +39,17 @@ const FEEDBACK_TITLE: Record<AnswerVerdict, string> = {
 };
 
 /**
+ * Übungsart dieser Runde – aus der URL, nicht aus dem Zustand der Seite.
+ *
+ * `free` bedeutet: geplant wird mit `planFreeSession`, und es wird **nichts**
+ * gespeichert – weder `startSession` noch `recordAnswer`. Ein fehlender oder
+ * unbekannter Wert fällt sicher auf den Lernplan zurück.
+ */
+function readMode(value: string | null): 'scheduled' | 'free' {
+  return value === 'free' ? 'free' : 'scheduled';
+}
+
+/**
  * Zustand der Speicherung einer Antwort.
  *
  * Das Feedback erscheint sofort, weitergeschaltet wird aber erst, wenn der
@@ -59,6 +71,7 @@ export function SessionPage() {
 
   const [session, setSession] = useState<SessionState | null>(null);
   const [plan, setPlan] = useState<SessionPlan | null>(null);
+  const [freePlan, setFreePlan] = useState<FreeSessionPlan | null>(null);
   const [nextRound, setNextRound] = useState<SessionPlan | null>(null);
   const [packTitle, setPackTitle] = useState('');
   const [result, setResult] = useState<AnswerCheckResult | null>(null);
@@ -71,6 +84,7 @@ export function SessionPage() {
   /** Läuft, sobald die Runde beginnt – die erste Antwort wartet darauf. */
   const sessionStartRef = useRef<Promise<void> | null>(null);
 
+  const free = readMode(params.get('mode')) === 'free';
   const requestedKinds = (params.get('kinds') ?? '')
     .split(',')
     .filter((kind): kind is ExerciseKind => (EXERCISE_KINDS as readonly string[]).includes(kind));
@@ -91,6 +105,12 @@ export function SessionPage() {
       if (!pack) {
         setSession(createSessionState([]));
         setPlan({ targets: [], readyCount: 0, plannedCount: 0, remainingReadyCount: 0 });
+        setFreePlan({
+          targets: [],
+          availableCount: 0,
+          plannedCount: 0,
+          remainingAvailableCount: 0,
+        });
         return;
       }
       const progress = await getProgressIndex(packId);
@@ -98,14 +118,9 @@ export function SessionPage() {
 
       // Ein RNG für Planung und Aufgabenbau – identisch zur Vorschau.
       const rng = mulberry32(roundSeed);
-      const roundPlan = planSession(
-        pack.entries,
-        progress,
-        pack.meta.direction,
-        length,
-        new Date(),
-        rng,
-      );
+      const roundPlan = free
+        ? planFreeSession(pack.entries, progress, pack.meta.direction, length, rng)
+        : planSession(pack.entries, progress, pack.meta.direction, length, new Date(), rng);
       const tasks = buildTasksForTargets(
         roundPlan.targets,
         pack.entries,
@@ -115,7 +130,13 @@ export function SessionPage() {
       );
 
       setPackTitle(pack.meta.title);
-      setPlan(roundPlan);
+      if (free) {
+        setFreePlan(roundPlan as FreeSessionPlan);
+        setPlan(null);
+      } else {
+        setPlan(roundPlan as SessionPlan);
+        setFreePlan(null);
+      }
       setNextRound(null);
       setSession(createSessionState(tasks));
       setResult(null);
@@ -126,8 +147,9 @@ export function SessionPage() {
 
       // Nicht abwarten, aber auch nicht verlieren: Die erste Antwort wartet
       // auf diese Transaktion, damit sie sich nicht mit ihr überschneidet.
+      // Freies Üben zählt keine Runde – hier wird nichts gestartet.
       sessionStartRef.current = null;
-      if (tasks.length > 0) {
+      if (!free && tasks.length > 0) {
         const started = startSession(packId);
         // Verhindert eine unbehandelte Rejection; der Fehler wird beim ersten
         // Speichern sichtbar, weil dort auf dieselbe Zusage gewartet wird.
@@ -139,7 +161,7 @@ export function SessionPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Suchparameter werden bewusst nur beim Rundenstart ausgewertet.
-  }, [packId, roundSeed]);
+  }, [packId, roundSeed, free]);
 
   const finished = session !== null && session.items.length > 0 && isFinished(session);
 
@@ -148,7 +170,7 @@ export function SessionPage() {
    * „Weiter“ nur nach erfolgreicher Speicherung freigeschaltet wird, ist beim
    * Rundenende bereits alles geschrieben; die Bedingung hält das explizit fest.
    */
-  const readyToPlanNextRound = finished && saveState === 'idle';
+  const readyToPlanNextRound = finished && saveState === 'idle' && !free;
 
   useEffect(() => {
     if (!readyToPlanNextRound) return;
@@ -213,6 +235,9 @@ export function SessionPage() {
         `${FEEDBACK_TITLE[checked.verdict]}. Richtige Antwort: ${checked.expected.join(', ')}.`,
       );
 
+      // Freies Üben schreibt nichts: kein `recordAnswer`, kein Speicherzustand.
+      if (free) return;
+
       const answer: PendingAnswer = {
         entryId: item.task.entryId,
         direction: item.task.direction,
@@ -221,8 +246,11 @@ export function SessionPage() {
       setPendingAnswer(answer);
       void persist(answer);
     },
-    [session, item, result, persist],
+    [session, item, result, persist, free],
   );
+
+  /** Freigabe von „Weiter“ – im freien Modus sofort nach dem Feedback. */
+  const canGoOn = free ? result !== null : saveState === 'saved';
 
   function retrySave(): void {
     if (!pendingAnswer || saveState !== 'error') return;
@@ -230,8 +258,9 @@ export function SessionPage() {
   }
 
   function goOn(): void {
-    // Erst nach erfolgreicher Speicherung weiterschalten.
-    if (saveState !== 'saved') return;
+    // Im Lernplan erst nach erfolgreicher Speicherung weiterschalten; beim
+    // freien Üben gibt es nichts zu speichern, also sofort.
+    if (!canGoOn) return;
     if (outcome) setSession(outcome.state);
     setResult(null);
     setOutcome(null);
@@ -241,17 +270,23 @@ export function SessionPage() {
   }
 
   useEffect(() => {
-    if (saveState === 'saved') continueRef.current?.focus();
-  }, [saveState]);
+    if (canGoOn) continueRef.current?.focus();
+  }, [canGoOn]);
 
-  if (session === null || plan === null) return <p className="muted">Übung wird vorbereitet …</p>;
+  const roundReady = session !== null && (free ? freePlan !== null : plan !== null);
+  if (!session || !roundReady) return <p className="muted">Übung wird vorbereitet …</p>;
 
   if (session.items.length === 0) {
     return (
       <div className="stack">
         <h1>Gerade nichts zu üben</h1>
         <Alert tone="info">
-          {plan.nextDueAt ? (
+          {free ? (
+            <>
+              Für dieses Paket lässt sich gerade keine freie Runde zusammenstellen. Es ist
+              entweder noch keine Vokabel freigeschaltet oder das Paket ist leer.
+            </>
+          ) : plan?.nextDueAt ? (
             <>
               Alle Aufgaben dieses Pakets sind erledigt. Die nächste Wiederholung steht{' '}
               <strong>{formatDueDate(plan.nextDueAt)}</strong> an.
@@ -272,6 +307,33 @@ export function SessionPage() {
 
   if (finished || !item) {
     const answered = tally.correct + tally.almost + tally.wrong;
+
+    if (free) {
+      return (
+        <div className="stack exercise">
+          <h1>Freie Runde abgeschlossen</h1>
+          <Card>
+            <p>
+              {answered} Aufgaben bearbeitet: <strong>{tally.correct} richtig</strong>,{' '}
+              {tally.almost} fast richtig, {tally.wrong} noch nicht richtig.
+            </p>
+            <p className="muted small" style={{ margin: 0 }}>
+              Diese freie Runde hat deinen Lernplan und deine Fälligkeiten nicht verändert.
+            </p>
+          </Card>
+
+          <div className="row">
+            <Button variant="primary" onClick={() => setRoundSeed(Date.now() >>> 0)}>
+              Noch einmal frei üben
+            </Button>
+            <Link className="btn" to={`/lernen/${packId}`}>
+              Zurück zum Paket
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     const checkingNextRound = nextRound === null;
     const canContinue = nextRound !== null && nextRound.plannedCount > 0;
 
@@ -336,13 +398,19 @@ export function SessionPage() {
           {TASK_DIRECTION_LABELS[item.task.direction]}
         </span>
         <span>
-          Aufgabe {session.index + 1} von {session.items.length}
+          {free ? 'Frei üben · ' : ''}Aufgabe {session.index + 1} von {session.items.length}
           {item.attempt > 1 ? ' · Wiederholung' : ''}
         </span>
       </div>
       <Meter value={session.index} max={session.items.length} label="Fortschritt in dieser Runde" />
 
       <Announcer message={announcement} />
+
+      {free ? (
+        <p className="small muted" style={{ margin: 0 }}>
+          Freies Üben: Diese Runde verändert deinen Lernplan und die Fälligkeiten nicht.
+        </p>
+      ) : null}
 
       <Card>
         <ExerciseView key={item.id} task={item.task} result={result} onSubmit={handleSubmit} />
@@ -392,7 +460,7 @@ export function SessionPage() {
       <div className="row row--end">
         {result ? (
           <>
-            {saveState === 'saving' ? (
+            {!free && saveState === 'saving' ? (
               <span className="small muted" role="status">
                 Lernstand wird gespeichert …
               </span>
@@ -400,8 +468,8 @@ export function SessionPage() {
             <Button
               ref={continueRef}
               variant="primary"
-              disabled={saveState !== 'saved'}
-              aria-busy={saveState === 'saving'}
+              disabled={!canGoOn}
+              aria-busy={!free && saveState === 'saving'}
               onClick={goOn}
             >
               {isLast && !outcome?.requeued ? 'Runde beenden' : 'Weiter'}

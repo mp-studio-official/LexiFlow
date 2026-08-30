@@ -130,7 +130,7 @@ test.describe('Textwerkstatt', () => {
     // Schülerbereich funktioniert unverändert.
     await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
     await expect(page.getByText(/0 von 3 Vokabeln sicher/)).toBeVisible();
-    await page.getByRole('button', { name: 'Übung starten' }).click();
+    await page.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(page.getByText('Aufgabe 1 von 3')).toBeVisible();
     await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
     await page.getByRole('button', { name: 'Gewusst', exact: true }).click();

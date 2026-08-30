@@ -71,7 +71,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     ).toBeVisible();
 
     // 8. Übung: neue Vokabeln werden zunächst nur rezeptiv eingeführt (4, nicht 8).
-    await page.getByRole('button', { name: 'Übung starten' }).click();
+    await page.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(page.getByText('Aufgabe 1 von 4')).toBeVisible();
 
     // 9. Direktes Feedback und Wiedervorlage innerhalb der Runde
@@ -108,7 +108,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     await expect(page.getByRole('option', { name: 'Alle bereiten (8)' })).toHaveCount(0);
 
     // ---------- Runde 1: vier rezeptive Aufgaben ----------
-    await page.getByRole('button', { name: 'Übung starten' }).click();
+    await page.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(page.getByText('Aufgabe 1 von 4')).toBeVisible();
     await expect(page.getByText(/Englisch → Deutsch \(rezeptiv\)/)).toBeVisible();
 
@@ -145,7 +145,10 @@ test.describe('LexiFlow – Grundablauf', () => {
     await page.goto(`/#/lernen`);
     await page.getByRole('link', { name: 'Öffnen' }).click();
     await expect(page.getByText(/Gerade ist nichts fällig/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Übung starten' })).toBeDisabled();
+    // Seit Sprint 2A.2 ist nur der Lernplan gesperrt – frei üben geht weiter.
+    await expect(page.getByRole('radio', { name: 'Lernplan' })).toBeDisabled();
+    await expect(page.getByRole('radio', { name: 'Frei üben' })).toBeChecked();
+    await expect(page.getByRole('button', { name: 'Frei üben', exact: true })).toBeEnabled();
   });
 
   test('@smoke Export, erneuter Import und Bestätigung', async ({ page }) => {
