@@ -1,0 +1,195 @@
+/* ===========================================================================
+   LexiFlow Designsystem – „Editorial Signal“ (Sprint 3A)
+   ===========================================================================
+
+   Eine Haltung in Zahlen: warmes Papier statt Schulblau, fast schwarze Tinte
+   statt Grau, eine einzige charakteristische Signalfarbe statt Buntheit.
+   Ungefähr 90 % der Fläche bleibt neutral; Farbe ist ein Ereignis, kein
+   Grundrauschen.
+
+   Regeln für die Arbeit mit diesen Tokens:
+
+   1. Keine Einzelwerte in Komponenten. Was hier nicht steht, gehört hierher.
+   2. Radien haben Rollen, keine Größen: Bedienelemente sind leicht gerundet,
+      Flächen fast eckig, nur Marker sind Pillen. Nie alles gleichzeitig stark
+      abrunden.
+   3. `--signal` (Wasabi) ist ein Marker, kein Textton. Er trägt nie allein
+      eine Information und steht nie als Text auf hellem Grund.
+   4. `--accent` ist die Grafikfarbe, `--accent-ink` der textsichere Ton.
+      Für Text auf hellem Grund immer `--accent-ink`.
+   =========================================================================== */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---------------------------------------------------------- Typografie */
+  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Schriftgrößen – kleine Schritte unten, große Sprünge oben. */
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  /* Der einzige wirklich große Moment: die redaktionelle Schlagzeile. */
+  --text-display: clamp(2.25rem, 1.4rem + 3.6vw, 4rem);
+
+  --leading-tight: 1.08;
+  --leading-snug: 1.25;
+  --leading-normal: 1.6;
+
+  --tracking-display: -0.022em;
+  --tracking-tight: -0.012em;
+  --tracking-eyebrow: 0.12em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* -------------------------------------------------------------- Farben */
+  /* Flächen: warmes Papier, kein kaltes Grau. */
+  --canvas: #faf7f2;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-sunken: #f2ede4;
+
+  /* Tinte: fast schwarz, minimal warm. */
+  --ink: #14120f;
+  --ink-secondary: #4a443c;
+  --ink-muted: #6e675c;
+  --ink-inverse: #faf7f2;
+
+  /* Primäraktion ist die Tinte selbst – ruhig und selbstbewusst. */
+  --primary: #14120f;
+  --primary-hover: #2a251f;
+  --primary-ink: #faf7f2;
+
+  /* Persimmon/Signal-Coral: die charakteristische Akzentfarbe. */
+  --accent: #e2542a;
+  --accent-hover: #c8441d;
+  /* Textsicherer Ton: 5,6:1 auf Papier, 6,0:1 als Fläche unter Weiß.
+     Die volle Persimmon-Sättigung bleibt der Grafik vorbehalten. */
+  --accent-ink: #b03a12;
+  --accent-ink-hover: #93300d;
+  --accent-soft: #fdeee7;
+  --accent-contrast: #ffffff;
+
+  /* Wasabi: nur als Marker, nie als Text. */
+  --signal: #c3d63a;
+  --signal-soft: #f2f7d8;
+
+  /* Ränder und Trennungen – weich statt überall sichtbar. */
+  --border-subtle: #e8e0d4;
+  --divider: #f0eae0;
+  --border: #d8cfc0;
+  --border-strong: #8b8171;
+
+  /* Semantik */
+  --success: #1f6b4a;
+  --success-soft: #e6f1ea;
+  --warning: #7a5200;
+  --warning-soft: #f8efd9;
+  --danger: #a32d1b;
+  --danger-soft: #fbeae5;
+
+  /* --------------------------------------------------------- Abstände */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --space-10: 4rem;
+  --space-12: 5.5rem;
+
+  /* ----------------------------------------------------------- Radien */
+  --radius-control: 8px; /* Buttons, Eingaben */
+  --radius-surface: 4px; /* Karten, Flächen – bewusst kantig */
+  --radius-pill: 999px; /* nur Marker und Badges */
+
+  /* --------------------------------------------------------- Schatten */
+  --shadow-1: 0 1px 2px rgb(20 18 15 / 4%);
+  --shadow-2: 0 2px 4px rgb(20 18 15 / 5%), 0 12px 28px -18px rgb(20 18 15 / 30%);
+  --shadow-nav: 0 -1px 0 var(--border-subtle), 0 -8px 24px -20px rgb(20 18 15 / 40%);
+
+  /* ---------------------------------------------------------- Layout */
+  --width-content: 74rem;
+  --width-prose: 38rem;
+  --width-sidebar: 15rem;
+  --gutter: clamp(1rem, 0.4rem + 2vw, 2.5rem);
+
+  /* --------------------------------------------------------- Bewegung */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ------------------------------------------------------------ Fokus */
+  --focus-ring: #14120f;
+  --focus-ring-on-dark: #faf7f2;
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* ---------------------------------------- Mobile Navigation und Safe Area */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --bottom-nav-height: 3.75rem;
+  --tap-target: 44px;
+}
+
+/* Dunkle Fassung derselben Haltung: die Tinte wird zur Fläche.
+   Der Akzent hellt auf, damit er auf dunklem Papier lesbar bleibt. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #14120f;
+    --surface: #1c1a16;
+    --surface-elevated: #232019;
+    --surface-sunken: #100e0c;
+
+    --ink: #f5f1ea;
+    --ink-secondary: #cec7bb;
+    --ink-muted: #a49b8d;
+    --ink-inverse: #14120f;
+
+    --primary: #f5f1ea;
+    --primary-hover: #ffffff;
+    --primary-ink: #14120f;
+
+    --accent: #ff7a4d;
+    --accent-hover: #ff9470;
+    --accent-ink: #ff9470;
+    --accent-ink-hover: #ffb094;
+    --accent-soft: #2e1d15;
+    --accent-contrast: #14120f;
+
+    --signal: #d3e650;
+    --signal-soft: #262b12;
+
+    --border-subtle: #2e2a23;
+    --divider: #262219;
+    --border: #3b3629;
+    --border-strong: #8f8672;
+
+    --success: #7fd0ab;
+    --success-soft: #16261f;
+    --warning: #e9c473;
+    --warning-soft: #2b2413;
+    --danger: #f0a293;
+    --danger-soft: #2d1a16;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 30%);
+    --shadow-2: 0 2px 4px rgb(0 0 0 / 30%), 0 12px 28px -18px rgb(0 0 0 / 70%);
+    --shadow-nav: 0 -1px 0 var(--border-subtle), 0 -8px 24px -20px rgb(0 0 0 / 80%);
+
+    --focus-ring: #f5f1ea;
+    --focus-ring-on-dark: #14120f;
+  }
+}

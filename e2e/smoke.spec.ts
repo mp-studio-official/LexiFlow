@@ -18,11 +18,19 @@ test.describe('LexiFlow – Grundablauf', () => {
 
     // 1. Startseite
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'LexiFlow' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Vokabelarbeit, die sich nicht nach Verwaltung anfühlt.',
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: /^LexiFlow/ })).toBeVisible();
 
     // 2. Lehrkraft-Bereich ohne Login
     await page.getByRole('link', { name: 'Material erstellen', exact: true }).first().click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Material erstellen' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Was willst du heute erstellen?' }),
+    ).toBeVisible();
     await expect(page.getByLabel('Passwort')).toHaveCount(0);
 
     // 3. Import über Copy-and-paste

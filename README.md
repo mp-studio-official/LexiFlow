@@ -15,6 +15,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
   wahrheitsgemäße Wiedervorlage-Ankündigung.
 * **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
   nach erfolgreicher Speicherung des Lernstands.
+* **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
+  lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
+  überarbeitete Oberflächen. Funktional ändert sich nichts.
 * **Sprint 2B.2b** – Satzassistent und Textempfehlungen: zu einer Vokabel einen
   einfacheren Satz oder einen anderen Kontext vorschlagen lassen, und aus den
   lokal gefundenen Textkandidaten diejenigen markieren, die zur Lerngruppe
@@ -70,6 +73,9 @@ Weitere Befehle:
 | `npx vitest run src/import/candidateLimit.test.ts` | Nur die gewünschte Anzahl Vokabelvorschläge |
 | `npx playwright test e2e/sentence-assistant.spec.ts` | Nur der E2E-Ablauf des Satzassistenten |
 | `npx playwright test e2e/text-recommendation.spec.ts` | Nur der E2E-Ablauf der Textempfehlungen |
+| `npx vitest run src/ui/AppShell.test.tsx` | Nur Navigation und aktuelle Route |
+| `npx vitest run src/routes/editorialSurfaces.test.tsx` | Nur die vier überarbeiteten Oberflächen |
+| `npx playwright test e2e/editorial-shell.spec.ts` | Nur Shell, mobile Leiste und lokale Schriften |
 | `npm run build` | Typecheck + Produktions-Build nach `dist/` |
 | `npm run preview` | Produktions-Build lokal ausliefern (Port 4173) |
 | `npm run verify` | Typecheck → Tests → Build → alle E2E-Tests |
@@ -147,7 +153,13 @@ src/
   ai/            KI als austauschbare Schnittstelle
     AiProvider.ts            Vertrag + nullAiProvider (Standard)
     chromePromptAiProvider.ts  Prompt-API des Browsers, vier Fähigkeiten
+  styles/        Designsystem
+    tokens.css       Farben, Typo, Abstände, Radien, Motion, Fokus, Safe Area
+    fonts.css        lokale @font-face-Regeln (Manrope, Newsreader)
+    global.css       Zusammensetzungen – keine Einzelwerte
   ui/            Bausteine, Importlogik (usePackImport), Bestätigungsdialog
+    AppShell.tsx     Seitenspalte (Desktop) und Bodenleiste (mobil)
+    PackCard.tsx     gemeinsames Kartenmuster für alle Paketlisten
   routes/        Seiten (Start, Lehrkraft, Schülerbereich, Datenschutz)
 e2e/             Playwright: Smoke-Test und Barrierefreiheitstests
 examples/        Beispiel-CSV und Beispielpaket
@@ -1030,6 +1042,106 @@ Dieselbe Logik greift beim Speichern im Paketeditor.
 
 ---
 
+## Designsystem „Editorial Signal“
+
+Seit Sprint 3A hat LexiFlow eine eigene visuelle Haltung: hochwertig, modern,
+klar – wie ein Werkzeug für Leute, die Inhalte machen, nicht wie eine
+Verwaltungsmaske. Kein Schulblau, keine Pastelltöne, keine Abschlusskappen.
+
+### Die Grundentscheidungen
+
+| | |
+| --- | --- |
+| Fläche | warmes Papier (`--canvas: #faf7f2`) statt kaltem Grau |
+| Text und Primäraktion | fast schwarze, minimal warme Tinte (`--ink: #14120f`) |
+| Akzent | Persimmon/Signal-Coral (`--accent: #e2542a`) |
+| Marker | Wasabi (`--signal: #c3d63a`), sehr sparsam |
+| Verhältnis | rund 90 % neutrale Fläche, 10 % Akzent |
+
+Zwei Regeln halten das zusammen:
+
+* **`--accent` ist die Grafikfarbe, `--accent-ink` der textsichere Ton.** Die
+  volle Persimmon-Sättigung erreicht auf Weiß keine 4,5:1 – überall dort, wo
+  Farbe Text trägt oder hinterlegt, gilt `--accent-ink` (5,6:1 auf Papier,
+  6,0:1 unter Weiß).
+* **Wasabi ist nie Text.** Er markiert (aktiver Navigationseintrag,
+  Trennstrich) und trägt nie allein eine Information.
+
+### Tokens statt Einzelwerte
+
+`src/styles/tokens.css` definiert alles an einer Stelle: Flächen-, Text-,
+Akzent- und Statusfarben, Rand- und Trennstufen, Typografieskala,
+Abstandsskala, Radien, Schatten, Layoutbreiten, Motion-Dauern und -Easings,
+Fokusdarstellung sowie die mobilen Safe-Area-Werte. `global.css` enthält nur
+Zusammensetzungen; wer einen neuen Wert braucht, legt ihn als Token an.
+
+**Radien haben Rollen, keine Größen.** Bedienelemente sind leicht gerundet
+(`--radius-control: 8px`), Flächen fast kantig (`--radius-surface: 4px`), Pillen
+gibt es nur für Marker (`--radius-pill`). Nichts wird gleichzeitig überall stark
+abgerundet.
+
+Eine dunkle Fassung derselben Haltung ist enthalten: Die Tinte wird zur Fläche,
+der Akzent hellt auf.
+
+### Typografie
+
+| Rolle | Schrift | Einsatz |
+| --- | --- | --- |
+| Bedienung, Fließtext, Formulare | **Manrope Variable** | überall |
+| Große redaktionelle Momente | **Newsreader Variable** | nur `.display` |
+
+Die Serifenschrift steht **nie** in Formularen, Tabellen oder kleinen
+Bedienelementen – sie ist für Schlagzeilen und Abschnittstitel reserviert.
+
+### Lokale Schriften, keine Runtime-Requests
+
+Beide Schriften kommen aus den Fontsource-Paketen
+`@fontsource-variable/manrope` und `@fontsource-variable/newsreader` und werden
+vom Build in `dist/assets/` abgelegt. `src/styles/fonts.css` bindet gezielt nur
+die beiden **Latin-Subsets** ein, die Deutsch und Englisch brauchen – mit
+`font-display: swap`.
+
+| Datei | Größe |
+| --- | --- |
+| `manrope-latin-wght-normal.woff2` | 24,83 KiB |
+| `newsreader-latin-wght-normal.woff2` | 58,08 KiB |
+| **zusammen** | **82,91 KiB** |
+
+Beide sind unter der **SIL Open Font License 1.1** lizenziert: Manrope
+© 2019 The Manrope Project Authors, Newsreader © 2020 The Newsreader Project
+Authors. Die Lizenztexte liegen in den jeweiligen Paketen.
+
+Es gibt **keinen** Google-Fonts-Aufruf und keinen sonstigen Laufzeit-Request.
+Die Schriften stehen im Service-Worker-Precache (`globPatterns` enthält seit
+Sprint 3A `woff2`), damit die App auch beim ersten Start ohne Netz richtig
+aussieht. Ein E2E-Test prüft beides: dass `Manrope Variable` und
+`Newsreader Variable` tatsächlich greifen und dass dabei kein fremder Host
+angefragt wird.
+
+### App-Shell
+
+* **Desktop (ab 62 rem):** eine ruhige, schmale Seitenspalte mit Markenname und
+  den drei Kernbereichen **Lernen**, **Erstellen**, **Daten**. Die Navigation
+  tritt zurück, der Inhalt trägt die Seite. Der aktive Eintrag ist dunkel
+  hinterlegt **und** trägt einen Wasabi-Marker – Farbe allein genügt nie.
+* **Mobil:** ein kompakter Kopf oben und eine sticky Leiste am unteren Rand mit
+  denselben drei Bereichen, mindestens 44 × 44 px je Ziel und
+  `safe-area-inset-bottom` berücksichtigt. Der Inhalt reserviert genau so viel
+  Platz, dass nichts dahinter verschwindet.
+
+Beide Navigationen sind gleichzeitig im DOM; die jeweils unpassende ist per
+`display: none` auch aus dem Accessibility-Baum entfernt. Sie tragen deshalb
+unterschiedliche Namen (`Hauptnavigation`, `Bereichsnavigation`), damit
+Screenreader zwei Landmarken sauber unterscheiden können.
+
+### Was das Redesign nicht tut
+
+Es ändert **nichts** an Datenmodell, IndexedDB, Paketformat, Lernlogik,
+Importlogik, KI-Verträgen oder Datenschutzprinzipien. Jede Aktion trägt
+denselben zugänglichen Namen wie vorher – dort, wo eine Schaltfläche
+redaktionell neu gesetzt wurde, hält ein `aria-label` die bisherige
+Beschriftung wörtlich fest.
+
 ## Bedienung und Barrierefreiheit
 
 * durchgehende Tastaturbedienung; sichtbare Fokusringe (`:focus-visible`,
@@ -1183,6 +1295,16 @@ funktioniert vollständig offline.
     ankündigt.
 29. **Die gewünschte Anzahl ist eine Obergrenze.** Ein Text mit zwölf brauchbaren
     Wörtern liefert zwölf Vorschläge, keine zwanzig. Auffüllen wäre erfinden.
+30. **Farbe ist ein Ereignis, kein Grundrauschen.** Rund 90 % der Fläche bleibt
+    neutral. Eine Oberfläche, auf der alles farbig ist, hat keine Hierarchie
+    mehr – und ein Akzent, der überall steht, ist keiner.
+31. **Die Grafikfarbe und der Textton sind zwei Tokens.** Persimmon in voller
+    Sättigung ist schön und schafft auf Weiß keine 4,5:1. Statt den Ton für
+    alles zu verwässern, gibt es beide – und eine Regel, wann welcher gilt.
+32. **Schriften liegen im Repository, nicht im Netz.** Ein Google-Fonts-Aufruf
+    wäre genau der externe Request, den diese App überall sonst vermeidet.
+33. **Der Markenname ist keine Seitenüberschrift.** Er steht in der Shell; die
+    `h1` gehört dem, worum es auf der Seite geht.
 21. **Der Modus steht in der URL.** Eine freie Runde ist damit teilbar und
     direkt aufrufbar; ein fehlender oder unbekannter Wert fällt auf den
     Lernplan zurück, nie umgekehrt.
@@ -1246,5 +1368,17 @@ funktioniert vollständig offline.
 * **Die gewünschte Anzahl wählt nach Häufigkeit.** Ohne Modell ist das die beste
   verfügbare deterministische Heuristik – ein seltenes, aber zentrales Wort kann
   dabei herausfallen. Eine höhere Zahl bringt es zurück.
+* **Das Redesign endet an den Werkstätten.** Importtabellen,
+  Textkandidaten-Prüfung, Themenwerkstatt, Satzassistent, laufende Übungen,
+  Paketeditor und Datenschutzseite haben in Sprint 3A nur die neuen Tokens und
+  Bausteine geerbt. Sie sehen dadurch konsistenter aus, ihr Layout ist aber noch
+  das alte – das folgt in Sprint 3B.
+* **Die Importtabelle bleibt eine Tabelle.** Auf 390 px scrollt sie weiterhin in
+  ihrem eigenen Container. Das ist korrekt, aber noch nicht schön.
+* **Der Paketeditor trägt zwei Formsprachen.** Sein Kopf ist noch der alte,
+  darunter stehen bereits die neuen Karten und Felder.
+* **Keine visuelle Snapshot-Infrastruktur.** Die Sichtprüfung bei 1440 × 900,
+  1024 × 768 und 390 × 844 lief von Hand; es gibt keine Screenshot-Tests, die
+  eine Regression automatisch melden würden.
 * **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
   Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.

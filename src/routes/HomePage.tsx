@@ -1,44 +1,66 @@
-import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
+
+/**
+ * Editorialer Einstieg (Sprint 3A).
+ *
+ * Keine Auswahl aus zwei gleichrangigen Kacheln mehr, sondern eine Aussage:
+ * eine Schlagzeile, ein Satz Erklärung, zwei Wege hinein – und darunter die
+ * Versprechen, die dieses Produkt von Schulsoftware unterscheiden. Sie stehen
+ * bewusst als knappe, gesetzte Liste da und nicht als Werbefläche.
+ */
+
+const PROMISES: readonly { term: string; text: string }[] = [
+  {
+    term: 'Ohne Konto',
+    text: 'Keine Anmeldung, keine Schülerkonten, keine Klassenverwaltung.',
+  },
+  {
+    term: 'Ohne Einsicht',
+    text: 'Lehrkräfte sehen keine Lernstände, Antworten oder Lernzeiten.',
+  },
+  {
+    term: 'Ohne Bewertung',
+    text: 'Keine Noten, keine Abgaben, keine Ranglisten.',
+  },
+  {
+    term: 'Ohne Tracking',
+    text: 'Keine Telemetrie, keine Werbung, keine Server im Hintergrund.',
+  },
+];
 
 export function HomePage() {
   return (
-    <div className="stack" style={{ '--gap': '1.5rem' } as CSSProperties}>
-      <div>
-        <h1>LexiFlow</h1>
-        <p className="muted" style={{ maxWidth: '46rem' }}>
-          Ein Vokabeltrainer für Englisch, der ohne Konto, ohne Anmeldung und ohne
-          Serververbindung auskommt. Lernstände bleiben auf diesem Gerät und sind für
-          niemanden sonst sichtbar.
+    <div>
+      <section className="hero">
+        <p className="eyebrow">Local-first Vocab Studio</p>
+        <h1 className="display">Vokabelarbeit, die sich nicht nach Verwaltung anfühlt.</h1>
+        <div className="rule" aria-hidden="true" />
+        <p className="lede">
+          LexiFlow ist ein Vokabeltrainer für Englisch, der ohne Konto, ohne Anmeldung und ohne
+          Serververbindung auskommt. Material entsteht hier in Minuten – aus einem Text, einer
+          Liste oder einem Thema. Lernstände bleiben auf dem Gerät, auf dem gelernt wird.
         </p>
-      </div>
 
-      <div className="choice-grid">
-        <Link className="choice" to="/lernen">
-          <h2>Lernen</h2>
-          <p>
-            Vokabelpakete öffnen und üben – Karteikarte, Multiple Choice, offene
-            Übersetzung und Lückensätze.
-          </p>
-        </Link>
-        <Link className="choice" to="/material">
-          <h2>Material erstellen</h2>
-          <p>
-            Vokabellisten einfügen oder importieren, prüfen, mit Metadaten versehen und
-            als Paket weitergeben. Kein Login nötig.
-          </p>
-        </Link>
-      </div>
+        <div className="hero__actions">
+          <Link className="btn btn--accent" to="/material">
+            Material erstellen
+          </Link>
+          <Link className="btn" to="/lernen">
+            Jetzt lernen
+          </Link>
+        </div>
 
-      <div className="card card--quiet">
-        <h2 style={{ fontSize: '1.05rem' }}>Was diese App bewusst nicht tut</h2>
-        <ul className="muted small" style={{ margin: 0, paddingLeft: '1.1rem' }}>
-          <li>Keine Schülerkonten und keine Klassenverwaltung.</li>
-          <li>Keine Einsicht von Lehrkräften in Lernstände, Antworten oder Lernzeiten.</li>
-          <li>Keine Noten, keine Abgaben, keine Ranglisten.</li>
-          <li>Keine Telemetrie, keine Werbung, kein externes Tracking.</li>
-        </ul>
-      </div>
+        <dl className="promises">
+          {PROMISES.map((promise) => (
+            <div key={promise.term}>
+              <dt className="promises__term">{promise.term}</dt>
+              <dd className="promises__text" style={{ margin: 0 }}>
+                {promise.text}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
     </div>
   );
 }

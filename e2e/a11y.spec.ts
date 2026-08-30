@@ -63,7 +63,14 @@ async function seedPack(page: Page, title: string, direction: 'en-de' | 'both'):
 test.describe('Barrierefreiheit – Axe', () => {
   test('@a11y Startseite', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'LexiFlow' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Vokabelarbeit, die sich nicht nach Verwaltung anfühlt.',
+      }),
+    ).toBeVisible();
+    // Der Markenname steht seit Sprint 3A in der Shell, nicht mehr als Überschrift.
+    await expect(page.getByRole('link', { name: /^LexiFlow/ })).toBeVisible();
     await expectNoSeriousViolations(page, 'Startseite');
   });
 

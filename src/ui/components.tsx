@@ -1,6 +1,6 @@
 import { useId, type ComponentPropsWithRef, type ReactNode } from 'react';
 
-export type ButtonVariant = 'primary' | 'default' | 'quiet' | 'danger';
+export type ButtonVariant = 'primary' | 'accent' | 'default' | 'quiet' | 'danger';
 
 interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant;
@@ -123,12 +123,40 @@ export function Announcer({ message }: { message: string }) {
   );
 }
 
+/**
+ * Statische Metadaten. Ein Badge ist nie eine Aktion und nie das einzige
+ * Merkmal, an dem eine Information hängt – der Text trägt sie mit.
+ */
 export function Badge({
   children,
   tone,
 }: {
   children: ReactNode;
-  tone?: 'error' | 'warning' | 'success';
+  tone?: 'error' | 'warning' | 'success' | 'accent';
 }) {
   return <span className={['badge', tone ? `badge--${tone}` : ''].filter(Boolean).join(' ')}>{children}</span>;
+}
+
+/**
+ * Gemeinsamer leerer Zustand.
+ *
+ * Ein leerer Bereich ist kein Fehler, sondern der Anfang: Er erklärt in einem
+ * Satz, was hier entsteht, und bietet den ersten Schritt gleich mit an.
+ */
+export function EmptyState({
+  title,
+  children,
+  action,
+}: {
+  title: string;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty-state">
+      <h3 className="empty-state__title">{title}</h3>
+      {children}
+      {action}
+    </div>
+  );
 }

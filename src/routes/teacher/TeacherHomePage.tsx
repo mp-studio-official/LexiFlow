@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Alert, Badge, Button, Card } from '../../ui/components';
+import { Alert, Badge, Button, EmptyState } from '../../ui/components';
+import { PackCard } from '../../ui/PackCard';
 import { PackUpdateConfirm } from '../../ui/PackUpdateConfirm';
 import { usePackImport } from '../../ui/usePackImport';
 import { deletePack, getPack, listPacks } from '../../data/packRepo';
@@ -10,6 +11,55 @@ import { serializePack, suggestFilename } from '../../domain/vocabpack';
 import { downloadText } from '../../ui/download';
 import { GRADE_LABELS } from '../../domain/cefr';
 import { DIRECTION_LABELS } from '../../domain/schema';
+
+/**
+ * Creator-Studio statt Verwaltungsmaske (Sprint 3A).
+ *
+ * Die Seite fragt zuerst, was entstehen soll, und zeigt danach, was schon da
+ * ist. Die drei Wege ins Material sind sichtbar unterschieden – Text, Liste,
+ * Thema –, alle bisherigen Aktionen bleiben vollständig erhalten.
+ */
+
+const CREATE_OPTIONS: readonly {
+  index: string;
+  label: string;
+  text: string;
+  /** Bleibt wörtlich die bisherige Beschriftung – sie ist der zugängliche Name. */
+  action: string;
+  href: string;
+}[] = [
+  {
+    index: '01',
+    label: 'Aus einem Text',
+    text: 'Englischen Text einfügen, lokal analysieren, Kandidaten prüfen.',
+    action: 'Aus englischem Text erstellen',
+    href: '/material/import?quelle=text',
+  },
+  {
+    index: '02',
+    label: 'Aus einer Liste',
+    text: 'Vokabeln einfügen oder eine CSV-, XLSX- oder Paketdatei öffnen.',
+    action: 'Neues Paket aus Liste erstellen',
+    href: '/material/import',
+  },
+  {
+    index: '03',
+    label: 'Zu einem Thema',
+    text: 'Vorschläge lokal erzeugen lassen und anschließend prüfen.',
+    action: 'Zu einem Thema erstellen',
+    href: '/material/import?quelle=thema',
+  },
+];
+
+function formatChanged(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `geändert ${date.toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })}`;
+}
 
 export function TeacherHomePage() {
   const navigate = useNavigate();
@@ -47,15 +97,16 @@ export function TeacherHomePage() {
   }
 
   return (
-    <div className="stack">
-      <div>
-        <h1>Material erstellen</h1>
-        <p className="muted" style={{ maxWidth: '46rem' }}>
-          Dieser Bereich ist ohne Anmeldung nutzbar. Er dient ausschließlich dem Erstellen
-          und Weitergeben von Vokabelpaketen – Lernstände von Schülerinnen und Schülern
-          sind hier grundsätzlich nicht einsehbar.
+    <div className="stack stack--editorial">
+      <section className="hero" style={{ paddingBottom: 0 }}>
+        <p className="eyebrow">Material</p>
+        <h1 className="display">Was willst du heute erstellen?</h1>
+        <p className="lede">
+          Dieser Bereich braucht keine Anmeldung. Er dient dem Erstellen und Weitergeben von
+          Vokabelpaketen – Lernstände von Schülerinnen und Schülern sind hier grundsätzlich nicht
+          einsehbar.
         </p>
-      </div>
+      </section>
 
       {importer.message ? (
         <Alert tone={importer.message.tone}>{importer.message.text}</Alert>
@@ -70,90 +121,130 @@ export function TeacherHomePage() {
         />
       ) : null}
 
-      <div className="row">
-        <Button variant="primary" onClick={() => navigate('/material/import')}>
-          Neues Paket aus Liste erstellen
-        </Button>
-        <Button onClick={() => navigate('/material/import?quelle=text')}>
-          Aus englischem Text erstellen
-        </Button>
-        <Button onClick={() => navigate('/material/import?quelle=thema')}>
-          Zu einem Thema erstellen
-        </Button>
-        <Button onClick={() => fileInput.current?.click()}>
-          Paketdatei öffnen (.vocabpack.json)
-        </Button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          className="visually-hidden"
-          aria-label="LexiFlow-Paketdatei auswählen"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            if (file) void importer.importFile(file);
-          }}
-        />
-      </div>
+      <section aria-labelledby="erstellen">
+        <h2 id="erstellen" className="visually-hidden">
+          Erstellungsmöglichkeiten
+        </h2>
+        <div className="creator-grid">
+          {CREATE_OPTIONS.map((option) => (
+            /* `aria-label` hält die bisherige Beschriftung wörtlich fest –
+               sichtbar wird sie redaktionell gesetzt, für Screenreader und
+               Tests bleibt der Name unverändert. */
+            <button
+              key={option.index}
+              type="button"
+              className="creator-option"
+              aria-label={option.action}
+              onClick={() => navigate(option.href)}
+            >
+              <span className="creator-option__index" aria-hidden="true">
+                {option.index}
+              </span>
+              <span className="creator-option__label">{option.label}</span>
+              <span className="creator-option__text">{option.text}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="row" style={{ marginTop: 'var(--space-4)' }}>
+          <Button onClick={() => fileInput.current?.click()}>
+            Paketdatei öffnen (.vocabpack.json)
+          </Button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".json,application/json"
+            className="visually-hidden"
+            aria-label="LexiFlow-Paketdatei auswählen"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) void importer.importFile(file);
+            }}
+          />
+        </div>
+      </section>
 
       <section aria-labelledby="paketliste">
-        <h2 id="paketliste">Vorhandene Pakete</h2>
+        <div className="section-head">
+          <h2 id="paketliste" className="display display--section">
+            Dein Material
+          </h2>
+          {packs && packs.length > 0 ? (
+            <p className="small muted">
+              {packs.length} {packs.length === 1 ? 'Paket' : 'Pakete'} auf diesem Gerät
+            </p>
+          ) : null}
+        </div>
+
         {packs === undefined ? (
           <p className="muted">Pakete werden geladen …</p>
         ) : packs.length === 0 ? (
-          <Card quiet>
-            <p style={{ margin: 0 }}>
-              Noch keine Pakete. Beginne mit <Link to="/material/import">einer Vokabelliste</Link>.
-            </p>
-          </Card>
+          <EmptyState
+            title="Noch kein Material"
+            action={
+              <Link className="btn btn--accent" to="/material/import">
+                Neues Paket aus Liste erstellen
+              </Link>
+            }
+          >
+            <p className="empty-state__text">So entsteht das erste Paket:</p>
+            <ol>
+              <li>Eine der drei Quellen oben wählen – Text, Liste oder Thema.</li>
+              <li>Die erkannten Vokabeln prüfen und ergänzen.</li>
+              <li>Titel und Jahrgang setzen, speichern, als Datei weitergeben.</li>
+            </ol>
+          </EmptyState>
         ) : (
-          <div className="card-grid">
+          <div className="feed">
             {packs.map((meta) => (
-              <Card key={meta.id}>
-                <h3 style={{ marginBottom: '0.25rem' }}>{meta.title}</h3>
-                <p className="muted small" style={{ marginBottom: '0.6rem' }}>
-                  {GRADE_LABELS[meta.grade]} · {meta.cefrLevel} · {counts?.get(meta.id) ?? 0}{' '}
-                  Vokabeln
-                  <br />
-                  {DIRECTION_LABELS[meta.direction]}
-                  {meta.topic ? ` · ${meta.topic}` : ''}
-                </p>
-                {pendingDelete === meta.id ? (
-                  <div className="row">
-                    <span className="small">Paket und zugehörige Lernstände löschen?</span>
-                    <Button small variant="danger" onClick={() => void handleDelete(meta.id)}>
-                      Löschen
-                    </Button>
-                    <Button small variant="quiet" onClick={() => setPendingDelete(null)}>
-                      Abbrechen
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="row">
-                    <Link className="btn btn--small" to={`/material/${meta.id}`}>
-                      Bearbeiten
-                    </Link>
-                    <Button small onClick={() => void handleExport(meta.id)}>
-                      Exportieren
-                    </Button>
-                    <Button small variant="danger" onClick={() => setPendingDelete(meta.id)}>
-                      Löschen
-                    </Button>
-                  </div>
-                )}
-              </Card>
+              <PackCard
+                key={meta.id}
+                title={meta.title}
+                to={`/material/${meta.id}`}
+                meta={[
+                  `${counts?.get(meta.id) ?? 0} Vokabeln`,
+                  GRADE_LABELS[meta.grade],
+                  meta.cefrLevel,
+                  DIRECTION_LABELS[meta.direction],
+                  ...(meta.topic ? [meta.topic] : []),
+                  ...(formatChanged(meta.updatedAt) ? [formatChanged(meta.updatedAt)] : []),
+                ]}
+                actions={
+                  pendingDelete === meta.id ? (
+                    <>
+                      <span className="small">Paket und zugehörige Lernstände löschen?</span>
+                      <Button small variant="danger" onClick={() => void handleDelete(meta.id)}>
+                        Löschen
+                      </Button>
+                      <Button small variant="quiet" onClick={() => setPendingDelete(null)}>
+                        Abbrechen
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Link className="btn btn--small" to={`/material/${meta.id}`}>
+                        Bearbeiten
+                      </Link>
+                      <Button small onClick={() => void handleExport(meta.id)}>
+                        Exportieren
+                      </Button>
+                      <Button small variant="danger" onClick={() => setPendingDelete(meta.id)}>
+                        Löschen
+                      </Button>
+                    </>
+                  )
+                }
+              />
             ))}
           </div>
         )}
       </section>
 
-      <Card quiet>
-        <p className="small" style={{ margin: 0 }}>
-          <Badge>Hinweis</Badge> Exportierte Dateien enthalten nur die Vokabeln und die
-          Metadaten des Pakets. Lernstände werden nie exportiert.
-        </p>
-      </Card>
+      <p className="small muted" style={{ marginBottom: 0 }}>
+        <Badge>Hinweis</Badge> Exportierte Dateien enthalten nur die Vokabeln und die Metadaten des
+        Pakets. Lernstände werden nie exportiert.
+      </p>
     </div>
   );
 }
