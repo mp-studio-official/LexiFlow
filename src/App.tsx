@@ -1,4 +1,5 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { ProviderRegistry } from './providers/ProviderContext';
 import { AppShell } from './ui/AppShell';
 import { HomePage } from './routes/HomePage';
 import { PrivacyPage } from './routes/PrivacyPage';
@@ -16,7 +17,8 @@ import { SessionPage } from './routes/student/SessionPage';
  */
 export function App() {
   return (
-    <HashRouter>
+    <ProviderRegistry>
+      <HashRouter>
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
@@ -33,6 +35,7 @@ export function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </HashRouter>
+      </HashRouter>
+    </ProviderRegistry>
   );
 }

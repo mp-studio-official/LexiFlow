@@ -14,6 +14,22 @@ export interface DraftIssue {
   message: string;
 }
 
+/**
+ * Herkunft einer Zeile aus der Textwerkstatt.
+ *
+ * Bleibt **nur** im Entwurfsmodell: Das Austauschformat `.vocabpack.json`
+ * ändert sich dadurch nicht, und der Quelltext wandert nie ins Paket.
+ */
+export interface DraftProvenance {
+  origin: 'text-extraction';
+  /** Wie oft die Vokabel im Quelltext vorkam. */
+  occurrences: number;
+  /** Der Originalsatz, aus dem der Beispielsatz stammt. */
+  sourceSentence: string;
+  /** Stand der maschinellen Übersetzung für diese Zeile. */
+  translation: 'none' | 'accepted' | 'edited';
+}
+
 /** Ein bearbeitbarer Beispielsatz mit optionaler deutscher Entsprechung. */
 export interface DraftSentence {
   id: string;
@@ -42,6 +58,8 @@ export interface DraftRow {
   difficulty: '' | 1 | 2 | 3 | 4 | 5;
   /** Herkunft dieser Zeile; überschreibt die Herkunft des Imports. */
   sourceType?: SourceType;
+  /** Zusatzinformation für die Review-Oberfläche; nicht Teil des Pakets. */
+  provenance?: DraftProvenance;
   include: boolean;
   issues: DraftIssue[];
   /** ID der ersten Zeile mit demselben englischen Stichwort. */

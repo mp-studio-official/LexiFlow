@@ -74,6 +74,9 @@ export function TeacherHomePage() {
         <Button variant="primary" onClick={() => navigate('/material/import')}>
           Neues Paket aus Liste erstellen
         </Button>
+        <Button onClick={() => navigate('/material/import?quelle=text')}>
+          Aus englischem Text erstellen
+        </Button>
         <Button onClick={() => fileInput.current?.click()}>
           Paketdatei öffnen (.vocabpack.json)
         </Button>

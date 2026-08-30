@@ -535,6 +535,61 @@ td select {
   gap: 0.15rem;
 }
 
+/* Kandidatenliste der Textwerkstatt */
+
+.candidates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.candidate {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.candidate__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.candidate__head strong {
+  overflow-wrap: anywhere;
+}
+
+.candidate__sentence {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  border-left: 3px solid var(--border);
+  padding-left: 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.candidate__suggestion {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.7rem;
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+progress {
+  width: min(100%, 22rem);
+  height: 0.75rem;
+}
+
 .badge {
   display: inline-block;
   font-size: 0.78rem;

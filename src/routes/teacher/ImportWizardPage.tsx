@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card, Field } from '../../ui/components';
 import { DraftTable } from './DraftTable';
 import { MetadataForm, emptyMetaDraft, type MetaDraft } from './MetadataForm';
@@ -21,6 +21,14 @@ import {
   type DraftRow,
 } from '../../import/draft';
 import { parseCsv, parsePastedText } from '../../import/csv';
+import { TextCandidateReview } from './TextCandidateReview';
+import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
+import {
+  MAX_TEXT_LENGTH,
+  TextTooLongError,
+  analyzeText,
+  type TextAnalysis,
+} from '../../domain/textExtraction';
 import { readXlsx, XlsxReadError, type XlsxSheet } from '../../import/xlsx';
 import { parsePackFile } from '../../domain/vocabpack';
 import { getPackMeta, previewPackUpdate, savePack } from '../../data/packRepo';
@@ -31,11 +39,12 @@ import { newId } from '../../domain/ids';
 import { suggestCefrLevel } from '../../domain/cefr';
 import type { SourceType, VocabPack } from '../../domain/schema';
 
-type SourceKind = 'paste' | 'csv' | 'xlsx' | 'json';
-type Step = 1 | 2 | 3;
+type SourceKind = 'paste' | 'text' | 'csv' | 'xlsx' | 'json';
+type Step = 'source' | 'candidates' | 'preview' | 'meta';
 
 const SOURCE_LABELS: Readonly<Record<SourceKind, string>> = {
   paste: 'Einfügen',
+  text: 'Aus englischem Text',
   csv: 'CSV-Datei',
   xlsx: 'XLSX-Datei',
   json: 'LexiFlow-Paket (.vocabpack.json)',
@@ -47,10 +56,13 @@ neighbourhood\tNachbarschaft, Viertel`;
 
 export function ImportWizardPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<Step>(1);
-  const [source, setSource] = useState<SourceKind>('paste');
+  const [step, setStep] = useState<Step>('source');
+  const [source, setSource] = useState<SourceKind>(() =>
+    searchParams.get('quelle') === 'text' ? 'text' : 'paste',
+  );
   const [pasteText, setPasteText] = useState('');
   const [splitMeaningsOption, setSplitMeaningsOption] = useState(true);
 
@@ -62,6 +74,12 @@ export function ImportWizardPage() {
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [meta, setMeta] = useState<MetaDraft>(emptyMetaDraft());
   const [sourceType, setSourceType] = useState<SourceType>('import');
+
+  // Textwerkstatt
+  const [englishText, setEnglishText] = useState('');
+  const [includeStopwords, setIncludeStopwords] = useState(false);
+  const [includeProperNouns, setIncludeProperNouns] = useState(false);
+  const [analysis, setAnalysis] = useState<TextAnalysis | null>(null);
 
   const [error, setError] = useState<string>('');
   const [announcement, setAnnouncement] = useState<string>('');
@@ -85,8 +103,51 @@ export function ImportWizardPage() {
     const built = buildDrafts(rows, detected, { splitMultipleMeanings: splitMeaningsOption });
     setDrafts(built);
     setError('');
-    setStep(2);
+    setStep('preview');
     setAnnouncement(`${built.length} Zeilen erkannt. Vorschau geöffnet.`);
+  }
+
+  /** Reine, lokale Analyse – kein Netzwerkzugriff, keine Speicherung des Textes. */
+  function handleAnalyze(): void {
+    const text = englishText.trim();
+    if (text.length === 0) {
+      setError('Bitte zuerst einen englischen Text einfügen.');
+      return;
+    }
+    try {
+      const result = analyzeText(englishText, { includeStopwords, includeProperNouns });
+      if (result.candidates.length === 0) {
+        setAnalysis(null);
+        setError(
+          'In diesem Text wurden keine geeigneten Vokabelkandidaten gefunden. Blende gegebenenfalls Funktionswörter oder Eigennamen ein.',
+        );
+        return;
+      }
+      setAnalysis(result);
+      setError('');
+      setStep('candidates');
+      setAnnouncement(
+        `${result.candidates.length} Kandidaten aus ${result.sentenceCount} Sätzen gefunden.`,
+      );
+    } catch (caught: unknown) {
+      setAnalysis(null);
+      setError(
+        caught instanceof TextTooLongError
+          ? caught.message
+          : 'Der Text konnte nicht analysiert werden.',
+      );
+    }
+  }
+
+  function handleCandidates(selections: CandidateSelection[]): void {
+    const built = candidatesToDrafts(selections);
+    setDrafts(built);
+    setSourceType('import');
+    setRawRows([]);
+    setMapping(null);
+    setError('');
+    setStep('preview');
+    setAnnouncement(`${built.length} Vokabeln in die Vorschau übernommen.`);
   }
 
   function handlePaste(): void {
@@ -124,7 +185,7 @@ export function ImportWizardPage() {
           direction: result.pack.meta.direction,
           description: result.pack.meta.description ?? '',
         });
-        setStep(2);
+        setStep('preview');
         setAnnouncement(`${result.pack.entries.length} Vokabeln aus der Paketdatei gelesen.`);
       }
     } catch (caught: unknown) {
@@ -225,9 +286,12 @@ export function ImportWizardPage() {
       <div>
         <h1>Vokabelpaket erstellen</h1>
         <ol className="steps">
-          <li aria-current={step === 1 ? 'step' : undefined}>Quelle wählen</li>
-          <li aria-current={step === 2 ? 'step' : undefined}>Vorschau prüfen</li>
-          <li aria-current={step === 3 ? 'step' : undefined}>Metadaten &amp; speichern</li>
+          <li aria-current={step === 'source' ? 'step' : undefined}>Quelle wählen</li>
+          {source === 'text' ? (
+            <li aria-current={step === 'candidates' ? 'step' : undefined}>Kandidaten prüfen</li>
+          ) : null}
+          <li aria-current={step === 'preview' ? 'step' : undefined}>Vorschau prüfen</li>
+          <li aria-current={step === 'meta' ? 'step' : undefined}>Metadaten &amp; speichern</li>
         </ol>
       </div>
 
@@ -254,7 +318,7 @@ export function ImportWizardPage() {
         />
       ) : null}
 
-      {step === 1 ? (
+      {step === 'source' ? (
         <Card>
           <h2>Woher kommen die Vokabeln?</h2>
           <fieldset style={{ border: 0, padding: 0, margin: '0 0 1rem' }}>
@@ -275,7 +339,66 @@ export function ImportWizardPage() {
             </div>
           </fieldset>
 
-          {source === 'paste' ? (
+          {source === 'text' ? (
+            <div className="stack">
+              <Alert tone="info">
+                Der Text wird auf diesem Gerät verarbeitet. Verwende nur Texte, die du verwenden
+                darfst, und füge keine personenbezogenen Daten von Schülerinnen und Schülern ein.
+              </Alert>
+              <Field
+                label="Englischer Text"
+                hint={`Bis zu ${MAX_TEXT_LENGTH.toLocaleString('de-DE')} Zeichen. LexiFlow zerlegt den Text lokal in Sätze und Wörter; der Text selbst wird nicht gespeichert und nicht exportiert.`}
+              >
+                {(props) => (
+                  <textarea
+                    {...props}
+                    value={englishText}
+                    spellCheck={false}
+                    onChange={(event) => setEnglishText(event.target.value)}
+                  />
+                )}
+              </Field>
+              <p className="small muted" style={{ margin: 0 }}>
+                {englishText.length.toLocaleString('de-DE')} von{' '}
+                {MAX_TEXT_LENGTH.toLocaleString('de-DE')} Zeichen
+              </p>
+              <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+                <legend className="visually-hidden">Analyseoptionen</legend>
+                <div className="row">
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={includeStopwords}
+                      onChange={(event) => setIncludeStopwords(event.target.checked)}
+                    />
+                    <span>Funktionswörter einblenden (the, and, is …)</span>
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={includeProperNouns}
+                      onChange={(event) => setIncludeProperNouns(event.target.checked)}
+                    />
+                    <span>Wahrscheinliche Eigennamen einblenden</span>
+                  </label>
+                </div>
+              </fieldset>
+              <div className="row">
+                <Button
+                  variant="primary"
+                  onClick={handleAnalyze}
+                  disabled={englishText.trim().length === 0}
+                >
+                  Text lokal analysieren
+                </Button>
+                {analysis ? (
+                  <Button variant="quiet" onClick={() => setStep('candidates')}>
+                    Zurück zu den Kandidaten
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : source === 'paste' ? (
             <div className="stack">
               <Field
                 label="Vokabelliste einfügen"
@@ -336,7 +459,15 @@ export function ImportWizardPage() {
         </Card>
       ) : null}
 
-      {step === 2 ? (
+      {step === 'candidates' && analysis ? (
+        <TextCandidateReview
+          candidates={analysis.candidates}
+          onApply={handleCandidates}
+          onBack={() => setStep('source')}
+        />
+      ) : null}
+
+      {step === 'preview' ? (
         <div className="stack">
           {sheets.length > 1 ? (
             <Card quiet>
@@ -413,22 +544,22 @@ export function ImportWizardPage() {
           <DraftTable drafts={drafts} onChange={setDrafts} />
 
           <div className="row">
-            <Button onClick={() => setStep(1)}>Zurück</Button>
-            <Button variant="primary" onClick={() => setStep(3)} disabled={summary.selected === 0}>
+            <Button onClick={() => setStep('source')}>Zurück</Button>
+            <Button variant="primary" onClick={() => setStep('meta')} disabled={summary.selected === 0}>
               Weiter zu den Metadaten
             </Button>
           </div>
         </div>
       ) : null}
 
-      {step === 3 ? (
+      {step === 'meta' ? (
         <div className="stack">
           <Card>
             <h2>Metadaten</h2>
             <MetadataForm value={meta} onChange={setMeta} />
           </Card>
           <div className="row">
-            <Button onClick={() => setStep(2)}>Zurück zur Vorschau</Button>
+            <Button onClick={() => setStep('preview')}>Zurück zur Vorschau</Button>
             <Button variant="primary" onClick={() => void handleSave()}>
               Paket speichern ({summary.selected} Vokabeln)
             </Button>

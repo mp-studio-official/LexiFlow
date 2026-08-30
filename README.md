@@ -15,6 +15,10 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
   wahrheitsgemäße Wiedervorlage-Ankündigung.
 * **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
   nach erfolgreicher Speicherung des Lernstands.
+* **Sprint 2A** – Inhaltswerkstatt: aus einem englischen Text lokal
+  Vokabelkandidaten gewinnen, Originalsätze prüfen und in den vorhandenen
+  Entwurfs-Workflow übergeben. Optionale Übersetzungsvorschläge nur in Chrome,
+  nur auf dem Gerät und nur nach ausdrücklichem Klick.
 
 ---
 
@@ -62,7 +66,8 @@ Beide werden von `src/domain/examplePack.test.ts` bei jedem Testlauf geprüft.
 | Keine Konten, keine Lehrkraft-Einsicht | Es existiert keine Auth-Schicht und kein Rückkanal. Der Lehrkraft-Bereich ist eine reine Editier-Oberfläche. |
 | Lernstände nur lokal | `directionProgress`/`packProgress` liegen in IndexedDB. Der einzige Schreibpfad ist `src/data/progressRepo.ts`; es gibt keine Export- oder Sendefunktion dafür. Ein Test prüft, dass Exporte keine Lernstandsfelder enthalten. |
 | Keine Telemetrie, keine externen Ressourcen | Keine Analytics-Abhängigkeit, keine Web-Fonts, keine CDN-Einbindung. Der Service Worker cached ausschließlich eigene Assets (`runtimeCaching: []`). Der E2E-Smoke-Test schlägt fehl, sobald ein Request an einen fremden Host geht. |
-| Ohne Backend und ohne KI lauffähig | Reine Client-App, statisch deploybar. `AiProvider` ist vorbereitet, aber der Standardanbieter (`nullAiProvider`) wird nie aufgerufen. |
+| Ohne Backend und ohne KI lauffähig | Reine Client-App, statisch deploybar. `AiProvider` ist vorbereitet, aber der Standardanbieter (`nullAiProvider`) wird nie aufgerufen. Die Textanalyse aus Sprint 2A läuft ohne jedes Modell. |
+| Übersetzung nur auf dem Gerät | `TranslationProvider` verbietet eigene `fetch`-Aufrufe; der einzige Anbieter nutzt die eingebaute Translator-API des Browsers und startet einen Modelldownload erst nach ausdrücklichem Klick. Fehlt die API, ist das ein normaler Zustand. |
 | Keine manipulativen Mechanismen | Kein Punktesystem, keine Serien-Belohnung, keine Rangliste. Sichtbar ist nur der eigene Leitner-Stand. |
 
 ---
@@ -81,6 +86,8 @@ src/
     session.ts       Warteschlange einer Runde inkl. Wiedervorlage
     dueDate.ts       verständliche Formulierung von Fälligkeitsterminen
     packDiff.ts      Fingerprint lernrelevanter Felder, Paketvergleich
+    textExtraction.ts  lokale Textanalyse: Sätze, Wörter, Kandidaten
+    stopwords.ts     englische Funktionswörter (Standardausblendung)
     vocabpack.ts     Serialisierung des .vocabpack.json
     migrations.ts    Migrationskette für ältere Dateiformate
   data/          Persistenz (Dexie/IndexedDB)
@@ -92,6 +99,11 @@ src/
     xlsx.ts          minimaler XLSX-Leser (fflate + DOMParser)
     columnDetect.ts  automatische Spaltenerkennung
     draft.ts         Entwurfszeilen (alle Felder), Prüfung, Duplikate
+    textDraft.ts     Kandidaten → Entwurfszeilen (kein zweiter Editor)
+  translation/   lokale Übersetzung als eigene, schmale Schnittstelle
+    TranslationProvider.ts    Vertrag + nullTranslationProvider (Standard)
+    chromeTranslationProvider.ts  Chrome-Translator-API, reine Feature Detection
+  providers/     Registry (React-Context) und gemeinsamer Anbieterzustand
   ai/AiProvider.ts   vorbereitete, austauschbare Schnittstelle (ungenutzt)
   ui/            Bausteine, Importlogik (usePackImport), Bestätigungsdialog
   routes/        Seiten (Start, Lehrkraft, Schülerbereich, Datenschutz)
@@ -109,6 +121,7 @@ weder React noch die Datenbank und ist deshalb vollständig ohne Mocks testbar.
 | `/` | Startseite mit „Lernen“ und „Material erstellen“ |
 | `/material` | Lehrkraft-Bereich (ohne Login): Paketliste, Export, Löschen |
 | `/material/import` | Importassistent: Quelle → Vorschau → Metadaten |
+| `/material/import?quelle=text` | Textwerkstatt: Text → Kandidaten → Vorschau → Metadaten |
 | `/material/:packId` | Paketeditor (Metadaten und Vokabeln) |
 | `/lernen` | Lokale Paketsammlung mit Lernstand |
 | `/lernen/:packId` | Paketdetails, Leitner-Übersicht je Richtung, Optionen |
@@ -436,6 +449,92 @@ neutraler Leerzustand.
 
 ---
 
+## Aus englischem Text erstellen (Textwerkstatt)
+
+Lehrkräfte fügen einen englischen Text ein; LexiFlow zerlegt ihn **auf dem
+Gerät** in Sätze und Wörter und schlägt Vokabelkandidaten vor. Zu jedem
+Kandidaten steht der Originalsatz aus dem Text – unverändert, als Beleg und als
+späterer Beispielsatz.
+
+Ablauf: Text einfügen → lokal analysieren → Kandidaten prüfen → deutsche
+Antworten eintragen → in die bekannte Vorschau übernehmen → Metadaten und
+speichern.
+
+### Was garantiert lokal bleibt
+
+* Die Analyse ist eine reine Funktion (`extractTextCandidates`) ohne jeden
+  Netzwerkzugriff und ohne Zufall – gleicher Text, gleiches Ergebnis.
+* Der eingefügte **Quelltext wird nicht gespeichert und nicht exportiert**. Er
+  lebt nur im Formularzustand der geöffneten Seite. Ins Paket wandern
+  ausschließlich die übernommenen Vokabeln samt ihrem jeweiligen Originalsatz.
+* Es gibt keinen Cloud-Fallback, keinen API-Schlüssel und keine
+  Umgebungsvariable für Geheimnisse. Der E2E-Test schlägt fehl, sobald ein
+  Request an einen fremden Host geht.
+* Erfunden wird nichts: keine Übersetzung, keine Wortart, kein GeR-Niveau.
+  Fehlt die deutsche Antwort, bleibt die Zeile sichtbar und ist als Fehler
+  gekennzeichnet – gespeichert wird sie nicht.
+
+### Grenzen der Analyse
+
+* Höchstens **20.000 Zeichen**. Längere Texte werden mit einer verständlichen
+  Meldung abgelehnt, nie still gekürzt.
+* Funktionswörter (`the`, `and`, `is` …) und wahrscheinliche Eigennamen sind
+  standardmäßig ausgeblendet und lassen sich einblenden. Die Eigennamen-Erkennung
+  ist eine Heuristik (durchgehende Großschreibung auch außerhalb des
+  Satzanfangs) und liegt gelegentlich daneben.
+* Es findet keine Grundformbildung statt: `child` und `children` sind zwei
+  Kandidaten. Mehrwortverbindungen (`look after`) werden nicht erkannt.
+* Segmentiert wird mit `Intl.Segmenter`; fehlt die API, greift ein
+  handgeschriebener, getesteter Fallback (Abkürzungen wie `Mr.` inklusive).
+
+### Optionale Übersetzungsvorschläge
+
+| | |
+| --- | --- |
+| Wo | ausschließlich in Browsern mit eingebauter Translator-API (derzeit Chrome, je nach Version und Gerät) |
+| Wann | erst nach ausdrücklichem Klick auf „Sprachmodell laden und Vorschläge erzeugen“ |
+| Wohin | nirgendwohin: *„Die Übersetzung läuft lokal in Chrome. Der Text wird nicht an LexiFlow oder einen Cloud-Dienst übertragen.“* |
+| Ohne Unterstützung | ein normaler Zustand, kein Fehler – alles wird von Hand eingetragen, sonst ändert sich nichts |
+
+Ein Vorschlag ist **immer ungeprüft**. Er steht getrennt neben dem Eingabefeld
+und wird nie automatisch übernommen; erst „Vorschlag übernehmen“ schreibt ihn in
+die deutsche Antwort. Wird er anschließend bearbeitet, gilt die Zeile wieder als
+eigene Eingabe. Maschinelle Übersetzung kennt den Kontext nicht: Sie trifft bei
+mehrdeutigen Wörtern (`litter`, `light`, `book`) oft die falsche Bedeutung, kann
+Wortarten verwechseln und ignoriert das Sprachniveau der Lerngruppe. **Die
+Lehrkraft bleibt für jede Vokabel und jeden Satz verantwortlich.**
+
+### Herkunft der Zeilen
+
+Die vorhandenen `sourceType`-Werte werden weiterverwendet: `import` für aus dem
+Text übernommene und selbst übersetzte Vokabeln, `text-ai` nur dort, wo ein
+maschineller Vorschlag tatsächlich übernommen wurde. Zusätzliche Angaben
+(Häufigkeit im Text, Originalsatz, Übersetzungsstand) leben ausschließlich im
+Entwurfsmodell (`DraftProvenance`); das Austauschformat `.vocabpack.json` und
+seine `formatVersion` bleiben unverändert.
+
+### Ausblick (nur technisch)
+
+Der Vertrag ist bereits auf Sprint 2B ausgelegt: weitere `AiProvider`-Fähigkeiten
+(Vorschläge zu einem Thema, Eintrag ergänzen, alternativer Beispielsatz) lassen
+sich hinzufügen, ohne die Oberfläche der Textwerkstatt oder das Austauschformat
+zu ändern. In der Anwendung selbst wird darauf bewusst nicht hingewiesen.
+
+### Anbieter statt globalem Singleton
+
+Übersetzung und KI sind zwei getrennte Verträge:
+`TranslationProvider` (`getAvailability` / `prepare` / `translate` / `destroy`)
+und `AiProvider` (Fähigkeiten `suggest-from-text`, `suggest-from-topic`,
+`enrich-entry`, `alternative-sentence`). Beide melden ihren Zustand asynchron als
+`unavailable | downloadable | downloading | available`, laden Modelle nur nach
+ausdrücklicher Auslösung, melden echten Fortschritt und lassen sich über ein
+`AbortSignal` abbrechen. Bereitgestellt werden sie über eine kleine Registry
+(`ProviderRegistry`, React-Context) – in Tests vollständig ersetzbar, ohne
+Modulzustand zu verbiegen. Standard bleibt in beiden Fällen der ehrliche
+Nullanbieter; ein Anbieter ruft niemals selbst `fetch` auf.
+
+---
+
 ## Pakete aktualisieren, ohne Lernstände zu verlieren
 
 Wird eine `.vocabpack.json` importiert, deren Paket-ID bereits vorhanden ist,
@@ -497,6 +596,14 @@ Zusätzlich getestet:
   Schülerbereich, Datenschutz, Importvorschau, Paketdetail, Übung und Feedback
 * die breite Lehrkraft-Tabelle scrollt in ihrem eigenen Container
   (`.table-wrap`), ohne die Seite zu verbreitern
+* `e2e/text-workshop.spec.ts`: Textwerkstatt von der Analyse bis zur Übung,
+  Axe-Prüfung der Kandidatenansicht, Fokus auf der Ergebnisüberschrift,
+  Tastaturbedienung und 390 px ohne Überlauf
+
+Automatisierte Tests laden **nie** ein echtes Browsermodell. Der Chrome-Anbieter
+wird gegen eine nachgebaute Translator-API geprüft, die Oberfläche gegen einen
+Fake-Provider (`src/test/fakeTranslator.ts`); die E2E-Stufe läuft in einem
+Chromium ganz ohne Translator-API – also im Normalfall.
 
 ---
 
@@ -542,6 +649,18 @@ funktioniert vollständig offline.
     verletzen.** Eine kurze Runde wird lieber kürzer als didaktisch wertlos.
 13. **Axe-Schwelle bei `serious`.** Best-Practice-Regeln (`minor`/`moderate`)
     blockieren nicht, werden im Fehlerfall aber mit ausgegeben.
+14. **Übersetzung ist kein KI-Vertrag.** Sie hat eine eigene, schmale
+    Schnittstelle und lässt sich unabhängig austauschen oder weglassen.
+15. **Keine Polyfills, kein WebLLM, kein Transformers.js, kein Ollama.** Nur
+    das, was der Browser von sich aus mitbringt – sonst nichts.
+16. **Kein Stemming und keine Mehrwortverbindungen.** Beides erfordert
+    Wörterbücher oder Modelle; eine falsche Grundform wäre schlechter als zwei
+    ehrliche Kandidaten.
+17. **Herkunft nur im Entwurf.** Das Austauschformat bleibt unverändert, damit
+    ältere Fassungen der App die Dateien weiter lesen können.
+18. **Registry statt globalem Singleton.** Anbieter sind Zustand mit Lebenszeit
+    (geladene Modelle); ein Modul-Singleton wäre in Tests und beim Wechsel des
+    Anbieters nicht sauber zurückzusetzen.
 
 ## Bekannte Restprobleme und offene Fragen
 
@@ -568,3 +687,15 @@ funktioniert vollständig offline.
 * **Kein automatischer Barrierefreiheitstest.** Ein Axe-Durchlauf in der
   E2E-Stufe wäre der nächste sinnvolle Schritt.
 * **PWA-Update** läuft still (`autoUpdate`), ohne Hinweis auf eine neue Version.
+* **Kandidaten ohne Grundform.** `child`/`children` und `run`/`running` bleiben
+  getrennte Kandidaten; zusammenführen muss die Lehrkraft.
+* **Eigennamen-Heuristik.** Ein Wort, das nur satzintern großgeschrieben
+  vorkommt, gilt als Eigenname – bei sehr kurzen Texten trifft das gelegentlich
+  das Falsche. Die Ausblendung lässt sich abschalten.
+* **Übersetzungsvorschläge nur wortweise.** Übersetzt werden Stichwort und
+  Originalsatz einzeln; eine Abstimmung zwischen beiden findet nicht statt.
+* **Translator-API nicht in der E2E-Stufe.** Der Chrome-Pfad ist über
+  Vertragstests mit einer nachgebauten API abgesichert, nicht gegen den echten
+  Browser – ein echtes Modell würde die Tests vom Netz abhängig machen.
+* **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
+  Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.
