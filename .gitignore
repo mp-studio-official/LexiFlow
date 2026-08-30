@@ -1,0 +1,32 @@
+# Abhängigkeiten
+node_modules/
+
+# Build-Ausgaben
+dist/
+dev-dist/
+.vite/
+
+# Playwright-Artefakte
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Testabdeckung
+coverage/
+.nyc_output/
+
+# Logs und lokale Umgebung
+*.log
+npm-debug.log*
+.env
+.env.*.local
+*.local
+
+# Betriebssystem
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini

@@ -1,0 +1,84 @@
+{
+  "kind": "lexiflow.vocabpack",
+  "formatVersion": 1,
+  "app": { "name": "LexiFlow", "version": "0.1.0" },
+  "meta": {
+    "id": "example-unit-3-city-life",
+    "title": "Unit 3 – City life",
+    "topic": "City",
+    "grade": "7",
+    "cefrLevel": "A2+",
+    "cefrLevelOverridden": false,
+    "direction": "en-de",
+    "description": "Beispielpaket zum Ausprobieren. Enthält Beispielsätze für Lückenaufgaben.",
+    "createdAt": "2026-08-01T08:00:00.000Z",
+    "updatedAt": "2026-08-01T08:00:00.000Z"
+  },
+  "entries": [
+    {
+      "id": "example-crowded",
+      "english": "crowded",
+      "germanAnswers": ["überfüllt", "voll"],
+      "acceptedEnglishAnswers": [],
+      "partOfSpeech": "adjective",
+      "exampleSentences": [
+        { "english": "The bus was crowded this morning.", "german": "Der Bus war heute Morgen überfüllt." }
+      ],
+      "topicTags": ["city", "transport"],
+      "sourceType": "manual"
+    },
+    {
+      "id": "example-neighbourhood",
+      "english": "neighbourhood",
+      "germanAnswers": ["Nachbarschaft", "Viertel"],
+      "acceptedEnglishAnswers": ["neighborhood"],
+      "partOfSpeech": "noun",
+      "exampleSentences": [
+        { "english": "They moved to a quiet neighbourhood.", "german": "Sie sind in ein ruhiges Viertel gezogen." }
+      ],
+      "topicTags": ["city"],
+      "notes": "AE: neighborhood, BE: neighbourhood",
+      "sourceType": "manual"
+    },
+    {
+      "id": "example-litter",
+      "english": "litter",
+      "germanAnswers": ["Müll", "Abfall"],
+      "acceptedEnglishAnswers": [],
+      "partOfSpeech": "noun",
+      "exampleSentences": [{ "english": "Please do not drop litter in the park." }],
+      "topicTags": ["city", "environment"],
+      "sourceType": "manual"
+    },
+    {
+      "id": "example-apologise",
+      "english": "to apologise",
+      "germanAnswers": ["sich entschuldigen"],
+      "acceptedEnglishAnswers": ["to apologize", "apologise"],
+      "partOfSpeech": "verb",
+      "exampleSentences": [{ "english": "You should apologise to your neighbour." }],
+      "topicTags": ["school"],
+      "sourceType": "manual"
+    },
+    {
+      "id": "example-quiet",
+      "english": "quiet",
+      "germanAnswers": ["ruhig", "leise"],
+      "acceptedEnglishAnswers": [],
+      "partOfSpeech": "adjective",
+      "exampleSentences": [{ "english": "The street is very quiet at night.", "german": "Die Straße ist nachts sehr ruhig." }],
+      "topicTags": ["city"],
+      "sourceType": "manual"
+    },
+    {
+      "id": "example-traffic",
+      "english": "traffic",
+      "germanAnswers": ["Verkehr"],
+      "acceptedEnglishAnswers": [],
+      "partOfSpeech": "noun",
+      "exampleSentences": [{ "english": "There is a lot of traffic in the city centre." }],
+      "topicTags": ["city", "transport"],
+      "sourceType": "manual"
+    }
+  ]
+}
