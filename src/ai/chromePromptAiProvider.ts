@@ -483,6 +483,13 @@ export function createChromePromptAiProvider(scope: unknown = globalThis): AiPro
    */
   const sessions = new Map<AiCapability, LanguageModelSession>();
   const queues = new Map<AiCapability, Promise<unknown>>();
+  /**
+   * Laufende Vorbereitungen. Zwei Klicks kurz hintereinander – oder zwei
+   * Ansichten derselben Fähigkeit – dürfen nicht zwei Modelldownloads starten;
+   * `sessions.has()` ist bei beiden noch `false`. Wer als Zweiter kommt, hängt
+   * sich deshalb an dieselbe Zusage.
+   */
+  const pending = new Map<AiCapability, Promise<void>>();
 
   async function getAvailability(capability: AiCapability): Promise<ProviderState> {
     if (!isSupported(capability)) return 'unavailable';
@@ -571,8 +578,11 @@ export function createChromePromptAiProvider(scope: unknown = globalThis): AiPro
         throw new AiUnavailableError('Dieser Browser bietet kein lokales Sprachmodell.');
       }
       if (signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
-      // Dieselbe Fähigkeit wird nie zweimal vorbereitet.
+      // Dieselbe Fähigkeit wird nie zweimal vorbereitet …
       if (sessions.has(capability)) return;
+      // … auch nicht, während die erste Vorbereitung noch läuft.
+      const running = pending.get(capability);
+      if (running) return running;
 
       const options: LanguageModelOptions = {
         ...languageOptions(capability),
@@ -586,8 +596,24 @@ export function createChromePromptAiProvider(scope: unknown = globalThis): AiPro
         ...(signal ? { signal } : {}),
       };
 
-      sessions.set(capability, await api.create(options));
-      onProgress?.(1);
+      const attempt = api
+        .create(options)
+        .then((session) => {
+          sessions.set(capability, session);
+          onProgress?.(1);
+        })
+        // Scheitert oder bricht der Versuch ab, bleibt nichts zurück, das einen
+        // neuen Versuch blockieren würde.
+        .finally(() => {
+          pending.delete(capability);
+        });
+
+      // Die Ablehnung behandeln die Aufrufer; dieser Zweig verhindert nur eine
+      // „unhandled rejection“, falls niemand den geteilten Eintrag abwartet.
+      attempt.catch(() => undefined);
+
+      pending.set(capability, attempt);
+      return attempt;
     },
 
     async enrichEntry(entry, context) {
@@ -659,9 +685,14 @@ export function createChromePromptAiProvider(scope: unknown = globalThis): AiPro
     },
 
     async suggestFromText(candidates, context) {
+      // **Eine** Kandidatenmenge für Prompt und Prüfung. Würde der Prompt
+      // begrenzt, die Prüfung aber gegen die volle Liste laufen, wäre ein
+      // Schlüssel gültig, den das Modell nie gesehen hat.
+      const limited = candidates.slice(0, MAX_CONTEXT_CANDIDATES);
+
       const parsed = await ask(
         TEXT_CAPABILITY,
-        buildTextPrompt(candidates, context),
+        buildTextPrompt(limited, context),
         TEXT_RESPONSE_SCHEMA,
         context.signal,
       );
@@ -675,7 +706,7 @@ export function createChromePromptAiProvider(scope: unknown = globalThis): AiPro
 
       // Nur bekannte Schlüssel, keine Dubletten – der Anbieter erfindet nichts.
       // Die Reihenfolge des Modells bleibt erhalten: stärkste Empfehlung zuerst.
-      const known = new Set(candidates.map((candidate) => candidate.key));
+      const known = new Set(limited.map((candidate) => candidate.key));
       const seen = new Set<string>();
       const recommendations: { key: string }[] = [];
       for (const key of checked.data.recommendedKeys) {
@@ -690,6 +721,7 @@ export function createChromePromptAiProvider(scope: unknown = globalThis): AiPro
       for (const session of sessions.values()) session.destroy?.();
       sessions.clear();
       queues.clear();
+      pending.clear();
     },
   };
 }

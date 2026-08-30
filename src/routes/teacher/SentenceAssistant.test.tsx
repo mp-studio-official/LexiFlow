@@ -297,6 +297,29 @@ describe('Fehler, Abbruch und fehlendes Modell', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('behauptet nach dem Laden nicht mehr, laden zu müssen', async () => {
+    // Sprint 2B.2b1: Nach erfolgreichem `prepare()` blieb der Zustand auf
+    // `downloadable` stehen – die Schaltfläche log den zweiten Klick an.
+    const ai = createFakeAiProvider({ availability: 'downloadable' });
+    const user = setup({ ai: ai.provider });
+
+    const before = await screen.findByRole('button', { name: /Einfacheren Satz/ });
+    expect(before).toHaveTextContent('Sprachmodell laden – Einfacheren Satz vorschlagen');
+
+    await user.click(before);
+    await waitFor(() => expect(ai.sentenceCalls()).toHaveLength(1));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Einfacheren Satz/ })).toHaveTextContent(
+        'Einfacheren Satz vorschlagen',
+      ),
+    );
+    expect(screen.getByRole('button', { name: /Anderen Kontext/ })).toHaveTextContent(
+      'Anderen Kontext vorschlagen',
+    );
+    expect(screen.queryByText(/Sprachmodell laden –/)).not.toBeInTheDocument();
+  });
+
   it('bereitet die Fähigkeit nur einmal vor', async () => {
     const ai = createFakeAiProvider();
     const user = setup({ ai: ai.provider });

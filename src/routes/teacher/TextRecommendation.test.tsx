@@ -242,6 +242,28 @@ describe('Anzeige und Reihenfolge', () => {
   });
 });
 
+describe('Zustand nach dem Laden', () => {
+  it('behauptet nach dem Laden nicht mehr, laden zu müssen', async () => {
+    // Sprint 2B.2b1: Der Zustand blieb auf `downloadable` stehen.
+    const { user } = setup({
+      recommendationsFor: (candidates) => [{ key: candidates[0]?.key ?? '' }],
+    });
+
+    const before = await screen.findByRole('button', { name: /Empfehlungen erzeugen/ });
+    expect(before).toHaveTextContent('Lokales Sprachmodell laden und Empfehlungen erzeugen');
+
+    await user.click(before);
+    await screen.findByText('Für Lerngruppe empfohlen');
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Empfehlungen erzeugen/ })).toHaveTextContent(
+        'Empfehlungen erzeugen',
+      ),
+    );
+    expect(screen.queryByText(/Lokales Sprachmodell laden/)).not.toBeInTheDocument();
+  });
+});
+
 describe('Unbrauchbare Antworten', () => {
   it('verwirft unbekannte Schlüssel, statt Wörter zu erfinden', async () => {
     const { user } = setup({

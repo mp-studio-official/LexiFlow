@@ -941,4 +941,137 @@ describe('Textempfehlung', () => {
       provider.suggestFromText(CANDIDATES, { ...TEXT_CONTEXT, signal: controller.signal }),
     ).rejects.toBeInstanceOf(DOMException);
   });
+
+  it('prüft die Antwort gegen genau die Kandidaten, die im Prompt standen', async () => {
+    // Sprint 2B.2b1: Der Prompt war begrenzt, die Prüfung lief gegen die volle
+    // Liste – ein Schlüssel jenseits der Grenze wäre so gültig gewesen, obwohl
+    // das Modell ihn nie gesehen hat.
+    const many = Array.from({ length: 120 }, (_, index) => ({
+      key: `c${index + 1}`,
+      english: `word${index + 1}`,
+      occurrences: 1,
+      sourceSentence: `Sentence ${index + 1} about word${index + 1}.`,
+    }));
+
+    const { handle, result } = await askText(
+      JSON.stringify({ recommendedKeys: ['c60', 'c61'] }),
+      many,
+    );
+
+    const prompt = handle.prompts[0] ?? '';
+    expect(prompt).toContain('c60 | word60');
+    expect(prompt).not.toContain('c61 | word61');
+    // Nur der Schlüssel, der wirklich vorlag, wird akzeptiert.
+    expect(result).toEqual([{ key: 'c60' }]);
+  });
+});
+
+describe('Gleichzeitige Vorbereitung', () => {
+  /** Ein Scope, dessen `create()` sich gezielt anhalten lässt. */
+  function gatedScope(options: { fail?: boolean } = {}) {
+    let creates = 0;
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const scope = {
+      LanguageModel: {
+        availability: () => Promise.resolve('downloadable'),
+        create: async () => {
+          creates += 1;
+          await gate;
+          if (options.fail) throw new Error('Modell nicht ladbar.');
+          return { prompt: () => Promise.resolve('{}'), destroy: () => undefined };
+        },
+      },
+    };
+
+    return { scope, release: () => release(), creates: () => creates };
+  }
+
+  it('startet bei zwei gleichzeitigen Aufrufen nur einen Download', async () => {
+    const gated = gatedScope();
+    const provider = createChromePromptAiProvider(gated.scope);
+
+    // Beide starten, bevor die erste Sitzung existiert.
+    const first = provider.prepare(AI_CAPABILITY);
+    const second = provider.prepare(AI_CAPABILITY);
+    gated.release();
+    await Promise.all([first, second]);
+
+    expect(gated.creates()).toBe(1);
+    // Und genau eine Sitzung ist nutzbar.
+    await expect(provider.enrichEntry(ENTRY, CONTEXT)).rejects.toBeInstanceOf(AiResponseError);
+  });
+
+  it('lässt nach einem gemeinsam gescheiterten Versuch einen neuen zu', async () => {
+    const failing = gatedScope({ fail: true });
+    const provider = createChromePromptAiProvider(failing.scope);
+
+    const first = provider.prepare(AI_CAPABILITY);
+    const second = provider.prepare(AI_CAPABILITY);
+    failing.release();
+
+    await expect(first).rejects.toThrow('Modell nicht ladbar.');
+    await expect(second).rejects.toThrow('Modell nicht ladbar.');
+    expect(failing.creates()).toBe(1);
+    // Nichts blockiert: Die Fähigkeit ist weiterhin nicht vorbereitet …
+    await expect(provider.enrichEntry(ENTRY, CONTEXT)).rejects.toBeInstanceOf(AiUnavailableError);
+
+    // … und ein neuer Versuch geht wirklich wieder an das Modell.
+    const working = createFakeLanguageModelScope({
+      respond: () => JSON.stringify({ partOfSpeech: 'noun', difficulty: 2, topicTags: [] }),
+    });
+    const retry = createChromePromptAiProvider(working.scope);
+    await retry.prepare(AI_CAPABILITY);
+    await expect(retry.enrichEntry(ENTRY, CONTEXT)).resolves.toMatchObject({
+      partOfSpeech: 'noun',
+    });
+  });
+
+  it('hält die Vorbereitungen verschiedener Fähigkeiten auseinander', async () => {
+    const gated = gatedScope();
+    const provider = createChromePromptAiProvider(gated.scope);
+
+    const both = Promise.all([
+      provider.prepare(AI_CAPABILITY),
+      provider.prepare(AI_CAPABILITY),
+      provider.prepare(TOPIC_CAPABILITY),
+      provider.prepare(TOPIC_CAPABILITY),
+    ]);
+    gated.release();
+    await both;
+
+    // Zwei Fähigkeiten, zwei Sitzungen – nicht vier.
+    expect(gated.creates()).toBe(2);
+  });
+
+  it('gibt einen laufenden Versuch nach einem Abbruch wieder frei', async () => {
+    let creates = 0;
+    const scope = {
+      LanguageModel: {
+        availability: () => Promise.resolve('downloadable'),
+        create: (options?: { signal?: AbortSignal }) => {
+          creates += 1;
+          return new Promise((_resolve, reject) => {
+            options?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('Abgebrochen', 'AbortError')),
+            );
+          });
+        },
+      },
+    };
+    const provider = createChromePromptAiProvider(scope);
+
+    const controller = new AbortController();
+    const attempt = provider.prepare(AI_CAPABILITY, undefined, controller.signal);
+    controller.abort();
+    await expect(attempt).rejects.toBeInstanceOf(DOMException);
+
+    // Ein neuer Versuch startet tatsächlich einen neuen `create()`-Aufruf.
+    const second = provider.prepare(AI_CAPABILITY, undefined, new AbortController().signal);
+    expect(creates).toBe(2);
+    void second.catch(() => undefined);
+  });
 });

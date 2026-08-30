@@ -104,7 +104,9 @@ export function TextRecommendationPanel({
       await ready;
       if (!alreadyPrepared) preparedFor.current = ai;
       setProgress(null);
-      setState((current) => (current === 'downloading' ? 'available' : current));
+      // Vorbereitet heißt vorbereitet: Die Schaltfläche darf jetzt nicht mehr
+      // behaupten, das Modell müsse erst geladen werden.
+      setState('available');
       setStatus('Die Kandidaten werden für die Lerngruppe bewertet.');
 
       const answer = await ai.suggestFromText(modelContext.payload, {

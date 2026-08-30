@@ -98,7 +98,9 @@ export function SentenceAssistant({ draft, context, onChange, rowLabel }: Senten
       await ready;
       if (!alreadyPrepared) preparedFor.current = ai;
       setProgress(null);
-      setState((current) => (current === 'downloading' ? 'available' : current));
+      // Vorbereitet heißt vorbereitet: Die Schaltfläche darf jetzt nicht mehr
+      // behaupten, das Modell müsse erst geladen werden.
+      setState('available');
       setStatus('Ein Satzvorschlag wird erzeugt.');
 
       const answer = await ai.alternativeSentence(sentenceRequestFor(draft, mode), {
