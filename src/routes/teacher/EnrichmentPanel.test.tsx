@@ -421,3 +421,115 @@ describe('Fehler bleiben sichtbar', () => {
     );
   });
 });
+
+describe('Verfügbarkeit ist nicht dasselbe wie ein erfülltes Promise', () => {
+  it('ruft einen nicht verfügbaren KI-Anbieter überhaupt nicht auf', async () => {
+    const translation = createFakeTranslationProvider();
+    const ai = createFakeAiProvider({ availability: 'unavailable' });
+    const enrichSpy = vi.spyOn(ai.provider, 'enrichEntry');
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+
+    expect(await screen.findByText('to apologise-de')).toBeInTheDocument();
+    expect(translation.prepareCount()).toBe(1);
+    // Der Nullfall darf nicht als „vorbereitet" durchgehen.
+    expect(ai.prepareCount()).toBe(0);
+    expect(enrichSpy).not.toHaveBeenCalled();
+    expect(ai.enriched).toHaveLength(0);
+    // Und es entstehen keine erfundenen Fehler.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('ruft einen nicht verfügbaren Übersetzungsanbieter überhaupt nicht auf', async () => {
+    const translation = createFakeTranslationProvider({ availability: 'unavailable' });
+    const ai = createFakeAiProvider();
+    const translateSpy = vi.spyOn(translation.provider, 'translate');
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+
+    await waitFor(() => expect(ai.enriched.length).toBeGreaterThan(0));
+    expect(translation.prepareCount()).toBe(0);
+    expect(translateSpy).not.toHaveBeenCalled();
+    expect(translation.translated).toHaveLength(0);
+    // Die KI-Vorschläge sind da …
+    expect(screen.getAllByText('3 von 5').length).toBeGreaterThan(0);
+    // … und niemand behauptet, die Übersetzung sei gescheitert.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('startet bei zwei nicht verfügbaren Anbietern gar nichts', async () => {
+    const translation = createFakeTranslationProvider({ availability: 'unavailable' });
+    const ai = createFakeAiProvider({ availability: 'unavailable' });
+    setup({ translation: translation.provider, ai: ai.provider });
+
+    const button = await screen.findByRole('button', { name: /Vorschläge erzeugen/ });
+    expect(button).toBeDisabled();
+    expect(translation.prepareCount()).toBe(0);
+    expect(ai.prepareCount()).toBe(0);
+  });
+
+  it('benutzt einen bereits vorbereiteten Anbieter erneut, ohne ihn neu zu laden', async () => {
+    const translation = createFakeTranslationProvider();
+    const ai = createFakeAiProvider({ availability: 'unavailable' });
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+    await screen.findByText('to apologise-de');
+    expect(translation.prepareCount()).toBe(1);
+    expect(translation.translated).toHaveLength(2);
+
+    // Zweiter Lauf: derselbe Anbieter, keine neue Vorbereitung, aber erneute Nutzung.
+    await user.click(screen.getByRole('button', { name: 'Wortart für to apologise ablehnen' }));
+    await generate(user);
+
+    await waitFor(() => expect(translation.translated.length).toBe(4));
+    expect(translation.prepareCount()).toBe(1);
+  });
+
+  it('rührt einen verfügbaren Anbieter ohne passende Zeilen nicht an', async () => {
+    // Alle Zeilen sind bereits vollständig – es gibt nichts zu tun.
+    const rows = [
+      ['Englisch', 'Deutsch'],
+      ['crowded', 'überfüllt'],
+    ];
+    const complete = buildDrafts(rows, detectColumns(rows), { splitMultipleMeanings: true }).map(
+      (draft) => ({ ...draft, partOfSpeech: 'adjective' as const, difficulty: 3 as const, tags: 'City life' }),
+    );
+
+    const translation = createFakeTranslationProvider();
+    const ai = createFakeAiProvider();
+    render(
+      <ProviderRegistry value={{ translation: translation.provider, ai: ai.provider }}>
+        <Harness initial={complete} />
+      </ProviderRegistry>,
+    );
+    const user = userEvent.setup();
+
+    const button = await screen.findByRole('button', { name: /Vorschläge erzeugen/ });
+    expect(button).toBeDisabled();
+
+    // Auch ein erzwungener Klick löst nichts aus.
+    await user.click(button);
+    expect(translation.prepareCount()).toBe(0);
+    expect(ai.prepareCount()).toBe(0);
+    expect(translation.translated).toHaveLength(0);
+    expect(ai.enriched).toHaveLength(0);
+  });
+
+  it('behauptet nicht, das andere Modell arbeite weiter, wenn es das nicht tut', async () => {
+    const translation = createFakeTranslationProvider({ prepareFails: true });
+    const ai = createFakeAiProvider({ availability: 'unavailable' });
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/Diese Vorschläge konnten nicht erzeugt werden/);
+    expect(alert).toHaveTextContent(/Übersetzungsmodell nicht ladbar/);
+    expect(screen.queryByText(/das andere arbeitet weiter/)).not.toBeInTheDocument();
+    expect(ai.prepareCount()).toBe(0);
+    expect(screen.getByText('Es konnten keine Vorschläge erzeugt werden.')).toBeInTheDocument();
+  });
+});

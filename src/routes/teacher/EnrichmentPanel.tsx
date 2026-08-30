@@ -174,10 +174,6 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
     setErrors({});
     setDone(0);
 
-    const uniqueRows = new Set([...translatable, ...enrichable].map((draft) => draft.id)).size;
-    const steps = translatable.length + enrichable.length;
-    setTotal(steps);
-
     let working = drafts;
     const commit = (): void => onChange(working);
     const fail = (id: string, message: string): void => {
@@ -188,24 +184,46 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
     setStatus('Die lokalen Modelle werden vorbereitet.');
     setProgress(0);
 
-    // --- synchron, solange die User-Activation gilt ---
-    const wantsTranslation =
-      translationPossible && translatable.length > 0 && preparedTranslation.current !== translation;
-    const wantsAi = aiPossible && enrichable.length > 0 && preparedAi.current !== ai;
+    /*
+     * Fünf Dinge, die auseinandergehalten gehören:
+     *
+     * 1. `hasWork`    – der Anbieter ist für diese Fähigkeit verfügbar **und**
+     *                   es gibt überhaupt passende Zeilen.
+     * 2. `already`    – dieser Anbieter wurde in dieser Ansicht schon
+     *                   erfolgreich vorbereitet.
+     * 3. `start`      – jetzt muss vorbereitet werden.
+     * 4. `settled`    – die gerade gestartete Vorbereitung ist gelungen.
+     * 5. `usable`     – daraus folgt erst, ob der Anbieter benutzt werden darf.
+     *
+     * Der Unterschied ist nicht kosmetisch: Ein nicht gestarteter Anbieter
+     * bekommt unten ein `Promise.resolve()`, damit `allSettled` eine feste
+     * Stellenzahl hat. „Erfüllt" heißt dann aber **nicht** „nutzbar" – sonst
+     * würde ein gar nicht verfügbarer Nullanbieter anschließend für jede Zeile
+     * aufgerufen.
+     */
+    const translationHasWork = translationPossible && translatable.length > 0;
+    const aiHasWork = aiPossible && enrichable.length > 0;
+    const translationAlreadyPrepared = preparedTranslation.current === translation;
+    const aiAlreadyPrepared = preparedAi.current === ai;
+    const startTranslation = translationHasWork && !translationAlreadyPrepared;
+    const startAi = aiHasWork && !aiAlreadyPrepared;
+
+    setTotal((translationHasWork ? translatable.length : 0) + (aiHasWork ? enrichable.length : 0));
 
     const share = { translation: 0, ai: 0 };
     const report = (which: 'translation' | 'ai') => (value: number) => {
       share[which] = value;
-      const active = [wantsTranslation ? share.translation : null, wantsAi ? share.ai : null].filter(
+      const active = [startTranslation ? share.translation : null, startAi ? share.ai : null].filter(
         (item): item is number => item !== null,
       );
       if (active.length > 0) setProgress(active.reduce((a, b) => a + b, 0) / active.length);
     };
 
-    const translationReady = wantsTranslation
+    // --- synchron, solange die User-Activation gilt ---
+    const translationReady = startTranslation
       ? translation.prepare(SOURCE_LANGUAGE, TARGET_LANGUAGE, report('translation'), controller.signal)
       : Promise.resolve();
-    const aiReady = wantsAi
+    const aiReady = startAi
       ? ai.prepare(CAPABILITY, report('ai'), controller.signal)
       : Promise.resolve();
 
@@ -213,37 +231,60 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
     try {
       const [translationResult, aiResult] = await Promise.allSettled([translationReady, aiReady]);
 
-      const translationOk = translationResult.status === 'fulfilled';
-      const aiOk = aiResult.status === 'fulfilled';
-      if (translationOk && wantsTranslation) preparedTranslation.current = translation;
-      if (aiOk && wantsAi) preparedAi.current = ai;
+      // Erfolg zählt nur für tatsächlich gestartete Vorbereitungen.
+      const translationSettled = startTranslation && translationResult.status === 'fulfilled';
+      const aiSettled = startAi && aiResult.status === 'fulfilled';
+      const translationFailed = startTranslation && translationResult.status === 'rejected';
+      const aiFailed = startAi && aiResult.status === 'rejected';
 
-      const problems: string[] = [];
-      if (!translationOk) {
-        preparedTranslation.current = null;
-        problems.push(`Übersetzung: ${describeError(translationResult.reason)}`);
-      }
-      if (!aiOk) {
-        preparedAi.current = null;
-        problems.push(`Sprachmodell: ${describeError(aiResult.reason)}`);
-      }
-      if (problems.length > 0 && !controller.signal.aborted) {
-        setPanelError(
-          problems.length === 2
-            ? `Keines der lokalen Modelle konnte vorbereitet werden. ${problems.join(' · ')}`
-            : `Ein Modell konnte nicht vorbereitet werden, das andere arbeitet weiter. ${problems[0]}`,
-        );
+      if (translationSettled) preparedTranslation.current = translation;
+      if (aiSettled) preparedAi.current = ai;
+      if (translationFailed) preparedTranslation.current = null;
+      if (aiFailed) preparedAi.current = null;
+
+      // Benutzt wird ein Anbieter nur, wenn er Arbeit hat **und** bereit ist.
+      const translationUsable =
+        translationHasWork && (translationAlreadyPrepared || translationSettled);
+      const aiUsable = aiHasWork && (aiAlreadyPrepared || aiSettled);
+
+      if (!controller.signal.aborted) {
+        const problems: string[] = [];
+        if (translationFailed) {
+          problems.push(`Übersetzung: ${describeError(translationResult.reason)}`);
+        }
+        if (aiFailed) problems.push(`Sprachmodell: ${describeError(aiResult.reason)}`);
+
+        if (problems.length === 2) {
+          setPanelError(`Keines der lokalen Modelle konnte vorbereitet werden. ${problems.join(' · ')}`);
+        } else if (problems.length === 1) {
+          // Nur behaupten, das andere arbeite weiter, wenn es das wirklich tut.
+          const otherWorks = translationFailed ? aiUsable : translationUsable;
+          setPanelError(
+            otherWorks
+              ? `Ein Modell konnte nicht vorbereitet werden, das andere arbeitet weiter. ${problems[0]}`
+              : `Diese Vorschläge konnten nicht erzeugt werden. ${problems[0]}`,
+          );
+        }
       }
 
       setProgress(null);
       setPhase('running');
-      if (translationOk) setTranslationState((state) => (state === 'downloading' ? 'available' : state));
-      if (aiOk) setAiState((state) => (state === 'downloading' ? 'available' : state));
+      if (translationUsable) {
+        setTranslationState((state) => (state === 'downloading' ? 'available' : state));
+      }
+      if (aiUsable) setAiState((state) => (state === 'downloading' ? 'available' : state));
+
+      // Erst jetzt steht fest, was wirklich bearbeitet wird.
+      const plannedTranslation = translationUsable ? translatable : [];
+      const plannedAi = aiUsable ? enrichable : [];
+      const steps = plannedTranslation.length + plannedAi.length;
+      const uniqueRows = new Set([...plannedTranslation, ...plannedAi].map((draft) => draft.id)).size;
+      setTotal(steps);
 
       let processed = 0;
 
       // Bewusst nacheinander: ein lokales Modell rechnet ohnehin seriell.
-      for (const draft of translationOk ? translatable : []) {
+      for (const draft of plannedTranslation) {
         if (controller.signal.aborted) break;
         try {
           const value = await translation.translate(draft.english.trim(), controller.signal);
@@ -260,7 +301,7 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
         setDone(processed);
       }
 
-      for (const draft of aiOk ? enrichable : []) {
+      for (const draft of plannedAi) {
         if (controller.signal.aborted) break;
         try {
           const request = modelRequestFor(draft, context);
@@ -297,9 +338,11 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
       setStatus(
         controller.signal.aborted
           ? `Abgebrochen. ${processed} von ${steps} Vorschlagsschritten erledigt.`
-          : `Fertig. Vorschläge für ${uniqueRows} ${
-              uniqueRows === 1 ? 'Vokabel' : 'Vokabeln'
-            } liegen zur Prüfung bereit.`,
+          : uniqueRows === 0
+            ? 'Es konnten keine Vorschläge erzeugt werden.'
+            : `Fertig. Vorschläge für ${uniqueRows} ${
+                uniqueRows === 1 ? 'Vokabel' : 'Vokabeln'
+              } liegen zur Prüfung bereit.`,
       );
     } catch (error: unknown) {
       // Hierher führt nur ein unerwarteter Fehler; die Vorbereitung selbst ist
