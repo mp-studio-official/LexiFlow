@@ -208,7 +208,7 @@ test.describe('Themenwerkstatt', () => {
 
     await topicField(page).fill('City life');
     await page.getByLabel('Anzahl').selectOption('15');
-    await page.getByRole('button', { name: /Vorschläge erzeugen/ }).click();
+    await page.getByRole('button', { name: /vorschläge erzeugen/i }).click();
 
     await expect(page.getByText('10 Zeilen ·')).toBeVisible();
     // Bezugsgröße bleibt der Wunsch, nicht die Lieferung.
@@ -248,14 +248,14 @@ test.describe('Themenwerkstatt', () => {
     await expectNoSeriousViolations(page, 'Themenwerkstatt');
 
     // Pflichtfeld: ohne Thema passiert nichts, aber es gibt eine Erklärung.
-    await page.getByRole('button', { name: /Vorschläge erzeugen/ }).click();
+    await page.getByRole('button', { name: /vorschläge erzeugen/i }).click();
     await expect(page.getByText('Bitte gib ein Thema an.')).toBeVisible();
 
     await topicField(page).focus();
     await page.keyboard.type('City life');
     await page.getByLabel('Anzahl').selectOption('5');
 
-    const button = page.getByRole('button', { name: /Vorschläge erzeugen/ });
+    const button = page.getByRole('button', { name: /vorschläge erzeugen/i });
     await button.focus();
     await expect(button).toBeFocused();
     await page.keyboard.press('Enter');
@@ -272,7 +272,7 @@ test.describe('Themenwerkstatt', () => {
       await openTopicStudio(page);
       await topicField(page).fill('City life');
       await page.getByLabel('Anzahl').selectOption('5');
-      await page.getByRole('button', { name: /Vorschläge erzeugen/ }).click();
+      await page.getByRole('button', { name: /vorschläge erzeugen/i }).click();
       await expect(page.getByText('5 Zeilen ·')).toBeVisible();
 
       const overflow = await page.evaluate(() => ({

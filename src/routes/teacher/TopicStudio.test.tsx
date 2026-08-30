@@ -64,8 +64,12 @@ function setup(props: HarnessProps = {}) {
   return userEvent.setup();
 }
 
+/**
+ * Die Schaltfläche heißt vor dem Laden anders als danach – beide Beschriftungen
+ * enden auf „…vorschläge erzeugen“, deshalb ohne Rücksicht auf Groß-/Kleinschreibung.
+ */
 async function generateButton(): Promise<HTMLElement> {
-  return screen.findByRole('button', { name: /Vorschläge erzeugen/ });
+  return screen.findByRole('button', { name: /vorschläge erzeugen/i });
 }
 
 describe('Eingaben', () => {
@@ -127,7 +131,7 @@ describe('Ohne Sprachmodell', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Liste einfügen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Leere Liste anlegen' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Vorschläge erzeugen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /vorschläge erzeugen/i })).not.toBeInTheDocument();
     // Keine Browserwarnung, kein technischer Fehler.
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -379,6 +383,26 @@ describe('Vorschläge erzeugen', () => {
 
     await waitFor(() => expect(screen.getByText('Abgebrochen.')).toBeInTheDocument());
     expect(onDrafts).not.toHaveBeenCalled();
+  });
+
+  it('behauptet nach dem Laden nicht mehr, laden zu müssen', async () => {
+    // Sprint 2B.2b2: Aus `downloadable` blieb der Zustand stehen – die
+    // Schaltfläche log den zweiten Klick an.
+    const ai = createFakeAiProvider({ availability: 'downloadable' });
+    const user = setup({ ai: ai.provider, initialTopic: 'City life' });
+
+    const before = await screen.findByRole('button', { name: /vorschläge erzeugen/i });
+    expect(before).toHaveTextContent('Lokales Sprachmodell laden und Vorschläge erzeugen');
+
+    await user.click(before);
+    await waitFor(() => expect(ai.topicCalls()).toHaveLength(1));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /vorschläge erzeugen/i })).toHaveTextContent(
+        'Vokabelvorschläge erzeugen',
+      ),
+    );
+    expect(screen.queryByText(/Lokales Sprachmodell laden/)).not.toBeInTheDocument();
   });
 
   it('bereitet dieselbe Fähigkeit kein zweites Mal vor', async () => {

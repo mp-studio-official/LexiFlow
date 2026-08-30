@@ -135,7 +135,9 @@ export function TopicStudio({
       await ready;
       if (!alreadyPrepared) preparedFor.current = ai;
       setProgress(null);
-      setState((current) => (current === 'downloading' ? 'available' : current));
+      // Vorbereitet heißt vorbereitet: Die Schaltfläche darf jetzt nicht mehr
+      // behaupten, das Modell müsse erst geladen werden.
+      setState('available');
       setStatus(`Es werden bis zu ${count} Vorschläge erzeugt.`);
 
       // Das Modell bekommt nur einen begrenzten Auszug; der vollständige
