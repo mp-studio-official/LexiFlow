@@ -91,6 +91,63 @@ test.describe('LexiFlow – Grundablauf', () => {
     expect(externalRequests).toEqual([]);
   });
 
+  test('@smoke Runde 1 rezeptiv, Runde 2 genau vier produktiv', async ({ page }) => {
+    // Paket mit vier Vokabeln und beiden Richtungen anlegen.
+    await page.goto('/#/material/import');
+    await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
+    await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
+    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
+    await page.getByLabel('Titel', { exact: true }).fill('Staffelung');
+    await page.getByLabel('Lernrichtung').selectOption('both');
+    await page.getByRole('button', { name: /Paket speichern/ }).click();
+    await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+
+    // Ehrliche Rundenvorschau: vier bereit, keine acht.
+    await expect(page.getByText(/4 Aufgaben sind jetzt bereit/)).toBeVisible();
+    await expect(page.getByRole('option', { name: 'Alle bereiten (4)' })).toBeAttached();
+    await expect(page.getByRole('option', { name: 'Alle bereiten (8)' })).toHaveCount(0);
+
+    // ---------- Runde 1: vier rezeptive Aufgaben ----------
+    await page.getByRole('button', { name: 'Übung starten' }).click();
+    await expect(page.getByText('Aufgabe 1 von 4')).toBeVisible();
+    await expect(page.getByText(/Englisch → Deutsch \(rezeptiv\)/)).toBeVisible();
+
+    for (let i = 1; i <= 4; i += 1) {
+      await expect(page.getByText(`Aufgabe ${i} von 4`)).toBeVisible();
+      await expect(page.getByText(/Englisch → Deutsch \(rezeptiv\)/)).toBeVisible();
+      await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
+      await page.getByRole('button', { name: 'Gewusst', exact: true }).click();
+      await page.getByRole('button', { name: /^(Weiter|Runde beenden)$/ }).click();
+    }
+
+    // ---------- Runde 2: genau vier produktive Aufgaben ----------
+    await expect(page.getByRole('heading', { name: 'Runde abgeschlossen' })).toBeVisible();
+    await expect(page.getByText(/4 Aufgaben sind weiterhin bereit/)).toBeVisible();
+    await page.getByRole('button', { name: 'Neue Runde' }).click();
+
+    await expect(page.getByText('Aufgabe 1 von 4')).toBeVisible();
+    await expect(page.getByText(/Deutsch → Englisch \(produktiv\)/)).toBeVisible();
+
+    // Die rezeptiven Aufgaben sind erst morgen wieder fällig und fehlen hier.
+    for (let i = 1; i <= 4; i += 1) {
+      await expect(page.getByText(`Aufgabe ${i} von 4`)).toBeVisible();
+      await expect(page.getByText(/Deutsch → Englisch \(produktiv\)/)).toBeVisible();
+      await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
+      await page.getByRole('button', { name: 'Gewusst', exact: true }).click();
+      await page.getByRole('button', { name: /^(Weiter|Runde beenden)$/ }).click();
+    }
+
+    // ---------- Danach ist nichts mehr fällig ----------
+    await expect(page.getByRole('heading', { name: 'Runde abgeschlossen' })).toBeVisible();
+    await expect(page.getByText(/Die nächste Wiederholung steht/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Neue Runde' })).toBeDisabled();
+
+    await page.goto(`/#/lernen`);
+    await page.getByRole('link', { name: 'Öffnen' }).click();
+    await expect(page.getByText(/Gerade ist nichts fällig/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Übung starten' })).toBeDisabled();
+  });
+
   test('@smoke Export, erneuter Import und Bestätigung', async ({ page }) => {
     await page.goto('/#/material/import');
     await page.getByLabel('Vokabelliste einfügen').fill('litter\tMüll\nquiet\truhig');

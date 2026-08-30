@@ -313,7 +313,7 @@ describe('selectTargets', () => {
     expect(minimumSiblingDistance(targets)).toBeGreaterThan(MIN_SIBLING_GAP);
   });
 
-  it('stellt fällige Aufgaben vor neue und nicht fällige', () => {
+  it('stellt fällige Aufgaben vor neue und lässt spätere ganz aus', () => {
     const entries = entriesNamed(4);
     const index = progressFor([
       { id: 'e3', direction: 'en-de', box: 1, dueAt: PAST },
@@ -321,7 +321,9 @@ describe('selectTargets', () => {
     ]);
     const targets = selectTargets(entries, index, 'en-de', 4, NOW, mulberry32(3));
     expect(targets[0]?.entry.id).toBe('e3');
-    expect(targets.at(-1)?.entry.id).toBe('e4');
+    // e4 ist erst später fällig und gehört nicht in eine normale Runde.
+    expect(targets.map((target) => target.entry.id)).not.toContain('e4');
+    expect(targets).toHaveLength(3);
   });
 
   it('mischt gleichwertige Aufgaben statt der Importreihenfolge zu folgen', () => {

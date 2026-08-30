@@ -89,19 +89,44 @@ export function findRequeuePosition(
   return undefined;
 }
 
+/** Warum eine Wiedervorlage unterblieben ist. */
+export type RequeueSkipReason =
+  /** Richtig beantwortet – keine Wiederholung nötig. */
+  | 'answered-correctly'
+  /** Die Aufgabe war bereits die Wiederholung. */
+  | 'max-attempts'
+  /** Keine Stelle erfüllt beide Abstandsregeln. */
+  | 'no-slot';
+
+/**
+ * Ergebnis einer Bewertung. `requeued` sagt **verbindlich**, ob die Aufgabe
+ * tatsächlich noch einmal in dieser Runde erscheint – die Oberfläche darf eine
+ * Wiederholung nur ankündigen, wenn das hier `true` ist.
+ */
+export interface VerdictOutcome {
+  state: SessionState;
+  requeued: boolean;
+  reason?: RequeueSkipReason;
+}
+
 /**
  * Verarbeitet eine Bewertung: rückt einen Schritt weiter und reiht die Aufgabe
  * bei Bedarf – und nur an einer regelkonformen Stelle – noch einmal ein.
+ *
+ * Die Funktion ist rein und kann deshalb schon beim Anzeigen des Feedbacks
+ * berechnet werden; angewendet wird das Ergebnis erst beim Weiterblättern.
  */
-export function submitVerdict(state: SessionState, verdict: AnswerVerdict): SessionState {
+export function submitVerdict(state: SessionState, verdict: AnswerVerdict): VerdictOutcome {
   const current = state.items[state.index];
-  if (!current) return state;
+  if (!current) return { state, requeued: false, reason: 'max-attempts' };
 
-  const shouldRepeat = verdict !== 'correct' && current.attempt < MAX_ATTEMPTS;
-  if (!shouldRepeat) return { ...state, index: state.index + 1 };
+  const advanced: SessionState = { ...state, index: state.index + 1 };
+
+  if (verdict === 'correct') return { state: advanced, requeued: false, reason: 'answered-correctly' };
+  if (current.attempt >= MAX_ATTEMPTS) return { state: advanced, requeued: false, reason: 'max-attempts' };
 
   const position = findRequeuePosition(state.items, state.index, current.task);
-  if (position === undefined) return { ...state, index: state.index + 1 };
+  if (position === undefined) return { state: advanced, requeued: false, reason: 'no-slot' };
 
   const items = [...state.items];
   items.splice(position, 0, {
@@ -110,7 +135,7 @@ export function submitVerdict(state: SessionState, verdict: AnswerVerdict): Sess
     attempt: current.attempt + 1,
   });
 
-  return { items, index: state.index + 1 };
+  return { state: { items, index: state.index + 1 }, requeued: true };
 }
 
 /** Wie viele Aufgaben in dieser Runde noch ausstehen. */

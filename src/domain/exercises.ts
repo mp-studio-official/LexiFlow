@@ -316,7 +316,7 @@ function stateOf(
 /**
  * Alle freigeschalteten Kombinationen, die jetzt an der Reihe wären – also
  * fällige und noch nie geübte. Genau diese Menge zählt die Oberfläche als
- * „bereit“, damit Anzeige und Sitzungsplanung nie auseinanderlaufen.
+ * „bereit“, und **nur** aus ihr wird eine normale Lernrunde gebildet.
  */
 export function eligibleTargets(
   entries: readonly VocabEntry[],
@@ -349,10 +349,33 @@ export function countReady(
 }
 
 /**
+ * Frühester Termin, an dem eine freigeschaltete, aktuell noch nicht fällige
+ * Aufgabe wieder ansteht. `undefined`, wenn es keine solche Aufgabe gibt.
+ */
+export function findNextDueAt(
+  entries: readonly VocabEntry[],
+  progressIndex: ReadonlyMap<string, EntryProgress>,
+  packDirection: LearningDirection,
+  now: Date = new Date(),
+): string | undefined {
+  let earliest: string | undefined;
+  for (const entry of entries) {
+    for (const direction of activeDirections(packDirection)) {
+      if (!isDirectionUnlocked(entry.id, progressIndex, direction, packDirection)) continue;
+      const { state, progress } = stateOf({ entry, direction }, progressIndex, now);
+      if (state !== 'later' || !progress) continue;
+      if (earliest === undefined || progress.dueAt < earliest) earliest = progress.dueAt;
+    }
+  }
+  return earliest;
+}
+
+/**
  * Ordnet Kandidaten so an, dass die Gegenrichtungen derselben Vokabel nie
  * dichter als `minGap` andere Aufgaben beieinander liegen. Kandidaten, die sich
  * innerhalb der Rundenlänge nicht regelkonform platzieren lassen, entfallen –
- * sie kommen in einer der nächsten Runden dran.
+ * sie kommen in einer der nächsten Runden dran. Der Abstand wird **nie**
+ * gelockert, nur um die gewünschte Rundengröße zu erreichen.
  */
 export function arrangeTargets(
   candidates: readonly SessionTarget[],
@@ -376,11 +399,77 @@ export function arrangeTargets(
 }
 
 /**
- * Reihenfolge: fällige Kombinationen zuerst (niedrigstes Fach zuerst), danach
- * noch nie geübte, danach die übrigen. Innerhalb gleichwertiger Gruppen wird
- * gemischt, damit nicht dauerhaft die Importreihenfolge geübt wird; mit festem
- * Seed bleibt das reproduzierbar.
+ * Ergebnis der zentralen Rundenplanung.
+ *
+ * Alle Zahlen der Oberfläche stammen aus dieser einen Funktion, damit Anzeige
+ * und tatsächliche Runde nicht auseinanderlaufen können.
  */
+export interface SessionPlan {
+  /** Die für diese Runde geplanten Ziele in Reihenfolge. */
+  targets: SessionTarget[];
+  /** Alle freigeschalteten Ziele, die neu oder jetzt fällig sind. */
+  readyCount: number;
+  /** Immer `targets.length`. */
+  plannedCount: number;
+  /** Bereite Ziele, die wegen Rundengröße oder Richtungsabstand warten müssen. */
+  remainingReadyCount: number;
+  /** Frühester Termin einer freigeschalteten, später fälligen Aufgabe. */
+  nextDueAt?: string;
+}
+
+/**
+ * Zentrale, reine Planung einer normalen Leitner-Lernrunde.
+ *
+ * Grundregel: Eine Runde enthält **ausschließlich** freigeschaltete Ziele, die
+ * neu oder zum Planungszeitpunkt fällig sind. Später fällige Karten werden
+ * niemals vorgezogen, auch nicht als Füllmaterial für die gewünschte
+ * Rundengröße – dafür ist später ein eigener Modus „Freies Üben“ vorgesehen.
+ *
+ * Reihenfolge: fällig (niedrigstes Fach zuerst) vor neu; innerhalb
+ * gleichwertiger Gruppen mit dem injizierten RNG gemischt. Danach sorgt
+ * `arrangeTargets` für den Abstand zwischen Gegenrichtungen.
+ */
+export function planSession(
+  entries: readonly VocabEntry[],
+  progressIndex: ReadonlyMap<string, EntryProgress>,
+  packDirection: LearningDirection,
+  length: number,
+  now: Date = new Date(),
+  rng: Rng = Math.random,
+): SessionPlan {
+  const dueByBox = new Map<number, SessionTarget[]>();
+  const fresh: SessionTarget[] = [];
+
+  for (const target of eligibleTargets(entries, progressIndex, packDirection, now)) {
+    const { state, progress } = stateOf(target, progressIndex, now);
+    if (state === 'fresh') {
+      fresh.push(target);
+    } else {
+      const box = progress?.box ?? 1;
+      const bucket = dueByBox.get(box) ?? [];
+      bucket.push(target);
+      dueByBox.set(box, bucket);
+    }
+  }
+
+  const due = [...dueByBox.keys()]
+    .sort((a, b) => a - b)
+    .flatMap((box) => shuffle(dueByBox.get(box) ?? [], rng));
+
+  const candidates = [...due, ...shuffle(fresh, rng)];
+  const targets = arrangeTargets(candidates, Math.max(0, length));
+  const nextDueAt = findNextDueAt(entries, progressIndex, packDirection, now);
+
+  return {
+    targets,
+    readyCount: candidates.length,
+    plannedCount: targets.length,
+    remainingReadyCount: candidates.length - targets.length,
+    ...(nextDueAt ? { nextDueAt } : {}),
+  };
+}
+
+/** Kurzform für Aufrufer, die nur die Reihenfolge brauchen. */
 export function selectTargets(
   entries: readonly VocabEntry[],
   progressIndex: ReadonlyMap<string, EntryProgress>,
@@ -389,34 +478,7 @@ export function selectTargets(
   now: Date = new Date(),
   rng: Rng = Math.random,
 ): SessionTarget[] {
-  const dueByBox = new Map<number, SessionTarget[]>();
-  const fresh: SessionTarget[] = [];
-  const later: SessionTarget[] = [];
-
-  for (const entry of entries) {
-    for (const direction of activeDirections(packDirection)) {
-      if (!isDirectionUnlocked(entry.id, progressIndex, direction, packDirection)) continue;
-      const target: SessionTarget = { entry, direction };
-      const { state, progress } = stateOf(target, progressIndex, now);
-      if (state === 'fresh') {
-        fresh.push(target);
-      } else if (state === 'due') {
-        const box = progress?.box ?? 1;
-        const bucket = dueByBox.get(box) ?? [];
-        bucket.push(target);
-        dueByBox.set(box, bucket);
-      } else {
-        later.push(target);
-      }
-    }
-  }
-
-  const due = [...dueByBox.keys()]
-    .sort((a, b) => a - b)
-    .flatMap((box) => shuffle(dueByBox.get(box) ?? [], rng));
-
-  const candidates = [...due, ...shuffle(fresh, rng), ...shuffle(later, rng)];
-  return arrangeTargets(candidates, Math.max(0, length));
+  return planSession(entries, progressIndex, packDirection, length, now, rng).targets;
 }
 
 function autoKindsFor(box: number, direction: TaskDirection): ExerciseKind[] {
@@ -431,28 +493,20 @@ function autoKindsFor(box: number, direction: TaskDirection): ExerciseKind[] {
   return ['open-translation', 'cloze-free'];
 }
 
-/** Baut eine vollständige Übungsreihe für ein Paket. */
-export function buildSession(
+/** Wandelt geplante Ziele in konkrete Aufgaben um. */
+export function buildTasksForTargets(
+  targets: readonly SessionTarget[],
   entries: readonly VocabEntry[],
   progressIndex: ReadonlyMap<string, EntryProgress>,
-  options: SessionOptions,
+  kinds: readonly ExerciseKind[],
+  rng: Rng,
 ): ExerciseTask[] {
-  const now = options.now ?? new Date();
-  const rng = options.rng ?? Math.random;
-  const selected = selectTargets(
-    entries,
-    progressIndex,
-    options.direction,
-    options.length,
-    now,
-    rng,
-  );
-
   const tasks: ExerciseTask[] = [];
-  selected.forEach(({ entry, direction }, index) => {
+
+  targets.forEach(({ entry, direction }, index) => {
     const possible = availableKinds(entry, entries, direction);
     const box = progressIndex.get(directionKey(entry.id, direction))?.box ?? 1;
-    const wanted = options.kinds.length > 0 ? options.kinds : autoKindsFor(box, direction);
+    const wanted = kinds.length > 0 ? kinds : autoKindsFor(box, direction);
 
     const ranked = [
       ...wanted.filter((kind) => possible.includes(kind)),
@@ -469,4 +523,16 @@ export function buildSession(
   });
 
   return tasks;
+}
+
+/** Baut eine vollständige Übungsreihe für ein Paket. */
+export function buildSession(
+  entries: readonly VocabEntry[],
+  progressIndex: ReadonlyMap<string, EntryProgress>,
+  options: SessionOptions,
+): ExerciseTask[] {
+  const now = options.now ?? new Date();
+  const rng = options.rng ?? Math.random;
+  const plan = planSession(entries, progressIndex, options.direction, options.length, now, rng);
+  return buildTasksForTargets(plan.targets, entries, progressIndex, options.kinds, rng);
 }

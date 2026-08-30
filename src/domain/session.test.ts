@@ -68,7 +68,7 @@ function minimumSiblingDistance(items: readonly { task: ExerciseTask }[]): numbe
 }
 
 function play(state: SessionState, verdicts: readonly AnswerVerdict[]): SessionState {
-  return verdicts.reduce((current, verdict) => submitVerdict(current, verdict), state);
+  return verdicts.reduce((current, verdict) => submitVerdict(current, verdict).state, state);
 }
 
 /** Reihenfolge der Vokabeln, wie sie tatsächlich gezeigt werden. */
@@ -125,7 +125,7 @@ describe('submitVerdict', () => {
     // Alles falsch beantworten, bis die Runde vorbei ist.
     let guard = 0;
     while (!isFinished(state) && guard < 50) {
-      state = submitVerdict(state, 'wrong');
+      state = submitVerdict(state, 'wrong').state;
       guard += 1;
     }
     expect(guard).toBeLessThan(50);
@@ -140,7 +140,7 @@ describe('submitVerdict', () => {
     let state = createSessionState(tasks(4));
     let steps = 0;
     while (!isFinished(state) && steps < 100) {
-      state = submitVerdict(state, 'almost');
+      state = submitVerdict(state, 'almost').state;
       steps += 1;
     }
     expect(isFinished(state)).toBe(true);
@@ -155,6 +155,33 @@ describe('submitVerdict', () => {
   });
 });
 
+describe('Rückmeldung der Transition', () => {
+  it('meldet eine tatsächlich eingereihte Wiedervorlage', () => {
+    const outcome = submitVerdict(createSessionState(tasks(5)), 'wrong');
+    expect(outcome.requeued).toBe(true);
+    expect(outcome.reason).toBeUndefined();
+    expect(outcome.state.items).toHaveLength(6);
+  });
+
+  it('meldet bei richtiger Antwort keine Wiedervorlage', () => {
+    const outcome = submitVerdict(createSessionState(tasks(5)), 'correct');
+    expect(outcome.requeued).toBe(false);
+    expect(outcome.reason).toBe('answered-correctly');
+  });
+
+  it('meldet beim zweiten Versuch keine weitere Wiedervorlage', () => {
+    const first = submitVerdict(createSessionState(tasks(5)), 'wrong');
+    // Bis zur Wiederholung vorspulen …
+    let state = first.state;
+    while (currentItem(state)?.attempt !== 2) {
+      state = submitVerdict(state, 'correct').state;
+    }
+    const outcome = submitVerdict(state, 'wrong');
+    expect(outcome.requeued).toBe(false);
+    expect(outcome.reason).toBe('max-attempts');
+  });
+});
+
 describe('Wiedervorlage und Geschwisterabstand', () => {
   it('legt die Wiederholung nicht neben die Gegenrichtung', () => {
     const state = play(createSessionState(bothDirectionTasks(4)), ['wrong']);
@@ -166,7 +193,7 @@ describe('Wiedervorlage und Geschwisterabstand', () => {
     let state = createSessionState(bothDirectionTasks(4));
     let guard = 0;
     while (!isFinished(state) && guard < 60) {
-      state = submitVerdict(state, guard % 2 === 0 ? 'wrong' : 'correct');
+      state = submitVerdict(state, guard % 2 === 0 ? 'wrong' : 'correct').state;
       guard += 1;
     }
     for (let i = 1; i < state.items.length; i += 1) {
@@ -186,8 +213,10 @@ describe('Wiedervorlage und Geschwisterabstand', () => {
       taskFor(entries[0]!, entries, 'de-en'),
     ]);
     const after = submitVerdict(state, 'wrong');
-    expect(after.items).toHaveLength(3);
-    expect(after.index).toBe(1);
+    expect(after.requeued).toBe(false);
+    expect(after.reason).toBe('no-slot');
+    expect(after.state.items).toHaveLength(3);
+    expect(after.state.index).toBe(1);
   });
 
   it('findet trotzdem eine Stelle, wenn die Runde lang genug ist', () => {

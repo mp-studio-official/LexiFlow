@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Field, Meter } from '../../ui/components';
 import { getPack } from '../../data/packRepo';
@@ -6,8 +6,9 @@ import { getPackProgress, getProgressIndex, resetPackProgress } from '../../data
 import {
   EXERCISE_KINDS,
   EXERCISE_LABELS,
-  countReady,
   kindsAvailableInPack,
+  mulberry32,
+  planSession,
   type ExerciseKind,
 } from '../../domain/exercises';
 import {
@@ -26,9 +27,11 @@ import {
   directionBreakdown,
   type DirectionBreakdown,
 } from '../../domain/leitner';
+import { formatDueDate } from '../../domain/dueDate';
 import { directionKey } from '../../domain/ids';
 
-const LENGTHS = [10, 15, 25, 50] as const;
+/** Obergrenzen für eine Runde – es werden nie mehr als die bereiten Aufgaben geplant. */
+const LENGTH_LIMITS = [10, 15, 25, 50] as const;
 
 interface DirectionStand {
   direction: TaskDirection;
@@ -42,6 +45,7 @@ export function PackDetailPage() {
   const navigate = useNavigate();
 
   const [pack, setPack] = useState<VocabPack | null>(null);
+  const [progress, setProgress] = useState<ReadonlyMap<string, EntryProgress>>(new Map());
   const [stands, setStands] = useState<DirectionStand[]>([]);
   const [mastered, setMastered] = useState(0);
   const [sessionCount, setSessionCount] = useState(0);
@@ -50,6 +54,11 @@ export function PackDetailPage() {
   const [length, setLength] = useState<number>(15);
   const [confirmReset, setConfirmReset] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  /**
+   * Derselbe Seed geht an die Übungsseite. Nur so entspricht die angezeigte
+   * Zahl „… werden eingeplant“ exakt der später tatsächlich gebauten Runde.
+   */
+  const [seed, setSeed] = useState(() => Date.now() >>> 0);
 
   useEffect(() => {
     let active = true;
@@ -59,32 +68,33 @@ export function PackDetailPage() {
       setPack(loaded ?? null);
 
       if (loaded) {
-        const progress: ReadonlyMap<string, EntryProgress> = await getProgressIndex(packId);
+        const index = await getProgressIndex(packId);
         const packProgress = await getPackProgress(packId);
         if (!active) return;
 
         const directions = activeDirections(loaded.meta.direction);
         const entryIds = loaded.entries.map((entry) => entry.id);
-        const now = Date.now();
+        const now = new Date();
 
+        setProgress(index);
         setStands(
           directions.map((direction) => ({
             direction,
-            breakdown: directionBreakdown(entryIds, progress, direction, loaded.meta.direction),
+            breakdown: directionBreakdown(entryIds, index, direction, loaded.meta.direction),
             mastered: entryIds.filter(
-              (entryId) =>
-                (progress.get(directionKey(entryId, direction))?.box ?? 0) >= LEITNER_BOX_MAX,
+              (entryId) => (index.get(directionKey(entryId, direction))?.box ?? 0) >= LEITNER_BOX_MAX,
             ).length,
-            ready: countReady(
+            ready: planSession(
               loaded.entries,
-              progress,
+              index,
               loaded.meta.direction,
-              new Date(now),
-              direction,
-            ),
+              Number.MAX_SAFE_INTEGER,
+              now,
+              mulberry32(1),
+            ).targets.filter((target) => target.direction === direction).length,
           })),
         );
-        setMastered(countMastered(entryIds, progress, directions));
+        setMastered(countMastered(entryIds, index, directions));
         setSessionCount(packProgress.sessionCount);
       }
       setLoading(false);
@@ -94,8 +104,21 @@ export function PackDetailPage() {
     };
   }, [packId, reloadToken]);
 
+  // Eine einzige Planungsquelle für Anzeige und Runde.
+  const plan = useMemo(() => {
+    if (!pack) return null;
+    return planSession(
+      pack.entries,
+      progress,
+      pack.meta.direction,
+      length,
+      new Date(),
+      mulberry32(seed),
+    );
+  }, [pack, progress, length, seed]);
+
   if (loading) return <p className="muted">Paket wird geladen …</p>;
-  if (!pack) {
+  if (!pack || !plan) {
     return (
       <div className="stack">
         <h1>Paket nicht gefunden</h1>
@@ -108,7 +131,8 @@ export function PackDetailPage() {
 
   const possibleKinds = kindsAvailableInPack(pack.entries, pack.meta.direction);
   const bothDirections = pack.meta.direction === 'both';
-  const totalReady = stands.reduce((sum, stand) => sum + stand.ready, 0);
+  const canStart = plan.plannedCount > 0;
+  const lockedTotal = stands.reduce((sum, stand) => sum + stand.breakdown.locked, 0);
 
   function toggleKind(kind: ExerciseKind): void {
     setSelectedKinds((current) =>
@@ -120,12 +144,14 @@ export function PackDetailPage() {
     const params = new URLSearchParams();
     if (selectedKinds.length > 0) params.set('kinds', selectedKinds.join(','));
     params.set('length', String(length));
+    params.set('seed', String(seed));
     navigate(`/lernen/${packId}/uebung?${params.toString()}`);
   }
 
   async function handleReset(): Promise<void> {
     await resetPackProgress(packId);
     setConfirmReset(false);
+    setSeed(Date.now() >>> 0);
     setReloadToken((token) => token + 1);
   }
 
@@ -147,7 +173,7 @@ export function PackDetailPage() {
         <p className="small muted" style={{ marginTop: '0.4rem' }}>
           {mastered} von {pack.entries.length} Vokabeln sicher
           {bothDirections ? ' (in beiden Richtungen in Fach 5)' : ` (Fach ${LEITNER_BOX_MAX})`} ·{' '}
-          {totalReady} Aufgaben jetzt bereit · {sessionCount} Übungsrunden bisher
+          {plan.readyCount} Aufgaben jetzt bereit · {sessionCount} Übungsrunden bisher
         </p>
 
         <div className="stands">
@@ -232,7 +258,50 @@ export function PackDetailPage() {
 
       <Card>
         <h2>Übung starten</h2>
-        <fieldset style={{ border: 0, padding: 0, margin: '0 0 1rem' }}>
+
+        {canStart ? (
+          <p style={{ marginBottom: '1rem' }}>
+            <strong>{plan.readyCount}</strong>{' '}
+            {plan.readyCount === 1 ? 'Aufgabe ist' : 'Aufgaben sind'} jetzt bereit.
+            {plan.plannedCount !== plan.readyCount ? (
+              <>
+                {' '}
+                <strong>{plan.plannedCount}</strong>{' '}
+                {plan.plannedCount === 1 ? 'Aufgabe wird' : 'Aufgaben werden'} für diese Runde
+                eingeplant.
+                <br />
+                <span className="small muted">
+                  Die übrigen {plan.remainingReadyCount} folgen in einer weiteren Runde – wegen
+                  der gewählten Rundengröße oder weil zwischen beiden Richtungen einer Vokabel
+                  Abstand bleiben muss.
+                </span>
+              </>
+            ) : null}
+          </p>
+        ) : (
+          <Alert tone="info">
+            {plan.nextDueAt ? (
+              <>
+                Gerade ist nichts fällig – gut so. Die nächste Wiederholung steht{' '}
+                <strong>{formatDueDate(plan.nextDueAt)}</strong> an.
+              </>
+            ) : lockedTotal > 0 ? (
+              <>
+                Für die produktive Richtung ist noch nichts freigeschaltet. Übe zuerst
+                Englisch → Deutsch; danach kommt Deutsch → Englisch automatisch dazu.
+              </>
+            ) : pack.entries.length === 0 ? (
+              <>Dieses Paket enthält keine Vokabeln.</>
+            ) : (
+              <>Für dieses Paket gibt es gerade nichts zu üben.</>
+            )}
+          </Alert>
+        )}
+
+        <fieldset
+          style={{ border: 0, padding: 0, margin: '0 0 1rem' }}
+          disabled={!canStart}
+        >
           <legend style={{ fontWeight: 560, fontSize: '0.92rem', padding: 0 }}>Übungsformen</legend>
           <p className="field__hint" style={{ marginBottom: '0.5rem' }}>
             Ohne Auswahl passt sich die Übungsform automatisch an dein Leitner-Fach an.
@@ -257,21 +326,27 @@ export function PackDetailPage() {
           </div>
         </fieldset>
 
-        <Field label="Umfang der Runde">
+        <Field
+          label="Umfang der Runde"
+          hint="Obergrenze. Es werden nie mehr Aufgaben geplant, als gerade bereit sind."
+        >
           {(props) => (
             <select
               {...props}
               value={length}
+              disabled={!canStart}
               onChange={(event) => setLength(Number(event.target.value))}
             >
-              {LENGTHS.map((value) => (
-                <option key={value} value={value}>
-                  {value} Aufgaben
+              {LENGTH_LIMITS.map((value) => (
+                <option key={`limit-${value}`} value={value}>
+                  Bis zu {value} Aufgaben
                 </option>
               ))}
-              <option value={pack.entries.length * (bothDirections ? 2 : 1)}>
-                alle ({pack.entries.length * (bothDirections ? 2 : 1)})
-              </option>
+              {plan.readyCount > 0 ? (
+                <option key="all-ready" value={plan.readyCount}>
+                  Alle bereiten ({plan.readyCount})
+                </option>
+              ) : null}
             </select>
           )}
         </Field>
@@ -282,7 +357,7 @@ export function PackDetailPage() {
         </p>
 
         <div className="row" style={{ marginTop: '1rem' }}>
-          <Button variant="primary" onClick={start}>
+          <Button variant="primary" onClick={start} disabled={!canStart}>
             Übung starten
           </Button>
           <Link className="btn" to="/lernen">

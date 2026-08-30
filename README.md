@@ -10,6 +10,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 1.2** – Lernqualität und Barrierefreiheit: rezeptiv vor produktiv,
   gemischte Reihenfolge mit Geschwisterabstand, Kategorie „Neu“ in der
   Lernstandsanzeige, automatisierte Axe-Prüfung.
+* **Sprint 1.3** – Leitner-Korrektheit und transparente Rundenplanung: eine
+  zentrale Planungsfunktion, keine vorgezogenen Karten, ehrliche Rundenwahl und
+  wahrheitsgemäße Wiedervorlage-Ankündigung.
 
 ---
 
@@ -74,6 +77,7 @@ src/
     leitner.ts       Leitner-System, Mastery über alle aktiven Richtungen
     exercises.ts     Aufgabenbau und Auswahl der (Vokabel, Richtung)-Paare
     session.ts       Warteschlange einer Runde inkl. Wiedervorlage
+    dueDate.ts       verständliche Formulierung von Fälligkeitsterminen
     packDiff.ts      Fingerprint lernrelevanter Felder, Paketvergleich
     vocabpack.ts     Serialisierung des .vocabpack.json
     migrations.ts    Migrationskette für ältere Dateiformate
@@ -261,6 +265,36 @@ Pakete mit ausschließlich `de-en` sind davon nicht betroffen: Sie starten
 unverändert sofort produktiv. Wurde produktiv einmal geübt, bleibt es
 freigeschaltet – ein Rückfall auf Fach 1 sperrt nichts wieder.
 
+### `planSession` – die einzige Planungsquelle
+
+```ts
+planSession(entries, progressIndex, packDirection, length, now, rng): {
+  targets: SessionTarget[];    // die Runde, in Reihenfolge
+  readyCount: number;          // freigeschaltet UND (neu ODER jetzt fällig)
+  plannedCount: number;        // immer targets.length
+  remainingReadyCount: number; // readyCount − plannedCount
+  nextDueAt?: string;          // frühester Termin eines freigeschalteten,
+                               // später fälligen Ziels
+}
+```
+
+Die Funktion ist rein und die **einzige** Grundlage für Anzeige und Runde:
+`countReady`, die Paketansicht, die Übungsseite und `buildSession` rufen sie
+auf. Dadurch kann die Oberfläche nicht mehr vier bereite Aufgaben melden,
+während die Runde acht baut.
+
+Grundregel: Eine normale Leitner-Runde enthält **ausschließlich**
+freigeschaltete Ziele, die neu oder zum Planungszeitpunkt fällig sind. Ein Ziel
+mit `dueAt > now` wird nie vorgezogen – auch nicht, um eine gewünschte
+Rundengröße zu füllen und auch nicht bei „Neue Runde“. Produktive Ziele, die
+gerade erst durch Fach 2 freigeschaltet wurden, gelten als *neu* und dürfen
+sofort in die nächste Runde. Ein Modus „Freies Üben“ ist dafür später
+vorgesehen; er wird hier nicht durch die Hintertür simuliert.
+
+Die Paketseite und die Übungsseite verwenden denselben Seed (`?seed=` in der
+URL), damit die angezeigte Zahl „… werden eingeplant“ exakt der Runde
+entspricht, die anschließend gebaut wird.
+
 ### Reihenfolge und Abstände
 
 Innerhalb gleichwertiger Prioritätsgruppen wird mit dem injizierbaren RNG
@@ -269,11 +303,23 @@ Seed bleibt jede Reihenfolge reproduzierbar. Die Priorität selbst bleibt
 erhalten: fällig (niedrigstes Fach zuerst) vor neu vor noch nicht fällig.
 
 Zwischen den beiden Richtungen derselben Vokabel liegen mindestens
-`MIN_SIBLING_GAP` (3) andere Aufgaben. Lässt sich eine Kombination innerhalb der
-Rundenlänge nicht regelkonform platzieren, entfällt sie und kommt in einer der
-nächsten Runden dran. Auch Wiedervorlagen nach Fehlern halten diesen Abstand
-ein; findet sich keine passende Stelle, unterbleibt die Wiedervorlage – die
-Vokabel steht durch das zurückgesetzte Fach ohnehin bald wieder an.
+`MIN_SIBLING_GAP` (3) andere Aufgaben. Der Abstand wird nie gelockert, um eine
+gewünschte Rundengröße zu erreichen: Lässt sich eine Kombination nicht
+regelkonform platzieren, entfällt sie und kommt in einer der nächsten Runden
+dran.
+
+Auch Wiedervorlagen nach Fehlern halten diesen Abstand ein. `submitVerdict`
+liefert deshalb ein explizites Ergebnis:
+
+```ts
+{ state, requeued: boolean, reason?: 'answered-correctly' | 'max-attempts' | 'no-slot' }
+```
+
+Die Oberfläche verspricht eine Wiederholung nur bei `requeued: true`. Findet
+sich keine zulässige Stelle (`reason: 'no-slot'`), steht dort stattdessen: „In
+dieser kurzen Runde ist kein passender Wiederholungsplatz frei. Die Aufgabe
+bleibt für die nächste Runde priorisiert.“ Der Lernstand wird davon nicht
+berührt – das Fach ist bereits zurückgesetzt.
 
 Bei Paketen mit nur einer Richtung wird auch nur diese geführt. Wechselt die
 Lernrichtung später, bleiben vorhandene Lernstände der anderen Richtung liegen
@@ -330,7 +376,8 @@ rezeptiv von Karteikarte über Multiple Choice zur offenen Übersetzung, produkt
 zusätzlich über Lückensätze mit und ohne Wortbank.
 
 Reihenfolge: fällige Kombinationen zuerst (niedrigstes Fach zuerst), dann noch
-nie geübte, dann die übrigen – innerhalb gleichwertiger Gruppen gemischt.
+nie geübte – innerhalb gleichwertiger Gruppen gemischt. Später fällige Karten
+kommen in einer normalen Runde **nicht** vor.
 
 ---
 
@@ -353,8 +400,19 @@ Richtung bei `both` noch komplett gesperrt, steht dort statt der Grafik:
 > Wiederholung freigeschaltet.
 
 Die Zahl „Aufgaben jetzt bereit“ stammt aus **derselben** Funktion, die auch die
-Sitzung plant (`countReady` → `eligibleTargets`). Ein neues `both`-Paket mit vier
-Vokabeln zeigt deshalb vier bereite Aufgaben, nicht acht.
+Sitzung plant (`planSession`). Ein neues `both`-Paket mit vier Vokabeln zeigt
+deshalb vier bereite Aufgaben, nicht acht.
+
+Vor dem Start steht getrennt, was bereit ist und was tatsächlich eingeplant wird:
+
+> **30** Aufgaben sind jetzt bereit. **15** Aufgaben werden für diese Runde
+> eingeplant. Die übrigen 15 folgen in einer weiteren Runde …
+
+Die Rundengröße ist als Obergrenze benannt („Bis zu 15 Aufgaben“), dazu gibt es
+„Alle bereiten (N)“ – N zählt weder gesperrte noch später fällige Richtungen.
+Ist nichts bereit, lässt sich keine Runde starten; stattdessen steht dort der
+nächste Termin („morgen um 09:00“, „in 3 Tagen (Freitag, 6.3.)“) oder ein
+neutraler Leerzustand.
 
 ---
 
@@ -476,11 +534,12 @@ funktioniert vollständig offline.
   Richtung; die produktive beginnt neu.
 * **Wiederholung am Rundenende.** Ist die Runde sehr kurz, kann die
   Wiederholung direkt auf den ersten Versuch folgen.
-* **Stille Verkürzung von Runden.** Lässt sich die Gegenrichtung nicht
-  regelkonform einplanen, wird die Runde kürzer als gewählt, ohne dass die
-  Oberfläche das begründet.
-* **Ausgelassene Wiedervorlage.** Findet sich keine zulässige Stelle, entfällt
-  die Wiederholung in dieser Runde kommentarlos.
+* **Rundengröße als Obergrenze.** Ist weniger bereit oder verhindert der
+  Richtungsabstand eine Platzierung, wird die Runde kürzer – das steht jetzt vor
+  dem Start dort, wird aber während der Runde nicht noch einmal erklärt.
+* **Vorschau nur für die aktuelle Auswahl.** Die Zahl „… werden eingeplant“ gilt
+  für den gerade gewählten Umfang; Wiedervorlagen innerhalb der Runde sind darin
+  naturgemäß nicht enthalten.
 * **Axe deckt nicht alles ab.** Automatische Prüfungen finden etwa 30–40 % der
   Barrieren; ein manueller Screenreader-Durchgang steht aus.
 * **Nur Chromium in der E2E-Stufe.** Firefox und WebKit werden nicht geprüft.
