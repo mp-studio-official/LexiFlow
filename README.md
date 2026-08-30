@@ -15,6 +15,10 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
   wahrheitsgemäße Wiedervorlage-Ankündigung.
 * **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
   nach erfolgreicher Speicherung des Lernstands.
+* **Sprint 2B.2b** – Satzassistent und Textempfehlungen: zu einer Vokabel einen
+  einfacheren Satz oder einen anderen Kontext vorschlagen lassen, und aus den
+  lokal gefundenen Textkandidaten diejenigen markieren, die zur Lerngruppe
+  passen. Dazu die vorab gewählte Anzahl Vokabelvorschläge aus einem Text.
 * **Sprint 2B.2a1** – Ehrliche Mengenanzeige und begrenzter Prompt-Kontext: das
   Ergebnis wird an der gewünschten Anzahl gemessen, und das Sprachmodell sieht
   höchstens 200 vorhandene Stichwörter – der vollständige Dublettenfilter bleibt
@@ -60,6 +64,12 @@ Weitere Befehle:
 | `npx vitest run src/import/topicDraft.test.ts` | Nur die Nachbearbeitung der Themenvorschläge |
 | `npx vitest run src/import/topicPortability.test.ts` | Nur der Portabilitätsnachweis der Themenwerkstatt |
 | `npx playwright test e2e/topic-studio.spec.ts` | Nur der E2E-Ablauf der Themenwerkstatt |
+| `npx vitest run src/import/sentenceAssist.test.ts` | Nur die Prüfung der Satzvorschläge |
+| `npx vitest run src/import/sentencePortability.test.ts` | Nur der Portabilitätsnachweis des Satzassistenten |
+| `npx vitest run src/import/textRecommendation.test.ts` | Nur Schlüsselbildung und Empfehlungsfilter |
+| `npx vitest run src/import/candidateLimit.test.ts` | Nur die gewünschte Anzahl Vokabelvorschläge |
+| `npx playwright test e2e/sentence-assistant.spec.ts` | Nur der E2E-Ablauf des Satzassistenten |
+| `npx playwright test e2e/text-recommendation.spec.ts` | Nur der E2E-Ablauf der Textempfehlungen |
 | `npm run build` | Typecheck + Produktions-Build nach `dist/` |
 | `npm run preview` | Produktions-Build lokal ausliefern (Port 4173) |
 | `npm run verify` | Typecheck → Tests → Build → alle E2E-Tests |
@@ -111,6 +121,7 @@ src/
     textExtraction.ts  lokale Textanalyse: Sätze, Wörter, Kandidaten
     stopwords.ts     englische Funktionswörter (Standardausblendung)
     wordRules.ts     sichere Wortart- und Themenregeln, ganz ohne Modell
+    wordMatch.ts     Wortgrenzenprüfung „enthält der Satz das Stichwort?“
     vocabpack.ts     Serialisierung des .vocabpack.json
     migrations.ts    Migrationskette für ältere Dateiformate
   data/          Persistenz (Dexie/IndexedDB)
@@ -126,13 +137,16 @@ src/
     suggestions.ts   ephemere Vorschläge im Entwurf: annehmen, ablehnen, prüfen
     enrichment.ts    Bindeglied zwischen Vorschlagsquellen und Entwurf
     topicDraft.ts    Nachbearbeitung der Themenvorschläge (Dubletten, Sätze, IDs)
+    sentenceAssist.ts  Prüfung und Übernahme von Satzvorschlägen (rein)
+    textRecommendation.ts  neutrale Kandidatenschlüssel, Empfehlungsfilter
+    candidateLimit.ts  gewünschte Anzahl Vokabelvorschläge (rein, ohne Modell)
   translation/   lokale Übersetzung als eigene, schmale Schnittstelle
     TranslationProvider.ts    Vertrag + nullTranslationProvider (Standard)
     chromeTranslationProvider.ts  Chrome-Translator-API, reine Feature Detection
   providers/     Registry (React-Context) und gemeinsamer Anbieterzustand
   ai/            KI als austauschbare Schnittstelle
     AiProvider.ts            Vertrag + nullAiProvider (Standard)
-    chromePromptAiProvider.ts  Prompt-API des Browsers, nur „enrich-entry“
+    chromePromptAiProvider.ts  Prompt-API des Browsers, vier Fähigkeiten
   ui/            Bausteine, Importlogik (usePackImport), Bestätigungsdialog
   routes/        Seiten (Start, Lehrkraft, Schülerbereich, Datenschutz)
 e2e/             Playwright: Smoke-Test und Barrierefreiheitstests
@@ -773,9 +787,27 @@ Gerät** in Sätze und Wörter und schlägt Vokabelkandidaten vor. Zu jedem
 Kandidaten steht der Originalsatz aus dem Text – unverändert, als Beleg und als
 späterer Beispielsatz.
 
-Ablauf: Text einfügen → lokal analysieren → Kandidaten prüfen → deutsche
-Antworten eintragen → in die bekannte Vorschau übernehmen → Metadaten und
-speichern.
+Ablauf: Text einfügen → gewünschte Anzahl wählen → lokal analysieren →
+Kandidaten prüfen → deutsche Antworten eintragen → in die bekannte Vorschau
+übernehmen → Metadaten und speichern.
+
+### Gewünschte Anzahl Vokabelvorschläge
+
+Die Anzahl wird **vor** der Analyse festgelegt: 5, 10, 15, 20, 30 oder eine
+eigene Zahl zwischen 1 und 50. Sie begrenzt die **angezeigten Kandidaten
+insgesamt**, nicht nur die späteren KI-Empfehlungen.
+
+Sie ist eine Obergrenze und kein Soll. Enthält der Text weniger geeignete
+Wörter, wird nichts erfunden und nichts aufgefüllt – stattdessen steht dort
+ehrlich *„12 von 20 gewünschten Vokabelvorschlägen gefunden. Der Text enthält
+nicht mehr geeignete Kandidaten – erfunden wird nichts.“*
+
+Ausgewählt werden die häufigsten Kandidaten; bei gleicher Häufigkeit entscheidet
+die Reihenfolge im Text. Das ist deterministisch, nachvollziehbar und
+funktioniert **ohne jedes Sprachmodell** (`limitCandidates`). Ist eine
+Priorisierung für die Lerngruppe verfügbar, bewertet sie anschließend
+ausschließlich diese tatsächlich aus dem Text extrahierten Kandidaten und
+sortiert sie – ohne die Auswahl zu verändern.
 
 ### Was garantiert lokal bleibt
 
@@ -878,6 +910,98 @@ Nullanbieter; ein Anbieter ruft niemals selbst `fetch` auf.
 
 ---
 
+## Satzassistent
+
+Zu einer Vokabel kann das lokale Sprachmodell einen Beispielsatz vorschlagen –
+im **bereits vorhandenen Detailbereich** einer Entwurfszeile, nicht in einem
+zweiten Editor. Verfügbar ist er überall dort, wo die `DraftTable` steht: im
+Importassistenten **und** im Paketeditor.
+
+Ohne vorhandenen Satz gibt es „Beispielsatz vorschlagen“, mit mindestens einem
+Satz „Einfacheren Satz vorschlagen“ und „Anderen Kontext vorschlagen“.
+
+### Vorschläge sind ungeprüft – und werden nie automatisch übernommen
+
+Der Vorschlag steht **getrennt** von den gespeicherten Feldern. Vier Aktionen
+stehen zur Wahl: als weiteren Satz übernehmen, einen vorhandenen Satz ersetzen
+(eigene Schaltfläche, bei mehreren Sätzen mit ausdrücklicher Auswahl), ablehnen
+oder neu versuchen. Es gibt kein stilles Überschreiben. Bei bereits zehn Sätzen
+– der Grenze des Paketformats – ist das Hinzufügen deaktiviert, das Ersetzen
+bleibt möglich. Ein ergänzter Satz verändert den `sourceType` der Zeile nicht:
+Aus einer Handarbeit wird dadurch keine Modellvokabel.
+
+### Was LexiFlow prüft, bevor überhaupt etwas angezeigt wird
+
+Ein Vorschlag muss nicht leer sein, innerhalb der Schemagrenze von 400 Zeichen
+liegen, das Stichwort beziehungsweise die vollständige Wendung enthalten (mit
+Wortgrenzen; beim Infinitiv zählt auch die Form ohne „to“), darf keinem
+vorhandenen Satz entsprechen und keine HTML-Auszeichnungen enthalten. Die
+deutsche Entsprechung ist optional.
+
+**Nichts wird still repariert.** Ein zu langer Satz wird nicht gekürzt, ein
+Satz mit Auszeichnungen nicht gesäubert, ein fehlendes Stichwort nicht
+eingebaut – jede dieser „Reparaturen“ könnte die Bedeutung verändern. Was
+durchfällt, wird mit verständlicher Begründung abgelehnt; die vorhandenen Sätze
+bleiben dabei vollständig unangetastet, und ein neuer Versuch ist ein Klick
+entfernt.
+
+Ohne Prompt-API steht im geöffneten Detailbereich ein ruhiger Hinweis – keine
+Warnung je Tabellenzeile. Die manuelle Satzbearbeitung funktioniert unverändert.
+
+## Empfehlungen aus einem Text
+
+Nach der lokalen Analyse kann das Sprachmodell markieren, welche der gefundenen
+Kandidaten für die eingestellte Lerngruppe besonders lohnend erscheinen:
+„Für Lerngruppe priorisieren“ mit Jahrgang, GeR-Niveau, optionalem Thema und
+gewünschter Empfehlungsanzahl (5, 10, 15 oder 20).
+
+> LexiFlow empfiehlt Kandidaten relativ zu dieser Lerngruppe. Die Empfehlung ist
+> keine automatische Auswahl und keine Lehrplanzusage.
+
+### Der Text geht nicht an das Modell
+
+Übergeben wird **nie der eingefügte Rohtext**, sondern höchstens
+`MAX_CONTEXT_CANDIDATES = 60` Kandidaten mit je vier Angaben: einem lokal
+vergebenen neutralen Schlüssel (`c1`, `c2` …), dem englischen Wort, der
+Häufigkeit und **genau einem** Originalsatz. Keine Paket- oder Eintrags-IDs,
+keine Übersetzungen anderer Vokabeln, keine Lernstände, keine Namen. Die
+Auswahl ist deterministisch (nach Häufigkeit); Kandidaten jenseits der Grenze
+bleiben vollständig von Hand auswählbar.
+
+### Das Modell kann nichts erfinden
+
+Die Antwort besteht ausschließlich aus Schlüsseln (`{"recommendedKeys": [...]}`),
+begrenzt auf 20. Zod prüft die Form, danach filtert LexiFlow lokal: unbekannte
+Schlüssel raus, Dubletten raus, auf die gewünschte Anzahl begrenzt. Ein Wort,
+das nicht im Text stand, kann so nicht in die Auswahl geraten. Bleibt nichts
+Gültiges übrig, gibt es eine verständliche Meldung und einen neuen Versuch.
+
+### Empfehlungen wählen nichts aus
+
+Das ist die wichtigste Grenze dieser Funktion:
+
+* Eine Empfehlung erzeugt ein Badge „Für Lerngruppe empfohlen“ und die
+  Sortierung „Empfehlungen zuerst“ – **mehr nicht**.
+* Die bestehende Auswahl bleibt nach der Erzeugung unverändert.
+* Erst „Nur Empfehlungen auswählen“ verändert die Checkboxen; „Alle wieder
+  auswählen“ nimmt das zurück.
+* Eine manuelle Änderung gewinnt danach jederzeit.
+* Entfernte Kandidaten kommen durch eine neue Empfehlung nicht zurück.
+* Die Übersetzungsvorschläge bleiben eine davon getrennte Funktion.
+
+Ist die Prompt-API nicht verfügbar, bleibt die Textwerkstatt vollständig
+benutzbar – Analyse, Übersetzung und Auswahl funktionieren unverändert, und es
+erscheint ein ruhiger Hinweis statt eines Fehlers.
+
+### Fertige Pakete brauchen kein Modell
+
+Weder Satzvorschläge noch Empfehlungen hinterlassen Spuren im Paket. Im
+`.vocabpack.json` stehen keine Modell- oder Vorschlagsdaten, kein Modus, keine
+Empfehlungsschlüssel und kein Anbietername – nur Vokabeln und ihre Sätze. Zwei
+Integrationstests (`sentencePortability.test.ts`,
+`textRecommendationPortability.test.ts`) laufen den ganzen Weg bis zur Lernrunde
+auf einem Gerät ganz ohne Modelle.
+
 ## Pakete aktualisieren, ohne Lernstände zu verlieren
 
 Wird eine `.vocabpack.json` importiert, deren Paket-ID bereits vorhanden ist,
@@ -944,6 +1068,15 @@ Zusätzlich getestet:
   Sprachmodell wird dabei als echte Klasse mit statischen Methoden injiziert.
   Ein eigener Fall fordert fünfzehn Vorschläge an, bekommt zehn – und prüft,
   dass dort „10 von 15“ steht und nirgends „10 von 10“
+* `e2e/sentence-assistant.spec.ts`: Satz vorschlagen, ausdrücklich übernehmen,
+  einen vorhandenen ersetzen, exportieren und in einem zweiten Browserkontext
+  **ohne jedes Modell** öffnen und üben; dazu Importassistent und Paketeditor,
+  Axe, Tastatur und 390 px
+* `e2e/text-recommendation.spec.ts`: Text analysieren, Empfehlungen erzeugen und
+  prüfen, dass die Auswahl dabei unverändert bleibt; „Nur Empfehlungen
+  auswählen“, Export-/Import-Rundlauf ohne Modelle, die gewünschte Anzahl
+  Vokabelvorschläge (auch ohne Modell und bei zu kleinem Text), Axe, Tastatur
+  und 390 px
 * `e2e/enrichment.spec.ts`: Vorschläge erzeugen, einzeln und gebündelt
   übernehmen, exportieren und in einem zweiten Browserkontext **ohne jede
   Modell-API** wieder importieren und üben; Axe, Tastatur und 390 px inklusive
@@ -1038,6 +1171,18 @@ funktioniert vollständig offline.
     keine Zusage; ein Bestand von tausenden Stichwörtern würde ihn nur
     aufblähen. Das Modell bekommt höchstens 200 Stichwörter, die verlässliche
     Dublettenprüfung läuft vollständig und deterministisch lokal.
+26. **Ein Vorschlag wird abgelehnt, nicht repariert.** Kürzen, Säubern oder das
+    Stichwort nachträglich einbauen könnte die Bedeutung verändern. Was die
+    Prüfung nicht besteht, wird begründet verworfen; die vorhandenen Sätze
+    bleiben unangetastet.
+27. **Das Modell antwortet mit Schlüsseln, nicht mit Wörtern.** Eine
+    Empfehlungsliste aus `c1`, `c2` … kann nichts erfinden, was nicht im Text
+    stand. Freitext könnte das.
+28. **Empfehlen ist nicht auswählen.** Eine Markierung nimmt der Lehrkraft keine
+    Entscheidung ab; die Auswahl ändert sich nur nach einem Klick, der genau das
+    ankündigt.
+29. **Die gewünschte Anzahl ist eine Obergrenze.** Ein Text mit zwölf brauchbaren
+    Wörtern liefert zwölf Vorschläge, keine zwanzig. Auffüllen wäre erfinden.
 21. **Der Modus steht in der URL.** Eine freie Runde ist damit teilbar und
     direkt aufrufbar; ein fehlender oder unbekannter Wert fällt auf den
     Lernplan zurück, nie umgekehrt.
@@ -1088,5 +1233,18 @@ funktioniert vollständig offline.
   Prüfung durch die Lehrkraft ist keine Formalie.
 * **Keine Themenwerkstatt ohne Prompt-API.** Firefox und Safari bieten sie
   derzeit nicht; dort bleiben Einfügen und die leere Liste.
+* **Satzprüfung verlangt die Grundform.** Der Vorschlag muss das Stichwort
+  wörtlich enthalten; „She apologised“ zählt für „to apologise“ nicht. Das ist
+  streng, aber für Lückensätze notwendig – gebeugte Formen lassen sich von Hand
+  eintragen.
+* **Empfehlungen bleiben eine Einschätzung.** Sie stützen sich auf ein kleines
+  Browsermodell, das Wort, Häufigkeit und einen Satz sieht – nicht auf den
+  Lehrplan und nicht auf die Lerngruppe selbst.
+* **Nur 60 Kandidaten je Anfrage.** Bei einem sehr langen Text bleibt der Rest
+  unbewertet. Er ist weiter von Hand auswählbar, und die Oberfläche sagt, wie
+  viele es waren.
+* **Die gewünschte Anzahl wählt nach Häufigkeit.** Ohne Modell ist das die beste
+  verfügbare deterministische Heuristik – ein seltenes, aber zentrales Wort kann
+  dabei herausfallen. Eine höhere Zahl bringt es zurück.
 * **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
   Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.

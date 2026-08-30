@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, Suspense, lazy, useState } from 'react';
 import { Badge, Button } from '../../ui/components';
 import {
   addSentence,
@@ -10,16 +10,29 @@ import {
   type DraftRow,
 } from '../../import/draft';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
+import type { LearningContext } from '../../import/enrichment';
+
+/**
+ * Der Satzassistent wird erst geladen, wenn wirklich ein Detailbereich offen
+ * ist. Schülerinnen und Schüler bekommen ihn nie zu sehen – und zahlen ihn
+ * deshalb auch nicht mit.
+ */
+const SentenceAssistant = lazy(() => import('./SentenceAssistant'));
 
 interface DraftTableProps {
   drafts: DraftRow[];
   onChange: (drafts: DraftRow[]) => void;
+  /**
+   * Lernkontext für den Satzassistenten. Fehlt er, gibt es die Tabelle wie
+   * bisher – ganz ohne Modellhilfe.
+   */
+  sentenceContext?: LearningContext;
 }
 
 const DIFFICULTIES = [1, 2, 3, 4, 5] as const;
 const COLUMN_COUNT = 9;
 
-export function DraftTable({ drafts, onChange }: DraftTableProps) {
+export function DraftTable({ drafts, onChange, sentenceContext }: DraftTableProps) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
 
   function apply(next: DraftRow[]): void {
@@ -318,6 +331,23 @@ export function DraftTable({ drafts, onChange }: DraftTableProps) {
                           >
                             Beispielsatz hinzufügen
                           </Button>
+
+                          {sentenceContext ? (
+                            <Suspense
+                              fallback={
+                                <p className="small muted" role="status">
+                                  Satzassistent wird geladen …
+                                </p>
+                              }
+                            >
+                              <SentenceAssistant
+                                draft={draft}
+                                context={sentenceContext}
+                                rowLabel={rowLabel}
+                                onChange={(next) => transform(draft.id, () => next)}
+                              />
+                            </Suspense>
+                          ) : null}
                         </fieldset>
                       </div>
                     </td>

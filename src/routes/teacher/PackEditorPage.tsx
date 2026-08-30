@@ -157,7 +157,15 @@ export function PackEditorPage() {
             Zeile hinzufügen
           </Button>
         </div>
-        <DraftTable drafts={drafts} onChange={setDrafts} />
+        <DraftTable
+          drafts={drafts}
+          onChange={setDrafts}
+          sentenceContext={{
+            grade: meta.grade,
+            cefrLevel: meta.cefrLevel,
+            topic: meta.topic,
+          }}
+        />
       </section>
 
       <div className="row">

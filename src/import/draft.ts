@@ -1,5 +1,6 @@
 import { newId } from '../domain/ids';
 import { normalizeAnswer, splitMeanings } from '../domain/normalize';
+import { sentenceContainsHeadword } from '../domain/wordMatch';
 import {
   PART_OF_SPEECH,
   type PartOfSpeech,
@@ -229,10 +230,6 @@ export function draftFromEntry(entry: VocabEntry): DraftRow {
   };
 }
 
-function containsWord(sentence: string, word: string): boolean {
-  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu').test(sentence);
-}
 
 /**
  * Prüft alle Entwürfe und markiert Fehler, Warnungen und Duplikate.
@@ -280,7 +277,7 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
     } else if (
       english &&
       sentences.length > 0 &&
-      !sentences.some((sentence) => containsWord(sentence.english, english))
+      !sentences.some((sentence) => sentenceContainsHeadword(sentence.english, english))
     ) {
       issues.push({
         level: 'warning',

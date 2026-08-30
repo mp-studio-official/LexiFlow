@@ -31,18 +31,24 @@ describe('nullAiProvider', () => {
     await expect(nullAiProvider.prepare('suggest-from-text')).rejects.toBeInstanceOf(
       AiUnavailableError,
     );
-    await expect(nullAiProvider.suggestFromText('text', context)).rejects.toBeInstanceOf(
-      AiUnavailableError,
-    );
+    await expect(
+      nullAiProvider.suggestFromText(
+        [{ key: 'c1', english: 'litter', occurrences: 2, sourceSentence: 'Do not drop litter.' }],
+        context,
+      ),
+    ).rejects.toBeInstanceOf(AiUnavailableError);
     await expect(nullAiProvider.suggestFromTopic('Umwelt', context)).rejects.toBeInstanceOf(
       AiUnavailableError,
     );
     await expect(
       nullAiProvider.enrichEntry({ english: 'litter', germanAnswers: ['Müll'] }, context),
     ).rejects.toBeInstanceOf(AiUnavailableError);
-    await expect(nullAiProvider.alternativeSentence('litter', context)).rejects.toBeInstanceOf(
-      AiUnavailableError,
-    );
+    await expect(
+      nullAiProvider.alternativeSentence(
+        { english: 'litter', germanAnswers: ['Müll'], existingSentences: [], mode: 'create' },
+        context,
+      ),
+    ).rejects.toBeInstanceOf(AiUnavailableError);
   });
 });
 

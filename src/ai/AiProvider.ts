@@ -37,6 +37,56 @@ export const AI_CAPABILITY_LABELS: Readonly<Record<AiCapability, string>> = {
   'alternative-sentence': 'alternativer Beispielsatz',
 };
 
+/**
+ * Höchstzahl Textkandidaten, die einem Anbieter übergeben werden.
+ *
+ * Der eingefügte Rohtext geht **nie** an ein Modell. Übergeben wird nur eine
+ * kurze, neutral geschlüsselte Kandidatenliste – und auch die gedeckelt, damit
+ * ein langer Text den Kontext nicht sprengt. Kandidaten jenseits der Grenze
+ * bleiben in der Oberfläche vollständig von Hand auswählbar.
+ */
+export const MAX_CONTEXT_CANDIDATES = 60;
+
+/** Höchstzahl Empfehlungen, die ein Modell zurückgeben darf. */
+export const MAX_RECOMMENDATIONS = 20;
+
+/**
+ * Ein Textkandidat, wie ihn das Modell zu sehen bekommt.
+ *
+ * `key` ist ein **lokal vergebener, neutraler** Schlüssel (`c1`, `c2` …) – keine
+ * Eintrags- oder Paket-ID. Das Modell antwortet ausschließlich mit solchen
+ * Schlüsseln und kann damit keine neuen Vokabeln erfinden.
+ */
+export interface AiTextCandidate {
+  key: string;
+  english: string;
+  occurrences: number;
+  /** Genau ein Originalsatz aus dem Text – nicht der ganze Text. */
+  sourceSentence: string;
+}
+
+/** Die Antwort des Modells: ein empfohlener Schlüssel, sonst nichts. */
+export interface AiTextRecommendation {
+  key: string;
+}
+
+/** Was der Satzassistent tun soll. */
+export type SentenceMode = 'create' | 'simpler' | 'different-context';
+
+export interface AlternativeSentenceRequest {
+  english: string;
+  germanAnswers: string[];
+  partOfSpeech?: PartOfSpeech;
+  /** Die bereits vorhandenen englischen Sätze – als Bezugspunkt und Dublettenschutz. */
+  existingSentences: string[];
+  mode: SentenceMode;
+}
+
+export interface AiSentenceSuggestion {
+  english: string;
+  german?: string;
+}
+
 export interface AiVocabSuggestion {
   english: string;
   germanAnswers: string[];
@@ -102,10 +152,20 @@ export interface AiProvider {
     signal?: AbortSignal,
   ): Promise<void>;
 
-  suggestFromText(text: string, context: AiGenerationContext): Promise<AiVocabSuggestion[]>;
+  /**
+   * Empfiehlt aus **bereits lokal extrahierten** Kandidaten. Der Anbieter darf
+   * nur Schlüssel dieser Liste zurückgeben – neue Vokabeln entstehen hier nie.
+   */
+  suggestFromText(
+    candidates: readonly AiTextCandidate[],
+    context: AiGenerationContext,
+  ): Promise<AiTextRecommendation[]>;
   suggestFromTopic(topic: string, context: AiGenerationContext): Promise<AiVocabSuggestion[]>;
   enrichEntry(entry: AiVocabSuggestion, context: AiGenerationContext): Promise<AiVocabSuggestion>;
-  alternativeSentence(english: string, context: AiGenerationContext): Promise<string>;
+  alternativeSentence(
+    request: AlternativeSentenceRequest,
+    context: AiGenerationContext,
+  ): Promise<AiSentenceSuggestion>;
 
   destroy?(): void;
 }

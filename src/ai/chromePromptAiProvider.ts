@@ -3,11 +3,15 @@ import { PART_OF_SPEECH } from '../domain/schema';
 import type { ProviderState } from '../providers/state';
 import {
   AiUnavailableError,
+  MAX_CONTEXT_CANDIDATES,
   MAX_CONTEXT_HEADWORDS,
+  MAX_RECOMMENDATIONS,
   type AiCapability,
   type AiGenerationContext,
   type AiProvider,
+  type AiTextCandidate,
   type AiVocabSuggestion,
+  type AlternativeSentenceRequest,
 } from './AiProvider';
 
 /**
@@ -18,16 +22,18 @@ import {
  * ausdrücklichen Klick. Erkannt wird die API ausschließlich über Feature
  * Detection – kein User-Agent-Sniffing.
  *
- * Der Anbieter kann zwei Dinge: einen vorhandenen Eintrag um Wortart,
- * Schwierigkeit und Themen-Tags ergänzen (`enrich-entry`) und zu einem Thema
- * Vokabelvorschläge erzeugen (`suggest-from-topic`). Alles andere meldet er
- * ehrlich als nicht verfügbar.
+ * Der Anbieter kann vier Dinge: einen vorhandenen Eintrag ergänzen
+ * (`enrich-entry`), zu einem Thema Vokabelvorschläge erzeugen
+ * (`suggest-from-topic`), einen Beispielsatz vorschlagen
+ * (`alternative-sentence`) und aus **bereits lokal extrahierten** Kandidaten
+ * eine Empfehlung geben (`suggest-from-text`).
  *
- * **Eine Sitzung je Fähigkeit.** Die beiden Aufgaben brauchen unterschiedliche
- * Sprachkonfigurationen – `enrich-entry` antwortet englisch, die Themenwerkstatt
- * zweisprachig. Eine gemeinsame Sitzung wäre für eine von beiden falsch
- * konfiguriert. Jede Fähigkeit hat deshalb ihre eigene Sitzung **und** ihre
- * eigene Warteschlange; ein Fehler der einen lässt die andere unberührt.
+ * **Eine Sitzung je Fähigkeit.** Die Aufgaben brauchen unterschiedliche
+ * Sprachkonfigurationen – `enrich-entry` antwortet englisch, Themenwerkstatt
+ * und Satzassistent zweisprachig, die Textempfehlung nur mit Schlüsseln. Eine
+ * gemeinsame Sitzung wäre für mindestens eine davon falsch konfiguriert. Jede
+ * Fähigkeit hat deshalb ihre eigene Sitzung **und** ihre eigene Warteschlange;
+ * ein Fehler der einen lässt die anderen unberührt.
  *
  * Die Ausgabe wird **erzwungen**, nicht erbeten: `responseConstraint` gibt dem
  * Modell ein JSON-Schema vor, und die Antwort läuft anschließend noch durch
@@ -37,9 +43,16 @@ import {
 
 export const AI_CAPABILITY: AiCapability = 'enrich-entry';
 export const TOPIC_CAPABILITY: AiCapability = 'suggest-from-topic';
+export const SENTENCE_CAPABILITY: AiCapability = 'alternative-sentence';
+export const TEXT_CAPABILITY: AiCapability = 'suggest-from-text';
 
 /** Was dieser Anbieter kann – in dieser Reihenfolge auch nach außen gemeldet. */
-export const SUPPORTED_CAPABILITIES: readonly AiCapability[] = [AI_CAPABILITY, TOPIC_CAPABILITY];
+export const SUPPORTED_CAPABILITIES: readonly AiCapability[] = [
+  AI_CAPABILITY,
+  TOPIC_CAPABILITY,
+  SENTENCE_CAPABILITY,
+  TEXT_CAPABILITY,
+];
 
 /** Obergrenze für eine Themenanfrage – auch das Schema begrenzt darauf. */
 export const MAX_TOPIC_ENTRIES = 20;
@@ -55,12 +68,17 @@ export const CHROME_PROMPT_NOTICE =
  * auch **deutsche Übersetzungen erzeugen** – ein einsprachiges Modell wäre dafür
  * unbrauchbar, und genau das soll `availability` vorher erkennen.
  */
-const CAPABILITY_LANGUAGES: Readonly<
-  Record<'enrich-entry' | 'suggest-from-topic', { inputs: string[]; outputs: string[] }>
-> = {
-  'enrich-entry': { inputs: ['en', 'de'], outputs: ['en'] },
-  'suggest-from-topic': { inputs: ['de', 'en'], outputs: ['de', 'en'] },
-};
+const CAPABILITY_LANGUAGES: Readonly<Record<AiCapability, { inputs: string[]; outputs: string[] }>> =
+  {
+    'enrich-entry': { inputs: ['en', 'de'], outputs: ['en'] },
+    'suggest-from-topic': { inputs: ['de', 'en'], outputs: ['de', 'en'] },
+    // Der Satzassistent liefert einen englischen Satz **und** dessen deutsche
+    // Entsprechung – ein einsprachiges Modell wäre dafür unbrauchbar.
+    'alternative-sentence': { inputs: ['en', 'de'], outputs: ['en', 'de'] },
+    // Die Textempfehlung antwortet nur mit Schlüsseln, liest aber englische
+    // Kandidaten und deutsche Anweisungen.
+    'suggest-from-text': { inputs: ['en', 'de'], outputs: ['en'] },
+  };
 
 // ---------------------------------------------------------------------------
 // Vertrag mit dem Modell
@@ -152,6 +170,48 @@ export const topicResponse = z.object({
 export type TopicEntry = z.infer<typeof topicEntry>;
 export type TopicResponse = z.infer<typeof topicResponse>;
 
+/** Obergrenze für einen Satzvorschlag – dieselbe wie im Paketformat. */
+export const MAX_SENTENCE_LENGTH = 400;
+
+/** JSON-Schema für einen einzelnen Satzvorschlag. */
+export const SENTENCE_RESPONSE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['english'],
+  properties: {
+    english: { type: 'string', minLength: 1, maxLength: MAX_SENTENCE_LENGTH },
+    german: { type: 'string', maxLength: MAX_SENTENCE_LENGTH },
+  },
+} as const;
+
+export const sentenceResponse = z.object({
+  english: z.string().trim().min(1).max(MAX_SENTENCE_LENGTH),
+  german: z.string().trim().max(MAX_SENTENCE_LENGTH).optional(),
+});
+
+/**
+ * JSON-Schema für die Textempfehlung.
+ *
+ * Bewusst **nur Schlüssel**: Das Modell kann damit keine Vokabel erfinden, die
+ * im Text nicht vorkam. Ein Freitextfeld gäbe es diese Möglichkeit zurück.
+ */
+export const TEXT_RESPONSE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['recommendedKeys'],
+  properties: {
+    recommendedKeys: {
+      type: 'array',
+      maxItems: MAX_RECOMMENDATIONS,
+      items: { type: 'string', minLength: 1, maxLength: 8 },
+    },
+  },
+} as const;
+
+export const textResponse = z.object({
+  recommendedKeys: z.array(z.string().trim().min(1).max(8)).max(MAX_RECOMMENDATIONS),
+});
+
 export class AiResponseError extends Error {
   constructor(message = 'Die Antwort des Sprachmodells war nicht verwertbar.') {
     super(message);
@@ -226,6 +286,110 @@ export function buildTopicPrompt(topic: string, context: AiGenerationContext): s
     '- exampleSentence.english: ein kurzer, verständlicher Satz, der das Stichwort wörtlich enthält',
     '- exampleSentence.german: die deutsche Entsprechung dieses Satzes',
     '- lieber weniger Vokabeln als unpassende',
+  );
+  return lines.join('\n');
+}
+
+const SENTENCE_TASK: Readonly<Record<AlternativeSentenceRequest['mode'], string>> = {
+  create: 'Schreibe einen neuen Beispielsatz.',
+  simpler:
+    'Schreibe einen sprachlich einfacheren Beispielsatz als die vorhandenen: kürzer, mit häufigeren Wörtern und einfacherem Satzbau.',
+  'different-context':
+    'Schreibe einen Beispielsatz in einem erkennbar anderen Kontext als die vorhandenen – andere Situation, anderes Sachfeld.',
+};
+
+/**
+ * Anweisung für den Satzassistenten.
+ *
+ * Übergeben wird ausschließlich die eine Vokabel mit ihren Bedeutungen, ihre
+ * vorhandenen Sätze und der Lernkontext. Keine anderen Vokabeln, keine
+ * Paket-IDs, keine Lernstände.
+ */
+export function buildSentencePrompt(
+  request: AlternativeSentenceRequest,
+  context: AiGenerationContext,
+): string {
+  const lines = [
+    'Du hilfst einer Englischlehrkraft an einem deutschen Gymnasium bei einem Beispielsatz.',
+    'Antworte ausschließlich im vorgegebenen JSON-Format.',
+    '',
+    `Englisches Stichwort: ${request.english}`,
+  ];
+  if (request.germanAnswers.length > 0) {
+    lines.push(`Deutsche Bedeutung: ${request.germanAnswers.join(', ')}`);
+  }
+  if (request.partOfSpeech) lines.push(`Wortart: ${request.partOfSpeech}`);
+  if (request.existingSentences.length > 0) {
+    lines.push('Vorhandene Beispielsätze:');
+    for (const sentence of request.existingSentences) lines.push(`- ${sentence}`);
+  }
+  lines.push(`Jahrgangsstufe: ${context.grade}`);
+  lines.push(`Sprachniveau (GeR): ${context.cefrLevel}`);
+  if (context.topic) lines.push(`Thema des Pakets: ${context.topic}`);
+
+  lines.push(
+    '',
+    `Aufgabe: ${SENTENCE_TASK[request.mode]}`,
+    '',
+    'Regeln:',
+    '- ein kurzer, natürlicher, schulgeeigneter Satz',
+    '- er passt zur angegebenen deutschen Bedeutung',
+    '- er verwendet genau dieses Stichwort beziehungsweise diese Wendung wörtlich',
+    '- er ist nicht identisch mit einem der vorhandenen Sätze',
+    '- keine Namen realer oder erfundener Personen und keine persönlichen Angaben',
+    '- keine beleidigenden, gewalthaltigen oder sexualisierten Inhalte',
+    '- english: der Satz selbst',
+    '- german: die deutsche Entsprechung dieses Satzes',
+    '- keine Erklärung, keine Anführungszeichen, kein Markdown',
+  );
+  return lines.join('\n');
+}
+
+/**
+ * Anweisung für die Textempfehlung.
+ *
+ * Der eingefügte Rohtext geht hier **nicht** hinein – nur die schon lokal
+ * gefundenen Kandidaten mit neutralem Schlüssel, Häufigkeit und genau einem
+ * Originalsatz. Die Grenze wird hier noch einmal durchgesetzt, unabhängig vom
+ * Aufrufer.
+ */
+export function buildTextPrompt(
+  candidates: readonly AiTextCandidate[],
+  context: AiGenerationContext,
+): string {
+  const limited = candidates.slice(0, MAX_CONTEXT_CANDIDATES);
+  const wanted = Math.min(context.maxItems ?? 10, MAX_RECOMMENDATIONS);
+
+  const lines = [
+    'Du hilfst einer Englischlehrkraft an einem deutschen Gymnasium bei der Auswahl von Vokabeln.',
+    'Antworte ausschließlich im vorgegebenen JSON-Format.',
+    '',
+    `Jahrgangsstufe: ${context.grade}`,
+    `Sprachniveau (GeR): ${context.cefrLevel}`,
+  ];
+  if (context.topic) lines.push(`Thema des Pakets: ${context.topic}`);
+  lines.push(
+    `Anzahl: höchstens ${wanted} Empfehlungen.`,
+    '',
+    'Kandidaten (Schlüssel | Wort | Häufigkeit | Originalsatz):',
+  );
+  for (const candidate of limited) {
+    lines.push(
+      `${candidate.key} | ${candidate.english} | ${candidate.occurrences}× | ${candidate.sourceSentence}`,
+    );
+  }
+
+  lines.push(
+    '',
+    'Aufgabe: Wähle die Kandidaten aus, die für genau diese Lerngruppe besonders lernenswert sind.',
+    '',
+    'Regeln:',
+    '- gib ausschließlich Schlüssel aus der Liste zurück',
+    '- erfinde keine neuen Wörter und keine neuen Schlüssel',
+    '- jeder Schlüssel höchstens einmal',
+    '- stärkste Empfehlung zuerst',
+    '- lieber weniger Empfehlungen als unpassende',
+    '- keine Erklärung, kein Freitext, kein Markdown',
   );
   return lines.join('\n');
 }
@@ -473,10 +637,54 @@ export function createChromePromptAiProvider(scope: unknown = globalThis): AiPro
       }));
     },
 
-    suggestFromText: () =>
-      Promise.reject(new AiUnavailableError('Vorschläge aus einem Text sind hier nicht vorgesehen.')),
-    alternativeSentence: () =>
-      Promise.reject(new AiUnavailableError('Alternative Beispielsätze sind hier nicht vorgesehen.')),
+    async alternativeSentence(request, context) {
+      const parsed = await ask(
+        SENTENCE_CAPABILITY,
+        buildSentencePrompt(request, context),
+        SENTENCE_RESPONSE_SCHEMA,
+        context.signal,
+      );
+
+      const checked = sentenceResponse.safeParse(parsed);
+      if (!checked.success) {
+        throw new AiResponseError(
+          'Der Satzvorschlag des Sprachmodells passte nicht zum erwarteten Format.',
+        );
+      }
+
+      return {
+        english: checked.data.english,
+        ...(checked.data.german ? { german: checked.data.german } : {}),
+      };
+    },
+
+    async suggestFromText(candidates, context) {
+      const parsed = await ask(
+        TEXT_CAPABILITY,
+        buildTextPrompt(candidates, context),
+        TEXT_RESPONSE_SCHEMA,
+        context.signal,
+      );
+
+      const checked = textResponse.safeParse(parsed);
+      if (!checked.success) {
+        throw new AiResponseError(
+          'Die Empfehlungsliste des Sprachmodells passte nicht zum erwarteten Format.',
+        );
+      }
+
+      // Nur bekannte Schlüssel, keine Dubletten – der Anbieter erfindet nichts.
+      // Die Reihenfolge des Modells bleibt erhalten: stärkste Empfehlung zuerst.
+      const known = new Set(candidates.map((candidate) => candidate.key));
+      const seen = new Set<string>();
+      const recommendations: { key: string }[] = [];
+      for (const key of checked.data.recommendedKeys) {
+        if (!known.has(key) || seen.has(key)) continue;
+        seen.add(key);
+        recommendations.push({ key });
+      }
+      return recommendations;
+    },
 
     destroy() {
       for (const session of sessions.values()) session.destroy?.();

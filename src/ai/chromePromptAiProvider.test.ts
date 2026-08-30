@@ -7,7 +7,13 @@ import {
   buildEnrichPrompt,
   buildTopicPrompt,
   MAX_TOPIC_ENTRIES,
+  SENTENCE_CAPABILITY,
+  SENTENCE_RESPONSE_SCHEMA,
+  TEXT_CAPABILITY,
+  TEXT_RESPONSE_SCHEMA,
   TOPIC_CAPABILITY,
+  buildSentencePrompt,
+  buildTextPrompt,
   TOPIC_RESPONSE_SCHEMA,
   createChromePromptAiProvider,
   detectPromptAiProvider,
@@ -17,8 +23,12 @@ import {
 import {
   AI_CAPABILITIES,
   AiUnavailableError,
+  MAX_CONTEXT_CANDIDATES,
   MAX_CONTEXT_HEADWORDS,
+  MAX_RECOMMENDATIONS,
+  type AiCapability,
   type AiGenerationContext,
+  type AlternativeSentenceRequest,
 } from './AiProvider';
 import { headwordsForPrompt } from '../import/topicDraft';
 import { createFakeLanguageModelScope } from '../test/fakeTranslator';
@@ -110,26 +120,44 @@ describe('Feature Detection', () => {
 });
 
 describe('Fähigkeiten', () => {
-  it('kann „enrich-entry“ und „suggest-from-topic“', () => {
+  it('kann seit Sprint 2B.2b alle vier Fähigkeiten', () => {
     const provider = createChromePromptAiProvider(createFakeLanguageModelScope().scope);
-    expect(provider.capabilities()).toEqual(['enrich-entry', 'suggest-from-topic']);
+    expect(provider.capabilities()).toEqual([
+      'enrich-entry',
+      'suggest-from-topic',
+      'alternative-sentence',
+      'suggest-from-text',
+    ]);
+    // Der Vertrag kennt keine Fähigkeit mehr, die dieser Anbieter nicht kann.
+    expect([...AI_CAPABILITIES].sort()).toEqual([...provider.capabilities()].sort());
   });
 
-  it('meldet jede andere Fähigkeit als nicht verfügbar', async () => {
+  it('verlangt für jede Fähigkeit eine eigene Vorbereitung', async () => {
     const provider = createChromePromptAiProvider(createFakeLanguageModelScope().scope);
-    const unsupported = AI_CAPABILITIES.filter(
-      (item) => item !== AI_CAPABILITY && item !== TOPIC_CAPABILITY,
-    );
-    expect(unsupported.length).toBeGreaterThan(0);
-
-    for (const capability of unsupported) {
-      await expect(provider.getAvailability(capability)).resolves.toBe('unavailable');
-      await expect(provider.prepare(capability)).rejects.toBeInstanceOf(AiUnavailableError);
+    for (const capability of AI_CAPABILITIES) {
+      await expect(provider.getAvailability(capability)).resolves.toBe('downloadable');
     }
-    await expect(provider.suggestFromText('x', CONTEXT)).rejects.toBeInstanceOf(AiUnavailableError);
-    await expect(provider.alternativeSentence('x', CONTEXT)).rejects.toBeInstanceOf(
-      AiUnavailableError,
-    );
+
+    // Ohne prepare gibt es keine Sitzung – und damit keine Antwort.
+    await expect(
+      provider.suggestFromText(
+        [{ key: 'c1', english: 'litter', occurrences: 2, sourceSentence: 'Do not drop litter.' }],
+        CONTEXT,
+      ),
+    ).rejects.toBeInstanceOf(AiUnavailableError);
+    await expect(
+      provider.alternativeSentence(
+        { english: 'litter', germanAnswers: ['Müll'], existingSentences: [], mode: 'create' },
+        CONTEXT,
+      ),
+    ).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+
+  it('lehnt eine unbekannte Fähigkeit weiterhin ehrlich ab', async () => {
+    const provider = createChromePromptAiProvider(createFakeLanguageModelScope().scope);
+    const unknown = 'translate-pack' as AiCapability;
+    await expect(provider.getAvailability(unknown)).resolves.toBe('unavailable');
+    await expect(provider.prepare(unknown)).rejects.toBeInstanceOf(AiUnavailableError);
   });
 });
 
@@ -591,10 +619,13 @@ describe('Getrennte Sitzungen je Fähigkeit', () => {
     await provider.prepare(TOPIC_CAPABILITY);
     expect(handle.createCount()).toBe(2);
 
+    await provider.prepare(SENTENCE_CAPABILITY);
+    await provider.prepare(TEXT_CAPABILITY);
+    expect(handle.createCount()).toBe(4);
+
     // Und keine wird zweimal vorbereitet.
-    await provider.prepare(AI_CAPABILITY);
-    await provider.prepare(TOPIC_CAPABILITY);
-    expect(handle.createCount()).toBe(2);
+    for (const capability of AI_CAPABILITIES) await provider.prepare(capability);
+    expect(handle.createCount()).toBe(4);
   });
 
   it('gibt availability und create je Fähigkeit dieselben Optionen', async () => {
@@ -605,6 +636,10 @@ describe('Getrennte Sitzungen je Fähigkeit', () => {
     await provider.prepare(AI_CAPABILITY);
     await provider.getAvailability(TOPIC_CAPABILITY);
     await provider.prepare(TOPIC_CAPABILITY);
+    await provider.getAvailability(SENTENCE_CAPABILITY);
+    await provider.prepare(SENTENCE_CAPABILITY);
+    await provider.getAvailability(TEXT_CAPABILITY);
+    await provider.prepare(TEXT_CAPABILITY);
 
     const languagesOf = (options: unknown) => ({
       inputs: (options as { expectedInputs?: Array<{ languages: string[] }> }).expectedInputs?.[0]
@@ -626,6 +661,20 @@ describe('Getrennte Sitzungen je Fähigkeit', () => {
       outputs: ['de', 'en'],
     });
     expect(languagesOf(handle.createCalls()[1])).toEqual(languagesOf(handle.availabilityCalls()[1]));
+
+    // alternative-sentence: englischer Satz plus deutsche Entsprechung.
+    expect(languagesOf(handle.availabilityCalls()[2])).toEqual({
+      inputs: ['en', 'de'],
+      outputs: ['en', 'de'],
+    });
+    expect(languagesOf(handle.createCalls()[2])).toEqual(languagesOf(handle.availabilityCalls()[2]));
+
+    // suggest-from-text: antwortet nur mit Schlüsseln.
+    expect(languagesOf(handle.availabilityCalls()[3])).toEqual({
+      inputs: ['en', 'de'],
+      outputs: ['en'],
+    });
+    expect(languagesOf(handle.createCalls()[3])).toEqual(languagesOf(handle.availabilityCalls()[3]));
   });
 
   it('lässt eine Fähigkeit nutzbar, wenn die andere scheitert', async () => {
@@ -689,18 +738,207 @@ describe('Getrennte Sitzungen je Fähigkeit', () => {
     expect(call).toBe(2);
   });
 
-  it('zerstört beide Sitzungen', async () => {
+  it('zerstört alle Sitzungen', async () => {
     const handle = createFakeLanguageModelScope();
     const provider = createChromePromptAiProvider(handle.scope);
-    await provider.prepare(AI_CAPABILITY);
-    await provider.prepare(TOPIC_CAPABILITY);
+    for (const capability of AI_CAPABILITIES) await provider.prepare(capability);
 
     provider.destroy?.();
 
-    expect(handle.destroyCount()).toBe(2);
+    expect(handle.destroyCount()).toBe(4);
     await expect(provider.enrichEntry(ENTRY, CONTEXT)).rejects.toBeInstanceOf(AiUnavailableError);
     await expect(
       provider.suggestFromTopic('City life', { grade: '7', cefrLevel: 'A2' }),
     ).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+});
+
+describe('Satzassistent', () => {
+  const SENTENCE_CONTEXT: AiGenerationContext = {
+    grade: '8',
+    cefrLevel: 'A2+',
+    topic: 'City life',
+  };
+
+  const REQUEST: AlternativeSentenceRequest = {
+    english: 'to apologise',
+    germanAnswers: ['sich entschuldigen'],
+    partOfSpeech: 'verb',
+    existingSentences: ['He apologised to the whole class after the incident.'],
+    mode: 'simpler',
+  };
+
+  async function askSentence(answer: string, request = REQUEST) {
+    const handle = createFakeLanguageModelScope({ respond: () => answer });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(SENTENCE_CAPABILITY);
+    return { handle, result: await provider.alternativeSentence(request, SENTENCE_CONTEXT) };
+  }
+
+  it('fordert strukturierte Ausgabe an und liefert beide Sprachen', async () => {
+    const { handle, result } = await askSentence(
+      JSON.stringify({ english: 'She apologised at once.', german: 'Sie entschuldigte sich sofort.' }),
+    );
+    expect(handle.lastConstraint()).toBe(SENTENCE_RESPONSE_SCHEMA);
+    expect(result).toEqual({
+      english: 'She apologised at once.',
+      german: 'Sie entschuldigte sich sofort.',
+    });
+  });
+
+  it('lässt die deutsche Entsprechung weg, wenn das Modell keine liefert', async () => {
+    const { result } = await askSentence(JSON.stringify({ english: 'Please apologise now.' }));
+    expect(result).toEqual({ english: 'Please apologise now.' });
+    expect('german' in result).toBe(false);
+  });
+
+  it('lehnt eine formal falsche Antwort vollständig ab', async () => {
+    for (const answer of [
+      'kein json',
+      JSON.stringify({}),
+      JSON.stringify({ english: '' }),
+      JSON.stringify({ english: 'x'.repeat(401) }),
+      JSON.stringify({ english: 'ok', german: 'y'.repeat(401) }),
+    ]) {
+      await expect(askSentence(answer)).rejects.toBeInstanceOf(AiResponseError);
+    }
+  });
+
+  it('übergibt genau die eine Vokabel und ihren Lernkontext', () => {
+    const prompt = buildSentencePrompt(REQUEST, SENTENCE_CONTEXT);
+    expect(prompt).toContain('to apologise');
+    expect(prompt).toContain('sich entschuldigen');
+    expect(prompt).toContain('verb');
+    expect(prompt).toContain('He apologised to the whole class after the incident.');
+    expect(prompt).toContain('8');
+    expect(prompt).toContain('A2+');
+    expect(prompt).toContain('City life');
+    expect(prompt).not.toMatch(/box|dueAt|progress|packId|sessionCount/i);
+  });
+
+  it('formuliert für jeden Modus eine andere Aufgabe', () => {
+    const create = buildSentencePrompt({ ...REQUEST, mode: 'create' }, SENTENCE_CONTEXT);
+    const simpler = buildSentencePrompt({ ...REQUEST, mode: 'simpler' }, SENTENCE_CONTEXT);
+    const other = buildSentencePrompt(
+      { ...REQUEST, mode: 'different-context' },
+      SENTENCE_CONTEXT,
+    );
+
+    expect(simpler).toContain('einfacheren');
+    expect(other).toContain('anderen Kontext');
+    expect(new Set([create, simpler, other]).size).toBe(3);
+  });
+
+  it('bricht über ein AbortSignal ab', async () => {
+    const handle = createFakeLanguageModelScope({ respond: () => JSON.stringify({ english: 'x' }) });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(SENTENCE_CAPABILITY);
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      provider.alternativeSentence(REQUEST, { ...SENTENCE_CONTEXT, signal: controller.signal }),
+    ).rejects.toBeInstanceOf(DOMException);
+  });
+
+  it('meldet Fortschritt beim Vorbereiten', async () => {
+    const handle = createFakeLanguageModelScope();
+    const provider = createChromePromptAiProvider(handle.scope);
+    const seen: number[] = [];
+    await provider.prepare(SENTENCE_CAPABILITY, (value) => seen.push(value));
+    expect(seen.at(-1)).toBe(1);
+  });
+});
+
+describe('Textempfehlung', () => {
+  const TEXT_CONTEXT: AiGenerationContext = { grade: '9', cefrLevel: 'B1', maxItems: 5 };
+
+  const CANDIDATES = [
+    { key: 'c1', english: 'crowded', occurrences: 3, sourceSentence: 'The bus was crowded.' },
+    { key: 'c2', english: 'litter', occurrences: 2, sourceSentence: 'Do not drop litter.' },
+    { key: 'c3', english: 'pavement', occurrences: 1, sourceSentence: 'The pavement was wet.' },
+  ];
+
+  async function askText(answer: string, candidates = CANDIDATES, context = TEXT_CONTEXT) {
+    const handle = createFakeLanguageModelScope({ respond: () => answer });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(TEXT_CAPABILITY);
+    return { handle, result: await provider.suggestFromText(candidates, context) };
+  }
+
+  it('fordert strukturierte Schlüssel an und behält die Reihenfolge', async () => {
+    const { handle, result } = await askText(
+      JSON.stringify({ recommendedKeys: ['c2', 'c1'] }),
+    );
+    expect(handle.lastConstraint()).toBe(TEXT_RESPONSE_SCHEMA);
+    expect(TEXT_RESPONSE_SCHEMA.properties.recommendedKeys.maxItems).toBe(MAX_RECOMMENDATIONS);
+    // Stärkste Empfehlung zuerst – genau so, wie das Modell geantwortet hat.
+    expect(result).toEqual([{ key: 'c2' }, { key: 'c1' }]);
+  });
+
+  it('verwirft unbekannte Schlüssel, statt Wörter zu erfinden', async () => {
+    const { result } = await askText(
+      JSON.stringify({ recommendedKeys: ['c2', 'c99', 'skyline', 'c3'] }),
+    );
+    expect(result).toEqual([{ key: 'c2' }, { key: 'c3' }]);
+  });
+
+  it('entfernt Dubletten', async () => {
+    const { result } = await askText(JSON.stringify({ recommendedKeys: ['c1', 'c1', 'c2', 'c1'] }));
+    expect(result).toEqual([{ key: 'c1' }, { key: 'c2' }]);
+  });
+
+  it('liefert eine leere Liste, wenn nichts Bekanntes übrig bleibt', async () => {
+    const { result } = await askText(JSON.stringify({ recommendedKeys: ['c42', 'c43'] }));
+    expect(result).toEqual([]);
+  });
+
+  it('lehnt eine formal falsche Antwort vollständig ab', async () => {
+    for (const answer of [
+      'kein json',
+      JSON.stringify({}),
+      JSON.stringify({ recommendedKeys: 'c1' }),
+      JSON.stringify({ recommendedKeys: [1, 2] }),
+      JSON.stringify({ recommendedKeys: Array.from({ length: 21 }, (_, i) => `c${i + 1}`) }),
+    ]) {
+      await expect(askText(answer)).rejects.toBeInstanceOf(AiResponseError);
+    }
+  });
+
+  it('übergibt höchstens 60 Kandidaten und niemals den ganzen Text', () => {
+    const many = Array.from({ length: 120 }, (_, index) => ({
+      key: `c${index + 1}`,
+      english: `word${index + 1}`,
+      occurrences: 1,
+      sourceSentence: `Sentence ${index + 1} about word${index + 1}.`,
+    }));
+
+    const prompt = buildTextPrompt(many, TEXT_CONTEXT);
+    const keyLines = prompt.split('\n').filter((line) => /^c\d+ \| /.test(line));
+    expect(keyLines).toHaveLength(MAX_CONTEXT_CANDIDATES);
+    expect(prompt).toContain('c60 | word60');
+    expect(prompt).not.toContain('c61 | word61');
+    expect(prompt).not.toContain('word120');
+  });
+
+  it('nennt nur neutrale Schlüssel, keine internen IDs oder Lernstände', () => {
+    const prompt = buildTextPrompt(CANDIDATES, { ...TEXT_CONTEXT, topic: 'City life' });
+    expect(prompt).toContain('c1 | crowded | 3×');
+    expect(prompt).toContain('City life');
+    expect(prompt).not.toMatch(/box|dueAt|progress|packId|sessionCount|entryId/i);
+  });
+
+  it('bricht über ein AbortSignal ab', async () => {
+    const handle = createFakeLanguageModelScope({
+      respond: () => JSON.stringify({ recommendedKeys: ['c1'] }),
+    });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(TEXT_CAPABILITY);
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      provider.suggestFromText(CANDIDATES, { ...TEXT_CONTEXT, signal: controller.signal }),
+    ).rejects.toBeInstanceOf(DOMException);
   });
 });

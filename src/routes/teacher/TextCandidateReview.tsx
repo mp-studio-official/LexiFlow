@@ -1,10 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Announcer, Badge, Button, Card } from '../../ui/components';
 import { useTranslationProvider } from '../../providers/ProviderContext';
 import { sortCandidates, type CandidateSort, type TextCandidate } from '../../domain/textExtraction';
+import { orderByRecommendation } from '../../import/textRecommendation';
+import { describeCandidateCount } from '../../import/candidateLimit';
 import type { CandidateSelection } from '../../import/textDraft';
+import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
+
+/**
+ * Die Priorisierung lädt erst, wenn die Kandidatenansicht offen ist – der
+ * Schülerbereich bekommt davon nichts ab.
+ */
+const TextRecommendationPanel = lazy(() => import('./TextRecommendationPanel'));
+
+/** Sortierung dieser Ansicht: die beiden bekannten plus „Empfehlungen zuerst“. */
+type ReviewSort = CandidateSort | 'recommended';
 
 /**
  * Prüfansicht der Textwerkstatt.
@@ -48,11 +60,23 @@ function toRow(candidate: TextCandidate): CandidateRow {
 
 export interface TextCandidateReviewProps {
   candidates: readonly TextCandidate[];
+  /** Derselbe Lernkontext wie im übrigen Assistenten – Änderungen wandern nach oben. */
+  context: LearningContext;
+  onContextChange: (context: LearningContext) => void;
+  /** Die vor der Analyse gewählte Obergrenze – für die ehrliche Anzeige. */
+  requestedCount: number;
   onApply: (selections: CandidateSelection[]) => void;
   onBack: () => void;
 }
 
-export function TextCandidateReview({ candidates, onApply, onBack }: TextCandidateReviewProps) {
+export function TextCandidateReview({
+  candidates,
+  context,
+  onContextChange,
+  requestedCount,
+  onApply,
+  onBack,
+}: TextCandidateReviewProps) {
   const provider = useTranslationProvider();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -60,7 +84,9 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
   const preparedRef = useRef<TranslationProvider | null>(null);
 
   const [rows, setRows] = useState<CandidateRow[]>(() => candidates.map(toRow));
-  const [sort, setSort] = useState<CandidateSort>('text-order');
+  const [sort, setSort] = useState<ReviewSort>('text-order');
+  /** Empfehlungen des Sprachmodells – reine Markierung, nie eine Auswahl. */
+  const [recommendedIds, setRecommendedIds] = useState<readonly string[]>([]);
   const [providerState, setProviderState] = useState<ProviderState | 'checking'>('checking');
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -91,17 +117,27 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  const recommended = useMemo(() => new Set(recommendedIds), [recommendedIds]);
+
   const ordered = useMemo(() => {
+    const base: CandidateSort = sort === 'recommended' ? 'text-order' : sort;
     const bySort = sortCandidates(
       rows.map((row) => row.candidate),
-      sort,
+      base,
     );
     const index = new Map(rows.map((row) => [row.candidate.id, row]));
-    return bySort.flatMap((candidate) => {
+    const inOrder = bySort.flatMap((candidate) => {
       const row = index.get(candidate.id);
       return row ? [row] : [];
     });
-  }, [rows, sort]);
+
+    if (sort !== 'recommended') return inOrder;
+    // Empfohlene nach vorn – entfernte Kandidaten kommen dadurch nicht zurück.
+    return orderByRecommendation(
+      inOrder.map((row) => ({ id: row.candidate.id, row })),
+      recommendedIds,
+    ).map((item) => item.row);
+  }, [rows, sort, recommendedIds]);
 
   const selectedRows = rows.filter((row) => row.selected);
   const missingGerman = selectedRows.filter((row) => row.german.trim().length === 0).length;
@@ -114,6 +150,26 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
 
   function setAllSelected(selected: boolean): void {
     setRows((current) => current.map((row) => ({ ...row, selected })));
+  }
+
+  /**
+   * Der **einzige** Weg, auf dem eine Empfehlung die Auswahl verändert – und
+   * er verlangt einen ausdrücklichen Klick.
+   */
+  function selectOnlyRecommended(): void {
+    setRows((current) =>
+      current.map((row) => ({ ...row, selected: recommended.has(row.candidate.id) })),
+    );
+    setStatus('Nur die empfohlenen Kandidaten sind jetzt ausgewählt.');
+  }
+
+  /**
+   * Nimmt die Empfehlungen entgegen. Bewusst ohne jede Änderung an `selected`:
+   * markiert wird, ausgewählt nicht.
+   */
+  function applyRecommendations(ids: string[]): void {
+    setRecommendedIds(ids);
+    setSort('recommended');
   }
 
   function remove(id: string): void {
@@ -243,8 +299,10 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
           Gefundene Vokabelkandidaten ({rows.length})
         </h2>
         <p className="muted small">
-          Alles wurde auf diesem Gerät berechnet. Beispielsätze stammen unverändert aus deinem
-          Text; Übersetzungen erfindet LexiFlow nicht.
+          <strong>{describeCandidateCount(candidates.length, requestedCount)}</strong> Alles wurde
+          auf diesem Gerät berechnet und ist deterministisch. Beispielsätze stammen unverändert aus
+          deinem Text; Übersetzungen erfindet LexiFlow nicht. Der vollständige Text wird weder
+          gespeichert noch an ein Sprachmodell übergeben.
         </p>
       </div>
 
@@ -264,19 +322,51 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
             <select
               aria-label="Sortierung der Kandidaten"
               value={sort}
-              onChange={(event) => setSort(event.target.value as CandidateSort)}
+              onChange={(event) => setSort(event.target.value as ReviewSort)}
             >
               <option value="text-order">Reihenfolge im Text</option>
               <option value="frequency">Häufigkeit</option>
+              <option value="recommended" disabled={recommendedIds.length === 0}>
+                Empfehlungen zuerst
+              </option>
             </select>
           </label>
         </div>
+
+        {recommendedIds.length > 0 ? (
+          <div className="row" style={{ marginTop: '0.5rem' }}>
+            <Button small onClick={selectOnlyRecommended}>
+              Nur Empfehlungen auswählen
+            </Button>
+            <Button small onClick={() => setAllSelected(true)}>
+              Alle wieder auswählen
+            </Button>
+            <span className="small muted">
+              {recommendedIds.length} Kandidaten sind für diese Lerngruppe empfohlen.
+            </span>
+          </div>
+        ) : null}
 
         <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
           {selectedRows.length} von {rows.length} ausgewählt
           {missingGerman > 0 ? ` · ${missingGerman} ohne deutsche Antwort` : ''}
         </p>
       </Card>
+
+      <Suspense
+        fallback={
+          <p className="small muted" role="status">
+            Priorisierung wird geladen …
+          </p>
+        }
+      >
+        <TextRecommendationPanel
+          candidates={rows.map((row) => row.candidate)}
+          context={context}
+          onContextChange={onContextChange}
+          onRecommend={applyRecommendations}
+        />
+      </Suspense>
 
       <Card quiet>
         <h3 style={{ fontSize: '1rem' }}>Übersetzungsvorschläge (optional)</h3>
@@ -372,6 +462,9 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
                   {candidate.occurrences}× im Text
                 </Badge>
                 <Badge>aus Text</Badge>
+                {recommended.has(candidate.id) ? (
+                  <Badge tone="success">Für Lerngruppe empfohlen</Badge>
+                ) : null}
                 {candidate.isLikelyProperNoun ? <Badge tone="warning">Eigenname?</Badge> : null}
                 <Button
                   small

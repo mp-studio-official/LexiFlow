@@ -1,7 +1,15 @@
 import { newId } from '../domain/ids';
 import { normalizeAnswer } from '../domain/normalize';
+import { collapseWhitespace, sentenceContainsHeadword } from '../domain/wordMatch';
 import { emptyDraft, newSentence, validateDrafts, type DraftRow } from './draft';
 import { MAX_CONTEXT_HEADWORDS, type AiVocabSuggestion } from '../ai/AiProvider';
+
+/**
+ * Die Wortgrenzenprüfung wohnt seit Sprint 2B.2b im Domänenkern
+ * (`domain/wordMatch`), weil auch der Satzassistent sie braucht. Sie bleibt
+ * hier als Re-Export erreichbar – eine Implementierung, ein Verhalten.
+ */
+export { sentenceContainsHeadword } from '../domain/wordMatch';
 
 /**
  * Fachliche Nachbearbeitung der Themenvorschläge.
@@ -89,37 +97,7 @@ export function summarizeTopicResult(result: TopicDraftResult): TopicResultSumma
   return { headline, detail, sentences };
 }
 
-function collapse(value: string): string {
-  return value.trim().replace(/\s+/g, ' ');
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Enthält der Satz das Stichwort als eigenes Wort beziehungsweise die vollständige
- * Wendung? Groß-/Kleinschreibung spielt keine Rolle, Wortgrenzen schon – „cat"
- * darf nicht in „category" gefunden werden.
- */
-export function sentenceContainsHeadword(sentence: string, english: string): boolean {
-  const needle = collapse(english);
-  if (needle.length === 0 || sentence.trim().length === 0) return false;
-
-  const pattern = new RegExp(
-    `(^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}(?![\\p{L}\\p{N}])`,
-    'iu',
-  );
-  if (pattern.test(sentence)) return true;
-
-  // „to apologise" darf auch als „apologise" im Satz stehen.
-  const withoutTo = needle.replace(/^to\s+/i, '');
-  if (withoutTo === needle) return false;
-  return new RegExp(
-    `(^|[^\\p{L}\\p{N}])${escapeRegExp(withoutTo)}(?![\\p{L}\\p{N}])`,
-    'iu',
-  ).test(sentence);
-}
+const collapse = collapseWhitespace;
 
 function uniqueStrings(values: readonly string[]): string[] {
   const seen = new Set<string>();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ImportWizardPage } from './ImportWizardPage';
@@ -173,6 +173,94 @@ describe('Lernkontext in der Vorschau', () => {
 
     expect(
       screen.getByText(/helfen dabei, Schwierigkeit und Themen-Tags passend vorzuschlagen/),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('Gewünschte Anzahl Vokabelvorschläge', () => {
+  /** Ein Text mit deutlich mehr Kandidaten, als angefordert werden. */
+  const LONG =
+    'The crowded bus was late today. Litter is a problem in the neighbourhood. ' +
+    'A quiet pavement helps everyone here. The crowded street was very noisy. ' +
+    'Traffic makes the journey slow. A busy crossing needs patience.';
+
+  it('lässt sich vor der Analyse festlegen', () => {
+    setup();
+    const select = screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge');
+
+    for (const value of ['5', '10', '15', '20', '30']) {
+      expect(within(select).getByRole('option', { name: `${value} Vokabelvorschläge` })).toBeInTheDocument();
+    }
+    expect(within(select).getByRole('option', { name: 'Andere Anzahl …' })).toBeInTheDocument();
+    // Vorbelegt ist die gebräuchlichste Größe.
+    expect(select).toHaveValue('20');
+  });
+
+  it('begrenzt die angezeigten Kandidaten auf die gewählte Anzahl', async () => {
+    const user = setup();
+    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), '5');
+    await analyze(user, LONG);
+
+    expect(await screen.findByRole('heading', { name: 'Gefundene Vokabelkandidaten (5)' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('5 von 5 gewünschten Vokabelvorschlägen gefunden.')).toBeInTheDocument();
+  });
+
+  it('erfindet nichts, wenn der Text weniger hergibt', async () => {
+    const user = setup();
+    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), '30');
+    await analyze(user, TEXT);
+
+    const found = screen.getAllByRole('checkbox', { name: /übernehmen$/ }).length;
+    expect(found).toBeLessThan(30);
+    expect(
+      screen.getByText(new RegExp(`${found} von 30 gewünschten Vokabelvorschlägen gefunden\\.`)),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/erfunden wird nichts/)).toBeInTheDocument();
+  });
+
+  it('erlaubt eine eigene Zahl zwischen 1 und 50', async () => {
+    const user = setup();
+    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), 'custom');
+
+    const field = screen.getByLabelText('Eigene Anzahl');
+    expect(field).toHaveAttribute('min', '1');
+    expect(field).toHaveAttribute('max', '50');
+
+    await user.clear(field);
+    await user.type(field, '3');
+    await analyze(user, LONG);
+
+    expect(await screen.findByRole('heading', { name: 'Gefundene Vokabelkandidaten (3)' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('3 von 3 gewünschten Vokabelvorschlägen gefunden.')).toBeInTheDocument();
+  });
+
+  it('hält eine unsinnige Eingabe im erlaubten Bereich', async () => {
+    const user = setup();
+    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), 'custom');
+
+    const field = screen.getByLabelText('Eigene Anzahl');
+    await user.clear(field);
+    await user.type(field, '99');
+    await user.tab();
+    expect(field).toHaveValue(50);
+
+    await user.clear(field);
+    await user.type(field, '0');
+    await user.tab();
+    expect(field).toHaveValue(1);
+  });
+
+  it('funktioniert ohne jedes Sprachmodell', async () => {
+    // Kein KI-Anbieter in der Registry – die Begrenzung ist rein lokal.
+    const user = setup();
+    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), '5');
+    await analyze(user, LONG);
+
+    expect(screen.getAllByRole('checkbox', { name: /übernehmen$/ })).toHaveLength(5);
+    expect(
+      await screen.findByText(/Dieser Browser bietet kein lokales Sprachmodell/),
     ).toBeInTheDocument();
   });
 });

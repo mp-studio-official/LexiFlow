@@ -7,6 +7,7 @@ import { extractTextCandidates } from '../../domain/textExtraction';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
 import { createFakeTranslationProvider } from '../../test/fakeTranslator';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
+import type { LearningContext } from '../../import/enrichment';
 
 const TEXT = 'The neighbourhood is crowded. Litter is a problem in the neighbourhood.';
 
@@ -14,15 +15,25 @@ function candidates() {
   return extractTextCandidates(TEXT);
 }
 
+const CONTEXT: LearningContext = { grade: '7', cefrLevel: 'A2', topic: '' };
+
 function setup(provider?: TranslationProvider) {
   const onApply = vi.fn();
   const onBack = vi.fn();
+  const onContextChange = vi.fn();
   render(
     <ProviderRegistry {...(provider ? { value: { translation: provider } } : {})}>
-      <TextCandidateReview candidates={candidates()} onApply={onApply} onBack={onBack} />
+      <TextCandidateReview
+        candidates={candidates()}
+        context={CONTEXT}
+        onContextChange={onContextChange}
+        requestedCount={20}
+        onApply={onApply}
+        onBack={onBack}
+      />
     </ProviderRegistry>,
   );
-  return { onApply, onBack, user: userEvent.setup() };
+  return { onApply, onBack, onContextChange, user: userEvent.setup() };
 }
 
 function applied(onApply: ReturnType<typeof vi.fn>): CandidateSelection[] {

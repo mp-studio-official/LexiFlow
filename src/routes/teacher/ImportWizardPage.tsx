@@ -34,10 +34,19 @@ import { CEFR_LEVELS, GRADES, GRADE_LABELS, suggestCefrLevel } from '../../domai
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
 import {
+  CANDIDATE_COUNT_OPTIONS,
+  DEFAULT_CANDIDATE_COUNT,
+  MAX_CANDIDATE_COUNT,
+  MIN_CANDIDATE_COUNT,
+  clampCandidateCount,
+  limitCandidates,
+} from '../../import/candidateLimit';
+import {
   MAX_TEXT_LENGTH,
   TextTooLongError,
   analyzeText,
   type TextAnalysis,
+  type TextCandidate,
 } from '../../domain/textExtraction';
 import { readXlsx, XlsxReadError, type XlsxSheet } from '../../import/xlsx';
 import { parsePackFile } from '../../domain/vocabpack';
@@ -106,6 +115,12 @@ export function ImportWizardPage() {
   const [includeStopwords, setIncludeStopwords] = useState(false);
   const [includeProperNouns, setIncludeProperNouns] = useState(false);
   const [analysis, setAnalysis] = useState<TextAnalysis | null>(null);
+  /** Vor der Analyse gewählte Obergrenze für die angezeigten Kandidaten. */
+  const [candidateCount, setCandidateCount] = useState<number>(DEFAULT_CANDIDATE_COUNT);
+  const [customCount, setCustomCount] = useState(false);
+  /** Die Kandidaten dieser Analyse – schon auf die gewünschte Anzahl begrenzt. */
+  const [candidates, setCandidates] = useState<TextCandidate[]>([]);
+  const [requestedCount, setRequestedCount] = useState<number>(DEFAULT_CANDIDATE_COUNT);
 
   const [error, setError] = useState<string>('');
   const [announcement, setAnnouncement] = useState<string>('');
@@ -182,16 +197,22 @@ export function ImportWizardPage() {
       const result = analyzeText(englishText, { includeStopwords, includeProperNouns });
       if (result.candidates.length === 0) {
         setAnalysis(null);
+        setCandidates([]);
         setError(
           'In diesem Text wurden keine geeigneten Vokabelkandidaten gefunden. Blende gegebenenfalls Funktionswörter oder Eigennamen ein.',
         );
         return;
       }
+      // Die gewünschte Anzahl ist eine Obergrenze: Es wird begrenzt, nie ergänzt.
+      const wanted = clampCandidateCount(candidateCount);
+      const limited = limitCandidates(result.candidates, wanted);
       setAnalysis(result);
+      setCandidates(limited);
+      setRequestedCount(wanted);
       setError('');
       setStep('candidates');
       setAnnouncement(
-        `${result.candidates.length} Kandidaten aus ${result.sentenceCount} Sätzen gefunden.`,
+        `${limited.length} von ${wanted} gewünschten Vokabelvorschlägen aus ${result.sentenceCount} Sätzen gefunden.`,
       );
     } catch (caught: unknown) {
       setAnalysis(null);
@@ -508,6 +529,58 @@ export function ImportWizardPage() {
                   </label>
                 </div>
               </fieldset>
+
+              <div className="field-grid">
+                <Field
+                  label="Gewünschte Anzahl Vokabelvorschläge"
+                  hint="Obergrenze für die angezeigten Kandidaten. Enthält der Text weniger geeignete Wörter, werden keine erfunden."
+                >
+                  {(props) => (
+                    <select
+                      {...props}
+                      value={customCount ? 'custom' : String(candidateCount)}
+                      onChange={(event) => {
+                        if (event.target.value === 'custom') {
+                          setCustomCount(true);
+                          return;
+                        }
+                        setCustomCount(false);
+                        setCandidateCount(Number(event.target.value));
+                      }}
+                    >
+                      {CANDIDATE_COUNT_OPTIONS.map((value) => (
+                        <option key={value} value={value}>
+                          {value} Vokabelvorschläge
+                        </option>
+                      ))}
+                      <option value="custom">Andere Anzahl …</option>
+                    </select>
+                  )}
+                </Field>
+
+                {customCount ? (
+                  <Field
+                    label="Eigene Anzahl"
+                    hint={`Zwischen ${MIN_CANDIDATE_COUNT} und ${MAX_CANDIDATE_COUNT}.`}
+                  >
+                    {(props) => (
+                      <input
+                        {...props}
+                        type="number"
+                        min={MIN_CANDIDATE_COUNT}
+                        max={MAX_CANDIDATE_COUNT}
+                        step={1}
+                        value={candidateCount}
+                        onChange={(event) => setCandidateCount(Number(event.target.value))}
+                        onBlur={(event) =>
+                          setCandidateCount(clampCandidateCount(Number(event.target.value)))
+                        }
+                      />
+                    )}
+                  </Field>
+                ) : null}
+              </div>
+
               <div className="row">
                 <Button
                   variant="primary"
@@ -586,7 +659,16 @@ export function ImportWizardPage() {
 
       {step === 'candidates' && analysis ? (
         <TextCandidateReview
-          candidates={analysis.candidates}
+          candidates={candidates}
+          context={learningContext}
+          requestedCount={requestedCount}
+          onContextChange={(next) => {
+            // Derselbe Meta-Zustand wie im übrigen Assistenten – das MetadataForm
+            // findet die Angaben im nächsten Schritt schon vor.
+            if (next.grade !== meta.grade) setGrade(next.grade);
+            if (next.cefrLevel !== meta.cefrLevel) setCefrLevel(next.cefrLevel);
+            if (next.topic !== meta.topic) setMeta((current) => ({ ...current, topic: next.topic }));
+          }}
           onApply={handleCandidates}
           onBack={() => setStep('source')}
         />
@@ -746,7 +828,7 @@ export function ImportWizardPage() {
             </Button>
           </div>
 
-          <DraftTable drafts={drafts} onChange={updateDrafts} />
+          <DraftTable drafts={drafts} onChange={updateDrafts} sentenceContext={learningContext} />
 
           <div className="row">
             <Button onClick={() => setStep('source')}>Zurück</Button>

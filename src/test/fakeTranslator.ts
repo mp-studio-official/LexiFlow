@@ -1,11 +1,16 @@
 import type { ProviderState } from '../providers/state';
 import type { PartOfSpeech } from '../domain/schema';
 import {
+  AI_CAPABILITIES,
   AiUnavailableError,
   type AiCapability,
   type AiGenerationContext,
   type AiProvider,
+  type AiSentenceSuggestion,
+  type AiTextCandidate,
+  type AiTextRecommendation,
   type AiVocabSuggestion,
+  type AlternativeSentenceRequest,
 } from '../ai/AiProvider';
 import {
   TranslationAbortedError,
@@ -338,6 +343,18 @@ export interface FakeAiOptions {
   topicEntries?: (topic: string, count: number) => AiVocabSuggestion[];
   /** Die Themenanfrage scheitert beim ersten Versuch. */
   topicFailsOnce?: boolean;
+  /** Zustand für `alternative-sentence`; Standard: wie `availability`. */
+  sentenceAvailability?: ProviderState;
+  /** Antwort des Satzassistenten; Standard: ein Satz mit dem Stichwort. */
+  sentenceFor?: (request: AlternativeSentenceRequest) => AiSentenceSuggestion;
+  /** Der Satzvorschlag scheitert beim ersten Versuch. */
+  sentenceFailsOnce?: boolean;
+  /** Zustand für `suggest-from-text`; Standard: wie `availability`. */
+  textAvailability?: ProviderState;
+  /** Antwort der Textempfehlung; Standard: jeder zweite Kandidat. */
+  recommendationsFor?: (candidates: readonly AiTextCandidate[]) => AiTextRecommendation[];
+  /** Die Empfehlungsanfrage scheitert beim ersten Versuch. */
+  textFailsOnce?: boolean;
   partOfSpeech?: PartOfSpeech;
   difficulty?: number;
   topicTags?: string[];
@@ -359,6 +376,16 @@ export interface FakeAiHandle {
   readonly prepared: () => AiCapability[];
   /** Die gestellten Themenanfragen mit ihrem Kontext. */
   readonly topicCalls: () => Array<{ topic: string; context: AiGenerationContext }>;
+  /** Die gestellten Satzanfragen mit ihrem Kontext. */
+  readonly sentenceCalls: () => Array<{
+    request: AlternativeSentenceRequest;
+    context: AiGenerationContext;
+  }>;
+  /** Die gestellten Empfehlungsanfragen mit ihrem Kontext. */
+  readonly textCalls: () => Array<{
+    candidates: readonly AiTextCandidate[];
+    context: AiGenerationContext;
+  }>;
 }
 
 export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle {
@@ -373,6 +400,16 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
     prepareFails = false,
     topicAvailability = availability,
     topicFailsOnce = false,
+    sentenceAvailability = availability,
+    sentenceFailsOnce = false,
+    textAvailability = availability,
+    textFailsOnce = false,
+    sentenceFor = (request: AlternativeSentenceRequest) => ({
+      english: `They often ${request.english.replace(/^to /, '')} here.`,
+      german: 'Ein deutscher Beispielsatz.',
+    }),
+    recommendationsFor = (candidates: readonly AiTextCandidate[]) =>
+      candidates.filter((_, index) => index % 2 === 0).map((candidate) => ({ key: candidate.key })),
     topicEntries = (topic: string, count: number) =>
       Array.from({ length: count }, (_, index) => ({
         english: `${topic.toLowerCase().replace(/\s+/g, '-')}-word${index + 1}`,
@@ -391,7 +428,17 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
 
   const prepared: AiCapability[] = [];
   const topicCalls: Array<{ topic: string; context: AiGenerationContext }> = [];
+  const sentenceCalls: Array<{
+    request: AlternativeSentenceRequest;
+    context: AiGenerationContext;
+  }> = [];
+  const textCalls: Array<{
+    candidates: readonly AiTextCandidate[];
+    context: AiGenerationContext;
+  }> = [];
   let topicFailed = false;
+  let sentenceFailed = false;
+  let textFailed = false;
   const enriched: string[] = [];
   const failed = new Set<string>();
   let prepareCount = 0;
@@ -401,6 +448,22 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
     release = resolve;
   });
 
+  /** Der gemeldete Zustand je Fähigkeit – jede lässt sich einzeln abschalten. */
+  function stateFor(capability: AiCapability): ProviderState {
+    switch (capability) {
+      case 'enrich-entry':
+        return availability;
+      case 'suggest-from-topic':
+        return topicAvailability;
+      case 'alternative-sentence':
+        return sentenceAvailability;
+      case 'suggest-from-text':
+        return textAvailability;
+      default:
+        return 'unavailable';
+    }
+  }
+
   const provider: AiProvider = {
     info: {
       id: 'fake-ai',
@@ -409,24 +472,12 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
       sendsDataOffDevice: false,
       processing: 'on-device',
     },
-    capabilities: () => ['enrich-entry', 'suggest-from-topic'],
-    getAvailability: (capability) =>
-      Promise.resolve(
-        capability === 'enrich-entry'
-          ? availability
-          : capability === 'suggest-from-topic'
-            ? topicAvailability
-            : 'unavailable',
-      ),
+    capabilities: () =>
+      AI_CAPABILITIES.filter((capability) => stateFor(capability) !== 'unavailable'),
+    getAvailability: (capability) => Promise.resolve(stateFor(capability)),
     async prepare(capability, onProgress, signal) {
       prepareCount += 1;
-      const state = capability === 'suggest-from-topic' ? topicAvailability : availability;
-      if (
-        (capability !== 'enrich-entry' && capability !== 'suggest-from-topic') ||
-        state === 'unavailable'
-      ) {
-        throw new AiUnavailableError();
-      }
+      if (stateFor(capability) === 'unavailable') throw new AiUnavailableError();
       if (signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
       for (const value of progress) onProgress?.(value);
       if (gatePrepare) await gate;
@@ -446,7 +497,19 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
       enriched.push(entry.english);
       return { ...entry, partOfSpeech, difficulty, topicTags: [...topicTags] };
     },
-    suggestFromText: () => Promise.reject(new AiUnavailableError()),
+    async suggestFromText(candidates, context) {
+      if (!prepared.includes('suggest-from-text')) {
+        throw new AiUnavailableError('Das Sprachmodell ist noch nicht geladen.');
+      }
+      if (context.signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
+      textCalls.push({ candidates, context });
+      await Promise.resolve();
+      if (textFailsOnce && !textFailed) {
+        textFailed = true;
+        throw new Error('Die Empfehlungsliste war nicht verwertbar.');
+      }
+      return recommendationsFor(candidates);
+    },
     async suggestFromTopic(topic, context) {
       if (!prepared.includes('suggest-from-topic')) {
         throw new AiUnavailableError('Das Sprachmodell ist noch nicht geladen.');
@@ -460,7 +523,19 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
       }
       return topicEntries(topic, Math.min(context.maxItems ?? 10, 20));
     },
-    alternativeSentence: () => Promise.reject(new AiUnavailableError()),
+    async alternativeSentence(request, context) {
+      if (!prepared.includes('alternative-sentence')) {
+        throw new AiUnavailableError('Das Sprachmodell ist noch nicht geladen.');
+      }
+      if (context.signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
+      sentenceCalls.push({ request, context });
+      await Promise.resolve();
+      if (sentenceFailsOnce && !sentenceFailed) {
+        sentenceFailed = true;
+        throw new Error('Der Satzvorschlag war nicht verwertbar.');
+      }
+      return sentenceFor(request);
+    },
     destroy() {
       ready = false;
     },
@@ -473,5 +548,7 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
     releasePrepare: () => release(),
     prepared: () => [...prepared],
     topicCalls: () => [...topicCalls],
+    sentenceCalls: () => [...sentenceCalls],
+    textCalls: () => [...textCalls],
   };
 }
