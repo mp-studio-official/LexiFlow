@@ -20,7 +20,11 @@
    =========================================================================== */
 
 :root {
-  color-scheme: light dark;
+  /* Bewusst nur hell: Ein automatischer Dunkelmodus würde auch die noch nicht
+     überarbeiteten Werkstätten betreffen, und geprüft wurde bisher nur die
+     helle Fassung. Ein Dunkelmodus kommt später als eigenes, vollständig
+     geprüftes Theme – nicht als Nebenwirkung. */
+  color-scheme: light;
 
   /* ---------------------------------------------------------- Typografie */
   --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -143,53 +147,4 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --bottom-nav-height: 3.75rem;
   --tap-target: 44px;
-}
-
-/* Dunkle Fassung derselben Haltung: die Tinte wird zur Fläche.
-   Der Akzent hellt auf, damit er auf dunklem Papier lesbar bleibt. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #14120f;
-    --surface: #1c1a16;
-    --surface-elevated: #232019;
-    --surface-sunken: #100e0c;
-
-    --ink: #f5f1ea;
-    --ink-secondary: #cec7bb;
-    --ink-muted: #a49b8d;
-    --ink-inverse: #14120f;
-
-    --primary: #f5f1ea;
-    --primary-hover: #ffffff;
-    --primary-ink: #14120f;
-
-    --accent: #ff7a4d;
-    --accent-hover: #ff9470;
-    --accent-ink: #ff9470;
-    --accent-ink-hover: #ffb094;
-    --accent-soft: #2e1d15;
-    --accent-contrast: #14120f;
-
-    --signal: #d3e650;
-    --signal-soft: #262b12;
-
-    --border-subtle: #2e2a23;
-    --divider: #262219;
-    --border: #3b3629;
-    --border-strong: #8f8672;
-
-    --success: #7fd0ab;
-    --success-soft: #16261f;
-    --warning: #e9c473;
-    --warning-soft: #2b2413;
-    --danger: #f0a293;
-    --danger-soft: #2d1a16;
-
-    --shadow-1: 0 1px 2px rgb(0 0 0 / 30%);
-    --shadow-2: 0 2px 4px rgb(0 0 0 / 30%), 0 12px 28px -18px rgb(0 0 0 / 70%);
-    --shadow-nav: 0 -1px 0 var(--border-subtle), 0 -8px 24px -20px rgb(0 0 0 / 80%);
-
-    --focus-ring: #f5f1ea;
-    --focus-ring-on-dark: #14120f;
-  }
 }

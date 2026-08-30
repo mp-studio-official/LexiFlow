@@ -2,6 +2,9 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+// Die Marke liegt im Quellbaum, damit Tests und Build dasselbe Objekt lesen.
+// (Die Endung bleibt weg – `allowImportingTsExtensions` ist bewusst aus.)
+import { PWA_ASSETS, buildManifest } from './src/pwa/manifest';
 
 /**
  * `LEXIFLOW_BASE` erlaubt das Deployment unter einem Unterpfad
@@ -16,26 +19,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
-      manifest: {
-        name: 'LexiFlow – Vokabeltrainer',
-        short_name: 'LexiFlow',
-        description:
-          'Freiwillige Lernhilfe für englische Vokabeln. Alle Daten bleiben lokal im Browser.',
-        lang: 'de',
-        dir: 'ltr',
-        start_url: base,
-        scope: base,
-        display: 'standalone',
-        background_color: '#f6f7f9',
-        theme_color: '#1f4d6b',
-        categories: ['education'],
-        icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
+      includeAssets: [...PWA_ASSETS],
+      manifest: buildManifest(base),
       workbox: {
         // Seit Sprint 3A gehören die lokal gebündelten Schriften dazu: Ohne sie
         // fiele die App offline auf Systemschriften zurück, und das Layout

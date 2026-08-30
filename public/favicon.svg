@@ -1,7 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LexiFlow">
-  <rect width="64" height="64" rx="14" fill="#1c4f6e" />
-  <rect x="14" y="16" width="30" height="24" rx="5" fill="#8fc4e2" opacity="0.55" />
-  <rect x="20" y="24" width="30" height="24" rx="5" fill="#ffffff" />
-  <rect x="25" y="31" width="14" height="3" rx="1.5" fill="#1c4f6e" />
-  <rect x="25" y="38" width="20" height="3" rx="1.5" fill="#1c4f6e" opacity="0.55" />
+  <!--
+    LexiFlow-Markenmarker (Sprint 3A.1).
+
+    Reduziert auf ein einziges Zeichen: ein L aus Papier auf Tinte, dessen
+    waagerechter Arm der Persimmon-Signalstrich aus dem Designsystem ist –
+    derselbe Strich, der auf der Startseite unter der Schlagzeile steht.
+
+    Kein Buch, keine Karteikarte, kein Schulsymbol. Bei 16 px bleibt eine
+    dunkle Kachel mit hellem Stamm und orangefarbenem Fuß erkennbar.
+  -->
+  <rect width="64" height="64" rx="13" fill="#14120f" />
+  <rect x="19" y="13" width="10" height="30" fill="#faf7f2" />
+  <rect x="19" y="43" width="27" height="9" fill="#e2542a" />
 </svg>

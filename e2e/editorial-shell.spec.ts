@@ -258,3 +258,72 @@ test.describe('Lokale Schriften', () => {
     expect(externalRequests).toEqual([]);
   });
 });
+
+test.describe('PWA-Marke', () => {
+  test('@smoke Theme-Farbe, Manifest und Icons tragen dieselbe Marke', async ({ page }) => {
+    const externalRequests: string[] = [];
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (url.hostname !== '127.0.0.1' && url.hostname !== 'localhost')
+        externalRequests.push(request.url());
+    });
+
+    await page.goto('/');
+
+    // Kopfdaten des Dokuments.
+    await expect(page).toHaveTitle('LexiFlow – Vocab Studio');
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#faf7f2');
+    await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute('content', 'light');
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /favicon\.svg$/);
+
+    // Das gebaute Manifest – nicht die Konfiguration, sondern das Ergebnis.
+    const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href');
+    expect(manifestHref).toBeTruthy();
+    const manifestResponse = await page.request.get(manifestHref as string);
+    expect(manifestResponse.status()).toBe(200);
+    const manifest = (await manifestResponse.json()) as {
+      name: string;
+      theme_color: string;
+      background_color: string;
+      description: string;
+      lang: string;
+      icons: { src: string; sizes: string; purpose: string }[];
+    };
+
+    expect(manifest.name).toBe('LexiFlow – Vocab Studio');
+    expect(manifest.theme_color).toBe('#faf7f2');
+    expect(manifest.background_color).toBe('#faf7f2');
+    expect(manifest.lang).toBe('de');
+    expect(manifest.description).toContain('Alle Daten bleiben lokal im Browser');
+
+    // Die alten Markenfarben kommen nirgends mehr vor.
+    const raw = JSON.stringify(manifest).toLowerCase();
+    for (const retired of ['#1f4d6b', '#1c4f6e', '#8fc4e2', '#f6f7f9']) {
+      expect(raw, `Manifest enthält noch ${retired}`).not.toContain(retired);
+    }
+
+    // Jede genannte Icon-Datei existiert wirklich und hat die richtige Form.
+    const maskable = manifest.icons.filter((icon) => icon.purpose === 'maskable');
+    expect(maskable).toHaveLength(1);
+    expect(maskable[0]?.src).toContain('maskable');
+
+    for (const icon of manifest.icons) {
+      const response = await page.request.get(new URL(icon.src, page.url()).toString());
+      expect(response.status(), `${icon.src} fehlt im Build`).toBe(200);
+      expect(response.headers()['content-type']).toContain('image/png');
+    }
+
+    // Und das Favicon selbst trägt Tinte, Papier und Persimmon.
+    const favicon = await page.request.get(new URL('favicon.svg', page.url()).toString());
+    expect(favicon.status()).toBe(200);
+    const svg = await favicon.text();
+    for (const colour of ['#14120f', '#faf7f2', '#e2542a']) {
+      expect(svg).toContain(colour);
+    }
+    for (const retired of ['#1f4d6b', '#1c4f6e', '#8fc4e2']) {
+      expect(svg).not.toContain(retired);
+    }
+
+    expect(externalRequests).toEqual([]);
+  });
+});

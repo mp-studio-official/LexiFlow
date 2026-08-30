@@ -1080,8 +1080,36 @@ Zusammensetzungen; wer einen neuen Wert braucht, legt ihn als Token an.
 gibt es nur für Marker (`--radius-pill`). Nichts wird gleichzeitig überall stark
 abgerundet.
 
-Eine dunkle Fassung derselben Haltung ist enthalten: Die Tinte wird zur Fläche,
-der Akzent hellt auf.
+**Vorerst nur hell.** `color-scheme: light`, kein `prefers-color-scheme`-Block.
+Ein automatischer Dunkelmodus würde auch die noch nicht überarbeiteten
+Werkstätten betreffen, und geprüft wurde bislang ausschließlich die helle
+Fassung. Der Dunkelmodus kommt später als eigenes, vollständig geprüftes Theme –
+nicht als Nebenwirkung.
+
+### Marke und PWA
+
+Der Markenmarker ist auf ein einziges Zeichen reduziert: ein **L aus Papier auf
+Tinte**, dessen waagerechter Arm der Persimmon-Signalstrich des Designsystems
+ist – derselbe Strich, der auf der Startseite unter der Schlagzeile steht. Kein
+Buch, keine Karteikarte, kein Schulsymbol, kein Emoji. Bei 16 px bleiben eine
+dunkle Kachel, ein heller Stamm und ein orangefarbener Fuß erkennbar.
+
+| Datei | Zweck |
+| --- | --- |
+| `public/favicon.svg` | Browser-Tab, verlustfrei skalierbar |
+| `public/icons/icon-192.png` | Startbildschirm |
+| `public/icons/icon-512.png` | Startbildschirm, hohe Auflösung |
+| `public/icons/icon-512-maskable.png` | maskierbar – Marke auf 56 %, randlos |
+
+Die maskierbare Fassung ist bewusst eine **eigene Datei**: Dieselbe Grafik für
+`any` und `maskable` zu verwenden hätte die Marke beim Ausstanzen beschnitten.
+
+Produktname, Theme-Farbe und Manifest liegen in `src/pwa/manifest.ts` – Build
+und Tests lesen dasselbe Objekt, damit die Marke nicht auseinanderlaufen kann.
+Theme- und Hintergrundfarbe sind das Papier (`#faf7f2`), der Titel lautet
+überall „LexiFlow – Vocab Studio“. Die alten Schulblau-Töne (`#1f4d6b`,
+`#1c4f6e`, `#8fc4e2`, `#f6f7f9`) sind vollständig verschwunden; ein Test prüft
+das für `index.html`, Favicon, Tokens, Stylesheet und Manifest.
 
 ### Typografie
 
@@ -1305,6 +1333,13 @@ funktioniert vollständig offline.
     wäre genau der externe Request, den diese App überall sonst vermeidet.
 33. **Der Markenname ist keine Seitenüberschrift.** Er steht in der Shell; die
     `h1` gehört dem, worum es auf der Seite geht.
+34. **Ein Dunkelmodus ist ein Theme, keine Nebenwirkung.** Ein
+    `prefers-color-scheme`-Block hätte auch alle noch nicht überarbeiteten
+    Werkstätten umgefärbt – ungeprüft. Lieber vorerst nur hell als
+    zwei Fassungen, von denen eine niemand angesehen hat.
+35. **Die Marke steht im Quellbaum, nicht in der Build-Konfiguration.**
+    `src/pwa/manifest.ts` wird von `vite.config.ts` und von den Tests gelesen.
+    Was nur in der Konfiguration steht, prüft am Ende niemand.
 21. **Der Modus steht in der URL.** Eine freie Runde ist damit teilbar und
     direkt aufrufbar; ein fehlender oder unbekannter Wert fällt auf den
     Lernplan zurück, nie umgekehrt.
@@ -1380,5 +1415,8 @@ funktioniert vollständig offline.
 * **Keine visuelle Snapshot-Infrastruktur.** Die Sichtprüfung bei 1440 × 900,
   1024 × 768 und 390 × 844 lief von Hand; es gibt keine Screenshot-Tests, die
   eine Regression automatisch melden würden.
+* **Kein Dunkelmodus.** Bis Sprint 3B sieht die App auf dunkel eingestellten
+  Geräten aus wie auf hellen. Das ist Absicht, aber für manche Nutzung
+  unangenehm.
 * **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
   Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.
