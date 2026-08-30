@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card, Field } from '../../ui/components';
 import { DraftTable } from './DraftTable';
@@ -23,6 +23,8 @@ import {
 import { parseCsv, parsePastedText } from '../../import/csv';
 import { TextCandidateReview } from './TextCandidateReview';
 import { syncManualEdits } from '../../import/suggestions';
+import { existingHeadwords, type TopicDraftResult } from '../../import/topicDraft';
+import { db } from '../../data/db';
 import type { LearningContext } from '../../import/enrichment';
 import { CEFR_LEVELS, GRADES, GRADE_LABELS, suggestCefrLevel } from '../../domain/cefr';
 import type { CefrLevel, Grade } from '../../domain/cefr';
@@ -48,12 +50,16 @@ import type { SourceType, VocabPack } from '../../domain/schema';
  */
 const EnrichmentPanel = lazy(() => import('./EnrichmentPanel'));
 
-type SourceKind = 'paste' | 'text' | 'csv' | 'xlsx' | 'json';
+/** Auch die Themenwerkstatt lädt erst, wenn sie gebraucht wird. */
+const TopicStudio = lazy(() => import('./TopicStudio'));
+
+type SourceKind = 'paste' | 'text' | 'topic' | 'csv' | 'xlsx' | 'json';
 type Step = 'source' | 'candidates' | 'preview' | 'meta';
 
 const SOURCE_LABELS: Readonly<Record<SourceKind, string>> = {
   paste: 'Einfügen',
   text: 'Aus englischem Text',
+  topic: 'Zu einem Thema',
   csv: 'CSV-Datei',
   xlsx: 'XLSX-Datei',
   json: 'LexiFlow-Paket (.vocabpack.json)',
@@ -69,9 +75,12 @@ export function ImportWizardPage() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>('source');
-  const [source, setSource] = useState<SourceKind>(() =>
-    searchParams.get('quelle') === 'text' ? 'text' : 'paste',
-  );
+  const [source, setSource] = useState<SourceKind>(() => {
+    const requested = searchParams.get('quelle');
+    if (requested === 'text') return 'text';
+    if (requested === 'thema') return 'topic';
+    return 'paste';
+  });
   const [pasteText, setPasteText] = useState('');
   const [splitMeaningsOption, setSplitMeaningsOption] = useState(true);
 
@@ -83,6 +92,10 @@ export function ImportWizardPage() {
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [meta, setMeta] = useState<MetaDraft>(emptyMetaDraft());
   const [sourceType, setSourceType] = useState<SourceType>('import');
+
+  // Themenwerkstatt
+  const [topicInfo, setTopicInfo] = useState<TopicDraftResult | null>(null);
+  const [existingEnglish, setExistingEnglish] = useState<string[]>([]);
 
   // Textwerkstatt
   const [englishText, setEnglishText] = useState('');
@@ -178,6 +191,42 @@ export function ImportWizardPage() {
           : 'Der Text konnte nicht analysiert werden.',
       );
     }
+  }
+
+  /**
+   * Vorhandene englische Stichwörter – mehr geht nie an das Sprachmodell.
+   * Geladen wird erst, wenn die Themenwerkstatt tatsächlich gewählt ist.
+   */
+  useEffect(() => {
+    if (source !== 'topic') return;
+    let active = true;
+    void db.packEntries
+      .toArray()
+      .then((rows) => {
+        if (active) setExistingEnglish(existingHeadwords(rows.map((row) => ({ english: row.english }))));
+      })
+      .catch(() => {
+        if (active) setExistingEnglish([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [source]);
+
+  /** Übernimmt die Zeilen der Themenwerkstatt in die bekannte Vorschau. */
+  function handleTopicDrafts(rows: DraftRow[], info: TopicDraftResult | null): void {
+    setDrafts(validateDrafts(rows));
+    setTopicInfo(info);
+    setSourceType('topic-ai');
+    setRawRows([]);
+    setMapping(null);
+    setError('');
+    setStep('preview');
+    setAnnouncement(
+      info
+        ? `${info.accepted} Vorschläge erzeugt. Vorschau geöffnet.`
+        : 'Leere Liste angelegt. Vorschau geöffnet.',
+    );
   }
 
   function handleCandidates(selections: CandidateSelection[]): void {
@@ -380,7 +429,28 @@ export function ImportWizardPage() {
             </div>
           </fieldset>
 
-          {source === 'text' ? (
+          {source === 'topic' ? (
+            <Suspense
+              fallback={
+                <p className="muted small" role="status">
+                  Themenwerkstatt wird geladen …
+                </p>
+              }
+            >
+              <TopicStudio
+                topic={meta.topic}
+                grade={meta.grade}
+                cefrLevel={meta.cefrLevel}
+                existingEnglish={existingEnglish}
+                onTopicChange={(topic) => setMeta((current) => ({ ...current, topic }))}
+                onGradeChange={setGrade}
+                onCefrChange={setCefrLevel}
+                onDrafts={handleTopicDrafts}
+                onPasteInstead={() => setSource('paste')}
+                hasExistingDrafts={drafts.length > 0}
+              />
+            </Suspense>
+          ) : source === 'text' ? (
             <div className="stack">
               <Alert tone="info">
                 Der Text wird auf diesem Gerät verarbeitet und nicht übertragen. Der
@@ -568,6 +638,30 @@ export function ImportWizardPage() {
                 <span>Erste Zeile ist eine Kopfzeile</span>
               </label>
             </Card>
+          ) : null}
+
+          {sourceType === 'topic-ai' ? (
+            <Alert tone="warning">
+              Diese Vorschläge sind ungeprüft. Kontrolliere besonders Übersetzungen,
+              Schwierigkeit und Beispielsätze.
+              {topicInfo ? (
+                <>
+                  {' '}
+                  <strong>
+                    {topicInfo.accepted} von {topicInfo.received === 0 ? topicInfo.accepted : topicInfo.received}{' '}
+                    Vorschlägen erzeugt
+                  </strong>
+                  {topicInfo.droppedSentences > 0
+                    ? ` · ${topicInfo.droppedSentences} Beispielsätze wurden entfernt, weil sie das Stichwort nicht enthielten.`
+                    : '.'}
+                </>
+              ) : null}
+              <div className="row" style={{ marginTop: '0.5rem' }}>
+                <Button small onClick={() => setStep('source')}>
+                  Neue Auswahl erzeugen
+                </Button>
+              </div>
+            </Alert>
           ) : null}
 
           <Card quiet>

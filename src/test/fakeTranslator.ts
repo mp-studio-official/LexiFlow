@@ -1,6 +1,12 @@
 import type { ProviderState } from '../providers/state';
 import type { PartOfSpeech } from '../domain/schema';
-import { AiUnavailableError, type AiProvider } from '../ai/AiProvider';
+import {
+  AiUnavailableError,
+  type AiCapability,
+  type AiGenerationContext,
+  type AiProvider,
+  type AiVocabSuggestion,
+} from '../ai/AiProvider';
 import {
   TranslationAbortedError,
   TranslationUnavailableError,
@@ -246,6 +252,8 @@ export interface FakeLanguageModelHandle {
   readonly createCount: () => number;
   readonly destroyCount: () => number;
   readonly availabilityCalls: () => unknown[];
+  /** Die Optionen, mit denen `create()` gerufen wurde – je Aufruf einer. */
+  readonly createCalls: () => unknown[];
 }
 
 export const FAKE_MODEL_ANSWER = JSON.stringify({
@@ -268,6 +276,7 @@ export function createFakeLanguageModelScope(
 
   const prompts: string[] = [];
   const availabilityCalls: unknown[] = [];
+  const createCalls: unknown[] = [];
   let constraint: unknown;
   let createCount = 0;
   let destroyCount = 0;
@@ -281,6 +290,7 @@ export function createFakeLanguageModelScope(
       },
       create(createOptions) {
         createCount += 1;
+        createCalls.push(createOptions);
         if (failFirstCreate && createCount === 1) {
           return Promise.reject(new Error('Download unterbrochen'));
         }
@@ -315,12 +325,19 @@ export function createFakeLanguageModelScope(
     createCount: () => createCount,
     destroyCount: () => destroyCount,
     availabilityCalls: () => availabilityCalls,
+    createCalls: () => createCalls,
   };
 }
 
 /** Ein `AiProvider` für Komponententests – deterministisch, ohne Modell. */
 export interface FakeAiOptions {
   availability?: ProviderState;
+  /** Zustand für `suggest-from-topic`; Standard: wie `availability`. */
+  topicAvailability?: ProviderState;
+  /** Antwort der Themenwerkstatt; Standard: `count` schlichte Vorschläge. */
+  topicEntries?: (topic: string, count: number) => AiVocabSuggestion[];
+  /** Die Themenanfrage scheitert beim ersten Versuch. */
+  topicFailsOnce?: boolean;
   partOfSpeech?: PartOfSpeech;
   difficulty?: number;
   topicTags?: string[];
@@ -338,6 +355,10 @@ export interface FakeAiHandle {
   readonly enriched: string[];
   readonly prepareCount: () => number;
   readonly releasePrepare: () => void;
+  /** Vorbereitungen je Fähigkeit – für die Sitzungstrennung. */
+  readonly prepared: () => AiCapability[];
+  /** Die gestellten Themenanfragen mit ihrem Kontext. */
+  readonly topicCalls: () => Array<{ topic: string; context: AiGenerationContext }>;
 }
 
 export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle {
@@ -350,8 +371,27 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
     progress = [0.4, 1],
     gatePrepare = false,
     prepareFails = false,
+    topicAvailability = availability,
+    topicFailsOnce = false,
+    topicEntries = (topic: string, count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        english: `${topic.toLowerCase().replace(/\s+/g, '-')}-word${index + 1}`,
+        germanAnswers: [`Wort ${index + 1}`],
+        partOfSpeech: 'noun' as const,
+        difficulty: 3,
+        topicTags: [topic],
+        exampleSentences: [
+          {
+            english: `This is ${topic.toLowerCase().replace(/\s+/g, '-')}-word${index + 1} in a sentence.`,
+            german: `Das ist Wort ${index + 1} in einem Satz.`,
+          },
+        ],
+      })),
   } = options;
 
+  const prepared: AiCapability[] = [];
+  const topicCalls: Array<{ topic: string; context: AiGenerationContext }> = [];
+  let topicFailed = false;
   const enriched: string[] = [];
   const failed = new Set<string>();
   let prepareCount = 0;
@@ -369,19 +409,30 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
       sendsDataOffDevice: false,
       processing: 'on-device',
     },
-    capabilities: () => ['enrich-entry'],
+    capabilities: () => ['enrich-entry', 'suggest-from-topic'],
     getAvailability: (capability) =>
-      Promise.resolve(capability === 'enrich-entry' ? availability : 'unavailable'),
+      Promise.resolve(
+        capability === 'enrich-entry'
+          ? availability
+          : capability === 'suggest-from-topic'
+            ? topicAvailability
+            : 'unavailable',
+      ),
     async prepare(capability, onProgress, signal) {
       prepareCount += 1;
-      if (capability !== 'enrich-entry' || availability === 'unavailable') {
+      const state = capability === 'suggest-from-topic' ? topicAvailability : availability;
+      if (
+        (capability !== 'enrich-entry' && capability !== 'suggest-from-topic') ||
+        state === 'unavailable'
+      ) {
         throw new AiUnavailableError();
       }
       if (signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
       for (const value of progress) onProgress?.(value);
       if (gatePrepare) await gate;
       if (prepareFails) throw new Error('Sprachmodell nicht ladbar.');
-      ready = true;
+      if (!prepared.includes(capability)) prepared.push(capability);
+      if (capability === 'enrich-entry') ready = true;
       await Promise.resolve();
     },
     async enrichEntry(entry, context) {
@@ -396,12 +447,31 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
       return { ...entry, partOfSpeech, difficulty, topicTags: [...topicTags] };
     },
     suggestFromText: () => Promise.reject(new AiUnavailableError()),
-    suggestFromTopic: () => Promise.reject(new AiUnavailableError()),
+    async suggestFromTopic(topic, context) {
+      if (!prepared.includes('suggest-from-topic')) {
+        throw new AiUnavailableError('Das Sprachmodell ist noch nicht geladen.');
+      }
+      if (context.signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
+      topicCalls.push({ topic, context });
+      await Promise.resolve();
+      if (topicFailsOnce && !topicFailed) {
+        topicFailed = true;
+        throw new Error('Die Vorschlagsliste war nicht verwertbar.');
+      }
+      return topicEntries(topic, Math.min(context.maxItems ?? 10, 20));
+    },
     alternativeSentence: () => Promise.reject(new AiUnavailableError()),
     destroy() {
       ready = false;
     },
   };
 
-  return { provider, enriched, prepareCount: () => prepareCount, releasePrepare: () => release() };
+  return {
+    provider,
+    enriched,
+    prepareCount: () => prepareCount,
+    releasePrepare: () => release(),
+    prepared: () => [...prepared],
+    topicCalls: () => [...topicCalls],
+  };
 }

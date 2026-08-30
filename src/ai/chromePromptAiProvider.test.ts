@@ -5,6 +5,9 @@ import {
   CHROME_PROMPT_NOTICE,
   ENRICH_RESPONSE_SCHEMA,
   buildEnrichPrompt,
+  MAX_TOPIC_ENTRIES,
+  TOPIC_CAPABILITY,
+  TOPIC_RESPONSE_SCHEMA,
   createChromePromptAiProvider,
   detectPromptAiProvider,
   enrichResponse,
@@ -100,19 +103,23 @@ describe('Feature Detection', () => {
 });
 
 describe('Fähigkeiten', () => {
-  it('kann in dieser Fassung ausschließlich „enrich-entry“', () => {
+  it('kann „enrich-entry“ und „suggest-from-topic“', () => {
     const provider = createChromePromptAiProvider(createFakeLanguageModelScope().scope);
-    expect(provider.capabilities()).toEqual(['enrich-entry']);
+    expect(provider.capabilities()).toEqual(['enrich-entry', 'suggest-from-topic']);
   });
 
   it('meldet jede andere Fähigkeit als nicht verfügbar', async () => {
     const provider = createChromePromptAiProvider(createFakeLanguageModelScope().scope);
-    for (const capability of AI_CAPABILITIES.filter((item) => item !== AI_CAPABILITY)) {
+    const unsupported = AI_CAPABILITIES.filter(
+      (item) => item !== AI_CAPABILITY && item !== TOPIC_CAPABILITY,
+    );
+    expect(unsupported.length).toBeGreaterThan(0);
+
+    for (const capability of unsupported) {
       await expect(provider.getAvailability(capability)).resolves.toBe('unavailable');
       await expect(provider.prepare(capability)).rejects.toBeInstanceOf(AiUnavailableError);
     }
     await expect(provider.suggestFromText('x', CONTEXT)).rejects.toBeInstanceOf(AiUnavailableError);
-    await expect(provider.suggestFromTopic('x', CONTEXT)).rejects.toBeInstanceOf(AiUnavailableError);
     await expect(provider.alternativeSentence('x', CONTEXT)).rejects.toBeInstanceOf(
       AiUnavailableError,
     );
@@ -409,5 +416,252 @@ describe('Prompt', () => {
     expect(prompt).not.toContain('Deutsche Bedeutung');
     expect(prompt).not.toContain('Thema des Pakets');
     expect(prompt).toContain('B1');
+  });
+});
+
+describe('Themenwerkstatt', () => {
+  const TOPIC_CONTEXT: AiGenerationContext = {
+    grade: '7',
+    cefrLevel: 'A2',
+    difficulty: 4,
+    maxItems: 3,
+    existingEnglish: ['crowded'],
+  };
+
+  function topicAnswer(count: number): string {
+    return JSON.stringify({
+      entries: Array.from({ length: count }, (_, index) => ({
+        english: `word${index + 1}`,
+        germanAnswers: [`Wort${index + 1}`],
+        partOfSpeech: 'noun',
+        difficulty: 3,
+        topicTags: ['city'],
+        exampleSentence: { english: `This is word${index + 1}.`, german: `Das ist Wort ${index + 1}.` },
+      })),
+    });
+  }
+
+  async function askTopic(answer: string, context = TOPIC_CONTEXT) {
+    const handle = createFakeLanguageModelScope({ respond: () => answer });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(TOPIC_CAPABILITY);
+    return { handle, result: await provider.suggestFromTopic('City life', context) };
+  }
+
+  it('fordert strukturierte Ausgabe über responseConstraint an', async () => {
+    const { handle } = await askTopic(topicAnswer(2));
+    expect(handle.lastConstraint()).toBe(TOPIC_RESPONSE_SCHEMA);
+    expect(TOPIC_RESPONSE_SCHEMA.properties.entries.maxItems).toBe(MAX_TOPIC_ENTRIES);
+  });
+
+  it('liefert geprüfte Vorschläge mit Beispielsatz', async () => {
+    const { result } = await askTopic(topicAnswer(2));
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      english: 'word1',
+      germanAnswers: ['Wort1'],
+      partOfSpeech: 'noun',
+      difficulty: 3,
+      topicTags: ['city'],
+    });
+    expect(result[0]?.exampleSentences?.[0]).toEqual({
+      english: 'This is word1.',
+      german: 'Das ist Wort 1.',
+    });
+  });
+
+  it('begrenzt auf die angeforderte Anzahl', async () => {
+    const { result } = await askTopic(topicAnswer(8));
+    expect(result).toHaveLength(3);
+  });
+
+  it('übergibt nur den nötigen Kontext', async () => {
+    const { handle } = await askTopic(topicAnswer(1));
+    const prompt = handle.prompts[0] ?? '';
+    expect(prompt).toContain('City life');
+    expect(prompt).toContain('7');
+    expect(prompt).toContain('A2');
+    expect(prompt).toContain('4 von 5');
+    expect(prompt).toContain('crowded');
+    expect(prompt).not.toMatch(/box|dueAt|progress|packId|sessionCount/i);
+  });
+
+  it('lehnt eine ungültige Liste vollständig ab', async () => {
+    for (const answer of [
+      'kein json',
+      JSON.stringify({ entries: [{ english: 'x' }] }),
+      JSON.stringify({ entries: [{ english: 'x', germanAnswers: [], partOfSpeech: 'noun', difficulty: 3, topicTags: [] }] }),
+      JSON.stringify({ entries: [{ english: 'x', germanAnswers: ['y'], partOfSpeech: 'Substantiv', difficulty: 3, topicTags: [] }] }),
+      JSON.stringify({ entries: [{ english: 'x', germanAnswers: ['y'], partOfSpeech: 'noun', difficulty: 9, topicTags: [] }] }),
+      JSON.stringify({ entries: [{ english: 'x', germanAnswers: ['y'], partOfSpeech: 'noun', difficulty: 3, topicTags: ['a', 'b', 'c', 'd'] }] }),
+    ]) {
+      await expect(askTopic(answer)).rejects.toBeInstanceOf(AiResponseError);
+    }
+  });
+
+  it('repariert eine kaputte Antwort nicht still, sondern erlaubt einen neuen Versuch', async () => {
+    let call = 0;
+    const handle = createFakeLanguageModelScope({
+      respond: () => {
+        call += 1;
+        return call === 1 ? JSON.stringify({ entries: [{ english: 'x' }] }) : topicAnswer(1);
+      },
+    });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(TOPIC_CAPABILITY);
+
+    await expect(provider.suggestFromTopic('City life', TOPIC_CONTEXT)).rejects.toBeInstanceOf(
+      AiResponseError,
+    );
+    await expect(provider.suggestFromTopic('City life', TOPIC_CONTEXT)).resolves.toHaveLength(1);
+  });
+
+  it('bricht über ein AbortSignal ab', async () => {
+    const handle = createFakeLanguageModelScope({ respond: () => topicAnswer(1) });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(TOPIC_CAPABILITY);
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      provider.suggestFromTopic('City life', { ...TOPIC_CONTEXT, signal: controller.signal }),
+    ).rejects.toBeInstanceOf(DOMException);
+  });
+
+  it('verlangt eine vorherige Vorbereitung', async () => {
+    const handle = createFakeLanguageModelScope({ respond: () => topicAnswer(1) });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await expect(provider.suggestFromTopic('City life', TOPIC_CONTEXT)).rejects.toBeInstanceOf(
+      AiUnavailableError,
+    );
+    expect(handle.createCount()).toBe(0);
+  });
+});
+
+describe('Getrennte Sitzungen je Fähigkeit', () => {
+  it('bereitet jede Fähigkeit einzeln vor', async () => {
+    const handle = createFakeLanguageModelScope();
+    const provider = createChromePromptAiProvider(handle.scope);
+
+    await provider.prepare(AI_CAPABILITY);
+    expect(handle.createCount()).toBe(1);
+    // Die andere Fähigkeit ist davon unberührt.
+    await expect(provider.suggestFromTopic('City life', { grade: '7', cefrLevel: 'A2' }))
+      .rejects.toBeInstanceOf(AiUnavailableError);
+
+    await provider.prepare(TOPIC_CAPABILITY);
+    expect(handle.createCount()).toBe(2);
+
+    // Und keine wird zweimal vorbereitet.
+    await provider.prepare(AI_CAPABILITY);
+    await provider.prepare(TOPIC_CAPABILITY);
+    expect(handle.createCount()).toBe(2);
+  });
+
+  it('gibt availability und create je Fähigkeit dieselben Optionen', async () => {
+    const handle = createFakeLanguageModelScope();
+    const provider = createChromePromptAiProvider(handle.scope);
+
+    await provider.getAvailability(AI_CAPABILITY);
+    await provider.prepare(AI_CAPABILITY);
+    await provider.getAvailability(TOPIC_CAPABILITY);
+    await provider.prepare(TOPIC_CAPABILITY);
+
+    const languagesOf = (options: unknown) => ({
+      inputs: (options as { expectedInputs?: Array<{ languages: string[] }> }).expectedInputs?.[0]
+        ?.languages,
+      outputs: (options as { expectedOutputs?: Array<{ languages: string[] }> }).expectedOutputs?.[0]
+        ?.languages,
+    });
+
+    // enrich-entry: englische Ausgabe.
+    expect(languagesOf(handle.availabilityCalls()[0])).toEqual({
+      inputs: ['en', 'de'],
+      outputs: ['en'],
+    });
+    expect(languagesOf(handle.createCalls()[0])).toEqual(languagesOf(handle.availabilityCalls()[0]));
+
+    // suggest-from-topic: muss auch Deutsch erzeugen.
+    expect(languagesOf(handle.availabilityCalls()[1])).toEqual({
+      inputs: ['de', 'en'],
+      outputs: ['de', 'en'],
+    });
+    expect(languagesOf(handle.createCalls()[1])).toEqual(languagesOf(handle.availabilityCalls()[1]));
+  });
+
+  it('lässt eine Fähigkeit nutzbar, wenn die andere scheitert', async () => {
+    let creates = 0;
+    const handle = createFakeLanguageModelScope({
+      respond: () =>
+        JSON.stringify({ partOfSpeech: 'noun', difficulty: 2, topicTags: [] }),
+    });
+    const failing = {
+      LanguageModel: {
+        availability: () => Promise.resolve('downloadable'),
+        create: (options: unknown) => {
+          creates += 1;
+          const outputs = (options as { expectedOutputs?: Array<{ languages: string[] }> })
+            .expectedOutputs?.[0]?.languages;
+          // Nur die zweisprachige Fähigkeit scheitert.
+          if (outputs?.includes('de')) return Promise.reject(new Error('kein zweisprachiges Modell'));
+          return handle.scope.LanguageModel!.create(options as never);
+        },
+      },
+    };
+
+    const provider = createChromePromptAiProvider(failing);
+    await expect(provider.prepare(TOPIC_CAPABILITY)).rejects.toThrow('kein zweisprachiges Modell');
+
+    await provider.prepare(AI_CAPABILITY);
+    await expect(provider.enrichEntry(ENTRY, CONTEXT)).resolves.toMatchObject({
+      partOfSpeech: 'noun',
+    });
+    expect(creates).toBe(2);
+  });
+
+  it('hält die Warteschlangen getrennt', async () => {
+    let call = 0;
+    const handle = createFakeLanguageModelScope({
+      respond: (input) => {
+        call += 1;
+        if (input.includes('Ordne die folgende Vokabel ein')) throw new Error('kaputt');
+        return JSON.stringify({
+          entries: [
+            {
+              english: 'word1',
+              germanAnswers: ['Wort1'],
+              partOfSpeech: 'noun',
+              difficulty: 3,
+              topicTags: [],
+            },
+          ],
+        });
+      },
+    });
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(AI_CAPABILITY);
+    await provider.prepare(TOPIC_CAPABILITY);
+
+    await expect(provider.enrichEntry(ENTRY, CONTEXT)).rejects.toThrow('kaputt');
+    // Der Fehler der einen Kette lässt die andere unberührt.
+    await expect(
+      provider.suggestFromTopic('City life', { grade: '7', cefrLevel: 'A2', maxItems: 1 }),
+    ).resolves.toHaveLength(1);
+    expect(call).toBe(2);
+  });
+
+  it('zerstört beide Sitzungen', async () => {
+    const handle = createFakeLanguageModelScope();
+    const provider = createChromePromptAiProvider(handle.scope);
+    await provider.prepare(AI_CAPABILITY);
+    await provider.prepare(TOPIC_CAPABILITY);
+
+    provider.destroy?.();
+
+    expect(handle.destroyCount()).toBe(2);
+    await expect(provider.enrichEntry(ENTRY, CONTEXT)).rejects.toBeInstanceOf(AiUnavailableError);
+    await expect(
+      provider.suggestFromTopic('City life', { grade: '7', cefrLevel: 'A2' }),
+    ).rejects.toBeInstanceOf(AiUnavailableError);
   });
 });

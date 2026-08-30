@@ -52,6 +52,8 @@ export interface AiGenerationContext {
   grade: Grade;
   cefrLevel: CefrLevel;
   topic?: string;
+  /** Gewünschte Schwierigkeit 1–5, bezogen auf genau diese Lerngruppe. */
+  difficulty?: number;
   /** Bereits vorhandene englische Stichwörter – zur Vermeidung von Dubletten. */
   existingEnglish?: string[];
   maxItems?: number;

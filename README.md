@@ -15,6 +15,8 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
   wahrheitsgemäße Wiedervorlage-Ankündigung.
 * **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
   nach erfolgreicher Speicherung des Lernstands.
+* **Sprint 2B.2a** – Themenwerkstatt: zu einem frei gewählten Thema lokal
+  Vokabelvorschläge erzeugen, prüfen und wie jede andere Liste speichern.
 * **Sprint 2B.1** – Vorschläge beim Import: Übersetzung, Wortart, Schwierigkeit
   und Themen-Tags werden lokal vorgeschlagen, ausdrücklich geprüft und
   übernommen. Das fertige Paket bleibt vollständig ohne KI nutzbar.
@@ -51,6 +53,9 @@ Weitere Befehle:
 | `npx vitest run src/import/portability.test.ts` | Nur der Portabilitätsnachweis (Paket ohne KI) |
 | `npx vitest run src/domain/wordRules.test.ts` | Nur die regelbasierten Vorschläge |
 | `npx playwright test e2e/enrichment.spec.ts` | Nur der E2E-Ablauf zu den Vorschlägen |
+| `npx vitest run src/import/topicDraft.test.ts` | Nur die Nachbearbeitung der Themenvorschläge |
+| `npx vitest run src/import/topicPortability.test.ts` | Nur der Portabilitätsnachweis der Themenwerkstatt |
+| `npx playwright test e2e/topic-studio.spec.ts` | Nur der E2E-Ablauf der Themenwerkstatt |
 | `npm run build` | Typecheck + Produktions-Build nach `dist/` |
 | `npm run preview` | Produktions-Build lokal ausliefern (Port 4173) |
 | `npm run verify` | Typecheck → Tests → Build → alle E2E-Tests |
@@ -116,6 +121,7 @@ src/
     textDraft.ts     Kandidaten → Entwurfszeilen (kein zweiter Editor)
     suggestions.ts   ephemere Vorschläge im Entwurf: annehmen, ablehnen, prüfen
     enrichment.ts    Bindeglied zwischen Vorschlagsquellen und Entwurf
+    topicDraft.ts    Nachbearbeitung der Themenvorschläge (Dubletten, Sätze, IDs)
   translation/   lokale Übersetzung als eigene, schmale Schnittstelle
     TranslationProvider.ts    Vertrag + nullTranslationProvider (Standard)
     chromeTranslationProvider.ts  Chrome-Translator-API, reine Feature Detection
@@ -140,6 +146,7 @@ weder React noch die Datenbank und ist deshalb vollständig ohne Mocks testbar.
 | `/material` | Lehrkraft-Bereich (ohne Login): Paketliste, Export, Löschen |
 | `/material/import` | Importassistent: Quelle → Vorschau → Metadaten |
 | `/material/import?quelle=text` | Textwerkstatt: Text → Kandidaten → Vorschau → Metadaten |
+| `/material/import?quelle=thema` | Themenwerkstatt: Thema → Vorschläge → Vorschau → Metadaten |
 | `/material/:packId` | Paketeditor (Metadaten und Vokabeln) |
 | `/lernen` | Lokale Paketsammlung mit Lernstand |
 | `/lernen/:packId` | Paketdetails, Leitner-Übersicht je Richtung, Optionen |
@@ -406,6 +413,75 @@ Britische und amerikanische Schreibungen sowie Synonyme gelten nur dann als
 richtig, wenn sie in `acceptedEnglishAnswers` hinterlegt sind – im Editor unter
 „Details“ pflegbar. Es gibt bewusst **keine** semantische oder KI-gestützte
 Bewertung im Schülerbereich.
+
+---
+
+## Vokabeln zu einem Thema (Themenwerkstatt)
+
+Statt eine Liste zu tippen, lässt sich eine zu einem Thema erzeugen: „City
+life“, Jahrgang 7, A2+, gewünschte Schwierigkeit 3, zehn Vokabeln. Heraus kommen
+ganz normale Entwurfszeilen, die durch dieselbe Vorschau laufen wie ein
+CSV-Import.
+
+### Alles bleibt auf dem Gerät
+
+Die Vorschläge entstehen mit dem **eingebauten Sprachmodell des Browsers**
+(Prompt-API). Es gibt keinen Cloud-Anbieter, keinen API-Schlüssel und kein
+Backend; der Anwendungscode ruft nie selbst `fetch` auf. Das Modell wird **erst
+nach einem ausdrücklichen Klick** geladen – mit echtem Fortschritt und
+jederzeit abbrechbar.
+
+An das Modell gehen ausschließlich: Thema, Jahrgang, GeR-Niveau, gewünschte
+Schwierigkeit, gewünschte Anzahl und – falls die Option aktiv ist – die bereits
+vorhandenen **englischen Stichwörter**. Keine Übersetzungen, keine Paket-IDs,
+keine Lernstände, keine personenbezogenen Daten.
+
+### Browserunterstützung
+
+Die Themenwerkstatt braucht einen Desktop-Browser mit eingebauter Prompt-API
+(derzeit Chrome, je nach Version und Gerät) **und** ein Modell, das Deutsch
+erzeugen kann – die Sprachprüfung gehört zur Verfügbarkeitsabfrage. Fehlt beides,
+gibt es keine Fehlermeldung, sondern zwei Auswege: „Liste einfügen“ oder „Leere
+Liste anlegen“ (eine normale Zeile, das Thema schon als Tag).
+
+### Was LexiFlow nach dem Modell noch prüft
+
+Ein eingehaltenes JSON-Schema heißt nur, dass die Form stimmt. Danach läuft die
+Antwort durch Zod und anschließend durch eine fachliche Nachbearbeitung:
+
+* Leerzeichen normalisieren, doppelte Stichwörter (auch bei anderer
+  Groß-/Kleinschreibung) und bereits vorhandene Vokabeln entfernen
+* Einträge ohne deutsche Antwort verwerfen, doppelte Übersetzungen und Tags
+  zusammenfassen
+* auf die gewünschte Anzahl begrenzen, eigene lokale IDs vergeben,
+  `sourceType: topic-ai` setzen
+* **Beispielsätze prüfen:** Ein Satz wird nur übernommen, wenn er das Stichwort
+  beziehungsweise die vollständige Wendung wirklich enthält. Sonst fliegt er
+  raus und die Zeile sagt es. Ein unpassender Satz wäre als Lückensatz wertlos
+  und als Beleg irreführend.
+
+Eine ungültige Antwort wird **vollständig** verworfen – nichts wird still
+repariert, und ein neuer Versuch ist einen Klick entfernt. Liefert das Modell
+weniger als gewünscht, steht das auch so da: „8 von 10 Vorschlägen erzeugt“.
+
+### Prüfen bleibt Pflicht
+
+Über der Vorschau steht: *„Diese Vorschläge sind ungeprüft. Kontrolliere
+besonders Übersetzungen, Schwierigkeit und Beispielsätze.“* Die
+Schwierigkeitsangabe bezieht sich auf die gewählte Lerngruppe, nicht auf eine
+allgemeingültige Wortbewertung. LexiFlow behauptet nicht, dass Ergebnisse
+lehrplankonform oder fehlerfrei sind – **die fachliche Verantwortung bleibt bei
+der Lehrkraft.**
+
+### Fertige Pakete brauchen kein Modell
+
+Wie bei allen anderen Quellen: Was gespeichert wird, sind normale
+`VocabEntry`-Felder. Ein Integrationstest erzeugt Vorschläge mit einem
+nachgebauten Browsermodell, exportiert das Paket und liest es in einer Umgebung
+**ganz ohne Sprachmodell** wieder ein – Übersetzungen, Wortarten,
+Schwierigkeiten, Tags und die gültigen Beispielsätze sind vollständig da,
+`formatVersion` bleibt `1`, und die Lernrunde startet sofort. Weitergabe wie
+immer: Paket exportieren → Datei senden → beim Empfänger „Paketdatei öffnen“.
 
 ---
 
@@ -819,6 +895,9 @@ Zusätzlich getestet:
   Schülerbereich, Datenschutz, Importvorschau, Paketdetail, Übung und Feedback
 * die breite Lehrkraft-Tabelle scrollt in ihrem eigenen Container
   (`.table-wrap`), ohne die Seite zu verbreitern
+* `e2e/topic-studio.spec.ts`: Thema → zehn Vorschläge → bearbeiten → speichern →
+  exportieren → zweiter Browserkontext **ohne jedes Modell** → Lernrunde; das
+  Sprachmodell wird dabei als echte Klasse mit statischen Methoden injiziert
 * `e2e/enrichment.spec.ts`: Vorschläge erzeugen, einzeln und gebündelt
   übernehmen, exportieren und in einem zweiten Browserkontext **ohne jede
   Modell-API** wieder importieren und üben; Axe, Tastatur und 390 px inklusive
@@ -897,6 +976,14 @@ funktioniert vollständig offline.
 20. **Freie Runden schreiben nichts – auch keinen Zähler.** Eine „nur halb
     gezählte“ Runde wäre nicht erklärbar. Wer frei übt, soll ohne Folgen üben
     können.
+22. **Eine Modellsitzung je Fähigkeit.** `enrich-entry` antwortet einsprachig,
+    die Themenwerkstatt zweisprachig. Eine gemeinsame Sitzung wäre für eine von
+    beiden falsch konfiguriert; deshalb hat jede Fähigkeit ihre eigene Sitzung,
+    ihre eigene Warteschlange und dieselben Optionen in `availability` wie in
+    `create`.
+23. **Beispielsätze werden gegengeprüft, nicht geglaubt.** Enthält der Satz das
+    Stichwort nicht, wird er verworfen – ein Lückensatz ohne Lücke ist schlimmer
+    als gar keiner.
 21. **Der Modus steht in der URL.** Eine freie Runde ist damit teilbar und
     direkt aufrufbar; ein fehlender oder unbekannter Wert fällt auf den
     Lernplan zurück, nie umgekehrt.
@@ -942,5 +1029,10 @@ funktioniert vollständig offline.
   freigeschaltete Paket; gezielt „nur die schweren“ geht noch nicht.
 * **Übungsform richtet sich weiter nach dem Leitner-Fach.** Auch beim freien
   Üben, solange keine Form ausgewählt ist – das kann überraschen.
+* **Themenvorschläge sind nur so gut wie das lokale Modell.** Die kleinen
+  Browsermodelle liefern gelegentlich schiefe Bedeutungen oder Sätze; die
+  Prüfung durch die Lehrkraft ist keine Formalie.
+* **Keine Themenwerkstatt ohne Prompt-API.** Firefox und Safari bieten sie
+  derzeit nicht; dort bleiben Einfügen und die leere Liste.
 * **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
   Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.
