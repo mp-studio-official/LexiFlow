@@ -166,7 +166,9 @@ export function createFakeTranslationProvider(
       await Promise.resolve();
     },
     async translate(text, signal) {
-      if (!ready) throw new TranslationUnavailableError();
+      // Gleiche Aussage wie der echte Chrome-Anbieter, damit Tests die
+      // Verwechslung von „verfügbar“ und „vorbereitet“ sichtbar machen.
+      if (!ready) throw new TranslationUnavailableError('Das Sprachmodell ist noch nicht geladen.');
       if (signal?.aborted) throw new TranslationAbortedError();
       await Promise.resolve();
       // Beim ersten Versuch scheitern, damit „Erneut versuchen“ prüfbar ist.

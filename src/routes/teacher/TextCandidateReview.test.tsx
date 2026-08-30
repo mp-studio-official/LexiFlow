@@ -80,6 +80,28 @@ describe('Textwerkstatt ohne Übersetzungs-Anbieter', () => {
     expect(screen.getByLabelText('crowded übernehmen')).toBeInTheDocument();
   });
 
+  it('verbindet den Hinweis programmatisch mit dem Eingabefeld', async () => {
+    const { user } = setup();
+    const field = screen.getByLabelText('Deutsche Antwort für „crowded“');
+
+    expect(field).toHaveAccessibleDescription(
+      'Ohne deutsche Antwort lässt sich diese Vokabel nicht speichern.',
+    );
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+
+    await user.type(field, 'überfüllt');
+    expect(field).not.toHaveAttribute('aria-invalid');
+    expect(field).toHaveAccessibleDescription('');
+  });
+
+  it('meldet eine abgewählte leere Zeile nicht als fehlerhaft', async () => {
+    const { user } = setup();
+    await user.click(screen.getByLabelText('crowded übernehmen'));
+
+    const field = screen.getByLabelText('Deutsche Antwort für „crowded“');
+    expect(field).not.toHaveAttribute('aria-invalid');
+  });
+
   it('erlaubt Alle/Keine auswählen, Sortieren und Entfernen', async () => {
     const { user } = setup();
     const count = candidates().length;
@@ -205,6 +227,91 @@ describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
     await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
 
     expect(applied(onApply)[0]?.translationAccepted).toBe(false);
+  });
+});
+
+describe('Verfügbarkeit ist nicht Initialisierung', () => {
+  it('bereitet auch bei „available“ genau einmal vor und übersetzt dann', async () => {
+    const { provider, prepareCount } = createFakeTranslationProvider({ availability: 'available' });
+    const { user } = setup(provider);
+
+    const button = await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' });
+    expect(prepareCount()).toBe(0);
+
+    await user.click(button);
+
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(prepareCount()).toBe(1);
+    expect(screen.queryByText(/Sprachmodell ist noch nicht geladen/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('lässt „downloading“ nicht in einem toten Zustand hängen', async () => {
+    const { provider, prepareCount } = createFakeTranslationProvider({
+      availability: 'downloading',
+    });
+    const { user } = setup(provider);
+
+    const button = await screen.findByRole('button', {
+      name: 'Laden abwarten und Vorschläge erzeugen',
+    });
+    expect(button).toBeEnabled();
+    expect(
+      screen.getByText(/Der Browser lädt das Sprachmodell gerade herunter/),
+    ).toBeInTheDocument();
+
+    await user.click(button);
+
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(prepareCount()).toBe(1);
+  });
+
+  it('bereitet für denselben Anbieter kein zweites Mal vor', async () => {
+    const { provider, prepareCount } = createFakeTranslationProvider({ availability: 'available' });
+    const { user } = setup(provider);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }),
+    );
+    await screen.findByText('crowded-de');
+
+    await user.click(screen.getByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }));
+    await waitFor(() => expect(screen.getAllByText(/-de$/).length).toBeGreaterThan(0));
+
+    expect(prepareCount()).toBe(1);
+  });
+
+  it('gilt nach einem gescheiterten prepare nicht als vorbereitet', async () => {
+    let attempts = 0;
+    const { provider } = createFakeTranslationProvider({ availability: 'available' });
+    const failing: typeof provider = {
+      ...provider,
+      prepare: (source, target, onProgress, signal) => {
+        attempts += 1;
+        if (attempts === 1) return Promise.reject(new Error('Download unterbrochen'));
+        return provider.prepare(source, target, onProgress, signal);
+      },
+    };
+    const { user } = setup(failing);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Download unterbrochen/);
+
+    // Die Schaltfläche bleibt benutzbar und der zweite Versuch bereitet erneut vor.
+    await user.click(
+      screen.getByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
+    );
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(attempts).toBe(2);
+  });
+
+  it('ruft ohne Klick niemals prepare auf', async () => {
+    const { provider, prepareCount } = createFakeTranslationProvider({ availability: 'available' });
+    setup(provider);
+    await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' });
+    expect(prepareCount()).toBe(0);
   });
 });
 

@@ -4,6 +4,7 @@ import { useTranslationProvider } from '../../providers/ProviderContext';
 import { sortCandidates, type CandidateSort, type TextCandidate } from '../../domain/textExtraction';
 import type { CandidateSelection } from '../../import/textDraft';
 import type { ProviderState } from '../../providers/state';
+import type { TranslationProvider } from '../../translation/TranslationProvider';
 
 /**
  * Prüfansicht der Textwerkstatt.
@@ -12,6 +13,18 @@ import type { ProviderState } from '../../providers/state';
  * steht getrennt neben dem Eingabefeld und muss ausdrücklich übernommen oder
  * abgetippt werden. Ohne Übersetzungs-Anbieter bleibt die Ansicht vollständig
  * benutzbar – dann wird eben alles von Hand eingetragen.
+ *
+ * Wichtig ist die Trennung zweier Dinge:
+ *
+ * - **Verfügbarkeit** (`providerState`) beantwortet nur die Frage, ob sich ein
+ *   Modell überhaupt nutzbar machen lässt. Auch `available` heißt lediglich
+ *   „liegt auf dem Gerät“ – eine Translator-Instanz gibt es damit noch nicht.
+ * - **Vorbereitung** (`preparedRef`) hält fest, für welchen Anbieter `prepare()`
+ *   tatsächlich erfolgreich durchgelaufen ist. Nur dann darf übersetzt werden.
+ *
+ * `prepare()` läuft ausschließlich nach einem ausdrücklichen Klick und wird im
+ * Klickpfad ohne vorherige Warteschritte aufgerufen, damit die User-Activation
+ * des Browsers erhalten bleibt (der Modelldownload verlangt sie).
  */
 
 const SOURCE_LANGUAGE = 'en';
@@ -43,6 +56,8 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
   const provider = useTranslationProvider();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  /** Anbieter, für den `prepare('en','de')` erfolgreich war – sonst `null`. */
+  const preparedRef = useRef<TranslationProvider | null>(null);
 
   const [rows, setRows] = useState<CandidateRow[]>(() => candidates.map(toRow));
   const [sort, setSort] = useState<CandidateSort>('text-order');
@@ -59,6 +74,8 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
 
   useEffect(() => {
     let active = true;
+    // Ein anderer Anbieter bedeutet: nichts ist mehr vorbereitet.
+    if (preparedRef.current !== provider) preparedRef.current = null;
     void provider
       .getAvailability(SOURCE_LANGUAGE, TARGET_LANGUAGE)
       .then((state) => {
@@ -141,9 +158,13 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
     setProviderError('');
 
     try {
-      if (providerState !== 'available') {
+      // `available` heißt nur „lässt sich nutzbar machen“. Eine Instanz gibt es
+      // erst nach erfolgreichem `prepare()` – deshalb hängt der Aufruf an der
+      // Vorbereitung, nicht am gemeldeten Zustand. Vor dem Aufruf steht bewusst
+      // kein `await`, damit die User-Activation aus dem Klick erhalten bleibt.
+      if (preparedRef.current !== provider) {
         setProviderState('downloading');
-        setStatus('Das Sprachmodell wird geladen.');
+        setStatus('Das Sprachmodell wird vorbereitet.');
         setProgress(0);
         await provider.prepare(
           SOURCE_LANGUAGE,
@@ -151,6 +172,7 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
           (value) => setProgress(value),
           controller.signal,
         );
+        preparedRef.current = provider;
         setProviderState('available');
         setProgress(null);
       }
@@ -165,6 +187,8 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
       }
       if (controller.signal.aborted) setStatus('Übersetzung abgebrochen.');
     } catch (error: unknown) {
+      // Abbruch wie Fehler: nicht als vorbereitet behandeln.
+      preparedRef.current = null;
       setProgress(null);
       if (controller.signal.aborted) {
         setStatus('Laden abgebrochen.');
@@ -198,7 +222,19 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
     onApply(selections);
   }
 
-  const canTranslate = providerState === 'available' || providerState === 'downloadable';
+  // Auch `downloading` führt über die Schaltfläche zur Initialisierung: Der
+  // Browser lädt dann bereits, und `prepare()` wartet dieses Laden ab.
+  const canTranslate =
+    providerState === 'available' ||
+    providerState === 'downloadable' ||
+    providerState === 'downloading';
+
+  const translateLabel =
+    providerState === 'downloadable'
+      ? 'Sprachmodell laden und Vorschläge erzeugen'
+      : providerState === 'downloading'
+        ? 'Laden abwarten und Vorschläge erzeugen'
+        : 'Vorschläge für Auswahl erzeugen';
 
   return (
     <div className="stack">
@@ -260,6 +296,18 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
               Vorschläge sind <strong>ungeprüft</strong>. Sie werden nie automatisch
               übernommen – du entscheidest je Vokabel.
             </p>
+            {!busy && providerState === 'downloading' ? (
+              <p className="small muted" role="status">
+                Der Browser lädt das Sprachmodell gerade herunter. Du kannst die
+                Vorschläge jetzt anstoßen; sie beginnen, sobald das Modell bereit ist.
+              </p>
+            ) : null}
+            {!busy && providerState === 'downloadable' ? (
+              <p className="small muted">
+                Das Sprachmodell ist noch nicht auf diesem Gerät. Es wird erst nach
+                deinem Klick geladen.
+              </p>
+            ) : null}
             <div className="row">
               <Button
                 variant="primary"
@@ -267,9 +315,7 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
                 disabled={busy || !canTranslate}
                 onClick={() => void runTranslation(selectedRows)}
               >
-                {providerState === 'downloadable'
-                  ? 'Sprachmodell laden und Vorschläge erzeugen'
-                  : 'Vorschläge für Auswahl erzeugen'}
+                {translateLabel}
               </Button>
               {busy ? (
                 <Button small onClick={() => abortRef.current?.abort()}>
@@ -280,7 +326,7 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
             {progress !== null ? (
               <p style={{ margin: '0.6rem 0 0' }}>
                 <label htmlFor="model-progress" className="small muted">
-                  Sprachmodell wird geladen
+                  Sprachmodell wird vorbereitet
                 </label>
                 <br />
                 <progress id="model-progress" max={1} value={progress}>
@@ -306,6 +352,8 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
           const { candidate } = row;
           const label = candidate.english;
           const hasGerman = row.german.trim().length > 0;
+          /** Nur ausgewählte Zeilen ohne Antwort sind wirklich fehlerhaft. */
+          const missing = row.selected && !hasGerman;
 
           return (
             <li key={candidate.id} className="candidate">
@@ -346,6 +394,8 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
                   id={`de-${candidate.id}`}
                   type="text"
                   value={row.german}
+                  aria-invalid={missing ? true : undefined}
+                  aria-describedby={missing ? `de-${candidate.id}-fehler` : undefined}
                   onChange={(event) =>
                     update(candidate.id, {
                       german: event.target.value,
@@ -353,8 +403,8 @@ export function TextCandidateReview({ candidates, onApply, onBack }: TextCandida
                     })
                   }
                 />
-                {row.selected && !hasGerman ? (
-                  <span className="field__error">
+                {missing ? (
+                  <span id={`de-${candidate.id}-fehler`} className="field__error">
                     Ohne deutsche Antwort lässt sich diese Vokabel nicht speichern.
                   </span>
                 ) : null}

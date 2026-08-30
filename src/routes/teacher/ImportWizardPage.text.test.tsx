@@ -37,10 +37,26 @@ describe('Textwerkstatt im Import-Assistenten', () => {
     expect(screen.getByText('Kandidaten prüfen')).toBeInTheDocument();
   });
 
-  it('weist vor der Analyse auf die lokale Verarbeitung hin', () => {
+  it('sagt vor der Analyse genau, was gespeichert wird und was nicht', () => {
     setup();
-    expect(screen.getByText(/Der Text wird auf diesem Gerät verarbeitet/)).toBeInTheDocument();
-    expect(screen.getByText(/wird nicht gespeichert und nicht exportiert/)).toBeInTheDocument();
+    const notice = screen.getByText(/Der Text wird auf diesem Gerät verarbeitet/);
+
+    // Der Gesamttext bleibt außen vor …
+    expect(notice).toHaveTextContent(
+      /vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/,
+    );
+    // … die Originalsätze der übernommenen Vokabeln aber nicht.
+    expect(notice).toHaveTextContent(
+      /Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze Teil des Pakets und beim Export mitgegeben/,
+    );
+    expect(notice).toHaveTextContent(/in der Vorschau bearbeiten oder entfernen/);
+  });
+
+  it('nennt denselben Umfang auch im Feldhinweis', () => {
+    setup();
+    expect(
+      screen.getByText(/Gespeichert wird nur, was du übernimmst: die Vokabeln und ihre Originalsätze/),
+    ).toBeInTheDocument();
   });
 
   it('führt vom Text über die Kandidaten in Vorschau und Metadaten', async () => {

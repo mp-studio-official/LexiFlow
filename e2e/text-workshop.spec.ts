@@ -39,7 +39,9 @@ async function expectNoSeriousViolations(page: Page, label: string): Promise<voi
 
 async function analyze(page: Page): Promise<void> {
   await page.goto('/#/material/import?quelle=text');
-  await expect(page.getByText(/Der Text wird auf diesem Gerät verarbeitet/)).toBeVisible();
+  await expect(
+    page.getByText(/vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/),
+  ).toBeVisible();
   await page.getByLabel('Englischer Text').fill(TEXT);
   await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
   await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
@@ -57,6 +59,14 @@ test.describe('Textwerkstatt', () => {
     await page.goto('/#/material');
     await page.getByRole('button', { name: 'Aus englischem Text erstellen' }).click();
     await expect(page.getByLabel('Englischer Text')).toBeVisible();
+
+    // Der Hinweis nennt beides: Gesamttext bleibt außen vor, Originalsätze nicht.
+    await expect(
+      page.getByText(/vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze/),
+    ).toBeVisible();
 
     await page.getByLabel('Englischer Text').fill(TEXT);
     await page.getByRole('button', { name: 'Text lokal analysieren' }).click();

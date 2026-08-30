@@ -464,9 +464,14 @@ speichern.
 
 * Die Analyse ist eine reine Funktion (`extractTextCandidates`) ohne jeden
   Netzwerkzugriff und ohne Zufall – gleicher Text, gleiches Ergebnis.
-* Der eingefügte **Quelltext wird nicht gespeichert und nicht exportiert**. Er
-  lebt nur im Formularzustand der geöffneten Seite. Ins Paket wandern
-  ausschließlich die übernommenen Vokabeln samt ihrem jeweiligen Originalsatz.
+* Der **vollständige eingefügte Text wird nicht als eigener Datensatz
+  gespeichert**. Er lebt nur im Formularzustand der geöffneten Seite und
+  verschwindet mit ihr.
+* Die **Originalsätze der übernommenen Vokabeln werden als Beispielsätze Teil
+  des Pakets** und landen damit auch im Export. Das ist gewollt – sie sind der
+  Beleg und die Grundlage für Lückensätze. In der Vorschau lassen sie sich
+  bearbeiten oder entfernen, bevor gespeichert wird. Nicht übernommene Sätze
+  verlassen die Seite nie.
 * Es gibt keinen Cloud-Fallback, keinen API-Schlüssel und keine
   Umgebungsvariable für Geheimnisse. Der E2E-Test schlägt fehl, sobald ein
   Request an einen fremden Host geht.
@@ -512,6 +517,27 @@ maschineller Vorschlag tatsächlich übernommen wurde. Zusätzliche Angaben
 (Häufigkeit im Text, Originalsatz, Übersetzungsstand) leben ausschließlich im
 Entwurfsmodell (`DraftProvenance`); das Austauschformat `.vocabpack.json` und
 seine `formatVersion` bleiben unverändert.
+
+### Verfügbar ist nicht vorbereitet
+
+Zwei Dinge werden bewusst getrennt geführt:
+
+| Begriff | Bedeutung |
+| --- | --- |
+| `unavailable` | Kein Modell für dieses Sprachpaar – die Oberfläche bietet keine Vorschläge an. |
+| `downloadable` | Das Modell ließe sich laden, liegt aber noch nicht auf dem Gerät. |
+| `downloading` | Der Browser lädt es bereits (z. B. durch einen anderen Tab angestoßen). |
+| `available` | Das Modell liegt auf dem Gerät – **mehr nicht.** Eine Translator-Instanz gibt es damit noch nicht. |
+| *vorbereitet* | `prepare('en','de')` ist für genau diesen Anbieter erfolgreich durchgelaufen. Erst dann darf übersetzt werden. |
+
+Deshalb hängt der Aufruf von `prepare()` an der Vorbereitung, nicht am
+gemeldeten Zustand: Auch bei `available` läuft er nach dem ersten Klick genau
+einmal. `downloadable` **und** `downloading` führen beide über dieselbe
+Schaltfläche zur Initialisierung – ein gemeldetes „lädt gerade“ ist kein toter
+Endzustand. Ein Abbruch oder Fehler verwirft die Vorbereitung wieder, ein
+Anbieterwechsel ebenfalls. `prepare()` wird direkt im Klickpfad aufgerufen, ohne
+vorherigen asynchronen Zwischenschritt, damit die User-Activation erhalten
+bleibt, die der Browser für den Modelldownload verlangt.
 
 ### Ausblick (nur technisch)
 

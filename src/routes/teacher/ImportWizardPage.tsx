@@ -342,12 +342,16 @@ export function ImportWizardPage() {
           {source === 'text' ? (
             <div className="stack">
               <Alert tone="info">
-                Der Text wird auf diesem Gerät verarbeitet. Verwende nur Texte, die du verwenden
-                darfst, und füge keine personenbezogenen Daten von Schülerinnen und Schülern ein.
+                Der Text wird auf diesem Gerät verarbeitet und nicht übertragen. Der
+                vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert.
+                Die Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze
+                Teil des Pakets und beim Export mitgegeben; du kannst sie in der Vorschau
+                bearbeiten oder entfernen. Verwende nur Texte, die du verwenden darfst, und
+                füge keine personenbezogenen Daten von Schülerinnen und Schülern ein.
               </Alert>
               <Field
                 label="Englischer Text"
-                hint={`Bis zu ${MAX_TEXT_LENGTH.toLocaleString('de-DE')} Zeichen. LexiFlow zerlegt den Text lokal in Sätze und Wörter; der Text selbst wird nicht gespeichert und nicht exportiert.`}
+                hint={`Bis zu ${MAX_TEXT_LENGTH.toLocaleString('de-DE')} Zeichen. LexiFlow zerlegt den Text lokal in Sätze und Wörter. Gespeichert wird nur, was du übernimmst: die Vokabeln und ihre Originalsätze.`}
               >
                 {(props) => (
                   <textarea
