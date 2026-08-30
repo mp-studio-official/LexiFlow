@@ -1,7 +1,7 @@
 import { newId } from '../domain/ids';
 import { normalizeAnswer } from '../domain/normalize';
 import { emptyDraft, newSentence, validateDrafts, type DraftRow } from './draft';
-import type { AiVocabSuggestion } from '../ai/AiProvider';
+import { MAX_CONTEXT_HEADWORDS, type AiVocabSuggestion } from '../ai/AiProvider';
 
 /**
  * Fachliche Nachbearbeitung der Themenvorschläge.
@@ -17,7 +17,12 @@ import type { AiVocabSuggestion } from '../ai/AiProvider';
  */
 
 export interface TopicDraftOptions {
-  /** Bereits vorhandene englische Stichwörter, die nicht erneut vorkommen sollen. */
+  /**
+   * **Alle** bereits vorhandenen englischen Stichwörter. Hier gilt kein Limit:
+   * Dieser Filter ist die maßgebliche Garantie gegen Dubletten und muss deshalb
+   * vollständig sein. Was das Sprachmodell davon zu sehen bekommt, regelt
+   * `headwordsForPrompt`.
+   */
   existingEnglish?: readonly string[];
   /** Obergrenze; mehr Zeilen entstehen nie, auch wenn das Modell mehr liefert. */
   maxItems: number;
@@ -25,14 +30,63 @@ export interface TopicDraftOptions {
   topic?: string;
 }
 
+/**
+ * Vier Zahlen, die zusammen eine ehrliche Aussage ergeben.
+ *
+ * Sie sind bewusst getrennt, weil sie unterschiedliche Fragen beantworten:
+ * Was wollte die Lehrkraft, was kam vom Modell, und was hat die lokale Prüfung
+ * davon übrig gelassen. „8 von 8“ wäre keine Antwort auf die erste Frage.
+ */
 export interface TopicDraftResult {
   drafts: DraftRow[];
-  /** Wie viele Einträge das Modell geliefert hat. */
+  /** Von der Lehrkraft gewählte Obergrenze. */
+  requested: number;
+  /**
+   * Gültige Einträge aus der Modellantwort – gezählt **vor** der lokalen
+   * Dubletten- und Satzprüfung. Gültig heißt: ein englisches Stichwort und
+   * mindestens eine deutsche Bedeutung.
+   */
   received: number;
-  /** Wie viele davon übrig geblieben sind. */
+  /** Tatsächlich in die Vorschau übernommene Zeilen. */
   accepted: number;
-  /** Wie viele Beispielsätze verworfen wurden, weil sie nicht passten. */
+  /** Entfernte Beispielsätze, die das Stichwort nicht enthielten. */
   droppedSentences: number;
+}
+
+/** Fertige Textbausteine für die Vorschau – rein, damit Tests sie prüfen können. */
+export interface TopicResultSummary {
+  /** „8 von 10 gewünschten Vorschlägen übernommen.“ */
+  headline: string;
+  /** Warum es weniger wurden – leer, wenn nichts lokal entfernt wurde. */
+  detail: string;
+  /** Hinweis zu verworfenen Beispielsätzen – leer, wenn keiner betroffen war. */
+  sentences: string;
+}
+
+/**
+ * Formuliert das Ergebnis so, wie es eine Lehrkraft lesen will: gemessen an dem,
+ * was sie angefordert hat. Weniger als gewünscht wird nie stillschweigend zur
+ * neuen Bezugsgröße gemacht.
+ */
+export function summarizeTopicResult(result: TopicDraftResult): TopicResultSummary {
+  const headline = `${result.accepted} von ${result.requested} gewünschten Vorschlägen übernommen.`;
+
+  const filtered = result.received - result.accepted;
+  const detail =
+    result.accepted < result.requested && filtered > 0
+      ? `Das Sprachmodell lieferte ${result.received}; ${filtered} ${
+          filtered === 1 ? 'Eintrag wurde' : 'Einträge wurden'
+        } bei der lokalen Prüfung entfernt.`
+      : '';
+
+  const sentences =
+    result.droppedSentences > 0
+      ? result.droppedSentences === 1
+        ? 'Ein Beispielsatz wurde entfernt, weil er das Stichwort nicht enthielt.'
+        : `${result.droppedSentences} Beispielsätze wurden entfernt, weil sie das Stichwort nicht enthielten.`
+      : '';
+
+  return { headline, detail, sentences };
 }
 
 function collapse(value: string): string {
@@ -98,20 +152,28 @@ export function topicSuggestionsToDrafts(
 
   const drafts: DraftRow[] = [];
   let droppedSentences = 0;
+  let received = 0;
 
   for (const suggestion of suggestions) {
-    if (drafts.length >= options.maxItems) break;
-
     const english = collapse(suggestion.english);
     if (english.length === 0) continue;
 
-    // Dubletten – gegenüber vorhandenen Vokabeln und innerhalb der Antwort.
     const key = normalizeAnswer(english);
-    if (key.length === 0 || taken.has(key)) continue;
-    taken.add(key);
+    if (key.length === 0) continue;
 
     const germanAnswers = uniqueStrings(suggestion.germanAnswers ?? []);
     if (germanAnswers.length === 0) continue; // ohne Bedeutung ist der Eintrag wertlos
+
+    // Ab hier ist der Eintrag als Modellantwort brauchbar – das wird gezählt,
+    // auch wenn ihn die lokale Prüfung gleich wieder aussortiert.
+    received += 1;
+
+    // Die Obergrenze beendet die Übernahme, nicht die Zählung.
+    if (drafts.length >= options.maxItems) continue;
+
+    // Dubletten – gegenüber vorhandenen Vokabeln und innerhalb der Antwort.
+    if (taken.has(key)) continue;
+    taken.add(key);
 
     const tags = uniqueStrings([...(suggestion.topicTags ?? []), ...(options.topic ? [options.topic] : [])]);
 
@@ -165,7 +227,8 @@ export function topicSuggestionsToDrafts(
 
   return {
     drafts: validated,
-    received: suggestions.length,
+    requested: options.maxItems,
+    received,
     accepted: validated.length,
     droppedSentences,
   };
@@ -179,7 +242,34 @@ export function emptyTopicDraft(topic: string): DraftRow[] {
   ]);
 }
 
-/** Normalisierte englische Stichwörter – mehr geht nie an das Modell. */
+/** Normalisierte englische Stichwörter – mehr als diese geht nie an das Modell. */
 export function existingHeadwords(entries: readonly { english: string }[]): string[] {
   return uniqueStrings(entries.map((entry) => entry.english));
+}
+
+/**
+ * Wählt die Stichwörter aus, die das Sprachmodell als Hinweis erhält.
+ *
+ * Der Prompt ist **Hilfestellung, nicht Garantie**: Er soll dem Modell die
+ * offensichtlichsten Dubletten ersparen, ohne den Kontext mit einem ganzen
+ * Vokabelbestand zu fluten. Ob am Ende wirklich keine Dublette durchkommt,
+ * entscheidet allein der vollständige lokale Filter in
+ * `topicSuggestionsToDrafts`.
+ *
+ * Die Auswahl ist deterministisch: alphabetisch sortiert, dann die ersten
+ * `limit`. Dieselbe Vokabelsammlung ergibt damit immer denselben Prompt –
+ * unabhängig davon, in welcher Reihenfolge die Datenbank die Einträge liefert.
+ */
+export function headwordsForPrompt(
+  existing: readonly string[],
+  limit: number = MAX_CONTEXT_HEADWORDS,
+): string[] {
+  if (limit <= 0) return [];
+  return uniqueStrings(existing)
+    .sort((left, right) => {
+      const a = left.toLowerCase();
+      const b = right.toLowerCase();
+      return a < b ? -1 : a > b ? 1 : 0;
+    })
+    .slice(0, limit);
 }

@@ -67,8 +67,7 @@ async function topicDrafts(): Promise<DraftRow[]> {
   });
 
   const result = topicSuggestionsToDrafts(suggestions, { maxItems: 10, topic: TOPIC });
-  expect(result.accepted).toBe(3);
-  expect(result.droppedSentences).toBe(1);
+  expect(result).toMatchObject({ requested: 10, received: 3, accepted: 3, droppedSentences: 1 });
   return result.drafts;
 }
 
@@ -149,6 +148,18 @@ describe('Die Datei bleibt anbieterfrei', () => {
     for (const forbidden of ['box', 'dueAt', 'streak', 'sessionCount']) {
       expect(file).not.toContain(forbidden);
     }
+  });
+
+  it('exportiert die Zählwerte der Vorschau nicht mit', async () => {
+    // Sprint 2B.2a1: requested/received sind Anzeigewerte, keine Paketdaten.
+    const file = serializePack(buildPack(await topicDrafts()));
+    for (const forbidden of ['requested', 'received', 'droppedSentences', 'maxItems']) {
+      expect(file).not.toContain(forbidden);
+    }
+    // Das Dateiformat selbst bleibt unangetastet.
+    const parsed = parsePackFile(file);
+    expect(parsed.ok).toBe(true);
+    expect(JSON.parse(file).formatVersion).toBe(1);
   });
 });
 

@@ -6,9 +6,12 @@ import type { ProviderState } from '../../providers/state';
 import type { DraftRow } from '../../import/draft';
 import {
   emptyTopicDraft,
+  headwordsForPrompt,
+  summarizeTopicResult,
   topicSuggestionsToDrafts,
   type TopicDraftResult,
 } from '../../import/topicDraft';
+import { MAX_CONTEXT_HEADWORDS } from '../../ai/AiProvider';
 
 /**
  * Themenwerkstatt: zu einem Thema passende Vokabelvorschläge – lokal erzeugt.
@@ -40,7 +43,11 @@ export interface TopicStudioProps {
   topic: string;
   grade: Grade;
   cefrLevel: CefrLevel;
-  /** Stichwörter, die nicht erneut vorgeschlagen werden sollen. */
+  /**
+   * **Alle** Stichwörter, die nicht erneut vorgeschlagen werden sollen. Sie
+   * gehen vollständig in den lokalen Filter; das Sprachmodell sieht davon nur
+   * den begrenzten Auszug aus `headwordsForPrompt`.
+   */
   existingEnglish: readonly string[];
   onTopicChange: (topic: string) => void;
   onGradeChange: (grade: Grade) => void;
@@ -131,15 +138,17 @@ export function TopicStudio({
       setState((current) => (current === 'downloading' ? 'available' : current));
       setStatus(`Es werden bis zu ${count} Vorschläge erzeugt.`);
 
+      // Das Modell bekommt nur einen begrenzten Auszug; der vollständige
+      // Bestand bleibt für den lokalen Filter weiter unten reserviert.
+      const promptHeadwords = excludeExisting ? headwordsForPrompt(existingEnglish) : [];
+
       const suggestions = await ai.suggestFromTopic(trimmedTopic, {
         grade,
         cefrLevel,
         topic: trimmedTopic,
         difficulty,
         maxItems: count,
-        ...(excludeExisting && existingEnglish.length > 0
-          ? { existingEnglish: [...existingEnglish] }
-          : {}),
+        ...(promptHeadwords.length > 0 ? { existingEnglish: promptHeadwords } : {}),
         signal: controller.signal,
       });
 
@@ -162,7 +171,8 @@ export function TopicStudio({
         return;
       }
 
-      setStatus(`${result.accepted} von ${count} Vorschlägen erzeugt.`);
+      const summary = summarizeTopicResult(result);
+      setStatus([summary.headline, summary.detail].filter(Boolean).join(' '));
       onDrafts(result.drafts, result);
     } catch (caught: unknown) {
       preparedFor.current = null;
@@ -304,8 +314,12 @@ export function TopicStudio({
               Bereits vorhandene Vokabeln nicht erneut vorschlagen
               <span className="muted small">
                 {' '}
-                – {existingEnglish.length} Stichwörter. Übergeben werden nur die englischen
-                Stichwörter, keine Übersetzungen und keine Lernstände.
+                – {existingEnglish.length} Stichwörter. Bereits vorhandene Vokabeln werden
+                vollständig auf diesem Gerät herausgefiltert.{' '}
+                {existingEnglish.length > MAX_CONTEXT_HEADWORDS
+                  ? `Zur Vermeidung offensichtlicher Dubletten erhält das lokale Sprachmodell höchstens ${MAX_CONTEXT_HEADWORDS} englische Stichwörter.`
+                  : `Zur Vermeidung offensichtlicher Dubletten erhält das lokale Sprachmodell diese ${existingEnglish.length} englischen Stichwörter.`}{' '}
+                Übersetzungen, Lernstände und Paket-IDs werden nie übergeben.
               </span>
             </span>
           </label>

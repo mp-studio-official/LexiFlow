@@ -132,7 +132,10 @@ test.describe('Themenwerkstatt', () => {
     // Direkt in der bekannten Vorschau, mit ehrlicher Zahl und Warnung.
     await expect(page.getByText('10 Zeilen ·')).toBeVisible();
     await expect(page.getByText(/Diese Vorschläge sind ungeprüft/)).toBeVisible();
-    await expect(page.getByText(/10 von 10 Vorschlägen erzeugt/)).toBeVisible();
+    // Genau der Satz in der Vorschau – die Ansage für Screenreader trägt ihn zusätzlich.
+    await expect(
+      page.getByText('10 von 10 gewünschten Vorschlägen übernommen.', { exact: true }),
+    ).toBeVisible();
 
     // Alles bearbeitbar.
     await expect(page.getByLabel('Englisch, Zeile 1', { exact: true })).toHaveValue('crowded');
@@ -196,6 +199,23 @@ test.describe('Themenwerkstatt', () => {
 
     expect(receiverRequests).toEqual([]);
     await receiver.close();
+  });
+
+  test('@smoke weniger Vorschläge als gewünscht werden ehrlich benannt', async ({ page }) => {
+    // Das nachgebaute Modell kennt nur zehn Wörter – angefordert werden 15.
+    await installFakeLanguageModel(page);
+    await openTopicStudio(page);
+
+    await topicField(page).fill('City life');
+    await page.getByLabel('Anzahl').selectOption('15');
+    await page.getByRole('button', { name: /Vorschläge erzeugen/ }).click();
+
+    await expect(page.getByText('10 Zeilen ·')).toBeVisible();
+    // Bezugsgröße bleibt der Wunsch, nicht die Lieferung.
+    await expect(
+      page.getByText('10 von 15 gewünschten Vorschlägen übernommen.', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/10 von 10/)).toHaveCount(0);
   });
 
   test('@smoke ohne Sprachmodell bleibt der Weg offen', async ({ page }) => {

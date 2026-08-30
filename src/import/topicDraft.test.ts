@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   emptyTopicDraft,
   existingHeadwords,
+  headwordsForPrompt,
   sentenceContainsHeadword,
+  summarizeTopicResult,
   topicSuggestionsToDrafts,
 } from './topicDraft';
 import { draftsToEntries } from './draft';
-import type { AiVocabSuggestion } from '../ai/AiProvider';
+import { MAX_CONTEXT_HEADWORDS, type AiVocabSuggestion } from '../ai/AiProvider';
 
 /**
  * Sprint 2B.2a: Das Modell hält sein Schema ein – mehr nicht. Alles Fachliche
@@ -185,6 +187,142 @@ describe('Anzahl und Herkunft', () => {
     const result = topicSuggestionsToDrafts([suggestion()], { maxItems: 5 });
     expect(result.drafts[0]?.issues.some((issue) => issue.level === 'error')).toBe(false);
     expect(draftsToEntries(result.drafts, 'import')).toHaveLength(1);
+  });
+});
+
+describe('Ehrliche Mengenanzeige', () => {
+  /** Sprint 2B.2a1: gemessen wird an dem, was angefordert wurde – nie an sich selbst. */
+  const valid = (count: number, prefix = 'word'): AiVocabSuggestion[] =>
+    Array.from({ length: count }, (_, index) =>
+      suggestion({ english: `${prefix}${index + 1}`, germanAnswers: [`Wort${index + 1}`] }),
+    );
+
+  it('merkt sich die gewünschte Anzahl', () => {
+    const result = topicSuggestionsToDrafts(valid(8), { maxItems: 10 });
+    expect(result.requested).toBe(10);
+  });
+
+  it('sagt „8 von 10“, wenn das Modell nur acht liefert', () => {
+    const result = topicSuggestionsToDrafts(valid(8), { maxItems: 10 });
+
+    expect(result).toMatchObject({ requested: 10, received: 8, accepted: 8 });
+    const summary = summarizeTopicResult(result);
+    expect(summary.headline).toBe('8 von 10 gewünschten Vorschlägen übernommen.');
+    // Nichts wurde lokal entfernt – also gibt es dazu auch nichts zu sagen.
+    expect(summary.detail).toBe('');
+    expect(summary.headline).not.toContain('8 von 8');
+  });
+
+  it('erklärt bei lokal entfernten Einträgen, wo die Lücke herkommt', () => {
+    // Acht gültige Einträge, zwei davon sind bereits vorhanden.
+    const result = topicSuggestionsToDrafts(valid(8), {
+      maxItems: 10,
+      existingEnglish: ['word3', 'WORD7'],
+    });
+
+    expect(result).toMatchObject({ requested: 10, received: 8, accepted: 6 });
+    const summary = summarizeTopicResult(result);
+    expect(summary.headline).toBe('6 von 10 gewünschten Vorschlägen übernommen.');
+    expect(summary.detail).toBe(
+      'Das Sprachmodell lieferte 8; 2 Einträge wurden bei der lokalen Prüfung entfernt.',
+    );
+  });
+
+  it('sagt „5 von 5“, wenn alles geklappt hat', () => {
+    const result = topicSuggestionsToDrafts(valid(5), { maxItems: 5 });
+
+    expect(result).toMatchObject({ requested: 5, received: 5, accepted: 5 });
+    const summary = summarizeTopicResult(result);
+    expect(summary.headline).toBe('5 von 5 gewünschten Vorschlägen übernommen.');
+    expect(summary.detail).toBe('');
+  });
+
+  it('zählt nur gültige Einträge als geliefert', () => {
+    const result = topicSuggestionsToDrafts(
+      [...valid(3), suggestion({ english: 'litter', germanAnswers: [] }), suggestion({ english: '  ' })],
+      { maxItems: 10 },
+    );
+    expect(result.received).toBe(3);
+    expect(result.accepted).toBe(3);
+  });
+
+  it('erklärt nichts weg, wenn nur die Obergrenze gegriffen hat', () => {
+    const result = topicSuggestionsToDrafts(valid(20), { maxItems: 5 });
+
+    expect(result).toMatchObject({ requested: 5, received: 20, accepted: 5 });
+    // Die 15 übrigen wurden nicht „bei der Prüfung entfernt“, sondern gar nicht gebraucht.
+    expect(summarizeTopicResult(result).detail).toBe('');
+  });
+
+  it('formuliert Einzahl und Mehrzahl richtig', () => {
+    const one = summarizeTopicResult({
+      drafts: [],
+      requested: 10,
+      received: 8,
+      accepted: 7,
+      droppedSentences: 1,
+    });
+    expect(one.detail).toBe(
+      'Das Sprachmodell lieferte 8; 1 Eintrag wurde bei der lokalen Prüfung entfernt.',
+    );
+    expect(one.sentences).toBe(
+      'Ein Beispielsatz wurde entfernt, weil er das Stichwort nicht enthielt.',
+    );
+
+    const many = summarizeTopicResult({
+      drafts: [],
+      requested: 10,
+      received: 10,
+      accepted: 10,
+      droppedSentences: 3,
+    });
+    expect(many.sentences).toBe(
+      '3 Beispielsätze wurden entfernt, weil sie das Stichwort nicht enthielten.',
+    );
+    expect(many.detail).toBe('');
+  });
+});
+
+describe('Begrenzter Modellkontext', () => {
+  const bestand = (count: number): string[] =>
+    Array.from({ length: count }, (_, index) => `word${String(index + 1).padStart(4, '0')}`);
+
+  it('übergibt dem Modell höchstens die dokumentierte Obergrenze', () => {
+    expect(MAX_CONTEXT_HEADWORDS).toBe(200);
+    expect(headwordsForPrompt(bestand(500))).toHaveLength(MAX_CONTEXT_HEADWORDS);
+  });
+
+  it('wählt deterministisch aus – Reihenfolge der Datenbank egal', () => {
+    const forward = bestand(500);
+    const backward = [...forward].reverse();
+    expect(headwordsForPrompt(backward)).toEqual(headwordsForPrompt(forward));
+    expect(headwordsForPrompt(forward)).toEqual(headwordsForPrompt(forward));
+  });
+
+  it('berücksichtigt kleine Bestände vollständig', () => {
+    expect(headwordsForPrompt(['litter', 'crowded', 'crowded'])).toEqual(['crowded', 'litter']);
+    expect(headwordsForPrompt(bestand(200))).toHaveLength(200);
+  });
+
+  it('filtert eine Dublette auch dann, wenn sie außerhalb der Obergrenze lag', () => {
+    const alle = bestand(500);
+    const prompt = headwordsForPrompt(alle);
+    const spaet = alle[499]; // word0500 – alphabetisch weit hinter der Grenze
+    expect(spaet).toBeDefined();
+    expect(prompt).not.toContain(spaet);
+
+    // Das Modell schlägt genau dieses Wort trotzdem vor.
+    const result = topicSuggestionsToDrafts(
+      [suggestion({ english: spaet as string, germanAnswers: ['Wort'] }), suggestion({ english: 'litter', germanAnswers: ['Müll'] })],
+      { maxItems: 10, existingEnglish: alle },
+    );
+
+    // Der vollständige lokale Filter kennt den ganzen Bestand.
+    expect(result.drafts.map((draft) => draft.english)).toEqual(['litter']);
+  });
+
+  it('gibt bei ausgeschalteter Begrenzung nichts heraus', () => {
+    expect(headwordsForPrompt(bestand(10), 0)).toEqual([]);
   });
 });
 

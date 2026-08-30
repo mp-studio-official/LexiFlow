@@ -3,6 +3,7 @@ import { PART_OF_SPEECH } from '../domain/schema';
 import type { ProviderState } from '../providers/state';
 import {
   AiUnavailableError,
+  MAX_CONTEXT_HEADWORDS,
   type AiCapability,
   type AiGenerationContext,
   type AiProvider,
@@ -186,9 +187,13 @@ export function buildEnrichPrompt(entry: AiVocabSuggestion, context: AiGeneratio
  * Anweisung für die Themenwerkstatt.
  *
  * Übergeben wird ausschließlich, was für die Aufgabe nötig ist: Thema,
- * Lerngruppe, gewünschte Schwierigkeit und Anzahl sowie die bereits
- * vorhandenen englischen Stichwörter, damit nichts doppelt kommt. Keine
+ * Lerngruppe, gewünschte Schwierigkeit und Anzahl sowie ein **begrenzter
+ * Auszug** bereits vorhandener englischer Stichwörter, damit das Modell die
+ * offensichtlichsten Dubletten vermeidet. Keine Übersetzungen, keine
  * Lernstände, keine Paket-IDs, keine personenbezogenen Daten.
+ *
+ * Die Grenze wird hier noch einmal durchgesetzt – unabhängig davon, was der
+ * Aufrufer übergibt. Sie ist eine Eigenschaft des Prompts, nicht der Ansicht.
  */
 export function buildTopicPrompt(topic: string, context: AiGenerationContext): string {
   const count = Math.min(context.maxItems ?? 10, MAX_TOPIC_ENTRIES);
@@ -203,7 +208,7 @@ export function buildTopicPrompt(topic: string, context: AiGenerationContext): s
     `Anzahl: höchstens ${count} Vokabeln.`,
   ];
 
-  const existing = context.existingEnglish ?? [];
+  const existing = (context.existingEnglish ?? []).slice(0, MAX_CONTEXT_HEADWORDS);
   if (existing.length > 0) {
     lines.push(`Diese Stichwörter sind bereits vorhanden und dürfen nicht erneut vorkommen: ${existing.join(', ')}.`);
   }

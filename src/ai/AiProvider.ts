@@ -48,13 +48,29 @@ export interface AiVocabSuggestion {
   difficulty?: number;
 }
 
+/**
+ * Höchstzahl vorhandener Stichwörter, die einem Anbieter übergeben werden.
+ *
+ * Ein Vokabelbestand kann tausende Einträge umfassen. Alles davon in einen
+ * Prompt zu schreiben, bläht den Kontext auf, ohne die Antwort besser zu
+ * machen – und ein Modellkontext ist ohnehin keine verlässliche Zusage. Die
+ * belastbare Dublettenprüfung findet deshalb **lokal und vollständig** statt;
+ * der Prompt bekommt nur diesen begrenzten Auszug.
+ */
+export const MAX_CONTEXT_HEADWORDS = 200;
+
 export interface AiGenerationContext {
   grade: Grade;
   cefrLevel: CefrLevel;
   topic?: string;
   /** Gewünschte Schwierigkeit 1–5, bezogen auf genau diese Lerngruppe. */
   difficulty?: number;
-  /** Bereits vorhandene englische Stichwörter – zur Vermeidung von Dubletten. */
+  /**
+   * Ein begrenzter Auszug vorhandener englischer Stichwörter – höchstens
+   * `MAX_CONTEXT_HEADWORDS`, als Hilfestellung gegen offensichtliche Dubletten.
+   * Niemals Übersetzungen, Paket-IDs oder Lernstände. Der vollständige
+   * Dublettenfilter läuft unabhängig davon lokal.
+   */
   existingEnglish?: string[];
   maxItems?: number;
   signal?: AbortSignal;

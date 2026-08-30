@@ -15,6 +15,10 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
   wahrheitsgemäße Wiedervorlage-Ankündigung.
 * **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
   nach erfolgreicher Speicherung des Lernstands.
+* **Sprint 2B.2a1** – Ehrliche Mengenanzeige und begrenzter Prompt-Kontext: das
+  Ergebnis wird an der gewünschten Anzahl gemessen, und das Sprachmodell sieht
+  höchstens 200 vorhandene Stichwörter – der vollständige Dublettenfilter bleibt
+  lokal.
 * **Sprint 2B.2a** – Themenwerkstatt: zu einem frei gewählten Thema lokal
   Vokabelvorschläge erzeugen, prüfen und wie jede andere Liste speichern.
 * **Sprint 2B.1** – Vorschläge beim Import: Übersetzung, Wortart, Schwierigkeit
@@ -432,9 +436,30 @@ nach einem ausdrücklichen Klick** geladen – mit echtem Fortschritt und
 jederzeit abbrechbar.
 
 An das Modell gehen ausschließlich: Thema, Jahrgang, GeR-Niveau, gewünschte
-Schwierigkeit, gewünschte Anzahl und – falls die Option aktiv ist – die bereits
-vorhandenen **englischen Stichwörter**. Keine Übersetzungen, keine Paket-IDs,
-keine Lernstände, keine personenbezogenen Daten.
+Schwierigkeit, gewünschte Anzahl und – falls die Option aktiv ist – ein
+**begrenzter Auszug** der bereits vorhandenen englischen Stichwörter. Keine
+Übersetzungen, keine Paket-IDs, keine Lernstände, keine personenbezogenen Daten.
+
+### Dublettenfilter lokal, Prompt begrenzt
+
+Beides wird bewusst getrennt gehalten:
+
+* **Der lokale Filter ist vollständig.** `topicSuggestionsToDrafts` bekommt
+  *alle* vorhandenen Stichwörter und entfernt jede Dublette – deterministisch
+  und unabhängig von Groß-/Kleinschreibung. Das ist die verlässliche Zusage.
+* **Der Prompt ist nur Hilfestellung.** Ein Vokabelbestand kann tausende
+  Einträge haben; alles davon in den Kontext zu schreiben, bläht den Prompt auf,
+  ohne die Antwort besser zu machen. Das Modell bekommt deshalb höchstens
+  `MAX_CONTEXT_HEADWORDS = 200` Stichwörter (`headwordsForPrompt`, alphabetisch
+  sortiert – dieselbe Sammlung ergibt immer denselben Prompt). Der Anbieter
+  setzt dieselbe Grenze noch einmal durch, unabhängig vom Aufrufer.
+
+Eine Dublette, die außerhalb dieser 200 lag, wird also trotzdem entfernt – nur
+eben lokal statt vom Modell. In der Oberfläche steht das so: *„Bereits
+vorhandene Vokabeln werden vollständig auf diesem Gerät herausgefiltert. Zur
+Vermeidung offensichtlicher Dubletten erhält das lokale Sprachmodell höchstens
+200 englische Stichwörter.“* Bei kleineren Beständen nennt der Text die
+tatsächliche Zahl.
 
 ### Browserunterstützung
 
@@ -461,8 +486,27 @@ Antwort durch Zod und anschließend durch eine fachliche Nachbearbeitung:
   und als Beleg irreführend.
 
 Eine ungültige Antwort wird **vollständig** verworfen – nichts wird still
-repariert, und ein neuer Versuch ist einen Klick entfernt. Liefert das Modell
-weniger als gewünscht, steht das auch so da: „8 von 10 Vorschlägen erzeugt“.
+repariert, und ein neuer Versuch ist einen Klick entfernt.
+
+### Die Zahlen sagen, was wirklich passiert ist
+
+Das Ergebnis trägt vier getrennte Werte (`TopicDraftResult`):
+
+| Wert | Bedeutung |
+| --- | --- |
+| `requested` | die von der Lehrkraft gewählte Obergrenze |
+| `received` | gültige Einträge der Modellantwort, **vor** der lokalen Prüfung |
+| `accepted` | tatsächlich in die Vorschau übernommene Zeilen |
+| `droppedSentences` | entfernte Beispielsätze, die das Stichwort nicht enthielten |
+
+Bezugsgröße ist immer der Wunsch, nie die Lieferung. Liefert das Modell acht
+Vorschläge, obwohl zehn angefordert waren, steht dort *„8 von 10 gewünschten
+Vorschlägen übernommen.“* – **nicht** „8 von 8“. Hat zusätzlich die lokale
+Prüfung zugeschlagen, wird auch das benannt: *„6 von 10 gewünschten Vorschlägen
+übernommen. Das Sprachmodell lieferte 8; 2 Einträge wurden bei der lokalen
+Prüfung entfernt.“* Die Formulierung entsteht in `summarizeTopicResult` – rein
+und damit prüfbar. Im Paket landen diese Zählwerte nicht; sie gehören zur
+Vorschau, nicht zum Vokabelpaket.
 
 ### Prüfen bleibt Pflicht
 
@@ -897,7 +941,9 @@ Zusätzlich getestet:
   (`.table-wrap`), ohne die Seite zu verbreitern
 * `e2e/topic-studio.spec.ts`: Thema → zehn Vorschläge → bearbeiten → speichern →
   exportieren → zweiter Browserkontext **ohne jedes Modell** → Lernrunde; das
-  Sprachmodell wird dabei als echte Klasse mit statischen Methoden injiziert
+  Sprachmodell wird dabei als echte Klasse mit statischen Methoden injiziert.
+  Ein eigener Fall fordert fünfzehn Vorschläge an, bekommt zehn – und prüft,
+  dass dort „10 von 15“ steht und nirgends „10 von 10“
 * `e2e/enrichment.spec.ts`: Vorschläge erzeugen, einzeln und gebündelt
   übernehmen, exportieren und in einem zweiten Browserkontext **ohne jede
   Modell-API** wieder importieren und üben; Axe, Tastatur und 390 px inklusive
@@ -984,6 +1030,14 @@ funktioniert vollständig offline.
 23. **Beispielsätze werden gegengeprüft, nicht geglaubt.** Enthält der Satz das
     Stichwort nicht, wird er verworfen – ein Lückensatz ohne Lücke ist schlimmer
     als gar keiner.
+24. **Bezugsgröße ist der Wunsch, nicht die Lieferung.** „8 von 8“ wäre formal
+    wahr und trotzdem irreführend, wenn zehn angefordert waren. Deshalb trägt
+    das Ergebnis `requested`, `received` und `accepted` getrennt, und die
+    Formulierung entsteht in einer reinen Funktion.
+25. **Prompt-Kontext ist Hilfestellung, nicht Garantie.** Ein Modellkontext ist
+    keine Zusage; ein Bestand von tausenden Stichwörtern würde ihn nur
+    aufblähen. Das Modell bekommt höchstens 200 Stichwörter, die verlässliche
+    Dublettenprüfung läuft vollständig und deterministisch lokal.
 21. **Der Modus steht in der URL.** Eine freie Runde ist damit teilbar und
     direkt aufrufbar; ein fehlender oder unbekannter Wert fällt auf den
     Lernplan zurück, nie umgekehrt.

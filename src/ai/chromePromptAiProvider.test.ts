@@ -5,6 +5,7 @@ import {
   CHROME_PROMPT_NOTICE,
   ENRICH_RESPONSE_SCHEMA,
   buildEnrichPrompt,
+  buildTopicPrompt,
   MAX_TOPIC_ENTRIES,
   TOPIC_CAPABILITY,
   TOPIC_RESPONSE_SCHEMA,
@@ -13,7 +14,13 @@ import {
   enrichResponse,
   getLanguageModelApi,
 } from './chromePromptAiProvider';
-import { AI_CAPABILITIES, AiUnavailableError, type AiGenerationContext } from './AiProvider';
+import {
+  AI_CAPABILITIES,
+  AiUnavailableError,
+  MAX_CONTEXT_HEADWORDS,
+  type AiGenerationContext,
+} from './AiProvider';
+import { headwordsForPrompt } from '../import/topicDraft';
 import { createFakeLanguageModelScope } from '../test/fakeTranslator';
 
 /**
@@ -484,6 +491,38 @@ describe('Themenwerkstatt', () => {
     expect(prompt).toContain('4 von 5');
     expect(prompt).toContain('crowded');
     expect(prompt).not.toMatch(/box|dueAt|progress|packId|sessionCount/i);
+  });
+
+  it('schreibt höchstens die dokumentierte Zahl an Stichwörtern in den Prompt', async () => {
+    // Sprint 2B.2a1: Selbst wenn ein Aufrufer mehr übergibt, wächst der Kontext nicht.
+    const bestand = Array.from({ length: 500 }, (_, index) => `word${index + 1}`);
+    const { handle } = await askTopic(topicAnswer(1), {
+      ...TOPIC_CONTEXT,
+      existingEnglish: bestand,
+    });
+
+    const prompt = handle.prompts[0] ?? '';
+    const genannt = bestand.filter((word) =>
+      new RegExp(`(^|[^0-9a-z])${word}(?![0-9])`, 'i').test(prompt),
+    );
+    expect(genannt).toHaveLength(MAX_CONTEXT_HEADWORDS);
+    expect(prompt).toContain('word1,');
+    expect(prompt).not.toContain('word500');
+  });
+
+  it('nimmt weder Übersetzungen noch Lernstände in den Prompt auf', async () => {
+    const prompt = buildTopicPrompt('City life', {
+      grade: '7',
+      cefrLevel: 'A2',
+      difficulty: 3,
+      maxItems: 5,
+      existingEnglish: headwordsForPrompt(['crowded', 'litter']),
+    });
+
+    expect(prompt).toContain('crowded, litter');
+    for (const verboten of ['überfüllt', 'Müll', 'box', 'dueAt', 'streak', 'packId', 'sessionCount']) {
+      expect(prompt).not.toContain(verboten);
+    }
   });
 
   it('lehnt eine ungültige Liste vollständig ab', async () => {

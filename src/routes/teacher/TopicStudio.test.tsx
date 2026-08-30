@@ -8,7 +8,7 @@ import { suggestCefrLevel, type CefrLevel, type Grade } from '../../domain/cefr'
 import type { DraftRow } from '../../import/draft';
 import type { TopicDraftResult } from '../../import/topicDraft';
 import { createFakeAiProvider } from '../../test/fakeTranslator';
-import type { AiProvider } from '../../ai/AiProvider';
+import { MAX_CONTEXT_HEADWORDS, type AiProvider } from '../../ai/AiProvider';
 
 /**
  * Sprint 2B.2a: Die Themenwerkstatt. Kein Test lädt je ein echtes Modell –
@@ -213,14 +213,81 @@ describe('Vorschläge erzeugen', () => {
   });
 
   it('lässt vorhandene Vokabeln auf Wunsch zu', async () => {
-    const ai = createFakeAiProvider();
-    const user = setup({ ai: ai.provider, initialTopic: 'City life', existingEnglish: ['crowded'] });
+    const onDrafts = vi.fn();
+    const ai = createFakeAiProvider({
+      topicEntries: () => [
+        { english: 'crowded', germanAnswers: ['überfüllt'], partOfSpeech: 'adjective' },
+      ],
+    });
+    const user = setup({
+      ai: ai.provider,
+      onDrafts,
+      initialTopic: 'City life',
+      existingEnglish: ['crowded'],
+    });
 
     await user.click(screen.getByRole('checkbox', { name: /Bereits vorhandene Vokabeln/ }));
     await user.click(await generateButton());
 
     await waitFor(() => expect(ai.topicCalls()).toHaveLength(1));
+    // Abgeschaltet heißt abgeschaltet: nichts an das Modell …
     expect(ai.topicCalls()[0]?.context.existingEnglish).toBeUndefined();
+    // … und auch lokal wird nichts als „schon vorhanden“ aussortiert.
+    await waitFor(() => expect(onDrafts).toHaveBeenCalled());
+    const [rows] = onDrafts.mock.calls[0] as [DraftRow[]];
+    expect(rows.map((row) => row.english)).toEqual(['crowded']);
+  });
+
+  it('übergibt dem Modell höchstens 200 Stichwörter, filtert aber alle', async () => {
+    // Sprint 2B.2a1: großer Bestand – der Prompt bleibt beschränkt, der Filter nicht.
+    const bestand = Array.from({ length: 500 }, (_, index) => `word${String(index + 1).padStart(4, '0')}`);
+    const onDrafts = vi.fn();
+    const ai = createFakeAiProvider({
+      // Das Modell schlägt ein Wort vor, das dem Prompt gar nicht beilag.
+      topicEntries: () => [
+        { english: 'word0500', germanAnswers: ['Wort 500'] },
+        { english: 'litter', germanAnswers: ['Müll'] },
+      ],
+    });
+    const user = setup({
+      ai: ai.provider,
+      onDrafts,
+      initialTopic: 'City life',
+      existingEnglish: bestand,
+    });
+
+    await user.click(await generateButton());
+    await waitFor(() => expect(ai.topicCalls()).toHaveLength(1));
+
+    const passed = ai.topicCalls()[0]?.context.existingEnglish ?? [];
+    expect(passed).toHaveLength(MAX_CONTEXT_HEADWORDS);
+    expect(passed).not.toContain('word0500');
+    // Keine Übersetzungen, keine IDs, keine Lernstände – nur Stichwörter.
+    expect(passed.every((word) => /^word\d{4}$/.test(word))).toBe(true);
+
+    await waitFor(() => expect(onDrafts).toHaveBeenCalled());
+    const [rows] = onDrafts.mock.calls[0] as [DraftRow[]];
+    expect(rows.map((row) => row.english)).toEqual(['litter']);
+  });
+
+  it('benennt Filter und Prompt-Grenze ehrlich', async () => {
+    const { rerender } = render(
+      <Harness ai={createFakeAiProvider().provider} existingEnglish={['crowded', 'litter']} />,
+    );
+    expect(
+      await screen.findByText(/vollständig auf diesem Gerät herausgefiltert/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/erhält das lokale Sprachmodell diese 2 englischen/)).toBeInTheDocument();
+
+    rerender(
+      <Harness
+        ai={createFakeAiProvider().provider}
+        existingEnglish={Array.from({ length: 500 }, (_, index) => `word${index + 1}`)}
+      />,
+    );
+    expect(
+      await screen.findByText(/erhält das lokale Sprachmodell höchstens 200 englische/),
+    ).toBeInTheDocument();
   });
 
   it('übergibt die Entwürfe und meldet die ehrliche Anzahl', async () => {
@@ -249,7 +316,8 @@ describe('Vorschläge erzeugen', () => {
     await user.click(await generateButton());
 
     await waitFor(() => expect(onDrafts).toHaveBeenCalled());
-    expect(screen.getByText('2 von 10 Vorschlägen erzeugt.')).toBeInTheDocument();
+    // Gemessen an dem, was angefordert wurde – nicht an dem, was ankam.
+    expect(screen.getByText('2 von 10 gewünschten Vorschlägen übernommen.')).toBeInTheDocument();
 
     const [rows, info] = onDrafts.mock.calls[0] as [DraftRow[], TopicDraftResult];
     expect(rows.map((row) => row.english)).toEqual(['crowded', 'litter']);

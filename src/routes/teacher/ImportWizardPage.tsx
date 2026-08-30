@@ -23,7 +23,11 @@ import {
 import { parseCsv, parsePastedText } from '../../import/csv';
 import { TextCandidateReview } from './TextCandidateReview';
 import { syncManualEdits } from '../../import/suggestions';
-import { existingHeadwords, type TopicDraftResult } from '../../import/topicDraft';
+import {
+  existingHeadwords,
+  summarizeTopicResult,
+  type TopicDraftResult,
+} from '../../import/topicDraft';
 import { db } from '../../data/db';
 import type { LearningContext } from '../../import/enrichment';
 import { CEFR_LEVELS, GRADES, GRADE_LABELS, suggestCefrLevel } from '../../domain/cefr';
@@ -122,6 +126,12 @@ export function ImportWizardPage() {
     // Fehler „Deutsche Übersetzung fehlt" sofort auflösen.
     setDrafts((current) => validateDrafts(syncManualEdits(current, next)));
   }
+
+  /** Die ehrliche Mengenanzeige der Themenwerkstatt – gemessen am Gewünschten. */
+  const topicSummary = useMemo(
+    () => (topicInfo ? summarizeTopicResult(topicInfo) : null),
+    [topicInfo],
+  );
 
   /** Genau der Ausschnitt der Metadaten, den die Vorschläge brauchen. */
   const learningContext: LearningContext = useMemo(
@@ -224,7 +234,7 @@ export function ImportWizardPage() {
     setStep('preview');
     setAnnouncement(
       info
-        ? `${info.accepted} Vorschläge erzeugt. Vorschau geöffnet.`
+        ? `${summarizeTopicResult(info).headline} Vorschau geöffnet.`
         : 'Leere Liste angelegt. Vorschau geöffnet.',
     );
   }
@@ -644,16 +654,12 @@ export function ImportWizardPage() {
             <Alert tone="warning">
               Diese Vorschläge sind ungeprüft. Kontrolliere besonders Übersetzungen,
               Schwierigkeit und Beispielsätze.
-              {topicInfo ? (
+              {topicSummary ? (
                 <>
                   {' '}
-                  <strong>
-                    {topicInfo.accepted} von {topicInfo.received === 0 ? topicInfo.accepted : topicInfo.received}{' '}
-                    Vorschlägen erzeugt
-                  </strong>
-                  {topicInfo.droppedSentences > 0
-                    ? ` · ${topicInfo.droppedSentences} Beispielsätze wurden entfernt, weil sie das Stichwort nicht enthielten.`
-                    : '.'}
+                  <strong>{topicSummary.headline}</strong>
+                  {topicSummary.detail ? ` ${topicSummary.detail}` : ''}
+                  {topicSummary.sentences ? ` ${topicSummary.sentences}` : ''}
                 </>
               ) : null}
               <div className="row" style={{ marginTop: '0.5rem' }}>
