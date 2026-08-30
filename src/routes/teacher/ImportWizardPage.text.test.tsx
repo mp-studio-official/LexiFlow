@@ -142,3 +142,37 @@ describe('Textwerkstatt im Import-Assistenten', () => {
     expect(screen.getByLabelText('Deutsch, Zeile 1')).toHaveValue('crowded-de');
   });
 });
+
+describe('Lernkontext in der Vorschau', () => {
+  it('teilt sich den Zustand mit dem Metadaten-Schritt', async () => {
+    const user = setup();
+    await analyze(user);
+
+    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
+    await user.click(screen.getByLabelText('crowded übernehmen'));
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+
+    // Lernkontext in der Vorschau ausfüllen …
+    expect(screen.getByRole('heading', { name: 'Lernkontext' })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Jahrgang'), '9');
+    await user.type(screen.getByLabelText(/^Thema/), 'City life');
+
+    // … steht im nächsten Schritt bereits so da.
+    await user.click(screen.getByRole('button', { name: 'Weiter zu den Metadaten' }));
+    expect(screen.getByLabelText('Jahrgang')).toHaveValue('9');
+    expect(screen.getByLabelText('Thema')).toHaveValue('City life');
+    // Das GeR-Niveau folgt dem Jahrgang wie gewohnt.
+    expect(screen.getByLabelText('GeR-Niveau')).toHaveValue('B1');
+  });
+
+  it('erklärt, wofür der Lernkontext gebraucht wird', async () => {
+    const user = setup();
+    await analyze(user);
+    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+
+    expect(
+      screen.getByText(/helfen dabei, Schwierigkeit und Themen-Tags passend vorzuschlagen/),
+    ).toBeInTheDocument();
+  });
+});

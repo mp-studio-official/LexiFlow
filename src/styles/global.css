@@ -821,3 +821,50 @@ progress {
   margin-top: 0.2rem;
   flex: none;
 }
+
+/* Vorschläge: sichtbar getrennt von den Feldern, in die sie erst nach einem
+   Klick wandern. */
+.sources {
+  margin: 0.6rem 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.sources li {
+  margin-bottom: 0.2rem;
+}
+
+.suggestions {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.suggestion-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.7rem;
+}
+
+.suggestion-row__head {
+  margin: 0 0 0.4rem;
+}
+
+.suggestion {
+  border-left: 3px solid var(--warning);
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.suggestion:last-child {
+  margin-bottom: 0;
+}
+
+.suggestion .row {
+  margin-top: 0.4rem;
+}

@@ -7,6 +7,7 @@ import {
   type VocabEntry,
 } from '../domain/schema';
 import type { ColumnMapping, ColumnRole } from './columnDetect';
+import type { DraftSuggestion } from './suggestions';
 
 export interface DraftIssue {
   level: 'error' | 'warning';
@@ -60,6 +61,11 @@ export interface DraftRow {
   sourceType?: SourceType;
   /** Zusatzinformation für die Review-Oberfläche; nicht Teil des Pakets. */
   provenance?: DraftProvenance;
+  /**
+   * Ungeprüfte Vorschläge für einzelne Felder – ausschließlich im Entwurf.
+   * `draftsToEntries` liest sie nicht; im `.vocabpack.json` stehen sie nie.
+   */
+  suggestions?: DraftSuggestion[];
   include: boolean;
   issues: DraftIssue[];
   /** ID der ersten Zeile mit demselben englischen Stichwort. */

@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { nullTranslationProvider, type TranslationProvider } from '../translation/TranslationProvider';
 import { detectTranslationProvider } from '../translation/chromeTranslationProvider';
 import { nullAiProvider, type AiProvider } from '../ai/AiProvider';
+import { detectPromptAiProvider } from '../ai/chromePromptAiProvider';
 
 /**
  * Kleine Registry statt globalem Singleton.
@@ -17,8 +18,10 @@ export interface Providers {
 function createDefaultProviders(): Providers {
   return {
     translation: detectTranslationProvider() ?? nullTranslationProvider,
-    // Sprint 2A ruft bewusst keinen KI-Anbieter auf.
-    ai: nullAiProvider,
+    // Seit Sprint 2B.1: das eingebaute Sprachmodell des Browsers, sofern
+    // vorhanden. Ohne Prompt-API bleibt es beim ehrlichen Nullanbieter, und
+    // aufgerufen wird auch dann nichts ohne ausdrücklichen Klick.
+    ai: detectPromptAiProvider() ?? nullAiProvider,
   };
 }
 

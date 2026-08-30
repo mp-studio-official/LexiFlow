@@ -15,6 +15,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
   wahrheitsgemäße Wiedervorlage-Ankündigung.
 * **Sprint 1.3a** – Schreibvorgänge synchronisiert: weitergeschaltet wird erst
   nach erfolgreicher Speicherung des Lernstands.
+* **Sprint 2B.1** – Vorschläge beim Import: Übersetzung, Wortart, Schwierigkeit
+  und Themen-Tags werden lokal vorgeschlagen, ausdrücklich geprüft und
+  übernommen. Das fertige Paket bleibt vollständig ohne KI nutzbar.
 * **Sprint 2A.2** – Freies Üben: jede freigeschaltete Vokabel ist jederzeit
   übbar, auch außerhalb des Leitner-Plans – ohne Wirkung auf Fächer, Termine
   und Statistik.
@@ -45,6 +48,9 @@ Weitere Befehle:
 | `npx vitest run src/domain/freePractice.test.ts` | Nur die Planung des freien Übens |
 | `npx vitest run src/routes/student/freePractice.test.tsx` | Nur Modusauswahl und wirkungsfreie freie Runde |
 | `npx playwright test e2e/free-practice.spec.ts` | Nur der E2E-Ablauf zum freien Üben |
+| `npx vitest run src/import/portability.test.ts` | Nur der Portabilitätsnachweis (Paket ohne KI) |
+| `npx vitest run src/domain/wordRules.test.ts` | Nur die regelbasierten Vorschläge |
+| `npx playwright test e2e/enrichment.spec.ts` | Nur der E2E-Ablauf zu den Vorschlägen |
 | `npm run build` | Typecheck + Produktions-Build nach `dist/` |
 | `npm run preview` | Produktions-Build lokal ausliefern (Port 4173) |
 | `npm run verify` | Typecheck → Tests → Build → alle E2E-Tests |
@@ -95,6 +101,7 @@ src/
     packDiff.ts      Fingerprint lernrelevanter Felder, Paketvergleich
     textExtraction.ts  lokale Textanalyse: Sätze, Wörter, Kandidaten
     stopwords.ts     englische Funktionswörter (Standardausblendung)
+    wordRules.ts     sichere Wortart- und Themenregeln, ganz ohne Modell
     vocabpack.ts     Serialisierung des .vocabpack.json
     migrations.ts    Migrationskette für ältere Dateiformate
   data/          Persistenz (Dexie/IndexedDB)
@@ -107,11 +114,15 @@ src/
     columnDetect.ts  automatische Spaltenerkennung
     draft.ts         Entwurfszeilen (alle Felder), Prüfung, Duplikate
     textDraft.ts     Kandidaten → Entwurfszeilen (kein zweiter Editor)
+    suggestions.ts   ephemere Vorschläge im Entwurf: annehmen, ablehnen, prüfen
+    enrichment.ts    Bindeglied zwischen Vorschlagsquellen und Entwurf
   translation/   lokale Übersetzung als eigene, schmale Schnittstelle
     TranslationProvider.ts    Vertrag + nullTranslationProvider (Standard)
     chromeTranslationProvider.ts  Chrome-Translator-API, reine Feature Detection
   providers/     Registry (React-Context) und gemeinsamer Anbieterzustand
-  ai/AiProvider.ts   vorbereitete, austauschbare Schnittstelle (ungenutzt)
+  ai/            KI als austauschbare Schnittstelle
+    AiProvider.ts            Vertrag + nullAiProvider (Standard)
+    chromePromptAiProvider.ts  Prompt-API des Browsers, nur „enrich-entry“
   ui/            Bausteine, Importlogik (usePackImport), Bestätigungsdialog
   routes/        Seiten (Start, Lehrkraft, Schülerbereich, Datenschutz)
 e2e/             Playwright: Smoke-Test und Barrierefreiheitstests
@@ -398,6 +409,135 @@ Bewertung im Schülerbereich.
 
 ---
 
+## Vorschläge beim Import
+
+Nach dem Einfügen oder Hochladen schlägt LexiFlow fehlende Angaben vor:
+**deutsche Übersetzung, Wortart, Schwierigkeit und Themen-Tags**. Jeder
+Vorschlag steht getrennt neben dem Feld und muss ausdrücklich übernommen
+werden. Nichts davon landet je von allein im Paket.
+
+### Was immer funktioniert – ohne Modell, ohne Download
+
+Feste, nachvollziehbare Regeln (`src/domain/wordRules.ts`), in jedem Browser:
+
+| Regel | Beispiel |
+| --- | --- |
+| `to …` ist ein Verb | „to apologise“ → Verb |
+| feste Präpositionen | „between“ → Präposition |
+| mehrere Wörter ohne „to“ | „as soon as possible“ → Wendung |
+| Endung `-ly` ohne bekannte Ausnahme | „quickly“ → Adverb |
+| Artikel unmittelbar davor im Beispielsatz | „The **neighbourhood** is crowded.“ → Substantiv |
+| Paketthema als Themen-Tag | Thema „City life“ → Tag „City life“ |
+
+Grundsatz: **Im Zweifel kein Vorschlag.** Mehrdeutige Wörter wie „book“,
+„light“ oder „water“ bleiben absichtlich leer – eine erfundene Wortart wäre
+schlimmer als eine leere Spalte, weil sie geprüft aussieht.
+
+**Schwierigkeit hat bewusst keine Regel.** Aus Wortlänge oder Silbenzahl eine
+Zahl von 1 bis 5 zu bilden, sähe präzise aus und wäre geraten: „nevertheless“
+ist lang und für die Oberstufe leicht, „yet“ ist kurz und schwierig. Ohne
+Sprachmodell bleibt das Feld leer.
+
+Bewusst **keine NLP-Bibliothek**: Für diese Handvoll eindeutiger Muster wären
+250 kB bis 1 MB Lexikon reine Bundle-Last ohne Zugewinn – ein Tagger ohne
+Satzkontext rät genauso, nur weniger sichtbar. Käme das je in Frage, gehören
+Lizenz, Bundle-Effekt und ein belegbarer Nutzen vorher dokumentiert.
+
+### Was einen unterstützten Desktop-Browser braucht
+
+| Vorschlag | Voraussetzung |
+| --- | --- |
+| deutsche Übersetzung | eingebaute Translator-API (derzeit Chrome, je nach Version und Gerät) |
+| Schwierigkeit 1–5 | eingebautes Sprachmodell (Prompt-API) |
+| Wortart über die Regeln hinaus | eingebautes Sprachmodell |
+| zusätzliche Themen-Tags | eingebautes Sprachmodell |
+
+Fehlt beides, sagt die Oberfläche das ruhig und deutlich – und der Import bleibt
+in vollem Umfang benutzbar. Alles lässt sich wie bisher selbst eintragen.
+
+**Modelle werden erst nach einem Klick geladen.** Vorher wird nichts
+heruntergeladen, nichts initialisiert und kein Anbieter aufgerufen. Während des
+Ladens gibt es echten Fortschritt, eine Zählung der bearbeiteten Zeilen und
+jederzeit „Abbrechen“.
+
+**Es werden keine Daten übertragen.** Beide Anbieter laufen auf dem Gerät und
+rufen niemals selbst `fetch` auf; Tests prüfen genau das. Weder Vokabeln noch
+Texte noch Lernstände erreichen LexiFlow oder einen Cloud-Dienst. Es gibt keinen
+Cloud-Fallback, keinen API-Schlüssel und keine Umgebungsvariable für Geheimnisse.
+
+An das Sprachmodell geht bewusst nur der nötige Ausschnitt: Stichwort,
+vorhandene deutsche Antworten, **ein** Beispielsatz, Jahrgang, GeR-Niveau und
+Paketthema. Keine Rohdatei, kein Volltext, keine IDs, keine Lernstände. Die
+Antwort wird über ein JSON-Schema (`responseConstraint`) erzwungen und danach
+zusätzlich mit Zod geprüft; was durchfällt, wird nicht teilweise übernommen,
+sondern als Fehler an dieser einen Zeile gemeldet.
+
+### Annehmen, ablehnen, selbst schreiben
+
+Ein Vorschlag hat einen Zustand: `suggested`, `accepted`, `rejected` oder
+`edited`. Daraus folgen drei Zusagen:
+
+1. **Vorhandene Angaben werden nie überschrieben** – auch nicht von einer
+   Sammelaktion. Sammelaktionen berücksichtigen ausschließlich ausgewählte
+   Zeilen mit noch leerem Feld und offenem Vorschlag und nennen die Anzahl.
+2. **Handarbeit hat Vorrang.** Wird ein übernommener Wert später geändert, gilt
+   er als eigene Bearbeitung; der Vorschlag hat damit keinen Anspruch mehr.
+3. **Abgelehntes kommt nicht wieder** – derselbe Wert wird im selben Entwurf
+   nicht erneut angeboten. Ein *anderer* Wert (etwa nach geändertem Thema) darf
+   erneut vorgeschlagen werden. Ein neu gestarteter Import analysiert
+   selbstverständlich neu.
+
+Bei mehreren Quellen für dasselbe Feld gilt: Sprachmodell vor Übersetzung vor
+Regel – aber nur, solange der Vorschlag offen ist. Themen-Tags sind die
+Ausnahme: Sie ergänzen sich, statt sich zu verdrängen.
+
+### Der Lernkontext
+
+Über der Vorschlagswerkstatt stehen Jahrgang, GeR-Niveau und Thema. Sie helfen
+dabei, Schwierigkeit und Themen-Tags passend vorzuschlagen. Es ist derselbe
+Zustand, der später im Metadaten-Schritt gespeichert wird – keine doppelte
+Datenhaltung, keine zweite Wahrheit. Titel und Lernrichtung bleiben im
+Metadaten-Schritt.
+
+### Vorschläge ändern die Herkunft nicht
+
+Ein normaler CSV-, XLSX- oder Paste-Import bleibt `sourceType: import`, auch
+wenn Wortart, Schwierigkeit oder Tags vorgeschlagen wurden. `text-ai` bedeutet
+weiterhin genau das, was es seit Sprint 2A bedeutet: In der Textwerkstatt wurde
+ein maschineller Übersetzungsvorschlag übernommen. Vorschlagsdaten selbst
+(Quelle, Zustand, Unsicherheit) bleiben im Entwurf und werden **nie**
+exportiert.
+
+Gespeichert werden nach der Übernahme ganz normale Felder: `germanAnswers`,
+`partOfSpeech`, `difficulty`, `topicTags`.
+
+### Fertige Pakete brauchen keine KI
+
+Das ist die zentrale Zusage dieses Sprints, und ein Integrationstest
+(`src/import/portability.test.ts`) hält sie fest: Ein Paket wird mit
+Vorschlägen erstellt, exportiert und anschließend in einer Umgebung
+**ausschließlich mit `nullTranslationProvider` und `nullAiProvider`** wieder
+eingelesen. Übersetzungen, Wortarten, Schwierigkeiten und Tags sind vollständig
+erhalten, `formatVersion` ist weiterhin `1`, in der Datei steht kein einziges
+Provider-, Modell-, Prompt- oder Konfidenzfeld, und das Paket lässt sich sofort
+üben. Der E2E-Test macht dasselbe in einem zweiten Browserkontext ohne jede
+Modell-API.
+
+**Weitergabe in drei Schritten:** Paket exportieren → Datei senden (Mail,
+Messenger, USB-Stick, Lernplattform) → beim Empfänger in LexiFlow „Paketdatei
+öffnen“. Lernstände sind nie Teil der Datei.
+
+### Vorschläge können falsch sein
+
+Maschinelle Übersetzung kennt den Kontext nicht und trifft bei mehrdeutigen
+Wörtern oft die falsche Bedeutung. Ein Sprachmodell schätzt die Schwierigkeit
+ohne Kenntnis der Lerngruppe und erfindet gelegentlich Tags. Deshalb ist jeder
+Vorschlag als **ungeprüft** gekennzeichnet, steht getrennt vom Eingabefeld und
+wird nie automatisch übernommen. **Die Lehrkraft bleibt für jede Vokabel, jede
+Wortart und jede Einstufung verantwortlich.**
+
+---
+
 ## Zwei Übungsarten: Lernplan und freies Üben
 
 Auf der Paketseite wird ausgewählt, *was* geübt wird. Die beiden Arten sind
@@ -679,6 +819,9 @@ Zusätzlich getestet:
   Schülerbereich, Datenschutz, Importvorschau, Paketdetail, Übung und Feedback
 * die breite Lehrkraft-Tabelle scrollt in ihrem eigenen Container
   (`.table-wrap`), ohne die Seite zu verbreitern
+* `e2e/enrichment.spec.ts`: Vorschläge erzeugen, einzeln und gebündelt
+  übernehmen, exportieren und in einem zweiten Browserkontext **ohne jede
+  Modell-API** wieder importieren und üben; Axe, Tastatur und 390 px inklusive
 * `e2e/free-practice.spec.ts`: freie Runde ohne fällige Aufgaben, Axe auf
   Modusauswahl und laufender Runde, Tastaturbedienung inklusive Pfeiltasten in
   der Radiogruppe, 390 px ohne Überlauf

@@ -1,4 +1,6 @@
 import type { ProviderState } from '../providers/state';
+import type { PartOfSpeech } from '../domain/schema';
+import { AiUnavailableError, type AiProvider } from '../ai/AiProvider';
 import {
   TranslationAbortedError,
   TranslationUnavailableError,
@@ -185,4 +187,192 @@ export function createFakeTranslationProvider(
   };
 
   return { provider, translated, prepareCount: () => prepareCount };
+}
+
+// ---------------------------------------------------------------------------
+// Sprachmodell (Prompt-API)
+// ---------------------------------------------------------------------------
+
+export interface FakeLanguageModelScope {
+  LanguageModel?: {
+    availability(options?: unknown): Promise<string>;
+    create(options?: {
+      monitor?: (monitor: {
+        addEventListener(type: 'downloadprogress', listener: Listener): void;
+      }) => void;
+      signal?: AbortSignal;
+    }): Promise<{
+      prompt(
+        input: string,
+        options?: { responseConstraint?: unknown; signal?: AbortSignal },
+      ): Promise<string>;
+      destroy?(): void;
+    }>;
+  };
+}
+
+export interface FakeLanguageModelOptions {
+  availability?: ProviderState;
+  progress?: readonly number[];
+  /** Antwort des Modells; Standard: eine gültige, knappe Einordnung. */
+  respond?: (prompt: string) => string;
+  /** Lässt `create()` beim ersten Aufruf scheitern. */
+  failFirstCreate?: boolean;
+  availabilityThrows?: boolean;
+}
+
+export interface FakeLanguageModelHandle {
+  scope: FakeLanguageModelScope;
+  /** Die tatsächlich gestellten Anfragen. */
+  readonly prompts: string[];
+  /** Die zuletzt übergebene `responseConstraint`. */
+  readonly lastConstraint: () => unknown;
+  readonly createCount: () => number;
+  readonly destroyCount: () => number;
+  readonly availabilityCalls: () => unknown[];
+}
+
+export const FAKE_MODEL_ANSWER = JSON.stringify({
+  partOfSpeech: 'adjective',
+  difficulty: 3,
+  topicTags: ['city', 'traffic'],
+});
+
+/** Baut eine `self.LanguageModel`-Attrappe – ohne Netzwerk, ohne echtes Modell. */
+export function createFakeLanguageModelScope(
+  options: FakeLanguageModelOptions = {},
+): FakeLanguageModelHandle {
+  const {
+    availability = 'downloadable',
+    progress = [0.5, 1],
+    respond = () => FAKE_MODEL_ANSWER,
+    failFirstCreate = false,
+    availabilityThrows = false,
+  } = options;
+
+  const prompts: string[] = [];
+  const availabilityCalls: unknown[] = [];
+  let constraint: unknown;
+  let createCount = 0;
+  let destroyCount = 0;
+
+  const scope: FakeLanguageModelScope = {
+    LanguageModel: {
+      availability(createOptions) {
+        availabilityCalls.push(createOptions);
+        if (availabilityThrows) return Promise.reject(new Error('not supported'));
+        return Promise.resolve(availability);
+      },
+      create(createOptions) {
+        createCount += 1;
+        if (failFirstCreate && createCount === 1) {
+          return Promise.reject(new Error('Download unterbrochen'));
+        }
+        createOptions?.monitor?.({
+          addEventListener(type, listener) {
+            if (type !== 'downloadprogress') return;
+            for (const value of progress) listener({ loaded: value, total: 1 });
+          },
+        });
+        return Promise.resolve({
+          async prompt(input, promptOptions) {
+            if (promptOptions?.signal?.aborted) {
+              throw new DOMException('Abgebrochen', 'AbortError');
+            }
+            constraint = promptOptions?.responseConstraint;
+            await Promise.resolve();
+            prompts.push(input);
+            return respond(input);
+          },
+          destroy() {
+            destroyCount += 1;
+          },
+        });
+      },
+    },
+  };
+
+  return {
+    scope,
+    prompts,
+    lastConstraint: () => constraint,
+    createCount: () => createCount,
+    destroyCount: () => destroyCount,
+    availabilityCalls: () => availabilityCalls,
+  };
+}
+
+/** Ein `AiProvider` für Komponententests – deterministisch, ohne Modell. */
+export interface FakeAiOptions {
+  availability?: ProviderState;
+  partOfSpeech?: PartOfSpeech;
+  difficulty?: number;
+  topicTags?: string[];
+  /** Diese Stichwörter scheitern beim ersten Versuch. */
+  failFor?: readonly string[];
+  progress?: readonly number[];
+}
+
+export interface FakeAiHandle {
+  provider: AiProvider;
+  readonly enriched: string[];
+  readonly prepareCount: () => number;
+}
+
+export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle {
+  const {
+    availability = 'downloadable',
+    partOfSpeech = 'adjective',
+    difficulty = 3,
+    topicTags = ['city'],
+    failFor = [],
+    progress = [0.4, 1],
+  } = options;
+
+  const enriched: string[] = [];
+  const failed = new Set<string>();
+  let prepareCount = 0;
+  let ready = false;
+
+  const provider: AiProvider = {
+    info: {
+      id: 'fake-ai',
+      label: 'Testsprachmodell',
+      dataNotice: 'Testanbieter. Es werden keine Daten übertragen.',
+      sendsDataOffDevice: false,
+      processing: 'on-device',
+    },
+    capabilities: () => ['enrich-entry'],
+    getAvailability: (capability) =>
+      Promise.resolve(capability === 'enrich-entry' ? availability : 'unavailable'),
+    async prepare(capability, onProgress, signal) {
+      if (capability !== 'enrich-entry' || availability === 'unavailable') {
+        throw new AiUnavailableError();
+      }
+      if (signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
+      prepareCount += 1;
+      for (const value of progress) onProgress?.(value);
+      ready = true;
+      await Promise.resolve();
+    },
+    async enrichEntry(entry, context) {
+      if (!ready) throw new AiUnavailableError('Das Sprachmodell ist noch nicht geladen.');
+      if (context.signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
+      await Promise.resolve();
+      if (failFor.includes(entry.english) && !failed.has(entry.english)) {
+        failed.add(entry.english);
+        throw new Error('Das Sprachmodell hat nicht geantwortet.');
+      }
+      enriched.push(entry.english);
+      return { ...entry, partOfSpeech, difficulty, topicTags: [...topicTags] };
+    },
+    suggestFromText: () => Promise.reject(new AiUnavailableError()),
+    suggestFromTopic: () => Promise.reject(new AiUnavailableError()),
+    alternativeSentence: () => Promise.reject(new AiUnavailableError()),
+    destroy() {
+      ready = false;
+    },
+  };
+
+  return { provider, enriched, prepareCount: () => prepareCount };
 }

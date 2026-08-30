@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { Suspense, lazy, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card, Field } from '../../ui/components';
 import { DraftTable } from './DraftTable';
@@ -22,6 +22,10 @@ import {
 } from '../../import/draft';
 import { parseCsv, parsePastedText } from '../../import/csv';
 import { TextCandidateReview } from './TextCandidateReview';
+import { syncManualEdits } from '../../import/suggestions';
+import type { LearningContext } from '../../import/enrichment';
+import { CEFR_LEVELS, GRADES, GRADE_LABELS, suggestCefrLevel } from '../../domain/cefr';
+import type { CefrLevel, Grade } from '../../domain/cefr';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
 import {
   MAX_TEXT_LENGTH,
@@ -36,8 +40,13 @@ import { PackUpdateConfirm } from '../../ui/PackUpdateConfirm';
 import type { PendingPackUpdate } from '../../ui/usePackImport';
 import { describeUpdateSummary, summarizeDiff } from '../../domain/packDiff';
 import { newId } from '../../domain/ids';
-import { suggestCefrLevel } from '../../domain/cefr';
 import type { SourceType, VocabPack } from '../../domain/schema';
+
+/**
+ * Die Vorschlagswerkstatt lädt erst, wenn eine Vorschau geöffnet wird. Der
+ * Schülerbereich bekommt davon nichts ab.
+ */
+const EnrichmentPanel = lazy(() => import('./EnrichmentPanel'));
 
 type SourceKind = 'paste' | 'text' | 'csv' | 'xlsx' | 'json';
 type Step = 'source' | 'candidates' | 'preview' | 'meta';
@@ -90,6 +99,38 @@ export function ImportWizardPage() {
   const [saved, setSaved] = useState<{ packId: string; text: string } | null>(null);
 
   const summary = summarize(drafts);
+
+  /**
+   * Jede Änderung an den Entwürfen läuft hier durch: Ändert die Lehrkraft ein
+   * Feld selbst, verliert der zugehörige Vorschlag seinen Anspruch darauf.
+   */
+  function updateDrafts(next: DraftRow[]): void {
+    // Nach jeder Änderung neu prüfen: Eine übernommene Übersetzung muss den
+    // Fehler „Deutsche Übersetzung fehlt" sofort auflösen.
+    setDrafts((current) => validateDrafts(syncManualEdits(current, next)));
+  }
+
+  /** Genau der Ausschnitt der Metadaten, den die Vorschläge brauchen. */
+  const learningContext: LearningContext = useMemo(
+    () => ({ grade: meta.grade, cefrLevel: meta.cefrLevel, topic: meta.topic }),
+    [meta.grade, meta.cefrLevel, meta.topic],
+  );
+
+  function setGrade(grade: Grade): void {
+    setMeta((current) => ({
+      ...current,
+      grade,
+      cefrLevel: current.cefrLevelOverridden ? current.cefrLevel : suggestCefrLevel(grade),
+    }));
+  }
+
+  function setCefrLevel(level: CefrLevel): void {
+    setMeta((current) => ({
+      ...current,
+      cefrLevel: level,
+      cefrLevelOverridden: level !== suggestCefrLevel(current.grade),
+    }));
+  }
 
   function applyRows(rows: string[][], kind: SourceType): void {
     if (rows.length === 0) {
@@ -529,6 +570,66 @@ export function ImportWizardPage() {
             </Card>
           ) : null}
 
+          <Card quiet>
+            <h2 style={{ fontSize: '1.05rem' }}>Lernkontext</h2>
+            <p className="muted small">
+              Jahrgang, Sprachniveau und Thema helfen dabei, Schwierigkeit und Themen-Tags passend
+              vorzuschlagen. Deine Eingaben stehen im nächsten Schritt schon bereit.
+            </p>
+            <div className="field-grid">
+              <Field label="Jahrgang">
+                {(props) => (
+                  <select
+                    {...props}
+                    value={meta.grade}
+                    onChange={(event) => setGrade(event.target.value as Grade)}
+                  >
+                    {GRADES.map((grade) => (
+                      <option key={grade} value={grade}>
+                        {GRADE_LABELS[grade]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field label="GeR-Niveau">
+                {(props) => (
+                  <select
+                    {...props}
+                    value={meta.cefrLevel}
+                    onChange={(event) => setCefrLevel(event.target.value as CefrLevel)}
+                  >
+                    {CEFR_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field label="Thema" hint="Wird als Themen-Tag vorgeschlagen, z. B. „City life“.">
+                {(props) => (
+                  <input
+                    {...props}
+                    type="text"
+                    value={meta.topic}
+                    onChange={(event) => setMeta({ ...meta, topic: event.target.value })}
+                  />
+                )}
+              </Field>
+            </div>
+          </Card>
+
+          <Suspense
+            fallback={
+              <p className="muted small" role="status">
+                Vorschlagswerkstatt wird geladen …
+              </p>
+            }
+          >
+            <EnrichmentPanel drafts={drafts} context={learningContext} onChange={updateDrafts} />
+          </Suspense>
+
           <div className="row">
             <p className="small" style={{ margin: 0 }}>
               {summary.total} Zeilen · <strong>{summary.selected}</strong> werden übernommen ·{' '}
@@ -536,16 +637,16 @@ export function ImportWizardPage() {
             </p>
             <span className="spacer" />
             {summary.duplicates > 0 ? (
-              <Button small onClick={() => setDrafts(deselectDuplicates(drafts))}>
+              <Button small onClick={() => updateDrafts(deselectDuplicates(drafts))}>
                 Duplikate abwählen
               </Button>
             ) : null}
-            <Button small onClick={() => setDrafts(validateDrafts([...drafts, emptyDraft()]))}>
+            <Button small onClick={() => updateDrafts(validateDrafts([...drafts, emptyDraft()]))}>
               Zeile hinzufügen
             </Button>
           </div>
 
-          <DraftTable drafts={drafts} onChange={setDrafts} />
+          <DraftTable drafts={drafts} onChange={updateDrafts} />
 
           <div className="row">
             <Button onClick={() => setStep('source')}>Zurück</Button>
