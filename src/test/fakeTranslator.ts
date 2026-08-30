@@ -124,12 +124,18 @@ export interface FakeProviderOptions {
   /** Diese Texte scheitern beim ersten Versuch. */
   failFor?: readonly string[];
   progress?: readonly number[];
+  /** `prepare` bleibt offen, bis `releasePrepare()` gerufen wird. */
+  gatePrepare?: boolean;
+  /** `prepare` scheitert – der andere Anbieter muss trotzdem arbeiten. */
+  prepareFails?: boolean;
 }
 
 export interface FakeTranslationProviderHandle {
   provider: TranslationProvider;
   readonly translated: string[];
   readonly prepareCount: () => number;
+  /** Löst ein durch `gatePrepare` angehaltenes `prepare` auf. */
+  readonly releasePrepare: () => void;
 }
 
 /**
@@ -144,12 +150,18 @@ export function createFakeTranslationProvider(
     translate = (text: string) => `${text}-de`,
     failFor = [],
     progress = [0.4, 1],
+    gatePrepare = false,
+    prepareFails = false,
   } = options;
 
   const translated: string[] = [];
   const failed = new Set<string>();
   let prepareCount = 0;
   let ready = false;
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
 
   const provider: TranslationProvider = {
     info: {
@@ -160,10 +172,14 @@ export function createFakeTranslationProvider(
     },
     getAvailability: () => Promise.resolve(availability),
     async prepare(_source, _target, onProgress, signal) {
+      // Zählen und Fortschritt **vor** jedem await: Der Test soll unmittelbar
+      // nach dem Klick sehen können, dass der Aufruf erfolgt ist.
+      prepareCount += 1;
       if (availability === 'unavailable') throw new TranslationUnavailableError();
       if (signal?.aborted) throw new TranslationAbortedError();
-      prepareCount += 1;
       for (const value of progress) onProgress?.(value);
+      if (gatePrepare) await gate;
+      if (prepareFails) throw new Error('Übersetzungsmodell nicht ladbar.');
       ready = true;
       await Promise.resolve();
     },
@@ -186,7 +202,7 @@ export function createFakeTranslationProvider(
     },
   };
 
-  return { provider, translated, prepareCount: () => prepareCount };
+  return { provider, translated, prepareCount: () => prepareCount, releasePrepare: () => release() };
 }
 
 // ---------------------------------------------------------------------------
@@ -311,12 +327,17 @@ export interface FakeAiOptions {
   /** Diese Stichwörter scheitern beim ersten Versuch. */
   failFor?: readonly string[];
   progress?: readonly number[];
+  /** `prepare` bleibt offen, bis `releasePrepare()` gerufen wird. */
+  gatePrepare?: boolean;
+  /** `prepare` scheitert – der andere Anbieter muss trotzdem arbeiten. */
+  prepareFails?: boolean;
 }
 
 export interface FakeAiHandle {
   provider: AiProvider;
   readonly enriched: string[];
   readonly prepareCount: () => number;
+  readonly releasePrepare: () => void;
 }
 
 export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle {
@@ -327,12 +348,18 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
     topicTags = ['city'],
     failFor = [],
     progress = [0.4, 1],
+    gatePrepare = false,
+    prepareFails = false,
   } = options;
 
   const enriched: string[] = [];
   const failed = new Set<string>();
   let prepareCount = 0;
   let ready = false;
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
 
   const provider: AiProvider = {
     info: {
@@ -346,12 +373,14 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
     getAvailability: (capability) =>
       Promise.resolve(capability === 'enrich-entry' ? availability : 'unavailable'),
     async prepare(capability, onProgress, signal) {
+      prepareCount += 1;
       if (capability !== 'enrich-entry' || availability === 'unavailable') {
         throw new AiUnavailableError();
       }
       if (signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
-      prepareCount += 1;
       for (const value of progress) onProgress?.(value);
+      if (gatePrepare) await gate;
+      if (prepareFails) throw new Error('Sprachmodell nicht ladbar.');
       ready = true;
       await Promise.resolve();
     },
@@ -374,5 +403,5 @@ export function createFakeAiProvider(options: FakeAiOptions = {}): FakeAiHandle 
     },
   };
 
-  return { provider, enriched, prepareCount: () => prepareCount };
+  return { provider, enriched, prepareCount: () => prepareCount, releasePrepare: () => release() };
 }

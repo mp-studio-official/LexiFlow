@@ -27,6 +27,50 @@ describe('Feature Detection', () => {
     const { scope } = createFakeTranslatorScope();
     expect(detectTranslationProvider(scope)).toBeDefined();
   });
+
+  it('erkennt ein echtes Web-IDL-Interface (typeof "function")', () => {
+    // Im Browser ist `Translator` eine Klasse mit statischen Methoden.
+    class Translator {
+      static availability(): Promise<string> {
+        return Promise.resolve('available');
+      }
+      static create(): Promise<{ translate: (text: string) => Promise<string> }> {
+        return Promise.resolve({ translate: (text: string) => Promise.resolve(`[de] ${text}`) });
+      }
+    }
+    expect(typeof Translator).toBe('function');
+    expect(getTranslatorApi({ Translator })).toBeDefined();
+    expect(detectTranslationProvider({ Translator })).toBeDefined();
+  });
+
+  it('arbeitet mit einem Interface-Objekt vollständig zusammen', async () => {
+    class Translator {
+      static availability(): Promise<string> {
+        return Promise.resolve('downloadable');
+      }
+      static create(): Promise<{
+        translate: (text: string) => Promise<string>;
+        destroy: () => void;
+      }> {
+        return Promise.resolve({
+          translate: (text: string) => Promise.resolve(`[de] ${text}`),
+          destroy: () => undefined,
+        });
+      }
+    }
+
+    const provider = createChromeTranslationProvider({ Translator });
+    await expect(provider.getAvailability('en', 'de')).resolves.toBe('downloadable');
+    await provider.prepare('en', 'de');
+    await expect(provider.translate('litter')).resolves.toBe('[de] litter');
+  });
+
+  it('lehnt eine Funktion ohne die nötigen Methoden weiterhin ab', () => {
+    function Translator(): void {
+      /* nichts */
+    }
+    expect(getTranslatorApi({ Translator })).toBeUndefined();
+  });
 });
 
 describe('Zustände', () => {

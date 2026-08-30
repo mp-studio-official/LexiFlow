@@ -129,10 +129,18 @@ interface LanguageModelApi {
   create(options?: LanguageModelOptions): Promise<LanguageModelSession>;
 }
 
-/** Reine Feature Detection – der Zugriff bleibt an einer Stelle gebündelt. */
+/**
+ * Reine Feature Detection – der Zugriff bleibt an einer Stelle gebündelt.
+ *
+ * Wichtig: Ein Web-IDL-Interface-Objekt ist im Browser eine **Funktion** (eine
+ * Konstruktorfunktion mit statischen Methoden), kein einfaches Objekt. Ein
+ * `typeof === 'object'` würde die echte API also aussperren. Entscheidend ist
+ * allein, ob `availability` und `create` aufrufbar sind.
+ */
 export function getLanguageModelApi(scope: unknown = globalThis): LanguageModelApi | undefined {
   const candidate = (scope as { LanguageModel?: unknown }).LanguageModel;
-  if (!candidate || typeof candidate !== 'object') return undefined;
+  if (!candidate) return undefined;
+  if (typeof candidate !== 'object' && typeof candidate !== 'function') return undefined;
   const api = candidate as Partial<LanguageModelApi>;
   if (typeof api.availability !== 'function' || typeof api.create !== 'function') return undefined;
   return api as LanguageModelApi;

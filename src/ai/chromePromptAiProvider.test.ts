@@ -35,6 +35,68 @@ describe('Feature Detection', () => {
   it('nutzt die API, wenn sie vollständig ist', () => {
     expect(detectPromptAiProvider(createFakeLanguageModelScope().scope)).toBeDefined();
   });
+
+  it('erkennt ein echtes Web-IDL-Interface (typeof "function")', () => {
+    // So sieht die API im Browser wirklich aus: eine Klasse mit statischen
+    // Methoden. `typeof` ist dann "function", nicht "object".
+    class LanguageModel {
+      static availability(): Promise<string> {
+        return Promise.resolve('available');
+      }
+      static create(): Promise<{ prompt: () => Promise<string> }> {
+        return Promise.resolve({ prompt: () => Promise.resolve('{}') });
+      }
+    }
+    expect(typeof LanguageModel).toBe('function');
+    expect(getLanguageModelApi({ LanguageModel })).toBeDefined();
+    expect(detectPromptAiProvider({ LanguageModel })).toBeDefined();
+  });
+
+  it('erkennt auch eine schlichte Funktion mit den nötigen Methoden', () => {
+    function LanguageModel(): void {
+      /* Konstruktor ohne Belang */
+    }
+    LanguageModel.availability = () => Promise.resolve('downloadable');
+    LanguageModel.create = () => Promise.resolve({ prompt: () => Promise.resolve('{}') });
+
+    expect(getLanguageModelApi({ LanguageModel })).toBeDefined();
+  });
+
+  it('arbeitet mit einem Interface-Objekt vollständig zusammen', async () => {
+    const prompts: string[] = [];
+    class LanguageModel {
+      static availability(): Promise<string> {
+        return Promise.resolve('downloadable');
+      }
+      static create(): Promise<{ prompt: (input: string) => Promise<string>; destroy: () => void }> {
+        return Promise.resolve({
+          prompt: (input: string) => {
+            prompts.push(input);
+            return Promise.resolve(
+              JSON.stringify({ partOfSpeech: 'adjective', difficulty: 2, topicTags: ['city'] }),
+            );
+          },
+          destroy: () => undefined,
+        });
+      }
+    }
+
+    const provider = createChromePromptAiProvider({ LanguageModel });
+    await expect(provider.getAvailability(AI_CAPABILITY)).resolves.toBe('downloadable');
+    await provider.prepare(AI_CAPABILITY);
+    await expect(provider.enrichEntry(ENTRY, CONTEXT)).resolves.toMatchObject({
+      partOfSpeech: 'adjective',
+      difficulty: 2,
+    });
+    expect(prompts).toHaveLength(1);
+  });
+
+  it('lehnt eine Funktion ohne die nötigen Methoden weiterhin ab', () => {
+    function LanguageModel(): void {
+      /* nichts */
+    }
+    expect(getLanguageModelApi({ LanguageModel })).toBeUndefined();
+  });
 });
 
 describe('Fähigkeiten', () => {

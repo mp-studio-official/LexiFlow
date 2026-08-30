@@ -56,6 +56,11 @@ export interface EnrichmentPanelProps {
 
 type Phase = 'idle' | 'preparing' | 'running';
 
+function describeError(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return 'Unbekannter Fehler.';
+}
+
 function describeValue(suggestion: DraftSuggestion): string {
   if (suggestion.field === 'partOfSpeech') {
     return PART_OF_SPEECH_LABELS[suggestion.value as PartOfSpeech] ?? suggestion.value;
@@ -121,9 +126,14 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const rowsWithSuggestions = useMemo(
-    () => drafts.filter((draft) => openSuggestions(draft).length > 0),
-    [drafts],
+  /**
+   * Sichtbar ist eine Zeile, sobald es etwas zu entscheiden **oder** etwas zu
+   * erfahren gibt. Eine Zeile, bei der beide Quellen gescheitert sind, hat
+   * keinen Vorschlag – ihre Fehlermeldung darf trotzdem nicht verschwinden.
+   */
+  const visibleRows = useMemo(
+    () => drafts.filter((draft) => openSuggestions(draft).length > 0 || errors[draft.id]),
+    [drafts, errors],
   );
 
   const translatable = translationTargets(drafts);
@@ -144,9 +154,17 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
   );
 
   /**
-   * Erzeugt Vorschläge. `prepare` läuft im Klickpfad ohne vorherigen
-   * Wartepunkt, damit die User-Activation für den Modelldownload erhalten
-   * bleibt – und je Anbieter nur einmal.
+   * Erzeugt Vorschläge.
+   *
+   * **User-Activation:** Ein Browser gewährt sie nur für die synchrone Phase des
+   * Klick-Handlers. Deshalb werden beide `prepare()`-Aufrufe **hier, vor jedem
+   * `await`, gestartet** und erst danach gemeinsam abgewartet. Würde der zweite
+   * erst nach dem ersten `await` folgen, verweigerte der Browser ihm den
+   * Modelldownload.
+   *
+   * **Unabhängigkeit:** `Promise.allSettled` – scheitert ein Anbieter, arbeitet
+   * der andere weiter. Nur der erfolgreiche gilt als vorbereitet und wird beim
+   * nächsten Lauf nicht erneut geladen.
    */
   async function run(): Promise<void> {
     if (busy) return; // keine doppelte Ausführung
@@ -155,42 +173,77 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
     setPanelError('');
     setErrors({});
     setDone(0);
-    setTotal(translatable.length + enrichable.length);
+
+    const uniqueRows = new Set([...translatable, ...enrichable].map((draft) => draft.id)).size;
+    const steps = translatable.length + enrichable.length;
+    setTotal(steps);
 
     let working = drafts;
     const commit = (): void => onChange(working);
+    const fail = (id: string, message: string): void => {
+      setErrors((current) => ({ ...current, [id]: message }));
+    };
 
+    setPhase('preparing');
+    setStatus('Die lokalen Modelle werden vorbereitet.');
+    setProgress(0);
+
+    // --- synchron, solange die User-Activation gilt ---
+    const wantsTranslation =
+      translationPossible && translatable.length > 0 && preparedTranslation.current !== translation;
+    const wantsAi = aiPossible && enrichable.length > 0 && preparedAi.current !== ai;
+
+    const share = { translation: 0, ai: 0 };
+    const report = (which: 'translation' | 'ai') => (value: number) => {
+      share[which] = value;
+      const active = [wantsTranslation ? share.translation : null, wantsAi ? share.ai : null].filter(
+        (item): item is number => item !== null,
+      );
+      if (active.length > 0) setProgress(active.reduce((a, b) => a + b, 0) / active.length);
+    };
+
+    const translationReady = wantsTranslation
+      ? translation.prepare(SOURCE_LANGUAGE, TARGET_LANGUAGE, report('translation'), controller.signal)
+      : Promise.resolve();
+    const aiReady = wantsAi
+      ? ai.prepare(CAPABILITY, report('ai'), controller.signal)
+      : Promise.resolve();
+
+    // --- ab hier darf gewartet werden ---
     try {
-      setPhase('preparing');
-      setStatus('Die lokalen Modelle werden vorbereitet.');
-      setProgress(0);
+      const [translationResult, aiResult] = await Promise.allSettled([translationReady, aiReady]);
 
-      if (translationPossible && translatable.length > 0 && preparedTranslation.current !== translation) {
-        await translation.prepare(
-          SOURCE_LANGUAGE,
-          TARGET_LANGUAGE,
-          (value) => setProgress(value),
-          controller.signal,
-        );
-        preparedTranslation.current = translation;
+      const translationOk = translationResult.status === 'fulfilled';
+      const aiOk = aiResult.status === 'fulfilled';
+      if (translationOk && wantsTranslation) preparedTranslation.current = translation;
+      if (aiOk && wantsAi) preparedAi.current = ai;
+
+      const problems: string[] = [];
+      if (!translationOk) {
+        preparedTranslation.current = null;
+        problems.push(`Übersetzung: ${describeError(translationResult.reason)}`);
       }
-      if (aiPossible && enrichable.length > 0 && preparedAi.current !== ai) {
-        await ai.prepare(CAPABILITY, (value) => setProgress(value), controller.signal);
-        preparedAi.current = ai;
+      if (!aiOk) {
+        preparedAi.current = null;
+        problems.push(`Sprachmodell: ${describeError(aiResult.reason)}`);
+      }
+      if (problems.length > 0 && !controller.signal.aborted) {
+        setPanelError(
+          problems.length === 2
+            ? `Keines der lokalen Modelle konnte vorbereitet werden. ${problems.join(' · ')}`
+            : `Ein Modell konnte nicht vorbereitet werden, das andere arbeitet weiter. ${problems[0]}`,
+        );
       }
 
       setProgress(null);
       setPhase('running');
-      setTranslationState((state) => (state === 'downloading' ? 'available' : state));
-      setAiState((state) => (state === 'downloading' ? 'available' : state));
+      if (translationOk) setTranslationState((state) => (state === 'downloading' ? 'available' : state));
+      if (aiOk) setAiState((state) => (state === 'downloading' ? 'available' : state));
 
       let processed = 0;
-      const fail = (id: string, message: string): void => {
-        setErrors((current) => ({ ...current, [id]: message }));
-      };
 
       // Bewusst nacheinander: ein lokales Modell rechnet ohnehin seriell.
-      for (const draft of translatable) {
+      for (const draft of translationOk ? translatable : []) {
         if (controller.signal.aborted) break;
         try {
           const value = await translation.translate(draft.english.trim(), controller.signal);
@@ -200,14 +253,14 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
         } catch (error: unknown) {
           if (!controller.signal.aborted) {
             // Ein Fehler betrifft genau diese Zeile, nie die ganze Runde.
-            fail(draft.id, error instanceof Error ? error.message : 'Übersetzung fehlgeschlagen.');
+            fail(draft.id, `Übersetzung: ${describeError(error)}`);
           }
         }
         processed += 1;
         setDone(processed);
       }
 
-      for (const draft of enrichable) {
+      for (const draft of aiOk ? enrichable : []) {
         if (controller.signal.aborted) break;
         try {
           const request = modelRequestFor(draft, context);
@@ -231,10 +284,7 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
           );
         } catch (error: unknown) {
           if (!controller.signal.aborted) {
-            fail(
-              draft.id,
-              error instanceof Error ? error.message : 'Das Sprachmodell hat nicht geantwortet.',
-            );
+            fail(draft.id, `Sprachmodell: ${describeError(error)}`);
           }
         }
         processed += 1;
@@ -242,25 +292,21 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
       }
 
       commit();
+      // Eine Zeile kann zwei Schritte auslösen (Übersetzung und Sprachmodell) –
+      // sie bleibt trotzdem **eine** Vokabel.
       setStatus(
         controller.signal.aborted
-          ? `Abgebrochen. ${processed} von ${total} Vokabeln wurden bearbeitet.`
-          : `Fertig. Vorschläge für ${processed} Vokabeln liegen zur Prüfung bereit.`,
+          ? `Abgebrochen. ${processed} von ${steps} Vorschlagsschritten erledigt.`
+          : `Fertig. Vorschläge für ${uniqueRows} ${
+              uniqueRows === 1 ? 'Vokabel' : 'Vokabeln'
+            } liegen zur Prüfung bereit.`,
       );
     } catch (error: unknown) {
+      // Hierher führt nur ein unerwarteter Fehler; die Vorbereitung selbst ist
+      // über `allSettled` bereits behandelt.
       commit();
       setProgress(null);
-      preparedTranslation.current = null;
-      preparedAi.current = null;
-      if (controller.signal.aborted) {
-        setStatus('Vorbereitung abgebrochen.');
-      } else {
-        setPanelError(
-          error instanceof Error
-            ? `Die lokalen Modelle konnten nicht vorbereitet werden: ${error.message}`
-            : 'Die lokalen Modelle konnten nicht vorbereitet werden.',
-        );
-      }
+      if (!controller.signal.aborted) setPanelError(describeError(error));
     } finally {
       setPhase('idle');
       setProgress(null);
@@ -348,7 +394,8 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
             </>
           ) : (
             <span className="small muted" role="status">
-              {done} von {total} Vokabeln bearbeitet · {Math.max(0, total - done)} verbleiben
+              {done} von {total} Vorschlagsschritten erledigt · {Math.max(0, total - done)}{' '}
+              verbleiben
             </span>
           )}
         </p>
@@ -356,7 +403,7 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
 
       {panelError ? <Alert tone="error">{panelError}</Alert> : null}
 
-      {rowsWithSuggestions.length > 0 ? (
+      {visibleRows.length > 0 ? (
         <>
           <div className="row" style={{ marginTop: '0.9rem' }}>
             {SUGGESTION_FIELDS.map((field) => {
@@ -370,13 +417,19 @@ export function EnrichmentPanel({ drafts, context, onChange }: EnrichmentPanelPr
           </div>
 
           <ul className="suggestions">
-            {rowsWithSuggestions.map((draft) => (
+            {visibleRows.map((draft) => (
               <li key={draft.id} className="suggestion-row">
                 <p className="suggestion-row__head">
                   <strong>{draft.english || '(ohne Stichwort)'}</strong>
                   {!draft.include ? <span className="muted small"> · abgewählt</span> : null}
                 </p>
-                {errors[draft.id] ? <Alert tone="error">{errors[draft.id]}</Alert> : null}
+                {errors[draft.id] ? (
+                  <Alert tone="error">
+                    <span className="visually-hidden">{draft.english}: </span>
+                    {errors[draft.id]} Für diese Vokabel gibt es keinen Vorschlag – trage sie
+                    selbst ein oder erzeuge die Vorschläge erneut.
+                  </Alert>
+                ) : null}
                 {SUGGESTION_FIELDS.filter((field) => isOpen(draft, field)).map((field) => {
                   const suggestion = suggestionFor(draft, field) as DraftSuggestion;
                   return (

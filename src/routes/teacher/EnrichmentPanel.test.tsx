@@ -31,13 +31,13 @@ function startingDrafts(): DraftRow[] {
 }
 
 /** Kleine Hülle mit Zustand – wie im Assistenten. */
-function Harness({ initial }: { initial: DraftRow[] }) {
+function Harness({ initial, context = CONTEXT }: { initial: DraftRow[]; context?: LearningContext }) {
   const [drafts, setDrafts] = useState(initial);
   return (
     <>
       <EnrichmentPanel
         drafts={drafts}
-        context={CONTEXT}
+        context={context}
         onChange={(next) => setDrafts((current) => syncManualEdits(current, next))}
       />
       <ul aria-label="Entwurf">
@@ -305,5 +305,119 @@ describe('Keine Überraschungen', () => {
     expect(translateSpy).not.toHaveBeenCalled();
     expect(enrichSpy).not.toHaveBeenCalled();
     expect(translation.prepareCount()).toBe(0);
+  });
+});
+
+describe('User Activation: beide Anbieter starten im selben Klick', () => {
+  it('ruft prepare für Übersetzung und Sprachmodell auf, bevor eines aufgelöst ist', async () => {
+    const translation = createFakeTranslationProvider({ gatePrepare: true });
+    const ai = createFakeAiProvider({ gatePrepare: true });
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+
+    // Noch ist kein prepare aufgelöst – trotzdem wurden beide bereits gerufen.
+    // Genau das prüft, dass zwischen ihnen keine asynchrone Grenze liegt.
+    expect(translation.prepareCount()).toBe(1);
+    expect(ai.prepareCount()).toBe(1);
+    expect(translation.translated).toHaveLength(0);
+    expect(ai.enriched).toHaveLength(0);
+
+    translation.releasePrepare();
+    ai.releasePrepare();
+
+    expect(await screen.findByText('to apologise-de')).toBeInTheDocument();
+    expect(translation.prepareCount()).toBe(1);
+    expect(ai.prepareCount()).toBe(1);
+  });
+
+  it('lässt das Sprachmodell arbeiten, wenn die Übersetzung scheitert', async () => {
+    const translation = createFakeTranslationProvider({ prepareFails: true });
+    const ai = createFakeAiProvider();
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+
+    await waitFor(() => expect(ai.enriched.length).toBeGreaterThan(0));
+    expect(translation.translated).toHaveLength(0);
+    expect(await screen.findByText(/Ein Modell konnte nicht vorbereitet werden/)).toBeInTheDocument();
+    expect(screen.getByText(/Übersetzungsmodell nicht ladbar/)).toBeInTheDocument();
+    // Die Vorschläge des funktionierenden Anbieters sind trotzdem da.
+    expect(screen.getAllByText('3 von 5').length).toBeGreaterThan(0);
+  });
+
+  it('lässt die Übersetzung arbeiten, wenn das Sprachmodell scheitert', async () => {
+    const translation = createFakeTranslationProvider();
+    const ai = createFakeAiProvider({ prepareFails: true });
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+
+    expect(await screen.findByText('to apologise-de')).toBeInTheDocument();
+    expect(ai.enriched).toHaveLength(0);
+    expect(screen.getByText(/Sprachmodell nicht ladbar/)).toBeInTheDocument();
+  });
+
+  it('bereitet nach einem Fehlversuch erneut vor – den erfolgreichen aber nicht', async () => {
+    const translation = createFakeTranslationProvider();
+    const ai = createFakeAiProvider({ prepareFails: true });
+    const user = setup({ translation: translation.provider, ai: ai.provider });
+
+    await generate(user);
+    await screen.findByText('to apologise-de');
+    expect(translation.prepareCount()).toBe(1);
+    expect(ai.prepareCount()).toBe(1);
+
+    await generate(user);
+    await waitFor(() => expect(ai.prepareCount()).toBe(2));
+    // Der erfolgreiche Anbieter wird nicht erneut geladen.
+    expect(translation.prepareCount()).toBe(1);
+  });
+});
+
+describe('Fehler bleiben sichtbar', () => {
+  it('zeigt eine Zeile auch dann, wenn beide Quellen scheitern', async () => {
+    // „water“ ist mehrdeutig – dafür gibt es bewusst keinen Regelvorschlag.
+    const rows = [
+      ['Englisch', 'Deutsch'],
+      ['water', ''],
+    ];
+    const drafts = buildDrafts(rows, detectColumns(rows), { splitMultipleMeanings: true });
+
+    const translation = createFakeTranslationProvider({ failFor: ['water'] });
+    const ai = createFakeAiProvider({ failFor: ['water'] });
+
+    // Ohne Thema entsteht auch kein Tag-Vorschlag – die Zeile hat danach
+    // wirklich nichts vorzuweisen außer ihrem Fehler.
+    render(
+      <ProviderRegistry value={{ translation: translation.provider, ai: ai.provider }}>
+        <Harness initial={drafts} context={{ grade: '7', cefrLevel: 'A2', topic: '' }} />
+      </ProviderRegistry>,
+    );
+    const user = userEvent.setup();
+
+    expect(screen.queryByText('Vorschlag')).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: /Vorschläge erzeugen/ }));
+
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts.length).toBeGreaterThan(0);
+    const text = alerts.map((alert) => alert.textContent ?? '').join(' ');
+    expect(text).toContain('water');
+    expect(text).toMatch(/Übersetzung fehlgeschlagen|Sprachmodell hat nicht geantwortet/);
+    expect(text).toMatch(/keinen Vorschlag/);
+  });
+
+  it('spricht nicht von zwei Vokabeln, wenn eine Zeile zwei Schritte auslöst', async () => {
+    const user = setup({
+      translation: createFakeTranslationProvider().provider,
+      ai: createFakeAiProvider().provider,
+    });
+    await generate(user);
+
+    // Drei Zeilen, davon zwei ohne Übersetzung → fünf Schritte, aber drei Vokabeln.
+    await waitFor(() =>
+      expect(screen.getByText('Fertig. Vorschläge für 3 Vokabeln liegen zur Prüfung bereit.'))
+        .toBeInTheDocument(),
+    );
   });
 });

@@ -37,7 +37,23 @@ async function expectNoSeriousViolations(page: Page, label: string): Promise<voi
   ).toEqual([]);
 }
 
+/**
+ * Entfernt die eingebauten Modell-APIs, bevor die App startet.
+ *
+ * Seit Sprint 2B.1a erkennt LexiFlow die echten Web-IDL-Interfaces – und je
+ * nach Browserbuild ist `Translator` auf einer http-Herkunft tatsächlich
+ * vorhanden. Dieser Test beschreibt aber ausdrücklich den Normalfall „Browser
+ * ohne Übersetzungs-API", also wird sie hier verlässlich abgeschaltet.
+ */
+async function withoutBrowserModels(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    Object.defineProperty(globalThis, 'Translator', { configurable: true, value: undefined });
+    Object.defineProperty(globalThis, 'LanguageModel', { configurable: true, value: undefined });
+  });
+}
+
 async function analyze(page: Page): Promise<void> {
+  await withoutBrowserModels(page);
   await page.goto('/#/material/import?quelle=text');
   await expect(
     page.getByText(/vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/),
@@ -56,6 +72,7 @@ test.describe('Textwerkstatt', () => {
         externalRequests.push(request.url());
     });
 
+    await withoutBrowserModels(page);
     await page.goto('/#/material');
     await page.getByRole('button', { name: 'Aus englischem Text erstellen' }).click();
     await expect(page.getByLabel('Englischer Text')).toBeVisible();
@@ -140,6 +157,7 @@ test.describe('Textwerkstatt', () => {
   });
 
   test('@smoke lehnt zu lange Texte ab, statt still zu kürzen', async ({ page }) => {
+    await withoutBrowserModels(page);
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').fill('a '.repeat(11_000));
     await expect(page.getByText('22.000 von 20.000 Zeichen')).toBeVisible();
@@ -159,6 +177,7 @@ test.describe('Textwerkstatt', () => {
   });
 
   test('@a11y Textwerkstatt ist mit der Tastatur bedienbar', async ({ page }) => {
+    await withoutBrowserModels(page);
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').focus();
     await page.keyboard.type('The neighbourhood is crowded today.');

@@ -40,10 +40,18 @@ interface TranslatorApi {
   create(options: TranslatorOptions): Promise<TranslatorInstance>;
 }
 
-/** Reine Feature Detection – der Zugriff bleibt an einer Stelle gebündelt. */
+/**
+ * Reine Feature Detection – der Zugriff bleibt an einer Stelle gebündelt.
+ *
+ * Ein Web-IDL-Interface-Objekt ist im Browser eine **Funktion** (eine
+ * Konstruktorfunktion mit statischen Methoden), kein einfaches Objekt. Ein
+ * `typeof === 'object'` würde die echte API also aussperren. Entscheidend ist
+ * allein, ob `availability` und `create` aufrufbar sind.
+ */
 export function getTranslatorApi(scope: unknown = globalThis): TranslatorApi | undefined {
   const candidate = (scope as { Translator?: unknown }).Translator;
-  if (!candidate || typeof candidate !== 'object') return undefined;
+  if (!candidate) return undefined;
+  if (typeof candidate !== 'object' && typeof candidate !== 'function') return undefined;
   const api = candidate as Partial<TranslatorApi>;
   if (typeof api.availability !== 'function' || typeof api.create !== 'function') return undefined;
   return api as TranslatorApi;

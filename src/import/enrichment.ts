@@ -72,10 +72,19 @@ export function translationTargets(drafts: readonly DraftRow[]): DraftRow[] {
   return drafts.filter(needsTranslation);
 }
 
-/** Zeilen, für die das Sprachmodell etwas beitragen kann. */
+/**
+ * Zeilen, für die das Sprachmodell etwas beitragen kann.
+ *
+ * Alle drei Felder zählen: Auch eine Zeile, der **nur** die Themen-Tags fehlen,
+ * ist ein sinnvolles Ziel – sonst bliebe genau dieses Feld ohne Vorschlag.
+ */
 export function needsModel(draft: DraftRow): boolean {
   if (!draft.include || draft.english.trim().length === 0) return false;
-  return isFieldEmpty(draft, 'partOfSpeech') || isFieldEmpty(draft, 'difficulty');
+  return (
+    isFieldEmpty(draft, 'partOfSpeech') ||
+    isFieldEmpty(draft, 'difficulty') ||
+    isFieldEmpty(draft, 'topicTags')
+  );
 }
 
 export function modelTargets(drafts: readonly DraftRow[]): DraftRow[] {

@@ -12,7 +12,14 @@ import {
   syncManualEdits,
   type DraftSuggestion,
 } from './suggestions';
-import { applyRuleSuggestions, modelSuggestions, translationSuggestion } from './enrichment';
+import {
+  applyRuleSuggestions,
+  modelSuggestions,
+  modelTargets,
+  needsModel,
+  needsTranslation,
+  translationSuggestion,
+} from './enrichment';
 import { emptyDraft, newSentence, type DraftRow } from './draft';
 import type { LearningContext } from './enrichment';
 
@@ -245,5 +252,47 @@ describe('Regelvorschläge im Entwurf', () => {
   it('doppelt ein bereits vorhandenes Thema nicht', () => {
     const [row] = applyRuleSuggestions([draft({ tags: 'city life' })], CONTEXT);
     expect(suggestionFor(row as DraftRow, 'topicTags')).toBeUndefined();
+  });
+});
+
+describe('Welche Zeilen das Sprachmodell braucht', () => {
+  it('nimmt eine Zeile, der nur die Themen-Tags fehlen', () => {
+    const row = draft({ partOfSpeech: 'adjective', difficulty: 3, tags: '' });
+    expect(needsModel(row)).toBe(true);
+  });
+
+  it('nimmt eine Zeile, der nur die Wortart fehlt', () => {
+    expect(needsModel(draft({ partOfSpeech: '', difficulty: 3, tags: 'City' }))).toBe(true);
+  });
+
+  it('nimmt eine Zeile, der nur die Schwierigkeit fehlt', () => {
+    expect(needsModel(draft({ partOfSpeech: 'adjective', difficulty: '', tags: 'City' }))).toBe(true);
+  });
+
+  it('lässt eine vollständige Zeile aus', () => {
+    expect(needsModel(draft({ partOfSpeech: 'adjective', difficulty: 3, tags: 'City' }))).toBe(false);
+  });
+
+  it('lässt eine abgewählte Zeile aus, auch wenn alles fehlt', () => {
+    expect(needsModel(draft({ include: false }))).toBe(false);
+  });
+
+  it('lässt eine Zeile ohne Stichwort aus', () => {
+    expect(needsModel(draft({ english: '   ' }))).toBe(false);
+  });
+
+  it('filtert die Liste entsprechend', () => {
+    const rows = [
+      draft({ id: '1', english: 'a', partOfSpeech: 'adjective', difficulty: 3, tags: 'City' }),
+      draft({ id: '2', english: 'b', partOfSpeech: 'adjective', difficulty: 3, tags: '' }),
+      draft({ id: '3', english: 'c', include: false }),
+    ];
+    expect(modelTargets(rows).map((row) => row.id)).toEqual(['2']);
+  });
+
+  it('übersetzt weiterhin nur Zeilen ohne deutsche Antwort', () => {
+    expect(needsTranslation(draft({ german: '' }))).toBe(true);
+    expect(needsTranslation(draft({ german: 'überfüllt' }))).toBe(false);
+    expect(needsTranslation(draft({ german: '', include: false }))).toBe(false);
   });
 });
