@@ -78,6 +78,15 @@ export const CHROME_TRANSLATION_NOTICE =
 export function createChromeTranslationProvider(scope: unknown = globalThis): TranslationProvider {
   let instance: TranslatorInstance | undefined;
   let instanceKey = '';
+  /**
+   * Eine bereits laufende Vorbereitung – sie wird geteilt statt wiederholt.
+   *
+   * Zwei parallele `prepare()`-Aufrufe würden sonst zweimal `create()` rufen,
+   * und der zweite Aufruf verwürfe die Instanz des ersten. Seit Sprint 3B.1a
+   * kann das vorkommen: Die Textwerkstatt stößt die Vorbereitung im Klickpfad
+   * an, die Prüfansicht wartet darauf.
+   */
+  let pending: { key: string; promise: Promise<void> } | undefined;
   /** Übersetzungen laufen streng nacheinander. */
   let queue: Promise<unknown> = Promise.resolve();
 
@@ -112,7 +121,19 @@ export function createChromeTranslationProvider(scope: unknown = globalThis): Tr
       if (signal?.aborted) throw new TranslationAbortedError();
 
       const key = keyOf(source, target);
-      if (instance && instanceKey === key) return;
+      if (instance && instanceKey === key) {
+        onProgress?.(1);
+        return;
+      }
+
+      // Der zweite Aufrufer hängt sich an die laufende Vorbereitung. Sein
+      // `signal` bricht sie bewusst **nicht** ab: Was der Browser einmal lädt,
+      // lädt er für alle – und der erste Aufrufer wartet noch darauf.
+      if (pending && pending.key === key) {
+        await pending.promise;
+        onProgress?.(1);
+        return;
+      }
 
       instance?.destroy?.();
       instance = undefined;
@@ -130,8 +151,18 @@ export function createChromeTranslationProvider(scope: unknown = globalThis): Tr
         ...(signal ? { signal } : {}),
       };
 
-      instance = await api.create(options);
-      instanceKey = key;
+      const run = (async () => {
+        instance = await api.create(options);
+        instanceKey = key;
+      })();
+      pending = { key, promise: run };
+
+      try {
+        await run;
+      } finally {
+        // Auch im Fehlerfall: Der nächste Versuch soll wieder starten dürfen.
+        if (pending?.promise === run) pending = undefined;
+      }
       onProgress?.(1);
     },
 

@@ -23,10 +23,32 @@ async function seed(direction: LearningDirection = 'both'): Promise<void> {
   await savePack({
     meta: makeMeta({ id: PACK_ID, direction }),
     entries: [
-      makeEntry({ id: 'e1', english: 'island', germanAnswers: ['die Insel'] }),
-      makeEntry({ id: 'e2', english: 'bay', germanAnswers: ['die Bucht'] }),
-      makeEntry({ id: 'e3', english: 'cave', germanAnswers: ['die Höhle'] }),
-      makeEntry({ id: 'e4', english: 'boat', germanAnswers: ['das Boot'] }),
+      // Mit Beispielsatz, damit auch Lückensätze möglich sind – die braucht
+      // der Test zur Auswahl der Übungsformen.
+      makeEntry({
+        id: 'e1',
+        english: 'island',
+        germanAnswers: ['die Insel'],
+        exampleSentences: [{ english: 'The island is famous.' }],
+      }),
+      makeEntry({
+        id: 'e2',
+        english: 'bay',
+        germanAnswers: ['die Bucht'],
+        exampleSentences: [{ english: 'The bay is calm.' }],
+      }),
+      makeEntry({
+        id: 'e3',
+        english: 'cave',
+        germanAnswers: ['die Höhle'],
+        exampleSentences: [{ english: 'The cave is dark.' }],
+      }),
+      makeEntry({
+        id: 'e4',
+        english: 'boat',
+        germanAnswers: ['das Boot'],
+        exampleSentences: [{ english: 'The boat is small.' }],
+      }),
     ],
   });
 }
@@ -136,5 +158,32 @@ describe('Die Wahl in der Übungsrunde', () => {
         /Aufgabe 1 von 8/,
       );
     });
+  });
+});
+
+describe('Konsistenz der Auswahl', () => {
+  it('entfernt Übungsformen, die in der neuen Richtung unmöglich sind', async () => {
+    await seed('both');
+    const user = userEvent.setup();
+    renderDetail();
+
+    // Lückensätze gibt es nur produktiv.
+    await user.click(await screen.findByRole('radio', { name: 'Deutsch → Englisch' }));
+    const cloze = await screen.findByRole('checkbox', { name: /Lückensatz ohne Wortbank/ });
+    await user.click(cloze);
+    expect(cloze).toBeChecked();
+
+    await user.click(screen.getByRole('radio', { name: 'Englisch → Deutsch' }));
+
+    // Die Übungsform ist jetzt gesperrt – und vor allem nicht mehr ausgewählt.
+    // Genau das war der Fehler: eine unsichtbare Auswahl, die die Runde leer
+    // laufen ließ.
+    const clozeAfter = screen.getByRole('checkbox', { name: /Lückensatz ohne Wortbank/ });
+    expect(clozeAfter).toBeDisabled();
+    expect(clozeAfter).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Lernrunde starten' }));
+    expect(await screen.findByRole('heading', { name: 'Übungsseite' })).toBeInTheDocument();
   });
 });

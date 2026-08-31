@@ -6,10 +6,11 @@ import { arrangeTargets, shuffle, type Rng, type SessionTarget } from './exercis
  *
  * `planSession` bleibt die einzige Quelle für den Lernplan: Sie plant nur neue
  * und fällige Ziele und ihre Runden schreiben Lernstände. `planFreeSession`
- * beantwortet eine andere Frage: „Was darf ich jetzt überhaupt üben?“ Sie nimmt
- * deshalb auch später fällige Ziele auf – und ihre Runden ändern **nichts** am
+ * beantwortet eine andere Frage: „Was darf ich jetzt überhaupt üben?“ Antwort
+ * seit Sprint 3B.1: alles, was im Paket steht – auch später Fälliges und beide
+ * Richtungen, ohne Freischaltbedingung. Ihre Runden ändern **nichts** am
  * Lernstand. Beide Funktionen teilen sich nur die neutralen Bausteine
- * (`isDirectionUnlocked`, `shuffle`, `arrangeTargets`).
+ * (`shuffle`, `arrangeTargets`).
  *
  * Eigene Begriffe statt geliehener: „verfügbar“ ist nicht „bereit“. Gezählt
  * werden Aufgaben, also Kombinationen aus Vokabel und Richtung – bei „beide
@@ -19,7 +20,7 @@ import { arrangeTargets, shuffle, type Rng, type SessionTarget } from './exercis
 export interface FreeSessionPlan {
   /** Die für diese freie Runde geplanten Ziele in Reihenfolge. */
   targets: SessionTarget[];
-  /** Alle freigeschalteten Richtungsziele – unabhängig von der Fälligkeit. */
+  /** Alle Richtungsziele des Pakets – unabhängig von der Fälligkeit. */
   availableCount: number;
   /** Immer `targets.length`. */
   plannedCount: number;

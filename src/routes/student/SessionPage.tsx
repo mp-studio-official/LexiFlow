@@ -297,8 +297,8 @@ export function SessionPage() {
         <Alert tone="info">
           {free ? (
             <>
-              Für dieses Paket lässt sich gerade keine freie Runde zusammenstellen. Es ist
-              entweder noch keine Vokabel freigeschaltet oder das Paket ist leer.
+              Für dieses Paket lässt sich gerade keine freie Runde zusammenstellen. Entweder
+              enthält es keine Vokabeln, oder die gewählten Übungsformen passen nicht dazu.
             </>
           ) : plan?.nextDueAt ? (
             <>

@@ -18,6 +18,10 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 3B.1a** – Ehrlicher Übersetzungsablauf und robuste Wortformen: Ein
+  Klick genügt für Analyse **und** Vorschläge, bekannte Abkürzungen bringen ihre
+  deutsche Entsprechung ohne Modell mit, ungeklärte Abkürzungen werden getrennt
+  gezählt, und mehrdeutige Wortformen bleiben mehrdeutig.
 * **Sprint 3B.1** – Textqualität, Übersetzung und Lernrichtungen: Wortformen
   desselben Wortes werden zu einer Vokabel zusammengefasst, Abkürzungen wie
   „600 sq mi“ in Kontext aufgelöst, Übersetzungsvorschläge sind Teil des
@@ -773,6 +777,14 @@ Freies Üben bietet **beide Richtungen sofort** an, ohne jede Freischaltung
 es kann also nichts verderben. Vier Vokabeln in einem Paket mit beiden
 Richtungen ergeben acht Aufgaben.
 
+### Auswahl bleibt konsistent
+
+Lückensätze gibt es nur produktiv. Wer sie auswählt und dann auf
+Englisch → Deutsch wechselt, hätte sonst eine unsichtbare, unmögliche Auswahl –
+und eine Runde, die leer bliebe. Ein Richtungswechsel entfernt deshalb alle
+Übungsformen, die in der neuen Richtung nicht möglich sind, und beim Start
+wandert ohnehin nur die Schnittmenge mit `possibleKinds` in die URL.
+
 ### In der Runde
 
 Gemischte Runden enthalten beide Richtungen mit dem gewohnten Abstand zwischen
@@ -878,6 +890,16 @@ Wörter, wird nichts erfunden und nichts aufgefüllt – stattdessen steht dort
 ehrlich *„12 von 20 geeigneten Vokabeln gefunden. Der Text enthält nicht mehr
 geeignete Kandidaten – erfunden wird nichts.“*
 
+**Gezählt werden nur geeignete Vokabeln.** Eine ungeklärte Abkürzung ist keine:
+Sie bleibt sichtbar, damit die Lehrkraft sie vervollständigen kann, belegt aber
+keinen der gewünschten Plätze und ist **nicht vorausgewählt**. Die Anzeige nennt
+beides getrennt:
+
+> 10 von 10 geeigneten Vokabeln gefunden · 2 Abkürzungen müssen geprüft werden.
+
+Sobald eine Abkürzung eine Langform und eine deutsche Antwort hat, zählt sie als
+geeignete Vokabel mit. Ohne offene Abkürzungen bleibt es beim bekannten Satz.
+
 Ausgewählt werden die häufigsten Kandidaten; bei gleicher Häufigkeit entscheidet
 die Reihenfolge im Text. Das ist deterministisch, nachvollziehbar und
 funktioniert **ohne jedes Sprachmodell** (`limitCandidates`). Ist eine
@@ -928,19 +950,37 @@ sortiert sie – ohne die Auswahl zu verändern.
 | Wohin | nirgendwohin: *„Die Übersetzung läuft lokal in Chrome. Der Text wird nicht an LexiFlow oder einen Cloud-Dienst übertragen.“* |
 | Ohne Unterstützung | ein normaler Zustand, kein Fehler – alles wird von Hand eingetragen, sonst ändert sich nichts |
 
-**Die Übersetzung liegt seit Sprint 3B.1 im Hauptweg.** Ist ein lokales Modell
-verfügbar oder ladbar, heißt die Hauptaktion der Textwerkstatt „Text analysieren
-und Übersetzungen vorschlagen“; ohne Modell bleibt es bei „Text lokal
-analysieren“. Keine Schaltfläche verspricht also ein Modell, das es nicht gibt.
+**Die Übersetzung liegt seit Sprint 3B.1 im Hauptweg – und seit Sprint 3B.1a
+hält der Knopf sein Versprechen.** Ist ein lokales Modell verfügbar oder ladbar,
+heißt die Hauptaktion der Textwerkstatt „Text analysieren und Übersetzungen
+vorschlagen“; ohne Modell bleibt es bei „Text lokal analysieren“. Keine
+Schaltfläche verspricht also ein Modell, das es nicht gibt.
 
-Der Klick startet `prepare()` **synchron im Klickpfad** – sonst verfällt die
-User-Activation und der Download beginnt nie. Die Analyse wartet trotzdem nicht:
-Sie ist rein lokal und fertig, bevor irgendein Modell reagiert hat. Die
-Vorschläge erscheinen anschließend an den jeweiligen Kandidaten. Bestehende
-Vorbereitungssperren und geteilte `prepare()`-Promises gelten weiter; ein zweiter
-Aufruf löst keinen zweiten Download aus. Fehler stehen **an der betroffenen
-Zeile** samt „Erneut versuchen“, Abbruch und Anbieterwechsel funktionieren
-unverändert.
+Ein Klick, ein Ablauf:
+
+1. `prepare()` startet **synchron im Klickpfad** – sonst verfällt die
+   User-Activation und der Download beginnt nie.
+2. Die Prüfansicht öffnet sich **sofort**. Sie wartet auf nichts: Die Analyse
+   ist rein lokal und fertig, bevor irgendein Modell reagiert hat.
+3. Sobald dieselbe Zusage erfüllt ist, laufen die Vorschläge für die
+   ausgewählten Kandidaten **von selbst** an. Ein zweiter Klick war der Fehler,
+   den Sprint 3B.1a behoben hat.
+
+Die Zusage wird weitergereicht, nicht wiederholt (`TranslationPreparation` in
+`src/translation/preparation.ts`): Die Werkstatt startet sie, die Prüfansicht
+wartet auf dasselbe Promise. Ein zweiter `prepare()`-Aufruf findet nicht statt,
+und auch der Chrome-Anbieter selbst teilt eine bereits laufende Vorbereitung –
+zwei `create()`-Aufrufe würden die erste Instanz verwerfen.
+
+Fehler werden **nicht verschluckt.** Das Ergebnis der Vorbereitung erfüllt sich
+immer und trägt den Fehlschlag in sich (`{ ok: false, error }`); ein
+`catch(() => undefined)` würde ihn unsichtbar machen, eine offene Ablehnung
+landete als „unhandled rejection“ in der Konsole. Scheitert die Vorbereitung,
+steht der Grund in der Prüfansicht, daneben „Erneut versuchen“ und der Hinweis,
+dass die Handeingabe weiterhin funktioniert. Fehler einzelner Übersetzungen
+stehen **an der betroffenen Zeile**; Abbruch und Anbieterwechsel funktionieren
+unverändert. Wird die Ansicht verlassen, werden keine Zustände mehr gesetzt und
+keine Übersetzungen mehr angestoßen.
 
 Ein Vorschlag ist **immer ungeprüft**. Er steht getrennt neben dem Eingabefeld
 und wird nie automatisch übernommen; erst „Vorschlag übernehmen“ schreibt ihn in
@@ -1039,9 +1079,8 @@ In der Prüfansicht steht das als ein Satz:
 
 > Im Text: islands, island · insgesamt 18-mal
 
-Dazu ein grammatischer Hinweis wie *„Plural: islands“*. Steht in derselben
-Familie eine `-ed`- oder `-ing`-Form, ist das Wort ein Verb – dann heißt es
-*„3. Person Singular: visits“* statt *„Plural: visits“*.
+Dazu ein grammatischer Hinweis. Wie genau er ausfällt, hängt davon ab, was der
+Text hergibt – siehe „Was der Nachbar links verrät“ weiter unten.
 
 **Zwei Sicherheitsstufen.** Ein Vokabeltrainer ohne Wörterbuch kann englische
 Morphologie nicht sicher auflösen; er kann nur entscheiden, wann er sich sicher
@@ -1058,6 +1097,36 @@ kein Beleg für die Vokabel `protect`. Steht `visit` im Text, ist die Sache
 eindeutig – dann werden `visit`, `visits` und `visited` zu einer Vokabel. Steht
 es nicht da, bleibt `visited` stehen. Zwei Vorschläge sind ein
 Schönheitsfehler; zwei zusammengeworfene Wörter sind ein fachlicher Fehler.
+
+**Was der Nachbar links verrät.** Vor einem Nomen steht im Englischen fast immer
+ein Artikel, ein Zahlwort oder ein Possessiv („the islands“, „1,969 islands“),
+vor einem Verb ein „to“ oder ein Subjektpronomen („he visits“). Mehr Kontext als
+dieses eine Wort wertet die Analyse nicht aus – aber es genügt, um zwei Dinge
+ehrlich zu entscheiden:
+
+* **Die Beschriftung einer `-s`-Form.** Ohne Beleg heißt sie neutral
+  *„Plural oder 3. Person Singular: visits“*; mit Nomenbeleg *„Plural: islands“*,
+  mit Verbbeleg *„3. Person Singular: visits“*. Widersprüchliche Belege sind
+  kein Beleg. Enthält die Familie eine `-ed`- oder `-ing`-Form, ist die Sache
+  ohnehin klar.
+* **Mehrdeutige `-ves`-Formen.** `lives` gehört zu `life` **oder** zu `to live`,
+  `leaves` zu `leaf` oder zu `to leave` (ebenso `halves`, `shelves`). Ohne
+  eindeutigen Beleg – aus dem Nachbarwort oder aus einer im Text vorhandenen
+  Grundform – werden sie **gar nicht** zugeordnet und bleiben ein eigener
+  Eintrag.
+
+**`-es` ist kein einheitliches Muster.** Diese Fälle sind einzeln geregelt und
+geprüft:
+
+| Eingabe | Ergebnis | Regel |
+| --- | --- | --- |
+| `buses`, `gases`, `lenses` | `bus`, `gas`, `lens` | Der Singular endet selbst auf `-s` und steht in `INVARIANT_S` |
+| `quizzes` | `quiz` | Sibilant + `-es`, doppelter Endkonsonant fällt |
+| `heroes`, `potatoes` | `hero`, `potato` | `-oes` nach mehrsilbigem Stamm |
+| `shoes`, `toes` | `shoe`, `toe` | „sho“ und „to“ sind keine Stämme (Silbenmaß 0) |
+| `houses`, `noses` | `house`, `nose` | Das stumme `e` gehört zum Stamm |
+| `goes`, `does` | `go`, `do` | Kurze Liste unregelmäßiger `-s`-Formen |
+| `has` | `has` | Unter vier Zeichen rührt die Analyse nichts an – nie `ha` |
 
 **Schutzmechanismen**, alle sichtbar und geprüft statt in einer Heuristik
 versteckt:
@@ -1121,6 +1190,15 @@ und keine Abkürzung wird gelöscht, nur weil sie kurz ist.
 In der Prüfansicht ist die **Langform bearbeitbar** („Langform für „sq mi““),
 ebenso Übersetzung und Hinweis; entfernen lässt sich der Vorschlag wie jeder
 andere.
+
+**Die bekannte deutsche Entsprechung erscheint sofort als Vorschlag** – bei
+„square mile (sq mi)“ also „die Quadratmeile“, gekennzeichnet als *lokaler
+Vorschlag*. Sie kommt aus dem Lexikon dieser Datei, ist deterministisch und
+braucht **kein Übersetzungsmodell**: Auch ein Browser ohne Translator zeigt sie.
+Wie jeder Vorschlag gilt sie als ungeprüft und steht neben dem Antwortfeld, bis
+die Lehrkraft sie übernimmt, bearbeitet oder ablehnt. Ein Modell überschreibt
+sie nicht stillschweigend – es übersetzt dann nur noch den Beispielsatz. Eine
+unbekannte Abkürzung bekommt weiterhin **keine** erfundene Übersetzung.
 
 ### Redaktionelle Reste
 
@@ -1651,9 +1729,13 @@ funktioniert vollständig offline.
 * **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
   Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.
 * **Wortformen ohne Wörterbuch bleiben Regelwerk.** Unregelmäßige Verben
-  (`go`/`went`) werden nicht zusammengeführt, Homonyme wie `lives` nicht
-  getrennt. Die Listen `INVARIANT_S` und `NOT_INFLECTED` sind handgepflegt und
-  decken den Schulwortschatz ab, nicht das Englische.
+  (`go`/`went`, `buy`/`bought`) werden nicht zusammengeführt. Die Listen
+  `INVARIANT_S`, `NOT_INFLECTED`, `AMBIGUOUS_PLURALS` und `IRREGULAR_S_FORMS`
+  sind handgepflegt und decken den Schulwortschatz ab, nicht das Englische.
+* **Der Wortart-Beleg ist ein Nachbarwort, keine Wortartenerkennung.** „the
+  visits“ macht aus einer Verbform einen Plural, wenn der Satz es so nahelegt.
+  Deshalb ist die neutrale Beschriftung der Normalfall und die genaue die
+  Ausnahme – nicht umgekehrt.
 * **Das Abkürzungslexikon ist kurz.** Was nicht darin steht, wird als
   „Abkürzung – Langform prüfen“ gemeldet statt geraten. Mehrdeutige Kürzel wie
   `m` und `in` fehlen mit Absicht.

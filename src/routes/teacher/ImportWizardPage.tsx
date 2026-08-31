@@ -5,6 +5,10 @@ import { DraftTable } from './DraftTable';
 import { MetadataForm, emptyMetaDraft, type MetaDraft } from './MetadataForm';
 import { useTranslationProvider } from '../../providers/ProviderContext';
 import type { ProviderState } from '../../providers/state';
+import {
+  startPreparation,
+  type TranslationPreparation,
+} from '../../translation/preparation';
 
 /** Die Textwerkstatt übersetzt ausschließlich Englisch → Deutsch. */
 const TRANSLATION_SOURCE = 'en';
@@ -45,6 +49,7 @@ import {
   MAX_CANDIDATE_COUNT,
   MIN_CANDIDATE_COUNT,
   clampCandidateCount,
+  countCandidates,
   limitCandidates,
 } from '../../import/candidateLimit';
 import {
@@ -123,6 +128,12 @@ export function ImportWizardPage() {
    * der Schaltfläche – nie darüber, ob analysiert werden kann.
    */
   const [translationState, setTranslationState] = useState<ProviderState>('unavailable');
+  /**
+   * Die im Klickpfad gestartete Vorbereitung. Sie wird an die Prüfansicht
+   * weitergereicht, damit dort **dieselbe** Zusage abgewartet wird, statt eine
+   * zweite zu starten.
+   */
+  const [preparation, setPreparation] = useState<TranslationPreparation | null>(null);
   const [englishText, setEnglishText] = useState('');
   const [includeStopwords, setIncludeStopwords] = useState(false);
   const [includeProperNouns, setIncludeProperNouns] = useState(false);
@@ -224,13 +235,15 @@ export function ImportWizardPage() {
       setError('Bitte zuerst einen englischen Text einfügen.');
       return;
     }
-    if (translatorReady) {
-      // Bewusst kein `await`: Der Fehlerfall wird in der Kandidatenansicht
-      // gemeldet, wo auch der Zustand des Anbieters steht.
-      void translationProvider
-        .prepare(TRANSLATION_SOURCE, TRANSLATION_TARGET)
-        .catch(() => undefined);
-    }
+    // Die Vorbereitung startet synchron, noch vor jedem `await` – sonst
+    // verfällt die User-Activation und der Modelldownload beginnt nie. Der
+    // Fehlerfall wird nicht verschluckt: Er reist im Ergebnis mit und wird in
+    // der Prüfansicht gemeldet, wo auch die Handeingabe steht.
+    setPreparation(
+      translatorReady
+        ? startPreparation(translationProvider, TRANSLATION_SOURCE, TRANSLATION_TARGET)
+        : null,
+    );
 
     try {
       const result = analyzeText(englishText, { includeStopwords, includeProperNouns });
@@ -250,8 +263,12 @@ export function ImportWizardPage() {
       setRequestedCount(wanted);
       setError('');
       setStep('candidates');
+      const counts = countCandidates(limited);
       setAnnouncement(
-        `${limited.length} von ${wanted} geeigneten Vokabeln aus ${result.sentenceCount} Sätzen gefunden.`,
+        `${counts.usable} von ${wanted} geeigneten Vokabeln aus ${result.sentenceCount} Sätzen gefunden.` +
+          (counts.unresolved > 0
+            ? ` ${counts.unresolved === 1 ? '1 Abkürzung muss' : `${counts.unresolved} Abkürzungen müssen`} geprüft werden.`
+            : ''),
       );
     } catch (caught: unknown) {
       setAnalysis(null);
@@ -722,6 +739,7 @@ export function ImportWizardPage() {
           candidates={candidates}
           context={learningContext}
           requestedCount={requestedCount}
+          preparation={preparation}
           onContextChange={(next) => {
             // Derselbe Meta-Zustand wie im übrigen Assistenten – das MetadataForm
             // findet die Angaben im nächsten Schritt schon vor.

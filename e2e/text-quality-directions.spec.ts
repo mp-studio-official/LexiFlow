@@ -114,18 +114,25 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await expect(page.getByLabel('Deutsche Antwort für „sq“')).toHaveCount(0);
     await expect(page.getByLabel('Deutsche Antwort für „mi“')).toHaveCount(0);
 
-    // 6. Lokale Übersetzungsvorschläge – erst nach ausdrücklichem Klick.
-    await page.getByRole('button', { name: 'Keine auswählen' }).click();
-    await page.getByLabel('island übernehmen').check();
-    await page.getByLabel('bay übernehmen').check();
-    await page.getByRole('button', { name: /Vorschläge erzeugen/ }).click();
+    // 6. Der eine Klick genügt: Die Vorschläge laufen nach der Vorbereitung von
+    //    selbst an. Ein zweiter Knopf wird hier bewusst nicht gedrückt.
+    await expect(
+      page.getByRole('button', { name: 'Vorschlag für island übernehmen' }),
+    ).toBeVisible({ timeout: 15_000 });
 
-    await expect(page.getByLabel('Deutsche Antwort für „island“')).toHaveValue('', {
-      timeout: 10_000,
-    });
+    // Vorgeschlagen ist nicht übernommen: Das Feld bleibt leer.
+    await expect(page.getByLabel('Deutsche Antwort für „island“')).toHaveValue('');
     await page.getByRole('button', { name: 'Vorschlag für island übernehmen' }).click();
     await expect(page.getByLabel('Deutsche Antwort für „island“')).toHaveValue('die Insel');
 
+    // Der Abkürzungsvorschlag stammt aus dem Lexikon, nicht aus dem Modell.
+    await expect(page.getByText('die Quadratmeile')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Keine auswählen' }).click();
+    // Ausdrücklich die Auswahlkästchen: „… übernehmen“ heißt jetzt auch der
+    // Knopf am Vorschlag.
+    await page.getByRole('checkbox', { name: 'island übernehmen' }).check();
+    await page.getByRole('checkbox', { name: 'bay übernehmen' }).check();
     await page.getByLabel('Deutsche Antwort für „bay“').fill('die Bucht');
 
     await page.getByRole('button', { name: /2 Vokabeln in die Vorschau übernehmen/ }).click();
@@ -176,6 +183,11 @@ test.describe('Textqualität und Lernrichtungen', () => {
 
     // Der Grund steht dabei, und die Handeingabe funktioniert.
     await expect(page.getByText(/Dieser Browser bietet keine lokale Übersetzung/)).toBeVisible();
+
+    // Der lokal bekannte Abkürzungsvorschlag braucht kein Modell.
+    await expect(page.getByText('lokaler Vorschlag')).toBeVisible();
+    await expect(page.getByText('die Quadratmeile')).toBeVisible();
+    await expect(page.getByLabel('Deutsche Antwort für „square mile (sq mi)“')).toHaveValue('');
     await page.getByLabel('Deutsche Antwort für „island“').fill('die Insel');
     await expect(page.getByLabel('Deutsche Antwort für „island“')).toHaveValue('die Insel');
 

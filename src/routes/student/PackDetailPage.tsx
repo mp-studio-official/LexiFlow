@@ -169,6 +169,22 @@ export function PackDetailPage() {
   const directionOptions = directionChoicesFor(pack.meta.direction);
   const roundDirection = effectiveDirection(pack.meta.direction, directionChoice);
   const possibleKinds = kindsAvailableInPack(pack.entries, roundDirection);
+
+  /**
+   * Richtung wechseln – und dabei aufräumen.
+   *
+   * Lückensätze gibt es nur produktiv. Wer sie auswählt und dann auf
+   * Englisch → Deutsch wechselt, hätte sonst eine unsichtbare Auswahl, die die
+   * Runde leer laufen ließe.
+   */
+  const entries = pack.entries;
+  const packDirection = pack.meta.direction;
+
+  function chooseDirection(next: DirectionChoice): void {
+    setDirectionChoice(next);
+    const stillPossible = kindsAvailableInPack(entries, effectiveDirection(packDirection, next));
+    setSelectedKinds((current) => current.filter((kind) => stillPossible.has(kind)));
+  }
   const bothDirections = pack.meta.direction === 'both';
   const lockedTotal = stands.reduce((sum, stand) => sum + stand.breakdown.locked, 0);
 
@@ -201,7 +217,10 @@ export function PackDetailPage() {
 
   function start(): void {
     const params = new URLSearchParams();
-    if (selectedKinds.length > 0) params.set('kinds', selectedKinds.join(','));
+    // Nur was in dieser Richtung überhaupt möglich ist. Eine unmögliche
+    // Übungsform in der URL ergäbe eine Runde ohne Aufgaben.
+    const kinds = selectedKinds.filter((kind) => possibleKinds.has(kind));
+    if (kinds.length > 0) params.set('kinds', kinds.join(','));
     params.set('length', String(length));
     params.set('seed', String(seed));
     // Freies Üben wird ausdrücklich transportiert; ohne `mode` gilt der Lernplan.
@@ -421,7 +440,7 @@ export function PackDetailPage() {
                   aria-label={DIRECTION_CHOICE_LABELS[choice]}
                   aria-describedby={`direction-${choice}-info`}
                   checked={directionChoice === choice}
-                  onChange={() => setDirectionChoice(choice)}
+                  onChange={() => chooseDirection(choice)}
                 />
                 <span>
                   <strong>{DIRECTION_CHOICE_LABELS[choice]}</strong>

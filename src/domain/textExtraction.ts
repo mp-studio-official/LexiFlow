@@ -9,7 +9,9 @@ import {
   buildFamilies,
   describeForms,
   describeInflections,
+  evidenceForPreceding,
   type FamilyForm,
+  type FormEvidence,
   type FormObservation,
 } from './wordForms';
 
@@ -321,6 +323,20 @@ interface Accumulator {
   displayFromMidSentence: boolean;
   capitalizedEverywhere: boolean;
   seenMidSentence: boolean;
+  /** Belege aus dem Satz – über alle Fundstellen gesammelt. */
+  nounEvidence: boolean;
+  verbEvidence: boolean;
+}
+
+/**
+ * Das Wort unmittelbar vor einer Fundstelle.
+ *
+ * Zahlen zählen mit („1,969 islands“), Satzzeichen werden übersprungen. Mehr
+ * Kontext als dieses eine Wort wertet die Analyse bewusst nicht aus.
+ */
+function precedingWord(sentence: string, offset: number): string | undefined {
+  return /([\p{L}\p{N}][\p{L}\p{N},.'’-]*)[^\p{L}\p{N}]*$/u
+    .exec(sentence.slice(0, offset))?.[1];
 }
 
 function isCapitalized(token: string): boolean {
@@ -401,6 +417,9 @@ export function extractTextCandidates(
 
       const midSentence = tokenIndex > 0;
       const capitalized = isCapitalized(token.text);
+      // Schritt 1b: der Nachbar links. Er entscheidet später, ob eine `-s`-Form
+      // als Plural oder als 3. Person beschriftet werden darf.
+      const evidence = evidenceForPreceding(precedingWord(searchable, token.offset));
       const existing = accumulators.get(normalized);
 
       if (!existing) {
@@ -414,6 +433,8 @@ export function extractTextCandidates(
           displayFromMidSentence: midSentence,
           capitalizedEverywhere: capitalized,
           seenMidSentence: midSentence,
+          nounEvidence: evidence.noun === true,
+          verbEvidence: evidence.verb === true,
         });
         return;
       }
@@ -421,6 +442,8 @@ export function extractTextCandidates(
       existing.occurrences += 1;
       existing.capitalizedEverywhere = existing.capitalizedEverywhere && capitalized;
       existing.seenMidSentence = existing.seenMidSentence || midSentence;
+      existing.nounEvidence = existing.nounEvidence || evidence.noun === true;
+      existing.verbEvidence = existing.verbEvidence || evidence.verb === true;
       // Eine Fundstelle mitten im Satz zeigt die echte Schreibweise.
       if (midSentence && !existing.displayFromMidSentence) {
         existing.display = token.text;
@@ -432,14 +455,21 @@ export function extractTextCandidates(
   // Schritt 2: Wortformen zu lexikalischen Familien gruppieren. Erst hier
   // weiß die Analyse, welche Formen der Text überhaupt enthält – und nur mit
   // diesem Wissen darf sie `larger` auf `large` beziehen.
-  const observations: FormObservation[] = [...accumulators.values()].map((item) => ({
-    normalized: item.normalized,
-    display: item.display,
-    occurrences: item.occurrences,
-    firstOccurrence: item.firstOccurrence,
-    sentenceIndex: item.sentenceIndex,
-    sourceSentence: item.sourceSentence,
-  }));
+  const observations: FormObservation[] = [...accumulators.values()].map((item) => {
+    const evidence: FormEvidence = {
+      ...(item.nounEvidence ? { noun: true } : {}),
+      ...(item.verbEvidence ? { verb: true } : {}),
+    };
+    return {
+      normalized: item.normalized,
+      display: item.display,
+      occurrences: item.occurrences,
+      firstOccurrence: item.firstOccurrence,
+      sentenceIndex: item.sentenceIndex,
+      sourceSentence: item.sourceSentence,
+      evidence,
+    };
+  });
 
   const candidates: TextCandidate[] = [];
   for (const family of buildFamilies(observations)) {

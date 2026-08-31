@@ -5,6 +5,7 @@ import {
   MAX_CANDIDATE_COUNT,
   MIN_CANDIDATE_COUNT,
   clampCandidateCount,
+  countCandidates,
   describeCandidateCount,
   limitCandidates,
 } from './candidateLimit';
@@ -113,5 +114,109 @@ describe('Ehrliche Anzeige', () => {
     expect(text).toContain('12 von 20 geeigneten Vokabeln gefunden.');
     expect(text).toContain('erfunden wird nichts');
     expect(text).not.toContain('12 von 12');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1a: Geeignete Vokabeln und ungeklärte Abkürzungen getrennt zählen
+// ---------------------------------------------------------------------------
+
+/** Eine Abkürzung, deren Langform das Lexikon nicht kennt. */
+function unresolved(id: string, occurrences = 1, firstOccurrence = 99): TextCandidate {
+  return {
+    ...candidate(id, occurrences, firstOccurrence),
+    abbreviation: {
+      abbreviation: id,
+      german: '',
+      hint: 'Abkürzung – Langform prüfen',
+      resolved: false,
+    },
+  };
+}
+
+/** Eine erkannte Abkürzung – sie ist eine ganz normale Vokabel. */
+function resolvedAbbreviation(id: string): TextCandidate {
+  return {
+    ...candidate(id, 1, 98),
+    abbreviation: {
+      abbreviation: id,
+      longForm: 'square mile',
+      german: 'die Quadratmeile',
+      hint: 'Maßeinheit',
+      resolved: true,
+    },
+  };
+}
+
+describe('Zählung geeigneter Kandidaten', () => {
+  it('trennt geeignete Vokabeln von ungeklärten Abkürzungen', () => {
+    const counts = countCandidates([...CANDIDATES, unresolved('bhp'), resolvedAbbreviation('sq mi')]);
+    expect(counts).toEqual({ usable: 5, unresolved: 1 });
+  });
+
+  it('zählt eine leere Liste als leer', () => {
+    expect(countCandidates([])).toEqual({ usable: 0, unresolved: 0 });
+  });
+});
+
+describe('Begrenzung mit Abkürzungen', () => {
+  it('füllt die gewünschte Zahl nicht mit ungeklärten Abkürzungen auf', () => {
+    // Zwei geeignete Kandidaten, drei gewünscht – die Abkürzungen zählen nicht mit.
+    const limited = limitCandidates(
+      [candidate('a', 5, 0), candidate('b', 4, 10), unresolved('bhp'), unresolved('rpm', 1, 100)],
+      3,
+    );
+
+    expect(countCandidates(limited).usable).toBe(2);
+    // Sichtbar bleiben sie trotzdem – die Lehrkraft soll sie prüfen können.
+    expect(limited).toHaveLength(4);
+  });
+
+  it('behält bei genau so vielen geeigneten Kandidaten alle', () => {
+    const limited = limitCandidates([...CANDIDATES, unresolved('bhp')], 4);
+    expect(countCandidates(limited)).toEqual({ usable: 4, unresolved: 1 });
+  });
+
+  it('begrenzt bei mehr geeigneten Kandidaten nur diese', () => {
+    const limited = limitCandidates([...CANDIDATES, unresolved('bhp')], 2);
+
+    expect(countCandidates(limited)).toEqual({ usable: 2, unresolved: 1 });
+    // Ausgewählt werden die häufigsten geeigneten – b (5) und c (3).
+    expect(limited.map((item) => item.id)).toEqual(['b', 'c', 'bhp']);
+  });
+
+  it('verdrängt keine gute Vokabel durch eine Abkürzung', () => {
+    // Die Abkürzung ist häufiger als jedes echte Wort und dürfte trotzdem
+    // keinen der gewünschten Plätze belegen.
+    const limited = limitCandidates([candidate('a', 2, 0), unresolved('bhp', 99, 10)], 1);
+    expect(limited.map((item) => item.id)).toEqual(['a', 'bhp']);
+  });
+});
+
+describe('Ehrlicher Satz mit Abkürzungen', () => {
+  it('nennt beide Zahlen, wenn Abkürzungen offen sind', () => {
+    expect(describeCandidateCount(10, 10, 2)).toBe(
+      '10 von 10 geeigneten Vokabeln gefunden · 2 Abkürzungen müssen geprüft werden.',
+    );
+  });
+
+  it('beugt die eine Abkürzung richtig', () => {
+    expect(describeCandidateCount(10, 10, 1)).toBe(
+      '10 von 10 geeigneten Vokabeln gefunden · 1 Abkürzung muss geprüft werden.',
+    );
+  });
+
+  it('bleibt ohne Abkürzungen beim bekannten Satz', () => {
+    expect(describeCandidateCount(8, 10)).toBe(
+      '8 von 10 geeigneten Vokabeln gefunden. ' +
+        'Der Text enthält nicht mehr geeignete Kandidaten – erfunden wird nichts.',
+    );
+  });
+
+  it('sagt bei zu wenigen Funden beides', () => {
+    expect(describeCandidateCount(8, 10, 1)).toBe(
+      '8 von 10 geeigneten Vokabeln gefunden · 1 Abkürzung muss geprüft werden. ' +
+        'Der Text enthält nicht mehr geeignete Kandidaten – erfunden wird nichts.',
+    );
   });
 });

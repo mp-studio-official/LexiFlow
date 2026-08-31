@@ -127,11 +127,10 @@ describe('Textwerkstatt im Import-Assistenten', () => {
   it('reicht einen übernommenen Vorschlag als text-ai in die Vorschau', async () => {
     const { provider } = createFakeTranslationProvider();
     const user = setup(provider);
+    // Seit Sprint 3B.1a genügt der eine Klick auf die Hauptaktion: Die
+    // Vorschläge laufen nach der Vorbereitung von selbst an.
     await analyze(user);
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
-    );
     await screen.findByText('crowded-de');
     await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
 
@@ -351,5 +350,135 @@ describe('Wortformen und Abkürzungen in der Prüfung', () => {
     await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     expect(screen.getByLabelText('Langform für „bhp“')).toHaveValue('bhp');
     expect(screen.getByText('Abkürzung – Langform prüfen')).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1a: Die Hauptaktion hält ihr Versprechen
+// ---------------------------------------------------------------------------
+
+describe('Ein Klick, ein Ablauf', () => {
+  it('ruft prepare genau einmal auf und zeigt die Analyse sofort', async () => {
+    // `gatePrepare` hält die Vorbereitung offen: Die Analyse darf trotzdem
+    // nicht auf sie warten.
+    const { provider, prepareCount, releasePrepare } = createFakeTranslationProvider({
+      gatePrepare: true,
+    });
+    const user = setup(provider);
+    await screen.findByRole('button', { name: 'Text analysieren und Übersetzungen vorschlagen' });
+
+    await analyze(user);
+
+    expect(await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ }))
+      .toBeInTheDocument();
+    expect(prepareCount()).toBe(1);
+    // Solange die Vorbereitung läuft, gibt es noch keinen Vorschlag.
+    expect(screen.queryByText('crowded-de')).not.toBeInTheDocument();
+
+    releasePrepare();
+
+    // Kein zweiter Klick: Die Vorschläge laufen von selbst an.
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(prepareCount()).toBe(1);
+  });
+
+  it('lässt die deutschen Felder leer, bis ein Vorschlag übernommen wird', async () => {
+    const { provider } = createFakeTranslationProvider();
+    const user = setup(provider);
+    await analyze(user);
+
+    await screen.findByText('crowded-de');
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('');
+
+    await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('crowded-de');
+  });
+
+  it('meldet eine gescheiterte Vorbereitung und wiederholt sie erfolgreich', async () => {
+    const { provider, prepareCount } = createFakeTranslationProvider({ prepareFailures: 1 });
+    const user = setup(provider);
+    await analyze(user);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/konnte nicht geladen werden/);
+    expect(alert).toHaveTextContent(/von Hand eintragen/);
+    // Die Handeingabe funktioniert weiterhin.
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(prepareCount()).toBe(2);
+  });
+
+  it('erzeugt ohne Anbieter gar keine Vorbereitung', async () => {
+    const user = setup();
+    await analyze(user);
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    expect(screen.getByText(/keine lokale Übersetzung/i)).toBeInTheDocument();
+    expect(screen.queryByText(/wird vorbereitet/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Lokale Abkürzungsvorschläge', () => {
+  const UNIT_TEXT = 'The protected area covers about 600 sq mi of calm water.';
+
+  it('zeigt die bekannte deutsche Entsprechung auch ohne Übersetzungsmodell', async () => {
+    const user = setup();
+    await analyze(user, UNIT_TEXT);
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    expect(screen.getByLabelText('Langform für „sq mi“')).toHaveValue('square mile (sq mi)');
+    expect(screen.getByText('lokaler Vorschlag')).toBeInTheDocument();
+    expect(screen.getByText('die Quadratmeile')).toBeInTheDocument();
+  });
+
+  it('trägt den Vorschlag erst nach ausdrücklicher Übernahme ein', async () => {
+    const user = setup();
+    await analyze(user, UNIT_TEXT);
+
+    const field = await screen.findByLabelText('Deutsche Antwort für „square mile (sq mi)“');
+    expect(field).toHaveValue('');
+
+    await user.click(
+      screen.getByRole('button', { name: 'Vorschlag für square mile (sq mi) übernehmen' }),
+    );
+    expect(field).toHaveValue('die Quadratmeile');
+  });
+
+  it('erfindet für eine unbekannte Abkürzung keine Übersetzung', async () => {
+    const user = setup();
+    await analyze(user, 'The heavy engine delivers 400 bhp on the long test track.');
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    expect(screen.getByLabelText('Deutsche Antwort für „bhp“')).toHaveValue('');
+    expect(screen.getByText('Abkürzung – Langform prüfen')).toBeInTheDocument();
+    expect(screen.queryByText('lokaler Vorschlag')).not.toBeInTheDocument();
+  });
+
+  it('wählt eine ungeklärte Abkürzung nicht von selbst aus', async () => {
+    const user = setup();
+    await analyze(user, 'The heavy engine delivers 400 bhp on the long test track.');
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    expect(screen.getByLabelText('bhp übernehmen')).not.toBeChecked();
+    expect(screen.getByLabelText('engine übernehmen')).toBeChecked();
+  });
+
+  it('zählt ungeklärte Abkürzungen getrennt', async () => {
+    const user = setup();
+    await analyze(user, 'The heavy engine delivers 400 bhp on the long test track.');
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    // Der Satz steht sichtbar **und** in der Vorlesehilfe – hier zählt der
+    // sichtbare, deshalb die genaue Fassung.
+    expect(
+      screen.getByText(
+        '6 von 20 geeigneten Vokabeln gefunden · 1 Abkürzung muss geprüft werden. ' +
+          'Der Text enthält nicht mehr geeignete Kandidaten – erfunden wird nichts.',
+        { exact: true },
+      ),
+    ).toBeInTheDocument();
   });
 });

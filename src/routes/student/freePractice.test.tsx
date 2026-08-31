@@ -310,3 +310,15 @@ describe('Modus aus der URL', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('Meldung im leeren freien Üben', () => {
+  it('spricht nicht mehr von Freischaltung', async () => {
+    // Ein leeres Paket ist der einzige Grund, aus dem freies Üben leer bleibt.
+    await savePack({ meta: makeMeta({ id: PACK_ID, direction: 'both' }), entries: [] });
+    renderSession('length=10&mode=free');
+
+    const alert = await screen.findByRole('status');
+    expect(alert).toHaveTextContent(/keine Vokabeln|Übungsformen/);
+    expect(alert).not.toHaveTextContent(/freigeschaltet/);
+  });
+});

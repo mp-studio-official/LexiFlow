@@ -1,4 +1,4 @@
-import { sortCandidates, type TextCandidate } from '../domain/textExtraction';
+import { isUsableCandidate, sortCandidates, type TextCandidate } from '../domain/textExtraction';
 
 /**
  * Wie viele Vokabelvorschläge die Lehrkraft aus einem Text haben möchte.
@@ -49,22 +49,58 @@ export function limitCandidates(
   limit: number,
 ): TextCandidate[] {
   const wanted = clampCandidateCount(limit);
-  if (candidates.length <= wanted) return [...candidates];
 
+  // Die gewünschte Zahl bezieht sich auf **geeignete** Vokabeln. Ungeklärte
+  // Abkürzungen sind noch keine: Sie bleiben sichtbar, damit die Lehrkraft sie
+  // vervollständigen kann, belegen aber keinen der gewünschten Plätze.
+  const usable = candidates.filter(isUsableCandidate);
   const keep = new Set(
-    sortCandidates(candidates, 'frequency')
+    sortCandidates(usable, 'frequency')
       .slice(0, wanted)
       .map((candidate) => candidate.id),
   );
-  return candidates.filter((candidate) => keep.has(candidate.id));
+
+  return candidates.filter(
+    (candidate) => keep.has(candidate.id) || !isUsableCandidate(candidate),
+  );
+}
+
+/** Aufteilung, die die Oberfläche für ihre ehrlichen Zahlen braucht. */
+export interface CandidateCounts {
+  /** Direkt verwendbare Vokabeln. */
+  usable: number;
+  /** Abkürzungen ohne Langform – sichtbar, aber noch keine Vokabel. */
+  unresolved: number;
+}
+
+export function countCandidates(candidates: readonly TextCandidate[]): CandidateCounts {
+  const usable = candidates.filter(isUsableCandidate).length;
+  return { usable, unresolved: candidates.length - usable };
 }
 
 /**
  * Der ehrliche Satz dazu. Bezugsgröße ist immer der Wunsch, nie der Fund –
  * „12 von 12“ wäre keine Antwort auf die Frage, die die Lehrkraft gestellt hat.
+ *
+ * Ungeklärte Abkürzungen werden getrennt gezählt. Sie in dieselbe Zahl zu
+ * schlagen hieße, eine offene Frage als erledigte Vokabel auszugeben – und
+ * genau das soll die Anzeige nicht tun.
  */
-export function describeCandidateCount(found: number, requested: number): string {
-  const base = `${found} von ${requested} geeigneten Vokabeln gefunden.`;
+export function describeCandidateCount(
+  found: number,
+  requested: number,
+  unresolved = 0,
+): string {
+  const parts = [`${found} von ${requested} geeigneten Vokabeln gefunden`];
+  if (unresolved > 0) {
+    parts.push(
+      unresolved === 1
+        ? '1 Abkürzung muss geprüft werden'
+        : `${unresolved} Abkürzungen müssen geprüft werden`,
+    );
+  }
+
+  const base = `${parts.join(' · ')}.`;
   if (found >= requested) return base;
   return `${base} Der Text enthält nicht mehr geeignete Kandidaten – erfunden wird nichts.`;
 }

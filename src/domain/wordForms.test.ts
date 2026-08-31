@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  RELATION_LABELS,
   analyzeForm,
   buildFamilies,
+  evidenceForPreceding,
   describeForms,
   describeInflections,
   type FormObservation,
@@ -42,14 +44,71 @@ function family(families: readonly LexicalFamily[], lemma: string): LexicalFamil
 
 describe('analyzeForm', () => {
   it('erkennt reguläre Plurale auch ohne Beleg im Text', () => {
+    // Die Grundform steht fest; ob Plural oder 3. Person, sagt der Text.
     expect(analyzeForm('islands')).toMatchObject({
       lemma: 'island',
+      relation: 's-form',
+      confident: true,
+    });
+    expect(analyzeForm('countries')).toMatchObject({ lemma: 'country' });
+    expect(analyzeForm('boxes')).toMatchObject({ lemma: 'box' });
+    expect(analyzeForm('beaches')).toMatchObject({ lemma: 'beach' });
+  });
+
+  // Sprint 3B.1a: Formen, die die erste Fassung falsch zerlegt hat.
+  it('zerlegt -es-Formen richtig, statt Stämme zu erfinden', () => {
+    expect(analyzeForm('buses')).toMatchObject({ lemma: 'bus', confident: true });
+    expect(analyzeForm('gases')).toMatchObject({ lemma: 'gas' });
+    expect(analyzeForm('lenses')).toMatchObject({ lemma: 'lens' });
+    expect(analyzeForm('quizzes')).toMatchObject({ lemma: 'quiz' });
+    expect(analyzeForm('heroes')).toMatchObject({ lemma: 'hero' });
+    expect(analyzeForm('potatoes')).toMatchObject({ lemma: 'potato' });
+    // Und die Gegenprobe: kein stummes e verschlucken.
+    expect(analyzeForm('houses')).toMatchObject({ lemma: 'house' });
+    expect(analyzeForm('noses')).toMatchObject({ lemma: 'nose' });
+    expect(analyzeForm('shoes')).toMatchObject({ lemma: 'shoe' });
+  });
+
+  it('kennt die unregelmäßigen -s-Formen und lässt „has“ in Ruhe', () => {
+    expect(analyzeForm('goes')).toMatchObject({ lemma: 'go', relation: 'third-person' });
+    expect(analyzeForm('does')).toMatchObject({ lemma: 'do', relation: 'third-person' });
+    // Aus „has“ darf niemals „ha“ werden.
+    expect(analyzeForm('has')).toMatchObject({ lemma: 'has', relation: 'base' });
+  });
+
+  it('nennt eine -s-Form neutral, solange der Text nichts verrät', () => {
+    expect(analyzeForm('visits').relation).toBe('s-form');
+    expect(RELATION_LABELS['s-form']).toBe('Plural oder 3. Person Singular');
+  });
+
+  it('nutzt das Wort davor als Beleg für die Wortart', () => {
+    expect(evidenceForPreceding('the')).toEqual({ noun: true });
+    expect(evidenceForPreceding('1,969')).toEqual({ noun: true });
+    expect(evidenceForPreceding('he')).toEqual({ verb: true });
+    expect(evidenceForPreceding('to')).toEqual({ verb: true });
+    expect(evidenceForPreceding('quiet')).toEqual({});
+    expect(evidenceForPreceding(undefined)).toEqual({});
+
+    expect(analyzeForm('visits', { noun: true }).relation).toBe('plural');
+    expect(analyzeForm('visits', { verb: true }).relation).toBe('third-person');
+    // Widersprüchliche Belege sind kein Beleg.
+    expect(analyzeForm('visits', { noun: true, verb: true }).relation).toBe('s-form');
+  });
+
+  it('ordnet mehrdeutige -ves-Formen nur mit Beleg zu', () => {
+    expect(analyzeForm('lives')).toMatchObject({ confident: false });
+    expect(analyzeForm('lives', { noun: true })).toMatchObject({
+      lemma: 'life',
       relation: 'plural',
       confident: true,
     });
-    expect(analyzeForm('countries')).toMatchObject({ lemma: 'country', relation: 'plural' });
-    expect(analyzeForm('boxes')).toMatchObject({ lemma: 'box', relation: 'plural' });
-    expect(analyzeForm('beaches')).toMatchObject({ lemma: 'beach', relation: 'plural' });
+    expect(analyzeForm('lives', { verb: true })).toMatchObject({
+      lemma: 'live',
+      relation: 'third-person',
+      confident: true,
+    });
+    expect(analyzeForm('leaves', { noun: true })).toMatchObject({ lemma: 'leaf' });
+    expect(analyzeForm('leaves', { verb: true })).toMatchObject({ lemma: 'leave' });
   });
 
   it('kennt eine kurze Liste zuverlässiger unregelmäßiger Plurale', () => {
@@ -71,7 +130,7 @@ describe('analyzeForm', () => {
 
   it('behandelt Steigerungen als belegpflichtig', () => {
     expect(analyzeForm('larger')).toMatchObject({ relation: 'comparative', confident: false });
-    expect(analyzeForm('larger').alternates).toContain('large');
+    expect(analyzeForm('larger').alternates.map((item) => item.lemma)).toContain('large');
     expect(analyzeForm('largest')).toMatchObject({ relation: 'superlative', confident: false });
     expect(analyzeForm('longer')).toMatchObject({ lemma: 'long', confident: false });
   });
@@ -154,13 +213,46 @@ describe('buildFamilies', () => {
     );
   });
 
-  it('nennt -s ohne Verbbeleg weiterhin Plural', () => {
+  it('nennt eine -s-Form ohne Beleg neutral', () => {
     const families = buildFamilies([
       observation('island', 6),
       observation('islands', 12, { firstOccurrence: 40 }),
     ]);
 
+    expect(describeInflections(family(families, 'island'))).toEqual([
+      'Plural oder 3. Person Singular: islands',
+    ]);
+  });
+
+  it('nennt sie „Plural“, sobald ein Artikel oder Zahlwort davorstand', () => {
+    const families = buildFamilies([
+      observation('island', 6),
+      observation('islands', 12, { firstOccurrence: 40, evidence: { noun: true } }),
+    ]);
+
     expect(describeInflections(family(families, 'island'))).toEqual(['Plural: islands']);
+  });
+
+  it('führt mehrdeutige Formen ohne Beleg nicht zusammen', () => {
+    // Weder `life` noch `live` steht im Text – dann bleibt `lives` allein.
+    const families = buildFamilies([observation('lives', 4), observation('water', 2)]);
+    expect(families.map((item) => item.lemma).sort()).toEqual(['lives', 'water']);
+  });
+
+  it('führt sie mit Beleg der richtigen Familie zu', () => {
+    const nouns = buildFamilies([
+      observation('life', 3),
+      observation('lives', 4, { firstOccurrence: 30 }),
+    ]);
+    expect(nouns).toHaveLength(1);
+    expect(describeInflections(family(nouns, 'life'))).toEqual(['Plural: lives']);
+
+    const verbs = buildFamilies([
+      observation('leaves', 4, { evidence: { verb: true } }),
+      observation('leave', 2, { firstOccurrence: 30 }),
+    ]);
+    expect(verbs).toHaveLength(1);
+    expect(describeInflections(family(verbs, 'leave'))).toEqual(['3. Person Singular: leaves']);
   });
 
   it('führt larger auf large zusammen, weil large im Text steht', () => {

@@ -139,6 +139,11 @@ export interface FakeProviderOptions {
   gatePrepare?: boolean;
   /** `prepare` scheitert – der andere Anbieter muss trotzdem arbeiten. */
   prepareFails?: boolean;
+  /**
+   * So viele der ersten `prepare`-Versuche scheitern, danach klappt es.
+   * Damit lässt sich „Erneut versuchen“ prüfen, ohne den Anbieter zu tauschen.
+   */
+  prepareFailures?: number;
 }
 
 export interface FakeTranslationProviderHandle {
@@ -163,11 +168,13 @@ export function createFakeTranslationProvider(
     progress = [0.4, 1],
     gatePrepare = false,
     prepareFails = false,
+    prepareFailures = prepareFails ? Number.POSITIVE_INFINITY : 0,
   } = options;
 
   const translated: string[] = [];
   const failed = new Set<string>();
   let prepareCount = 0;
+  let failuresLeft = prepareFailures;
   let ready = false;
   let release: () => void = () => undefined;
   const gate = new Promise<void>((resolve) => {
@@ -190,7 +197,10 @@ export function createFakeTranslationProvider(
       if (signal?.aborted) throw new TranslationAbortedError();
       for (const value of progress) onProgress?.(value);
       if (gatePrepare) await gate;
-      if (prepareFails) throw new Error('Übersetzungsmodell nicht ladbar.');
+      if (failuresLeft > 0) {
+        failuresLeft -= 1;
+        throw new Error('Übersetzungsmodell nicht ladbar.');
+      }
       ready = true;
       await Promise.resolve();
     },
@@ -365,6 +375,11 @@ export interface FakeAiOptions {
   gatePrepare?: boolean;
   /** `prepare` scheitert – der andere Anbieter muss trotzdem arbeiten. */
   prepareFails?: boolean;
+  /**
+   * So viele der ersten `prepare`-Versuche scheitern, danach klappt es.
+   * Damit lässt sich „Erneut versuchen“ prüfen, ohne den Anbieter zu tauschen.
+   */
+  prepareFailures?: number;
 }
 
 export interface FakeAiHandle {

@@ -29,6 +29,8 @@ export type FormRelation =
   | 'base'
   | 'plural'
   | 'third-person'
+  /** `-s` ohne Beleg dafür, ob Nomen oder Verb gemeint ist. */
+  | 's-form'
   | 'past'
   | 'progressive'
   | 'comparative'
@@ -38,6 +40,7 @@ export const RELATION_LABELS: Readonly<Record<FormRelation, string>> = {
   base: 'Grundform',
   plural: 'Plural',
   'third-person': '3. Person Singular',
+  's-form': 'Plural oder 3. Person Singular',
   past: 'Vergangenheit',
   progressive: 'Verlaufsform',
   comparative: 'Steigerung',
@@ -224,6 +227,31 @@ const IRREGULAR_PLURALS: Readonly<Record<string, string>> = {
   loaves: 'loaf',
 };
 
+/**
+ * Formen auf `-ves`, bei denen Nomen **und** Verb möglich sind.
+ *
+ * `leaves` ist der Plural von `leaf` oder die 3. Person von `to leave`, `lives`
+ * gehört zu `life` oder zu `to live`. Ohne Wortart ist das nicht zu entscheiden,
+ * deshalb steht hier beides – und ohne Beleg wird gar nichts zusammengeführt.
+ */
+const AMBIGUOUS_PLURALS: Readonly<Record<string, { noun: string; verb: string }>> = {
+  lives: { noun: 'life', verb: 'live' },
+  leaves: { noun: 'leaf', verb: 'leave' },
+  halves: { noun: 'half', verb: 'halve' },
+  shelves: { noun: 'shelf', verb: 'shelve' },
+};
+
+/**
+ * Unregelmäßige `-s`-Formen, die keine Regel trifft.
+ *
+ * `goes` und `does` verlieren mehr als nur das `s`; `has` fängt bereits die
+ * Mindestlänge ab und bleibt damit unangetastet – aus `has` wird nie `ha`.
+ */
+const IRREGULAR_S_FORMS: Readonly<Record<string, string>> = {
+  goes: 'go',
+  does: 'do',
+};
+
 /** Kürzeste Grundform, die eine Regel erzeugen darf. */
 const MIN_STEM = 3;
 
@@ -293,14 +321,63 @@ function restoreStem(stem: string): { lemma: string; alternate: string } {
   return { lemma: stem, alternate: `${stem}e` };
 }
 
+/**
+ * Was der Satz über die Wortart verrät – ohne Tagger, nur aus dem Nachbarwort.
+ *
+ * Vor einem Nomen steht im Englischen fast immer ein Artikel, ein Zahlwort oder
+ * ein Possessiv („the islands“, „1,969 islands“); vor einem Verb ein „to“ oder
+ * ein Subjektpronomen („he visits“). Das ist keine Wortartenerkennung, aber es
+ * ist ein echter Beleg aus dem Text – und mehr als eine Vermutung braucht es
+ * nicht, um „Plural“ von „3. Person Singular“ zu unterscheiden.
+ */
+export interface FormEvidence {
+  noun?: boolean;
+  verb?: boolean;
+}
+
+/** Artikel, Zahlwörter und Possessive – alles, was ein Nomen ankündigt. */
+const NOUN_MARKERS = new Set([
+  'the', 'a', 'an', 'this', 'these', 'those', 'my', 'your', 'his', 'her', 'its',
+  'our', 'their', 'many', 'much', 'some', 'few', 'several', 'all', 'both',
+  'no', 'any', 'each', 'every', 'other', 'more', 'most', 'two', 'three', 'four',
+  'five', 'six', 'seven', 'eight', 'nine', 'ten', 'thousand', 'million',
+]);
+
+/** „to“ und Subjektpronomen – alles, was ein Verb ankündigt. */
+const VERB_MARKERS = new Set([
+  'to', 'he', 'she', 'it', 'they', 'we', 'i', 'you', 'who', 'nobody', 'everyone',
+  'someone', 'somebody', 'everybody',
+]);
+
+/**
+ * Beurteilt das Wort **vor** der Form. Zahlen zählen als Nomenbeleg
+ * („600 islands“), alles Unbekannte als kein Beleg.
+ */
+export function evidenceForPreceding(preceding: string | undefined): FormEvidence {
+  const word = (preceding ?? '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+$/u, '');
+  if (word.length === 0) return {};
+  if (/^\d/.test(word)) return { noun: true };
+  if (NOUN_MARKERS.has(word)) return { noun: true };
+  if (VERB_MARKERS.has(word)) return { verb: true };
+  return {};
+}
+
+/** Eine denkbare Grundform mit der Beziehung, die dann gilt. */
+export interface FormCandidate {
+  lemma: string;
+  relation: FormRelation;
+}
+
 export interface FormAnalysis {
   /** Vermutete Grundform. */
   lemma: string;
   /**
    * Weitere denkbare Grundformen. Sie gelten nur, wenn sie im selben Text
    * belegt sind – `larger` zeigt so auf `large`, ohne `larg` zu erfinden.
+   * Jede trägt ihre eigene Beziehung: `lives` ist als `life` ein Plural, als
+   * `live` eine 3. Person.
    */
-  alternates: readonly string[];
+  alternates: readonly FormCandidate[];
   relation: FormRelation;
   /**
    * `true`, wenn die Regel auch ohne Beleg im Text greifen darf.
@@ -315,12 +392,52 @@ export interface FormAnalysis {
  * Kennt keinen Kontext und trifft deshalb keine endgültige Entscheidung – das
  * tut `buildFamilies` mit Blick auf den ganzen Text.
  */
-export function analyzeForm(normalized: string): FormAnalysis {
+export function analyzeForm(normalized: string, evidence: FormEvidence = {}): FormAnalysis {
   const word = normalized.toLowerCase();
   const base: FormAnalysis = { lemma: word, alternates: [], relation: 'base', confident: true };
 
+  // Ein Beleg gilt nur, wenn er eindeutig ist. Steht die Form im Text einmal
+  // nach „the“ und einmal nach „they“, weiß man wieder nichts.
+  const nounEvidence = evidence.noun === true && evidence.verb !== true;
+  const verbEvidence = evidence.verb === true && evidence.noun !== true;
+  /** Beziehung einer `-s`-Form: neutral, solange der Text nichts verrät. */
+  const sRelation: FormRelation = nounEvidence
+    ? 'plural'
+    : verbEvidence
+      ? 'third-person'
+      : 's-form';
+
   if (word.length < 4) return base;
   if (INVARIANT_S.has(word) || NOT_INFLECTED.has(word)) return base;
+
+  const irregularVerb = IRREGULAR_S_FORMS[word];
+  if (irregularVerb) {
+    return { lemma: irregularVerb, alternates: [], relation: 'third-person', confident: true };
+  }
+
+  // ---- Mehrdeutige -ves-Formen: nur mit Beleg ------------------------------
+  const ambiguous = AMBIGUOUS_PLURALS[word];
+  if (ambiguous) {
+    if (nounEvidence) {
+      return { lemma: ambiguous.noun, alternates: [], relation: 'plural', confident: true };
+    }
+    if (verbEvidence) {
+      return {
+        lemma: ambiguous.verb,
+        alternates: [],
+        relation: 'third-person',
+        confident: true,
+      };
+    }
+    // Ohne Beleg zeigt die Form auf beide Möglichkeiten – und `confident: false`
+    // sorgt dafür, dass sie ohne Fund im Text für sich allein stehen bleibt.
+    return {
+      lemma: ambiguous.noun,
+      alternates: [{ lemma: ambiguous.verb, relation: 'third-person' }],
+      relation: 'plural',
+      confident: false,
+    };
+  }
 
   const irregular = IRREGULAR_PLURALS[word];
   if (irregular) {
@@ -332,12 +449,26 @@ export function analyzeForm(normalized: string): FormAnalysis {
     return {
       lemma: `${word.slice(0, -3)}y`,
       alternates: [],
-      relation: 'plural',
+      relation: sRelation,
       confident: true,
     };
   }
   if (/(?:ch|sh|ss|x|z)es$/.test(word)) {
-    return { lemma: word.slice(0, -2), alternates: [], relation: 'plural', confident: true };
+    // `quizzes` → `quizz` → `quiz`: hier darf auch ein doppeltes s oder z fallen.
+    const stem = word.slice(0, -2);
+    const undoubled = stem.at(-1) === stem.at(-2) ? stem.slice(0, -1) : stem;
+    const lemma = undoubled.length >= MIN_STEM ? undoubled : stem;
+    return { lemma, alternates: [], relation: sRelation, confident: true };
+  }
+  // `buses`, `gases`, `lenses`: der Singular endet selbst auf `-s` und steht
+  // in der Liste der `-s`-Wörter. Ohne diese Liste entstünde `buse`.
+  if (word.endsWith('es') && INVARIANT_S.has(word.slice(0, -2))) {
+    return { lemma: word.slice(0, -2), alternates: [], relation: sRelation, confident: true };
+  }
+  // `heroes`, `potatoes`, `echoes`: `-oes` nach einem mehrsilbigen Stamm.
+  // `shoes` und `toes` bleiben außen vor – „sho“ und „to“ sind keine Stämme.
+  if (word.endsWith('oes') && measure(word.slice(0, -2)) >= 1) {
+    return { lemma: word.slice(0, -2), alternates: [], relation: sRelation, confident: true };
   }
   if (
     word.endsWith('s') &&
@@ -348,10 +479,14 @@ export function analyzeForm(normalized: string): FormAnalysis {
   ) {
     const stem = word.slice(0, -1);
     if (stem.length >= MIN_STEM) {
-      // `houses` → `house`, aber `buses` → `bus`: welche der beiden Formen
-      // gemeint ist, entscheidet der Beleg im Text.
-      const alternates = stem.endsWith('e') ? [stem.slice(0, -1)] : [`${stem}e`];
-      return { lemma: stem, alternates, relation: 'plural', confident: true };
+      // `houses` → `house`, aber ein Stamm ohne stummes e bleibt möglich.
+      const alternate = stem.endsWith('e') ? stem.slice(0, -1) : `${stem}e`;
+      return {
+        lemma: stem,
+        alternates: [{ lemma: alternate, relation: sRelation }],
+        relation: sRelation,
+        confident: true,
+      };
     }
   }
 
@@ -360,19 +495,34 @@ export function analyzeForm(normalized: string): FormAnalysis {
     const stem = word.slice(0, -3);
     if (stem.length >= MIN_STEM) {
       const { lemma, alternate } = restoreStem(stem);
-      return { lemma, alternates: [alternate], relation: 'progressive', confident: false };
+      return {
+        lemma,
+        alternates: [{ lemma: alternate, relation: 'progressive' }],
+        relation: 'progressive',
+        confident: false,
+      };
     }
   }
 
   // ---- Vergangenheit -------------------------------------------------------
   if (word.endsWith('ied') && word.length >= 5) {
-    return { lemma: `${word.slice(0, -3)}y`, alternates: [], relation: 'past', confident: true };
+    return {
+      lemma: `${word.slice(0, -3)}y`,
+      alternates: [],
+      relation: 'past',
+      confident: false,
+    };
   }
   if (word.endsWith('ed')) {
     const stem = word.slice(0, -2);
     if (stem.length >= MIN_STEM) {
       const { lemma, alternate } = restoreStem(stem);
-      return { lemma, alternates: [alternate], relation: 'past', confident: false };
+      return {
+        lemma,
+        alternates: [{ lemma: alternate, relation: 'past' }],
+        relation: 'past',
+        confident: false,
+      };
     }
   }
 
@@ -380,12 +530,22 @@ export function analyzeForm(normalized: string): FormAnalysis {
   if (word.endsWith('est') && word.length >= 6) {
     const stem = word.slice(0, -3);
     const { lemma, alternate } = restoreStem(stem);
-    return { lemma, alternates: [alternate], relation: 'superlative', confident: false };
+    return {
+      lemma,
+      alternates: [{ lemma: alternate, relation: 'superlative' }],
+      relation: 'superlative',
+      confident: false,
+    };
   }
   if (word.endsWith('er') && word.length >= 5) {
     const stem = word.slice(0, -2);
     const { lemma, alternate } = restoreStem(stem);
-    return { lemma, alternates: [alternate], relation: 'comparative', confident: false };
+    return {
+      lemma,
+      alternates: [{ lemma: alternate, relation: 'comparative' }],
+      relation: 'comparative',
+      confident: false,
+    };
   }
 
   return base;
@@ -404,7 +564,10 @@ export function isFormOf(form: string, headword: string): boolean {
   if (left === right) return true;
 
   const analysis = analyzeForm(left);
-  return analysis.lemma === right || analysis.alternates.includes(right);
+  return (
+    analysis.lemma === right ||
+    analysis.alternates.some((candidate) => candidate.lemma === right)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -422,6 +585,8 @@ export interface FormObservation {
   firstOccurrence: number;
   sentenceIndex: number;
   sourceSentence: string;
+  /** Was der Satz über die Wortart verrät; leer heißt „nichts“. */
+  evidence?: FormEvidence;
 }
 
 export interface FamilyForm {
@@ -476,24 +641,30 @@ export function buildFamilies(observations: readonly FormObservation[]): Lexical
   /** Endgültige Zuordnung Form → Familie. */
   const assignment = new Map<string, FormAnalysis>();
   for (const item of observations) {
-    const analysis = analyzeForm(item.normalized);
+    const analysis = analyzeForm(item.normalized, item.evidence ?? {});
 
     // Ein Beleg im Text schlägt jede Regel: steht `large` da, zeigt `larger`
-    // dorthin und nicht auf das erfundene `larg`.
-    const attested = [analysis.lemma, ...analysis.alternates].find(
-      (candidate) => observed.has(candidate) && usableLemma(item.normalized, candidate),
+    // dorthin und nicht auf das erfundene `larg`. Jede Möglichkeit bringt ihre
+    // eigene Beziehung mit – `lives` ist als `life` etwas anderes als als `live`.
+    const candidates: FormCandidate[] = [
+      { lemma: analysis.lemma, relation: analysis.relation },
+      ...analysis.alternates,
+    ];
+    const attested = candidates.find(
+      (candidate) =>
+        observed.has(candidate.lemma) && usableLemma(item.normalized, candidate.lemma),
     );
     const fallback =
       analysis.confident && usableLemma(item.normalized, analysis.lemma)
-        ? analysis.lemma
+        ? candidates[0]
         : undefined;
-    const lemma = attested ?? fallback;
+    const chosen = attested ?? fallback;
 
     assignment.set(
       item.normalized,
-      lemma === undefined
+      chosen === undefined
         ? { ...analysis, lemma: item.normalized, alternates: [], relation: 'base' }
-        : { ...analysis, lemma },
+        : { ...analysis, lemma: chosen.lemma, relation: chosen.relation },
     );
   }
 
@@ -550,11 +721,16 @@ export function buildFamilies(observations: readonly FormObservation[]): Lexical
     // derselben Familie `-ed` oder `-ing`, ist das Wort ein Verb – dann wäre
     // „Plural: visits“ schlicht falscher Unterricht.
     const verb = family.forms.some(
-      (form) => form.relation === 'past' || form.relation === 'progressive',
+      (form) =>
+        form.relation === 'past' ||
+        form.relation === 'progressive' ||
+        form.relation === 'third-person',
     );
     if (verb) {
       for (const form of family.forms) {
-        if (form.relation === 'plural') form.relation = 'third-person';
+        if (form.relation === 'plural' || form.relation === 's-form') {
+          form.relation = 'third-person';
+        }
       }
     }
 

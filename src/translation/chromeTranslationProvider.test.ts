@@ -126,6 +126,41 @@ describe('Vorbereitung (Modelldownload)', () => {
     expect(handle.createCount()).toBe(1);
   });
 
+  // Sprint 3B.1a: Textwerkstatt und Prüfansicht können gleichzeitig fragen.
+  it('teilt eine bereits laufende Vorbereitung, statt zweimal zu laden', async () => {
+    const handle = createFakeTranslatorScope();
+    const provider = createChromeTranslationProvider(handle.scope);
+
+    const first = provider.prepare('en', 'de');
+    const second = provider.prepare('en', 'de');
+    await Promise.all([first, second]);
+
+    // Ein einziger `create()`-Aufruf – sonst hätte der zweite die Instanz des
+    // ersten verworfen.
+    expect(handle.createCount()).toBe(1);
+    expect(await provider.translate('bus')).toBe('[de] bus');
+  });
+
+  it('lässt nach einem Fehlschlag einen neuen Versuch zu', async () => {
+    let attempts = 0;
+    const handle = createFakeTranslatorScope();
+    const api = (handle.scope as { Translator?: { create: unknown } }).Translator;
+    const original = api?.create as (options: unknown) => Promise<unknown>;
+    if (api) {
+      api.create = (options: unknown) => {
+        attempts += 1;
+        return attempts === 1
+          ? Promise.reject(new Error('kein Modell'))
+          : original(options);
+      };
+    }
+
+    const provider = createChromeTranslationProvider(handle.scope);
+    await expect(provider.prepare('en', 'de')).rejects.toThrow('kein Modell');
+    await expect(provider.prepare('en', 'de')).resolves.toBeUndefined();
+    expect(attempts).toBe(2);
+  });
+
   it('bereitet dasselbe Sprachpaar nicht zweimal vor', async () => {
     const handle = createFakeTranslatorScope();
     const provider = createChromeTranslationProvider(handle.scope);

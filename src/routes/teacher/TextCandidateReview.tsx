@@ -4,6 +4,7 @@ import { useTranslationProvider } from '../../providers/ProviderContext';
 import {
   describeCandidateForms,
   describeCandidateInflections,
+  isUsableCandidate,
   sortCandidates,
   type CandidateSort,
   type TextCandidate,
@@ -14,6 +15,7 @@ import type { CandidateSelection } from '../../import/textDraft';
 import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
+import { describePrepareError, type TranslationPreparation } from '../../translation/preparation';
 
 /**
  * Die Priorisierung lädt erst, wenn die Kandidatenansicht offen ist – der
@@ -60,13 +62,53 @@ interface CandidateRow {
    */
   english?: string | undefined;
   suggestion?: string | undefined;
+  /**
+   * Woher der Vorschlag stammt. `local` heißt: aus dem Abkürzungslexikon,
+   * deterministisch und ohne jedes Modell – ein Modell darf ihn nicht
+   * stillschweigend überschreiben.
+   */
+  suggestionSource?: 'local' | 'model' | undefined;
   suggestedSentence?: string | undefined;
   translation: RowTranslation;
   error?: string | undefined;
 }
 
 function toRow(candidate: TextCandidate): CandidateRow {
-  return { candidate, selected: true, german: '', translation: 'idle' };
+  // Eine ungeklärte Abkürzung ist noch keine Vokabel: Sie bleibt sichtbar,
+  // startet aber nicht ausgewählt – sonst wanderte eine offene Frage
+  // unbemerkt ins Paket.
+  const selected = isUsableCandidate(candidate);
+  const local = candidate.abbreviation?.german.trim() ?? '';
+
+  // Für bekannte Abkürzungen kennt das Lexikon die deutsche Entsprechung. Sie
+  // ist ein Vorschlag wie jeder andere – ungeprüft, aber ohne Modell.
+  if (local.length > 0) {
+    return {
+      candidate,
+      selected,
+      german: '',
+      suggestion: local,
+      suggestionSource: 'local',
+      translation: 'suggested',
+    };
+  }
+  return { candidate, selected, german: '', translation: 'idle' };
+}
+
+/**
+ * Zählt diese Zeile als geeignete Vokabel?
+ *
+ * Eine ungeklärte Abkürzung zählt erst, wenn die Lehrkraft ihr eine Langform
+ * und eine deutsche Antwort gegeben hat. Vorher wäre sie eine offene Frage,
+ * die als erledigt gezählt wird.
+ */
+function rowIsUsable(row: CandidateRow): boolean {
+  if (isUsableCandidate(row.candidate)) return true;
+
+  const english = (row.english ?? row.candidate.english).trim();
+  const bare = row.candidate.abbreviation?.abbreviation.trim().toLowerCase() ?? '';
+  const completed = english.length > 0 && english.toLowerCase() !== bare;
+  return completed && row.german.trim().length > 0;
 }
 
 /**
@@ -88,6 +130,15 @@ export interface TextCandidateReviewProps {
   onContextChange: (context: LearningContext) => void;
   /** Die vor der Analyse gewählte Obergrenze – für die ehrliche Anzeige. */
   requestedCount: number;
+  /**
+   * Die im Klickpfad der Analyse gestartete Vorbereitung.
+   *
+   * Ist sie da, wartet diese Ansicht auf **dieselbe** Zusage und erzeugt die
+   * Vorschläge danach von selbst – die Hauptaktion hat sie schließlich
+   * versprochen. Ein zweiter Klick ist dafür nicht nötig, ein zweiter
+   * `prepare()`-Aufruf findet nicht statt.
+   */
+  preparation?: TranslationPreparation | null;
   onApply: (selections: CandidateSelection[]) => void;
   onBack: () => void;
 }
@@ -97,6 +148,7 @@ export function TextCandidateReview({
   context,
   onContextChange,
   requestedCount,
+  preparation,
   onApply,
   onBack,
 }: TextCandidateReviewProps) {
@@ -107,6 +159,15 @@ export function TextCandidateReview({
   const preparedRef = useRef<TranslationProvider | null>(null);
 
   const [rows, setRows] = useState<CandidateRow[]>(() => candidates.map(toRow));
+  /**
+   * Zwei Spiegel für den automatischen Ablauf: Wenn die Vorbereitung erfüllt
+   * ist, braucht der Effekt die *dann* aktuellen Zeilen und die aktuelle
+   * Übersetzungsfunktion – nicht die von seinem Anlauf.
+   */
+  const rowsRef = useRef(rows);
+  const runTranslationRef = useRef<(targets: readonly CandidateRow[]) => Promise<void>>(
+    () => Promise.resolve(),
+  );
   const [sort, setSort] = useState<ReviewSort>('text-order');
   /** Empfehlungen des Sprachmodells – reine Markierung, nie eine Auswahl. */
   const [recommendedIds, setRecommendedIds] = useState<readonly string[]>([]);
@@ -162,6 +223,10 @@ export function TextCandidateReview({
     ).map((item) => item.row);
   }, [rows, sort, recommendedIds]);
 
+  // Ehrliche Zahlen: Was direkt taugt, und was erst noch geprüft werden muss.
+  const usableCount = rows.filter(rowIsUsable).length;
+  const unresolvedCount = rows.length - usableCount;
+
   const selectedRows = rows.filter((row) => row.selected);
   const missingGerman = selectedRows.filter((row) => row.german.trim().length === 0).length;
 
@@ -203,11 +268,18 @@ export function TextCandidateReview({
   const translateRow = useCallback(
     async (row: CandidateRow, signal: AbortSignal): Promise<void> => {
       update(row.candidate.id, { translation: 'pending', error: undefined });
+      // Ein lokal bekannter Vorschlag bleibt stehen: „die Quadratmeile“ kommt
+      // aus dem Lexikon und ist dort richtig. Der Beispielsatz wird trotzdem
+      // übersetzt – der hilft unabhängig davon.
+      const keepLocal = row.suggestionSource === 'local' && row.translation !== 'accepted';
       try {
-        const word = await provider.translate(row.candidate.english, signal);
+        const word = keepLocal
+          ? (row.suggestion ?? '')
+          : (await provider.translate(row.candidate.english, signal)).trim();
         const sentence = await provider.translate(row.candidate.sourceSentence, signal);
         update(row.candidate.id, {
-          suggestion: word.trim(),
+          suggestion: word,
+          suggestionSource: keepLocal ? 'local' : 'model',
           suggestedSentence: sentence.trim(),
           translation: 'suggested',
           error: undefined,
@@ -286,6 +358,53 @@ export function TextCandidateReview({
     }
   }
 
+  // Spiegel nach jedem Rendern aktualisieren.
+  useEffect(() => {
+    rowsRef.current = rows;
+    runTranslationRef.current = runTranslation;
+  });
+
+  /**
+   * Der automatische Teil der Hauptaktion.
+   *
+   * Die Analyse ist längst sichtbar; hier wird nur noch abgewartet, was der
+   * Klick auf „Text analysieren und Übersetzungen vorschlagen“ angestoßen hat.
+   * Geht es gut, laufen die Vorschläge für die ausgewählten Zeilen von selbst
+   * an – die Beschriftung hat sie versprochen. Geht es schief, steht der Grund
+   * hier, mit „Erneut versuchen“ und der Handeingabe daneben.
+   */
+  useEffect(() => {
+    if (!preparation || preparation.provider !== provider) return;
+
+    let active = true;
+    setBusy(true);
+    setProviderState('downloading');
+    setStatus('Das Sprachmodell wird vorbereitet.');
+
+    void preparation.outcome.then((outcome) => {
+      // Nach dem Verlassen der Ansicht wird nichts mehr gesetzt und nichts
+      // mehr übersetzt.
+      if (!active) return;
+      setBusy(false);
+
+      if (!outcome.ok) {
+        preparedRef.current = null;
+        setProviderState('downloadable');
+        setProviderError(describePrepareError(outcome.error));
+        setStatus('Das Sprachmodell konnte nicht geladen werden.');
+        return;
+      }
+
+      preparedRef.current = provider;
+      setProviderState('available');
+      void runTranslationRef.current(rowsRef.current.filter((row) => row.selected));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [preparation, provider]);
+
   function apply(): void {
     const selections: CandidateSelection[] = rows
       .filter((row) => row.selected)
@@ -322,7 +441,8 @@ export function TextCandidateReview({
           Gefundene Vokabelkandidaten ({rows.length})
         </h2>
         <p className="muted small">
-          <strong>{describeCandidateCount(candidates.length, requestedCount)}</strong> Alles wurde
+          <strong>{describeCandidateCount(usableCount, requestedCount, unresolvedCount)}</strong>{' '}
+          Alles wurde
           auf diesem Gerät berechnet und ist deterministisch. Beispielsätze stammen unverändert aus
           deinem Text; Übersetzungen erfindet LexiFlow nicht. Der vollständige Text wird weder
           gespeichert noch an ein Sprachmodell übergeben.
@@ -450,7 +570,18 @@ export function TextCandidateReview({
             ) : null}
           </>
         )}
-        {providerError ? <Alert tone="error">{providerError}</Alert> : null}
+        {providerError ? (
+          <Alert tone="error">
+            {providerError} Die deutschen Antworten lassen sich weiterhin von Hand eintragen.{' '}
+            <Button
+              small
+              disabled={busy || !canTranslate}
+              onClick={() => void runTranslation(selectedRows)}
+            >
+              Erneut versuchen
+            </Button>
+          </Alert>
+        ) : null}
       </Card>
 
       {rows.length === 0 ? (
@@ -488,7 +619,9 @@ export function TextCandidateReview({
                 <Badge>aus Text</Badge>
                 {candidate.abbreviation ? (
                   <Badge tone={candidate.abbreviation.resolved ? 'success' : 'warning'}>
-                    {candidate.abbreviation.resolved ? 'Abkürzung erkannt' : 'Abkürzung'}
+                    {candidate.abbreviation.resolved
+                      ? 'Abkürzung erkannt'
+                      : 'Abkürzung – muss geprüft werden'}
                   </Badge>
                 ) : null}
                 {recommended.has(candidate.id) ? (
@@ -576,7 +709,11 @@ export function TextCandidateReview({
               {row.suggestion && row.translation !== 'pending' ? (
                 <div className="candidate__suggestion">
                   <p className="small" style={{ margin: 0 }}>
-                    <Badge tone="warning">maschineller Vorschlag</Badge>{' '}
+                    {row.suggestionSource === 'local' ? (
+                      <Badge>lokaler Vorschlag</Badge>
+                    ) : (
+                      <Badge tone="warning">maschineller Vorschlag</Badge>
+                    )}{' '}
                     <strong>{row.suggestion}</strong>
                   </p>
                   {row.suggestedSentence ? (
