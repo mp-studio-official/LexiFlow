@@ -18,6 +18,10 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 3B.1b** – Vorbereitung kontrollierbar und Wortformen im Satz
+  eindeutig: Fortschritt und „Abbrechen“ wirken auch beim ersten Modelldownload,
+  ungültige Texte laden kein Modell, und mehrdeutige Formen wie `lives` werden
+  am Satzkontext entschieden.
 * **Sprint 3B.1a** – Ehrlicher Übersetzungsablauf und robuste Wortformen: Ein
   Klick genügt für Analyse **und** Vorschläge, bekannte Abkürzungen bringen ihre
   deutsche Entsprechung ohne Modell mit, ungeklärte Abkürzungen werden getrennt
@@ -897,8 +901,15 @@ beides getrennt:
 
 > 10 von 10 geeigneten Vokabeln gefunden · 2 Abkürzungen müssen geprüft werden.
 
-Sobald eine Abkürzung eine Langform und eine deutsche Antwort hat, zählt sie als
-geeignete Vokabel mit. Ohne offene Abkürzungen bleibt es beim bekannten Satz.
+Diese Zahl beschreibt den **Text**, nicht die Bearbeitung: Sie ändert sich weder
+durch Bearbeiten noch durch Auswählen noch durch Entfernen. Sonst stünde nach
+zwei vervollständigten Abkürzungen „12 von 10 gefunden“ da. Was die Lehrkraft
+daraus gemacht hat, steht in einem eigenen Satz daneben:
+
+> 1 Abkürzung vervollständigt · 1 Abkürzung weiterhin offen.
+
+Eine vervollständigte Abkürzung lässt sich anschließend auswählen und speichern.
+Ohne offene Abkürzungen bleibt es beim bekannten Satz.
 
 Ausgewählt werden die häufigsten Kandidaten; bei gleicher Häufigkeit entscheidet
 die Reihenfolge im Text. Das ist deterministisch, nachvollziehbar und
@@ -958,11 +969,15 @@ Schaltfläche verspricht also ein Modell, das es nicht gibt.
 
 Ein Klick, ein Ablauf:
 
-1. `prepare()` startet **synchron im Klickpfad** – sonst verfällt die
-   User-Activation und der Download beginnt nie.
-2. Die Prüfansicht öffnet sich **sofort**. Sie wartet auf nichts: Die Analyse
-   ist rein lokal und fertig, bevor irgendein Modell reagiert hat.
-3. Sobald dieselbe Zusage erfüllt ist, laufen die Vorschläge für die
+1. Der Text wird **zuerst** lokal analysiert. Ist er zu lang oder enthält er
+   keine brauchbaren Kandidaten, erscheint die Meldung – und es wird **nichts**
+   geladen. Ein Modelldownload über mehrere Gigabyte für einen abgelehnten Text
+   wäre reine Verschwendung.
+2. Erst danach startet `prepare()`, immer noch **synchron im Klickpfad**:
+   Zwischen Analyse und Vorbereitung steht kein `await`, sonst verfiele die
+   User-Activation und der Download begänne nie.
+3. Die Prüfansicht öffnet sich **sofort**. Sie wartet auf nichts.
+4. Sobald dieselbe Zusage erfüllt ist, laufen die Vorschläge für die
    ausgewählten Kandidaten **von selbst** an. Ein zweiter Klick war der Fehler,
    den Sprint 3B.1a behoben hat.
 
@@ -971,6 +986,27 @@ Die Zusage wird weitergereicht, nicht wiederholt (`TranslationPreparation` in
 wartet auf dasselbe Promise. Ein zweiter `prepare()`-Aufruf findet nicht statt,
 und auch der Chrome-Anbieter selbst teilt eine bereits laufende Vorbereitung –
 zwei `create()`-Aufrufe würden die erste Instanz verwerfen.
+
+**Sichtbar und abbrechbar.** Der `AbortController` entsteht zusammen mit der
+Vorbereitung, nicht erst in der Ansicht – sonst wäre die Schaltfläche
+„Abbrechen“ während des Downloads eine Attrappe. Ebenso wird der Fortschritt
+aufbewahrt: Der erste Download beginnt, bevor die Prüfansicht steht, und wer
+sich später anmeldet, bekommt den zuletzt gemeldeten Wert sofort. Ein Abbruch
+heißt „Laden abgebrochen“, nicht „Modellfehler“; er startet keine Übersetzung
+und lässt sich mit einem neuen Klick wiederholen – dann mit einem eigenen,
+frischen `AbortController`.
+
+Verlassen der Prüfansicht bricht eine noch laufende Vorbereitung ab. Zuständig
+dafür ist der Import-Assistent, der sie auch gestartet hat: Er weiß eindeutig,
+wann die Prüfung wirklich verlassen wird, während React die Aufräumfunktion
+eines Effekts im StrictMode auch beim reinen Neuaufbau ruft. Ein mehrere
+Gigabyte großer Download soll nicht unbemerkt weiterlaufen.
+
+**Verfügbarkeit verliert gegen Vorbereitung.** Beide werden parallel ermittelt.
+Trifft die ältere Auskunft `getAvailability` **nach** einer gelungenen
+Vorbereitung ein, wird sie verworfen – sonst spränge die Oberfläche von „bereit“
+zurück auf „lädt“ und verlangte einen zweiten Download für ein Modell, das schon
+da ist. Ein Anbieterwechsel setzt die Vorbereitung weiterhin zurück.
 
 Fehler werden **nicht verschluckt.** Das Ergebnis der Vorbereitung erfüllt sich
 immer und trägt den Fehlschlag in sich (`{ ok: false, error }`); ein
@@ -1158,6 +1194,23 @@ sucht in drei Runden: die genaue Wendung, ihre Schreibvarianten (`to apologise`
 desselben Wortes. Zurückgegeben wird immer die Stelle im Satz samt der Zeichen,
 die dort stehen. Wortgrenzen gelten unverändert: `cat` steckt nicht in
 `category`, und `water` nicht in `waiter`.
+
+**Der Satz entscheidet auch hier.** Die dritte Runde wertet dasselbe Nachbarwort
+aus wie die Textanalyse, denn dieselbe Schreibung kann zu verschiedenen Wörtern
+gehören:
+
+| Satz | gehört zu | gehört **nicht** zu |
+| --- | --- | --- |
+| „She lives near the bay.“ | `live` | `life` |
+| „Their lives changed.“ | `life` | `live` |
+| „He leaves the house early.“ | `leave` | `leaf` |
+| „The leaves are red.“ | `leaf` | `leave` |
+
+Fehlt der Kontext oder ist er widersprüchlich, gehört die Form zu **keinem** der
+beiden Stichwörter – ein Eintrag `life` bekommt „Lives changed.“ dann weder als
+Beispielsatz noch als Lückensatz. Eine Sonderregel nur für `lives` und `leaves`
+gibt es nirgends in der Oberfläche; alles hängt am Flag `ambiguous` der
+Formanalyse.
 
 ### Abkürzungen
 
@@ -1732,6 +1785,9 @@ funktioniert vollständig offline.
   (`go`/`went`, `buy`/`bought`) werden nicht zusammengeführt. Die Listen
   `INVARIANT_S`, `NOT_INFLECTED`, `AMBIGUOUS_PLURALS` und `IRREGULAR_S_FORMS`
   sind handgepflegt und decken den Schulwortschatz ab, nicht das Englische.
+* **Ein abgebrochener Modelldownload bleibt beim Browser.** LexiFlow bricht die
+  eigene Vorbereitung ab und übersetzt nichts mehr; ob Chrome den Download
+  intern verwirft oder weiterführt, entscheidet der Browser.
 * **Der Wortart-Beleg ist ein Nachbarwort, keine Wortartenerkennung.** „the
   visits“ macht aus einer Verbform einen Plural, wenn der Satz es so nahelegt.
   Deshalb ist die neutrale Beschriftung der Normalfall und die genaue die

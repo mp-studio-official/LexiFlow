@@ -4,6 +4,8 @@ import {
   analyzeForm,
   buildFamilies,
   evidenceForPreceding,
+  isFormOf,
+  precedingWord,
   describeForms,
   describeInflections,
   type FormObservation,
@@ -114,7 +116,8 @@ describe('analyzeForm', () => {
   it('kennt eine kurze Liste zuverlässiger unregelmäßiger Plurale', () => {
     expect(analyzeForm('children')).toMatchObject({ lemma: 'child', confident: true });
     expect(analyzeForm('women')).toMatchObject({ lemma: 'woman' });
-    expect(analyzeForm('leaves')).toMatchObject({ lemma: 'leaf' });
+    // `knives` ist eindeutig – `leaves` steht bewusst in AMBIGUOUS_PLURALS.
+    expect(analyzeForm('knives')).toMatchObject({ lemma: 'knife', confident: true });
   });
 
   it('löst Verbformen auf, ohne stumme e zu erfinden', () => {
@@ -396,5 +399,55 @@ describe('describeInflections', () => {
   it('bleibt leer, wenn nur die Grundform im Text steht', () => {
     const families = buildFamilies([observation('bay', 4)]);
     expect(describeInflections(family(families, 'bay'))).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1b: Mehrdeutige Formen brauchen Kontext – auch beim Matching
+// ---------------------------------------------------------------------------
+
+describe('isFormOf', () => {
+  it('ordnet eindeutige Formen ohne Kontext zu', () => {
+    expect(isFormOf('islands', 'island')).toBe(true);
+    expect(isFormOf('visited', 'visit')).toBe(true);
+    expect(isFormOf('buses', 'bus')).toBe(true);
+    expect(isFormOf('category', 'cat')).toBe(false);
+  });
+
+  it('lässt eine mehrdeutige Form ohne Kontext zu keinem Stichwort gehören', () => {
+    expect(isFormOf('lives', 'life')).toBe(false);
+    expect(isFormOf('lives', 'live')).toBe(false);
+    expect(isFormOf('leaves', 'leaf')).toBe(false);
+    expect(isFormOf('leaves', 'leave')).toBe(false);
+  });
+
+  it('entscheidet sie mit Kontext eindeutig', () => {
+    expect(isFormOf('lives', 'live', { verb: true })).toBe(true);
+    expect(isFormOf('lives', 'life', { verb: true })).toBe(false);
+    expect(isFormOf('lives', 'life', { noun: true })).toBe(true);
+    expect(isFormOf('lives', 'live', { noun: true })).toBe(false);
+  });
+});
+
+describe('precedingWord', () => {
+  it('liefert das Wort links, über Satzzeichen hinweg', () => {
+    expect(precedingWord('She lives here.', 4)).toBe('She');
+    expect(precedingWord('Around 1,969 islands fill', 13)).toBe('1,969');
+    expect(precedingWord('Islands fill the bay.', 0)).toBeUndefined();
+  });
+});
+
+describe('Aufräumen der Listen', () => {
+  it('führt mehrdeutige Formen nicht zusätzlich als eindeutige Plurale', () => {
+    // `lives` und `leaves` werden ausschließlich über die Mehrdeutigkeit
+    // behandelt; eine zweite Pflegestelle wäre ein Widerspruch.
+    for (const word of ['lives', 'leaves', 'halves', 'shelves']) {
+      expect(analyzeForm(word).ambiguous, word).toBe(true);
+    }
+    // Die eindeutigen bleiben eindeutig.
+    for (const word of ['knives', 'wives', 'thieves', 'wolves']) {
+      expect(analyzeForm(word).ambiguous ?? false, word).toBe(false);
+      expect(analyzeForm(word).confident, word).toBe(true);
+    }
   });
 });

@@ -8,7 +8,7 @@
  * KI- oder UI-Code.
  */
 
-import { isFormOf } from './wordForms';
+import { evidenceForPreceding, isFormOf, precedingWord } from './wordForms';
 
 /** Trimmt und macht aus beliebigen Whitespace-Folgen ein einfaches Leerzeichen. */
 export function collapseWhitespace(value: string): string {
@@ -99,10 +99,16 @@ export function findHeadwordInSentence(
   }
 
   // Beugungen gibt es nur bei Einzelwörtern; Wendungen bleiben wörtlich.
+  //
+  // Der Satz entscheidet mit: „She lives near the bay.“ gehört zu `live`,
+  // „Their lives changed.“ zu `life`. Ausgewertet wird dasselbe Nachbarwort
+  // wie in der Textanalyse – eine Sonderregel nur für `lives` und `leaves`
+  // gibt es nirgends.
   for (const variant of variants) {
     if (/\s/.test(variant)) continue;
     for (const position of wordPositions(sentence)) {
-      if (isFormOf(position.text, variant)) return position;
+      const evidence = evidenceForPreceding(precedingWord(sentence, position.start));
+      if (isFormOf(position.text, variant, evidence)) return position;
     }
   }
 

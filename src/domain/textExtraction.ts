@@ -10,6 +10,7 @@ import {
   describeForms,
   describeInflections,
   evidenceForPreceding,
+  precedingWord,
   type FamilyForm,
   type FormEvidence,
   type FormObservation,
@@ -326,17 +327,6 @@ interface Accumulator {
   /** Belege aus dem Satz – über alle Fundstellen gesammelt. */
   nounEvidence: boolean;
   verbEvidence: boolean;
-}
-
-/**
- * Das Wort unmittelbar vor einer Fundstelle.
- *
- * Zahlen zählen mit („1,969 islands“), Satzzeichen werden übersprungen. Mehr
- * Kontext als dieses eine Wort wertet die Analyse bewusst nicht aus.
- */
-function precedingWord(sentence: string, offset: number): string | undefined {
-  return /([\p{L}\p{N}][\p{L}\p{N},.'’-]*)[^\p{L}\p{N}]*$/u
-    .exec(sentence.slice(0, offset))?.[1];
 }
 
 function isCapitalized(token: string): boolean {

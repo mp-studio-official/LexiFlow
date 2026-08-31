@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ImportWizardPage } from './ImportWizardPage';
@@ -7,6 +7,7 @@ import { ProviderRegistry } from '../../providers/ProviderContext';
 import { MAX_TEXT_LENGTH } from '../../domain/textExtraction';
 import { createFakeTranslationProvider } from '../../test/fakeTranslator';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
+import type { ProviderState } from '../../providers/state';
 
 const TEXT = 'The neighbourhood is crowded. Litter is a problem in the neighbourhood.';
 
@@ -480,5 +481,199 @@ describe('Lokale Abkürzungsvorschläge', () => {
         { exact: true },
       ),
     ).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1b: Der erste Modelldownload bleibt sichtbar und abbrechbar
+// ---------------------------------------------------------------------------
+
+describe('Fortschritt und Abbruch der Vorbereitung', () => {
+  it('zeigt Fortschritt, der schon vor dem Öffnen der Prüfung gemeldet wurde', async () => {
+    // Der Fake meldet 0.25 und 0.75 noch innerhalb von `prepare()` – also
+    // bevor die Kandidatenansicht überhaupt steht.
+    const { provider, releasePrepare } = createFakeTranslationProvider({
+      gatePrepare: true,
+      progress: [0.25, 0.75],
+    });
+    const user = setup(provider);
+    await analyze(user);
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    // Der zuletzt gemeldete Wert steht sofort da, nichts ist verloren gegangen.
+    // (Der Text steht im Fortschrittsbalken und daneben – hier zählt der Wert.)
+    await waitFor(() => expect(screen.getByRole('progressbar')).toHaveValue(0.75));
+    expect(screen.getAllByText('75 %').length).toBeGreaterThan(0);
+
+    releasePrepare();
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+  });
+
+  it('bricht den laufenden Modelldownload wirklich ab', async () => {
+    const { provider, translated } = createFakeTranslationProvider({ gatePrepare: true });
+    const user = setup(provider);
+    await analyze(user);
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    await user.click(await screen.findByRole('button', { name: 'Abbrechen' }));
+
+    // Verständlich benannt – ein Abbruch ist kein Modellfehler.
+    expect(await screen.findByText('Laden abgebrochen.', { exact: true })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    // Und es wurde nichts übersetzt.
+    expect(translated).toEqual([]);
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('');
+  });
+
+  it('erlaubt nach dem Abbruch einen erfolgreichen neuen Versuch', async () => {
+    const { provider, prepareCount, releasePrepare } = createFakeTranslationProvider({
+      gatePrepare: true,
+    });
+    const user = setup(provider);
+    await analyze(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Abbrechen' }));
+    await screen.findByText('Laden abgebrochen.', { exact: true });
+    expect(prepareCount()).toBe(1);
+
+    // Der Neuversuch bekommt einen eigenen AbortController.
+    releasePrepare();
+    await user.click(
+      screen.getByRole('button', { name: /Vorschläge erzeugen|Sprachmodell laden/ }),
+    );
+
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(prepareCount()).toBe(2);
+  });
+
+  it('lädt kein Modell für einen zu langen Text', async () => {
+    const { provider, prepareCount } = createFakeTranslationProvider();
+    const user = setup(provider);
+    await analyze(user, 'a '.repeat(MAX_TEXT_LENGTH));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/20\.000 Zeichen/);
+    expect(prepareCount()).toBe(0);
+  });
+
+  it('lädt kein Modell, wenn der Text nichts Brauchbares enthält', async () => {
+    const { provider, prepareCount } = createFakeTranslationProvider();
+    const user = setup(provider);
+    await analyze(user, 'The and or but is.');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/keine geeigneten Vokabelkandidaten/);
+    expect(prepareCount()).toBe(0);
+  });
+
+  it('bricht die Vorbereitung ab, wenn die Prüfung verlassen wird', async () => {
+    const { provider } = createFakeTranslationProvider({ gatePrepare: true });
+    const user = setup(provider);
+    await analyze(user);
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    await user.click(screen.getByRole('button', { name: 'Zurück zum Text' }));
+
+    // Zurück in der Textquelle – und keine späten Zustandsänderungen.
+    expect(await screen.findByLabelText('Englischer Text')).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1b: Die Fundzahl beschreibt den Text, nicht die Bearbeitung
+// ---------------------------------------------------------------------------
+
+describe('Stabile Mengenanzeige', () => {
+  const ABBREVIATION_TEXT =
+    'The heavy engine delivers 400 bhp on the long test track near the quiet river.';
+
+  /** Der sichtbare Satz mit der Fundzahl (nicht die Vorlesehilfe). */
+  function foundSentence(): string {
+    return document.querySelector('.candidates-summary strong')?.textContent ?? '';
+  }
+
+  it('bleibt beim Vervollständigen einer Abkürzung bei der ursprünglichen Zahl', async () => {
+    const user = setup();
+    await analyze(user, ABBREVIATION_TEXT);
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+
+    const before = foundSentence();
+    expect(before).toContain('1 Abkürzung muss geprüft werden');
+
+    await user.clear(screen.getByLabelText('Langform für „bhp“'));
+    await user.type(screen.getByLabelText('Langform für „bhp“'), 'brake horsepower');
+    await user.type(screen.getByLabelText('Deutsche Antwort für „bhp“'), 'die Bremsleistung');
+
+    // Die Fundzahl ist dieselbe geblieben – kein „7 von 20“.
+    expect(foundSentence()).toBe(before);
+    // Der Bearbeitungsstand steht getrennt daneben.
+    expect(screen.getByText('1 Abkürzung vervollständigt.')).toBeInTheDocument();
+    // Und die vervollständigte Zeile lässt sich auswählen.
+    const checkbox = screen.getByLabelText('bhp übernehmen');
+    await user.click(checkbox);
+    expect(checkbox).toBeChecked();
+  });
+
+  it('ändert die Fundzahl auch beim Entfernen einer Zeile nicht', async () => {
+    const user = setup();
+    await analyze(user, ABBREVIATION_TEXT);
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+
+    const before = foundSentence();
+    await user.click(screen.getByRole('button', { name: 'engine entfernen' }));
+
+    expect(foundSentence()).toBe(before);
+  });
+
+  it('benennt offene und vervollständigte Abkürzungen getrennt', async () => {
+    const user = setup();
+    await analyze(user, ABBREVIATION_TEXT);
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+
+    expect(screen.getByText('1 Abkürzung weiterhin offen.')).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1b: Ein verspäteter Zustandsbericht darf nicht zurückstufen
+// ---------------------------------------------------------------------------
+
+describe('Rennen zwischen Verfügbarkeit und Vorbereitung', () => {
+  it('bleibt nach erfolgreicher Vorbereitung auf „bereit“', async () => {
+    // Ein Anbieter, dessen `getAvailability` offen bleibt und erst *nach* der
+    // gelungenen Vorbereitung antwortet – mit dem veralteten „downloadable“.
+    const base = createFakeTranslationProvider();
+    let answerAvailability: (state: ProviderState) => void = () => undefined;
+    const late = new Promise<ProviderState>((resolve) => {
+      answerAvailability = resolve;
+    });
+
+    // Die Werkstatt fragt zuerst und bekommt sofort Antwort; die Prüfansicht
+    // fragt danach – und ihre Antwort kommt erst nach der Vorbereitung.
+    let asked = 0;
+    const provider: TranslationProvider = {
+      ...base.provider,
+      getAvailability: () => {
+        asked += 1;
+        return asked === 1 ? Promise.resolve('downloadable' as ProviderState) : late;
+      },
+    };
+
+    const user = setup(provider);
+    await analyze(user);
+
+    // Die Vorbereitung ist durch, die Vorschläge sind da.
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+
+    // Jetzt trudelt die alte Auskunft ein.
+    answerAvailability('downloadable');
+    await waitFor(() => expect(base.prepareCount()).toBe(1));
+
+    // Die Oberfläche fordert keinen neuen Modelldownload.
+    expect(
+      screen.queryByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }),
+    ).toBeInTheDocument();
+    expect(base.prepareCount()).toBe(1);
   });
 });

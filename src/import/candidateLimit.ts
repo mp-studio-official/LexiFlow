@@ -104,3 +104,26 @@ export function describeCandidateCount(
   if (found >= requested) return base;
   return `${base} Der Text enthält nicht mehr geeignete Kandidaten – erfunden wird nichts.`;
 }
+
+/**
+ * Der Bearbeitungsstand der Abkürzungen – getrennt vom Analyseergebnis.
+ *
+ * Die Fundzahl beschreibt, was der **Text** hergab; sie ändert sich durch
+ * Bearbeiten, Auswählen oder Entfernen nicht. Aus „10 von 10 gefunden“ dürfen
+ * nie „12 von 10“ werden. Was die Lehrkraft daraus gemacht hat, steht deshalb
+ * in einem eigenen Satz.
+ */
+export function describeAbbreviationProgress(completed: number, open: number): string {
+  const parts: string[] = [];
+  if (completed > 0) {
+    parts.push(
+      completed === 1 ? '1 Abkürzung vervollständigt' : `${completed} Abkürzungen vervollständigt`,
+    );
+  }
+  if (open > 0) {
+    parts.push(
+      open === 1 ? '1 Abkürzung weiterhin offen' : `${open} Abkürzungen weiterhin offen`,
+    );
+  }
+  return parts.length === 0 ? '' : `${parts.join(' · ')}.`;
+}

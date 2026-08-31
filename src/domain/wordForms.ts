@@ -207,7 +207,13 @@ const NOT_INFLECTED = new Set([
   'protest',
 ]);
 
-/** Unregelmäßige Plurale, bei denen die Zuordnung eindeutig ist. */
+/**
+ * Unregelmäßige Plurale, bei denen die Zuordnung eindeutig ist.
+ *
+ * `lives`, `leaves`, `halves` und `shelves` stehen bewusst **nicht** hier: Sie
+ * können auch Verbformen sein und werden in `AMBIGUOUS_PLURALS` behandelt. Ein
+ * Wort in beiden Listen wäre eine widersprüchliche Doppelpflege.
+ */
 const IRREGULAR_PLURALS: Readonly<Record<string, string>> = {
   children: 'child',
   men: 'man',
@@ -217,11 +223,7 @@ const IRREGULAR_PLURALS: Readonly<Record<string, string>> = {
   geese: 'goose',
   mice: 'mouse',
   knives: 'knife',
-  leaves: 'leaf',
-  lives: 'life',
   wolves: 'wolf',
-  halves: 'half',
-  shelves: 'shelf',
   wives: 'wife',
   thieves: 'thief',
   loaves: 'loaf',
@@ -350,6 +352,17 @@ const VERB_MARKERS = new Set([
 ]);
 
 /**
+ * Das Wort unmittelbar vor einer Stelle im Satz.
+ *
+ * Zahlen zählen mit („1,969 islands“), Satzzeichen werden übersprungen. Mehr
+ * Kontext als dieses eine Wort wertet LexiFlow bewusst nicht aus.
+ */
+export function precedingWord(sentence: string, offset: number): string | undefined {
+  return /([\p{L}\p{N}][\p{L}\p{N},.'’-]*)[^\p{L}\p{N}]*$/u
+    .exec(sentence.slice(0, offset))?.[1];
+}
+
+/**
  * Beurteilt das Wort **vor** der Form. Zahlen zählen als Nomenbeleg
  * („600 islands“), alles Unbekannte als kein Beleg.
  */
@@ -384,6 +397,17 @@ export interface FormAnalysis {
    * `false` heißt: nur zusammenführen, wenn eine Kandidatenform im Text vorkommt.
    */
   confident: boolean;
+  /**
+   * `true`, wenn dieselbe Schreibung zu **verschiedenen** Wörtern gehören kann
+   * und der Kontext das nicht aufgelöst hat: `lives` als `life` oder als
+   * `live`. Wer so etwas zuordnet, unterrichtet im Zweifel Falsches – deshalb
+   * gilt eine solche Form nirgends als sicherer Treffer.
+   *
+   * Nicht zu verwechseln mit `confident`: `visited` ist belegpflichtig, aber
+   * nicht mehrdeutig – `visit` und `visite` sind Schreibvarianten desselben
+   * Wortes, nicht zwei Wörter.
+   */
+  ambiguous?: boolean;
 }
 
 /**
@@ -436,6 +460,7 @@ export function analyzeForm(normalized: string, evidence: FormEvidence = {}): Fo
       alternates: [{ lemma: ambiguous.verb, relation: 'third-person' }],
       relation: 'plural',
       confident: false,
+      ambiguous: true,
     };
   }
 
@@ -558,12 +583,21 @@ export function analyzeForm(normalized: string, evidence: FormEvidence = {}): Fo
  * umgekehrt. So findet ein Lückentext zu „island“ auch „islands“ im Satz, ohne
  * dass zwei zufällig verwandte Stichwörter miteinander verschmelzen.
  */
-export function isFormOf(form: string, headword: string): boolean {
+export function isFormOf(
+  form: string,
+  headword: string,
+  evidence: FormEvidence = {},
+): boolean {
   const left = form.toLowerCase();
   const right = headword.toLowerCase();
   if (left === right) return true;
 
-  const analysis = analyzeForm(left);
+  const analysis = analyzeForm(left, evidence);
+  // Eine mehrdeutige Form ohne Kontext gehört zu keinem der beiden Stichwörter.
+  // Sonst wäre „Their lives changed.“ zugleich ein Beispielsatz für `to live` –
+  // und der Lückensatz dazu grammatisch falsch.
+  if (analysis.ambiguous) return false;
+
   return (
     analysis.lemma === right ||
     analysis.alternates.some((candidate) => candidate.lemma === right)

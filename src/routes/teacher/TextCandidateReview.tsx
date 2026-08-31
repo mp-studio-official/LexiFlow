@@ -10,7 +10,11 @@ import {
   type TextCandidate,
 } from '../../domain/textExtraction';
 import { orderByRecommendation } from '../../import/textRecommendation';
-import { describeCandidateCount } from '../../import/candidateLimit';
+import {
+  countCandidates,
+  describeAbbreviationProgress,
+  describeCandidateCount,
+} from '../../import/candidateLimit';
 import type { CandidateSelection } from '../../import/textDraft';
 import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
@@ -164,6 +168,11 @@ export function TextCandidateReview({
    * ist, braucht der Effekt die *dann* aktuellen Zeilen und die aktuelle
    * Übersetzungsfunktion – nicht die von seinem Anlauf.
    */
+  /**
+   * Was „Abbrechen“ gerade bedeutet: während der Vorbereitung den
+   * Modelldownload, während der Übersetzungen die laufende Schleife.
+   */
+  const cancelRef = useRef<(() => void) | null>(null);
   const rowsRef = useRef(rows);
   const runTranslationRef = useRef<(targets: readonly CandidateRow[]) => Promise<void>>(
     () => Promise.resolve(),
@@ -189,10 +198,15 @@ export function TextCandidateReview({
     void provider
       .getAvailability(SOURCE_LANGUAGE, TARGET_LANGUAGE)
       .then((state) => {
-        if (active) setProviderState(state);
+        if (!active) return;
+        // Ein verspätetes `getAvailability` darf eine bereits gelungene
+        // Vorbereitung nicht zurückstufen: „available“ ist dann die
+        // maßgebliche Auskunft, nicht der ältere Zustandsbericht.
+        if (preparedRef.current === provider) return;
+        setProviderState(state);
       })
       .catch(() => {
-        if (active) setProviderState('unavailable');
+        if (active && preparedRef.current !== provider) setProviderState('unavailable');
       });
     return () => {
       active = false;
@@ -223,9 +237,24 @@ export function TextCandidateReview({
     ).map((item) => item.row);
   }, [rows, sort, recommendedIds]);
 
-  // Ehrliche Zahlen: Was direkt taugt, und was erst noch geprüft werden muss.
-  const usableCount = rows.filter(rowIsUsable).length;
-  const unresolvedCount = rows.length - usableCount;
+  /**
+   * Zwei verschiedene Zahlen, bewusst getrennt gehalten:
+   *
+   * - **Was der Text hergab** – das Analyseergebnis. Es steht fest, sobald die
+   *   Analyse gelaufen ist, und ändert sich weder durch Bearbeiten noch durch
+   *   Entfernen. Sonst stünde nach zwei vervollständigten Abkürzungen
+   *   „12 von 10 gefunden“ da, und die Anzeige wäre wertlos.
+   * - **Was die Lehrkraft daraus gemacht hat** – der Bearbeitungsstand.
+   */
+  const analysed = useMemo(() => countCandidates(candidates), [candidates]);
+
+  const abbreviationRows = rows.filter((row) => !isUsableCandidate(row.candidate));
+  const completedAbbreviations = abbreviationRows.filter(rowIsUsable).length;
+  const openAbbreviations = abbreviationRows.length - completedAbbreviations;
+  const abbreviationProgress =
+    analysed.unresolved > 0
+      ? describeAbbreviationProgress(completedAbbreviations, openAbbreviations)
+      : '';
 
   const selectedRows = rows.filter((row) => row.selected);
   const missingGerman = selectedRows.filter((row) => row.german.trim().length === 0).length;
@@ -305,6 +334,7 @@ export function TextCandidateReview({
     }
     const controller = new AbortController();
     abortRef.current = controller;
+    cancelRef.current = () => controller.abort();
     setBusy(true);
     setProviderError('');
 
@@ -355,6 +385,7 @@ export function TextCandidateReview({
     } finally {
       setBusy(false);
       abortRef.current = null;
+      cancelRef.current = null;
     }
   }
 
@@ -381,15 +412,29 @@ export function TextCandidateReview({
     setProviderState('downloading');
     setStatus('Das Sprachmodell wird vorbereitet.');
 
+    // Fortschritt, der schon vor dem Öffnen dieser Ansicht gemeldet wurde,
+    // kommt beim Anmelden sofort mit.
+    const unsubscribe = preparation.onProgress((value) => {
+      if (active) setProgress(value);
+    });
+    cancelRef.current = () => preparation.cancel();
+
     void preparation.outcome.then((outcome) => {
       // Nach dem Verlassen der Ansicht wird nichts mehr gesetzt und nichts
       // mehr übersetzt.
       if (!active) return;
       setBusy(false);
+      setProgress(null);
+      cancelRef.current = null;
 
       if (!outcome.ok) {
         preparedRef.current = null;
         setProviderState('downloadable');
+        if (outcome.cancelled) {
+          // Ein Abbruch ist kein Fehler: keine Alarmmeldung, keine Übersetzung.
+          setStatus('Laden abgebrochen.');
+          return;
+        }
         setProviderError(describePrepareError(outcome.error));
         setStatus('Das Sprachmodell konnte nicht geladen werden.');
         return;
@@ -402,6 +447,11 @@ export function TextCandidateReview({
 
     return () => {
       active = false;
+      unsubscribe();
+      // Bewusst **kein** `cancel()` hier: React ruft diese Aufräumfunktion im
+      // StrictMode auch beim reinen Neuaufbau. Der Abbruch beim echten
+      // Verlassen der Werkstatt gehört deshalb dorthin, wo er eindeutig ist –
+      // in den Import-Assistenten, der die Vorbereitung auch gestartet hat.
     };
   }, [preparation, provider]);
 
@@ -440,9 +490,11 @@ export function TextCandidateReview({
         <h2 id="kandidaten-heading" ref={headingRef} tabIndex={-1}>
           Gefundene Vokabelkandidaten ({rows.length})
         </h2>
-        <p className="muted small">
-          <strong>{describeCandidateCount(usableCount, requestedCount, unresolvedCount)}</strong>{' '}
-          Alles wurde
+        <p className="muted small candidates-summary">
+          <strong>
+            {describeCandidateCount(analysed.usable, requestedCount, analysed.unresolved)}
+          </strong>{' '}
+          {abbreviationProgress ? <em>{abbreviationProgress}</em> : null} Alles wurde
           auf diesem Gerät berechnet und ist deterministisch. Beispielsätze stammen unverändert aus
           deinem Text; Übersetzungen erfindet LexiFlow nicht. Der vollständige Text wird weder
           gespeichert noch an ein Sprachmodell übergeben.
@@ -551,7 +603,7 @@ export function TextCandidateReview({
                 {translateLabel}
               </Button>
               {busy ? (
-                <Button small onClick={() => abortRef.current?.abort()}>
+                <Button small onClick={() => cancelRef.current?.()}>
                   Abbrechen
                 </Button>
               ) : null}

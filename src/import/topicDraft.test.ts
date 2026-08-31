@@ -354,3 +354,41 @@ describe('Hilfsfunktionen', () => {
     ).toEqual(['crowded', 'litter']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1b: Mehrdeutige Formen im Beispielsatz
+// ---------------------------------------------------------------------------
+
+describe('Kontext entscheidet über die Grundform', () => {
+  it('ordnet „She lives“ dem Verb zu, nicht dem Nomen', () => {
+    expect(sentenceContainsHeadword('She lives near the bay.', 'live')).toBe(true);
+    expect(sentenceContainsHeadword('She lives near the bay.', 'life')).toBe(false);
+  });
+
+  it('ordnet „Their lives“ dem Nomen zu, nicht dem Verb', () => {
+    expect(sentenceContainsHeadword('Their lives changed completely.', 'life')).toBe(true);
+    expect(sentenceContainsHeadword('Their lives changed completely.', 'live')).toBe(false);
+  });
+
+  it('trennt auch leaves nach Kontext', () => {
+    expect(sentenceContainsHeadword('He leaves the house early.', 'leave')).toBe(true);
+    expect(sentenceContainsHeadword('He leaves the house early.', 'leaf')).toBe(false);
+    expect(sentenceContainsHeadword('The leaves are red in autumn.', 'leaf')).toBe(true);
+    expect(sentenceContainsHeadword('The leaves are red in autumn.', 'leave')).toBe(false);
+  });
+
+  it('lässt eine mehrdeutige Form ohne Kontext für beide durchfallen', () => {
+    expect(sentenceContainsHeadword('Lives changed completely.', 'life')).toBe(false);
+    expect(sentenceContainsHeadword('Lives changed completely.', 'live')).toBe(false);
+  });
+
+  it('lässt eindeutige Formen unberührt', () => {
+    expect(sentenceContainsHeadword('The bay has 1,969 islands.', 'island')).toBe(true);
+    expect(sentenceContainsHeadword('We visited the caves.', 'visit')).toBe(true);
+  });
+
+  it('gibt dem wörtlichen Treffer weiterhin den Vorrang', () => {
+    // `life` steht wörtlich im Satz – die Mehrdeutigkeit von `lives` ändert daran nichts.
+    expect(sentenceContainsHeadword('Life near the bay is quiet.', 'life')).toBe(true);
+  });
+});

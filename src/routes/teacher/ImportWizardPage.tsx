@@ -134,6 +134,8 @@ export function ImportWizardPage() {
    * zweite zu starten.
    */
   const [preparation, setPreparation] = useState<TranslationPreparation | null>(null);
+  /** Dieselbe Zusage als Ref – zum Abbrechen, ohne von `preparation` abzuhängen. */
+  const preparationRef = useRef<TranslationPreparation | null>(null);
   const [englishText, setEnglishText] = useState('');
   const [includeStopwords, setIncludeStopwords] = useState(false);
   const [includeProperNouns, setIncludeProperNouns] = useState(false);
@@ -220,14 +222,26 @@ export function ImportWizardPage() {
     setAnnouncement(`${built.length} Zeilen erkannt. Vorschau geöffnet.`);
   }
 
+  /** Beendet eine noch laufende Vorbereitung – etwa beim Verlassen der Prüfung. */
+  function stopPreparation(): void {
+    preparationRef.current?.cancel();
+    preparationRef.current = null;
+    setPreparation(null);
+  }
+
   /**
    * Reine, lokale Analyse – kein Netzwerkzugriff, keine Speicherung des Textes.
    *
-   * Ist eine lokale Übersetzung verfügbar oder ladbar, startet dieser Klick
-   * zusätzlich ihre Vorbereitung. Das geschieht **synchron im Klickpfad**, weil
-   * die Nutzeraktivierung des Browsers sonst verfällt und der Download nie
-   * beginnt. Die Analyse wartet trotzdem nicht darauf: Sie ist rein lokal und
-   * fertig, bevor irgendein Modell reagiert hat.
+   * Reihenfolge im Klickpfad, und zwar in genau dieser:
+   *
+   * 1. Text lokal analysieren. Das ist eine reine Funktion und dauert
+   *    Millisekunden.
+   * 2. Bei einem Fehler oder ohne brauchbare Kandidaten: melden und **nichts**
+   *    laden. Ein Modelldownload für einen zu langen Text wäre reine
+   *    Verschwendung – möglicherweise über Gigabyte.
+   * 3. Erst danach die Vorbereitung starten. Zwischen Analyse und `prepare()`
+   *    steht kein `await`, deshalb gilt die User-Activation des Klicks noch,
+   *    die der Browser für den Modelldownload verlangt.
    */
   function handleAnalyze(): void {
     const text = englishText.trim();
@@ -235,15 +249,8 @@ export function ImportWizardPage() {
       setError('Bitte zuerst einen englischen Text einfügen.');
       return;
     }
-    // Die Vorbereitung startet synchron, noch vor jedem `await` – sonst
-    // verfällt die User-Activation und der Modelldownload beginnt nie. Der
-    // Fehlerfall wird nicht verschluckt: Er reist im Ergebnis mit und wird in
-    // der Prüfansicht gemeldet, wo auch die Handeingabe steht.
-    setPreparation(
-      translatorReady
-        ? startPreparation(translationProvider, TRANSLATION_SOURCE, TRANSLATION_TARGET)
-        : null,
-    );
+    // Eine frühere Vorbereitung gilt nicht mehr; sie darf nicht weiterladen.
+    stopPreparation();
 
     try {
       const result = analyzeText(englishText, { includeStopwords, includeProperNouns });
@@ -262,6 +269,19 @@ export function ImportWizardPage() {
       setCandidates(limited);
       setRequestedCount(wanted);
       setError('');
+
+      // Jetzt – und nur jetzt – lohnt sich das Modell. Immer noch synchron:
+      // zwischen `analyzeText` und hier steht kein `await`.
+      if (translatorReady) {
+        const started = startPreparation(
+          translationProvider,
+          TRANSLATION_SOURCE,
+          TRANSLATION_TARGET,
+        );
+        preparationRef.current = started;
+        setPreparation(started);
+      }
+
       setStep('candidates');
       const counts = countCandidates(limited);
       setAnnouncement(
@@ -338,6 +358,9 @@ export function ImportWizardPage() {
   }
 
   function handleCandidates(selections: CandidateSelection[]): void {
+    // Die Prüfung ist vorbei; ein noch laufender Modelldownload wird hier
+    // gebraucht von niemandem mehr.
+    stopPreparation();
     const built = candidatesToDrafts(selections);
     setDrafts(built);
     setSourceType('import');
@@ -748,7 +771,10 @@ export function ImportWizardPage() {
             if (next.topic !== meta.topic) setMeta((current) => ({ ...current, topic: next.topic }));
           }}
           onApply={handleCandidates}
-          onBack={() => setStep('source')}
+          onBack={() => {
+            stopPreparation();
+            setStep('source');
+          }}
         />
       ) : null}
 

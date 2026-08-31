@@ -124,6 +124,35 @@ describe('buildCloze', () => {
     expect(cloze?.before).toBe('The area covers 600 ');
   });
 
+  // Sprint 3B.1b: Mehrdeutige Formen brauchen den Satzkontext.
+  it('nimmt „She lives here“ nur für das Verb, nicht für das Nomen', () => {
+    const verb = makeEntry({
+      english: 'live',
+      exampleSentences: [{ english: 'She lives near the bay.' }],
+    });
+    expect(buildCloze(verb)?.solution).toBe('lives');
+
+    const noun = makeEntry({
+      english: 'life',
+      exampleSentences: [{ english: 'She lives near the bay.' }],
+    });
+    expect(buildCloze(noun)).toBeUndefined();
+  });
+
+  it('nimmt „Their lives changed“ nur für das Nomen', () => {
+    const noun = makeEntry({
+      english: 'life',
+      exampleSentences: [{ english: 'Their lives changed completely.' }],
+    });
+    expect(buildCloze(noun)?.solution).toBe('lives');
+
+    const verb = makeEntry({
+      english: 'live',
+      exampleSentences: [{ english: 'Their lives changed completely.' }],
+    });
+    expect(buildCloze(verb)).toBeUndefined();
+  });
+
   it('verwechselt weiterhin keine zufällig ähnlichen Wörter', () => {
     const entry = makeEntry({
       english: 'water',

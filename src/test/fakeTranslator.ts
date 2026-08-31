@@ -196,7 +196,21 @@ export function createFakeTranslationProvider(
       if (availability === 'unavailable') throw new TranslationUnavailableError();
       if (signal?.aborted) throw new TranslationAbortedError();
       for (const value of progress) onProgress?.(value);
-      if (gatePrepare) await gate;
+      if (gatePrepare) {
+        // Wie ein echter Download: Ein Abbruch beendet das Warten sofort.
+        await new Promise<void>((resolve, reject) => {
+          if (signal?.aborted) {
+            reject(new TranslationAbortedError());
+            return;
+          }
+          const onAbort = (): void => reject(new TranslationAbortedError());
+          signal?.addEventListener('abort', onAbort, { once: true });
+          void gate.then(() => {
+            signal?.removeEventListener('abort', onAbort);
+            resolve();
+          });
+        });
+      }
       if (failuresLeft > 0) {
         failuresLeft -= 1;
         throw new Error('Übersetzungsmodell nicht ladbar.');
