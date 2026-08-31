@@ -1701,3 +1701,62 @@ progress {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* --- Kopf der Lernansichten ---------------------------------------------- */
+
+/*
+ * Titel links, Wege hinaus rechts. Auf schmalen Fenstern brechen die Aktionen
+ * geordnet unter den Titel um und teilen sich die Breite – kein Nebeneinander
+ * von zwei winzigen Schaltflächen.
+ */
+.learn-header {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.learn-header__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.learn-header__titles {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.learn-header__titles h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.learn-header__status {
+  margin: var(--space-2) 0 0;
+}
+
+.learn-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  /* Auf breiten Fenstern rechts oben, auf Höhe der Überschrift. */
+  justify-content: flex-end;
+  flex: 0 1 auto;
+}
+
+.learn-header__actions .btn {
+  /* Groß genug zum Treffen – auch als kleine Variante. */
+  min-height: var(--tap-target);
+}
+
+@media (max-width: 33.9375rem) {
+  .learn-header__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .learn-header__actions .btn {
+    flex: 1 1 9rem;
+    justify-content: center;
+  }
+}

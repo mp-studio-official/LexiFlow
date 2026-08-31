@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card } from '../../ui/components';
+import { LearnHeader } from './LearnHeader';
 import { getPack } from '../../data/packRepo';
 import { getProgressIndex } from '../../data/progressRepo';
 import {
@@ -189,14 +190,17 @@ export function FreePracticeSetupPage() {
 
   return (
     <div className="stack">
-      <div>
-        <p className="eyebrow">Frei üben</p>
-        <h1>{pack.meta.title}</h1>
-        <p className="muted small">
-          {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · Diese Runde verändert deinen
-          Lernplan und deine Termine nicht.
-        </p>
-      </div>
+      <LearnHeader
+        eyebrow="Frei üben"
+        title={pack.meta.title}
+        packId={packId}
+        status={
+          <>
+            {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · Diese Runde verändert deinen
+            Lernplan und deine Termine nicht.
+          </>
+        }
+      />
 
       <Announcer message={status} />
 
@@ -330,9 +334,6 @@ export function FreePracticeSetupPage() {
           <Button variant="primary" onClick={start} disabled={preview.plannedCount === 0}>
             Frei üben starten
           </Button>
-          <Link className="btn" to={`/lernen/${packId}`}>
-            Zurück zum Paket
-          </Link>
         </div>
       </Card>
     </div>

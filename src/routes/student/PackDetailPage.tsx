@@ -38,6 +38,7 @@ import {
 } from '../../domain/leitner';
 import { formatDueDate } from '../../domain/dueDate';
 import { directionKey } from '../../domain/ids';
+import { libraryLink } from '../../portable/singlePack';
 
 /** Obergrenzen für eine Runde – es werden nie mehr als die bereiten Aufgaben geplant. */
 const LENGTH_LIMITS = [10, 15, 25, 50] as const;
@@ -184,6 +185,7 @@ export function PackDetailPage() {
     const stillPossible = kindsAvailableInPack(entries, effectiveDirection(packDirection, next));
     setSelectedKinds((current) => current.filter((kind) => stillPossible.has(kind)));
   }
+  const library = libraryLink();
   const bothDirections = pack.meta.direction === 'both';
   const lockedTotal = stands.reduce((sum, stand) => sum + stand.breakdown.locked, 0);
 
@@ -226,13 +228,27 @@ export function PackDetailPage() {
 
   return (
     <div className="stack">
-      <div>
-        <h1>{pack.meta.title}</h1>
-        <p className="muted small">
-          {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} ·{' '}
-          {DIRECTION_LABELS[pack.meta.direction]} · {pack.entries.length} Vokabeln
-          {pack.meta.topic ? ` · ${pack.meta.topic}` : ''}
-        </p>
+      {/*
+        Derselbe Kopfaufbau wie in den Lernansichten: Titel links, Weg zurück
+        rechts oben. In einer exportierten Einzelpaket-Datei heißt er „Start“
+        und führt auf die Startseite – eine Bibliothek gibt es dort nicht.
+      */}
+      <div className="learn-header">
+        <div className="learn-header__bar">
+          <div className="learn-header__titles">
+            <h1>{pack.meta.title}</h1>
+            <p className="muted small learn-header__status">
+              {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} ·{' '}
+              {DIRECTION_LABELS[pack.meta.direction]} · {pack.entries.length} Vokabeln
+              {pack.meta.topic ? ` · ${pack.meta.topic}` : ''}
+            </p>
+          </div>
+          <nav className="learn-header__actions" aria-label="Paketnavigation">
+            <Link className="btn btn--small" to={library.to}>
+              {library.label}
+            </Link>
+          </nav>
+        </div>
         {pack.meta.description ? <p>{pack.meta.description}</p> : null}
       </div>
 
@@ -546,9 +562,6 @@ export function PackDetailPage() {
           <Button variant="primary" onClick={start} disabled={!canStart}>
             Lernrunde starten
           </Button>
-          <Link className="btn" to="/lernen">
-            Zurück
-          </Link>
         </div>
       </Card>
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card, Meter } from '../../ui/components';
 import { ExerciseView } from './ExerciseView';
+import { LearnHeader } from './LearnHeader';
 import { getPack } from '../../data/packRepo';
 import { getProgressIndex, recordAnswer, startSession } from '../../data/progressRepo';
 import {
@@ -314,7 +315,11 @@ export function SessionPage() {
   if (session.items.length === 0) {
     return (
       <div className="stack">
-        <h1>Gerade nichts zu üben</h1>
+        <LearnHeader
+          eyebrow={free ? 'Frei üben' : 'Lernplan'}
+          title="Gerade nichts zu üben"
+          packId={packId}
+        />
         <Alert tone="info">
           {free ? (
             <>
@@ -333,9 +338,6 @@ export function SessionPage() {
             </>
           )}
         </Alert>
-        <Link className="btn" to={`/lernen/${packId}`}>
-          Zurück zum Paket
-        </Link>
       </div>
     );
   }
@@ -346,7 +348,14 @@ export function SessionPage() {
     if (free) {
       return (
         <div className="stack exercise">
-          <h1>Freie Runde abgeschlossen</h1>
+          {/* Abgeschlossen: hier gibt es nichts mehr zu verlieren, also keine
+              Rückfrage vor dem Verlassen. */}
+          <LearnHeader
+            eyebrow="Frei üben"
+            title="Freie Runde abgeschlossen"
+            packId={packId}
+            status={packTitle}
+          />
           <Card>
             <p>
               {answered} Aufgaben bearbeitet: <strong>{tally.correct} richtig</strong>,{' '}
@@ -361,9 +370,6 @@ export function SessionPage() {
             <Button variant="primary" onClick={() => setRoundSeed(Date.now() >>> 0)}>
               Noch einmal frei üben
             </Button>
-            <Link className="btn" to={`/lernen/${packId}`}>
-              Zurück zum Paket
-            </Link>
           </div>
         </div>
       );
@@ -374,7 +380,12 @@ export function SessionPage() {
 
     return (
       <div className="stack exercise">
-        <h1>Runde abgeschlossen</h1>
+        <LearnHeader
+          eyebrow="Lernplan"
+          title="Runde abgeschlossen"
+          packId={packId}
+          status={packTitle}
+        />
         <Card>
           <p>
             {answered} Aufgaben bearbeitet: <strong>{tally.correct} richtig</strong>,{' '}
@@ -414,9 +425,6 @@ export function SessionPage() {
           >
             {checkingNextRound ? 'Nächste Runde wird geprüft …' : 'Neue Runde'}
           </Button>
-          <Link className="btn" to={`/lernen/${packId}`}>
-            Zurück zum Paket
-          </Link>
         </div>
       </div>
     );
@@ -426,7 +434,18 @@ export function SessionPage() {
 
   return (
     <div className="exercise stack">
-      <h1 className="visually-hidden">Übung: {packTitle}</h1>
+      {/*
+        Laufende Runde: Beide Wege hinaus fragen vorher nach, weil die
+        begonnene Runde sonst verloren ginge. Der Lernstand bleibt in jedem
+        Fall unangetastet – geschrieben wird nur nach einer Antwort.
+      */}
+      <LearnHeader
+        eyebrow={free ? 'Frei üben' : 'Lernplan'}
+        title={packTitle}
+        packId={packId}
+        confirmLeave
+        confirmText="Die begonnene Runde geht dann verloren. Bereits gespeicherte Antworten bleiben erhalten."
+      />
       <div className="exercise__meta">
         <span>
           {packTitle} · {EXERCISE_LABELS[item.task.kind]} ·{' '}

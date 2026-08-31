@@ -152,7 +152,7 @@ describe('Die Wahl in der Übungsrunde', () => {
 
     // Acht Aufgaben: vier Vokabeln in zwei Richtungen. Der Text ist über
     // mehrere Elemente verteilt, deshalb wird der ganze Kopf geprüft.
-    await screen.findByText(/Frei üben/);
+    await screen.findByText(/Frei üben · Aufgabe 1 von/);
     await waitFor(() => {
       expect(document.querySelector('.exercise__meta')?.textContent).toMatch(
         /Aufgabe 1 von 8/,

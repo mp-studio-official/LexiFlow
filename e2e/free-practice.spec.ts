@@ -412,6 +412,35 @@ test.describe('Freies Üben', () => {
       expect(overflow.bodyScrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
     });
 
+    test('@a11y Kopfnavigation der laufenden Runde auf 390 px', async ({ page }) => {
+      await seedPack(page, 'A11y Kopf mobil');
+      await startFreeFlashcards(page);
+      await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
+
+      const overflow = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        bodyScrollWidth: document.body.scrollWidth,
+      }));
+      expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
+      expect(overflow.bodyScrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
+
+      // Beide Aktionen stehen oben und sind groß genug zum Treffen.
+      const nav = page.getByRole('navigation', { name: 'Lernnavigation' });
+      for (const name of ['Zurück zum Paket', 'Mit Karten lernen']) {
+        const box = await nav.getByRole('button', { name }).boundingBox();
+        expect(box?.height ?? 0, name).toBeGreaterThanOrEqual(44);
+        expect(box?.width ?? 0, name).toBeGreaterThanOrEqual(44);
+      }
+
+      await expectNoSeriousViolations(page, 'Laufende Runde auf 390 px');
+
+      // Und die Rückfrage bleibt auf schmalen Fenstern bedienbar.
+      await nav.getByRole('button', { name: 'Zurück zum Paket' }).click();
+      await expect(page.getByText('Runde wirklich verlassen?')).toBeVisible();
+      await expectNoSeriousViolations(page, 'Rückfrage auf 390 px');
+    });
+
     test('@a11y Einrichtung ohne horizontalen Überlauf', async ({ page }) => {
       await seedPack(page, 'A11y Einrichtung mobil', 'both');
       await page.getByRole('link', { name: 'Runde anpassen' }).click();

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Alert, Announcer, Badge, Button, Card, Meter } from '../../ui/components';
 import { ExerciseView } from './ExerciseView';
+import { LearnHeader } from './LearnHeader';
 import { getPack } from '../../data/packRepo';
 import {
   ALL_AVAILABLE,
@@ -200,15 +201,26 @@ export function SelfTestPage() {
     setStatus('Neuer Selbsttest.');
   }
 
+  /*
+    Nur während des Bearbeitens gibt es etwas zu verlieren. In der Auswahl und
+    in den Ergebnisansichten wäre eine Rückfrage reine Reibung – dort führen
+    beide Wege ohne Zwischenschritt hinaus.
+  */
   const header = (
-    <div>
-      <p className="eyebrow">{isRetry && phase !== 'setup' ? 'Fehler wiederholen' : 'Selbsttest'}</p>
-      <h1>{pack.meta.title}</h1>
-      <p className="muted small">
-        {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · Keine Note, keine Auswertung durch
-        andere. Dein Lernplan bleibt unverändert.
-      </p>
-    </div>
+    <LearnHeader
+      eyebrow={isRetry && phase !== 'setup' ? 'Fehler wiederholen' : 'Selbsttest'}
+      title={pack.meta.title}
+      packId={packId}
+      confirmLeave={phase === 'running'}
+      confirmTitle="Selbsttest wirklich verlassen?"
+      confirmText="Deine bisherigen Antworten gehen dann verloren. Dein Lernstand bleibt unverändert."
+      status={
+        <>
+          {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · Keine Note, keine Auswertung
+          durch andere. Dein Lernplan bleibt unverändert.
+        </>
+      }
+    />
   );
 
   // ---------------------------------------------------------------- Einrichten
@@ -307,9 +319,6 @@ export function SelfTestPage() {
             <Button variant="primary" onClick={startTest} disabled={shown === 0}>
               Selbsttest starten
             </Button>
-            <Link className="btn" to={`/lernen/${packId}`}>
-              Zurück zum Paket
-            </Link>
           </div>
         </Card>
       </div>
@@ -419,9 +428,6 @@ export function SelfTestPage() {
             Fehler noch einmal üben
           </Button>
           <Button onClick={() => setPhase('result')}>Zurück zur Auswertung</Button>
-          <Link className="btn" to={`/lernen/${packId}`}>
-            Zurück zum Paket
-          </Link>
         </div>
       </div>
     );
@@ -480,9 +486,6 @@ export function SelfTestPage() {
           <div className="row" style={{ marginTop: '0.6rem' }}>
             <Link className="btn btn--small" to={`/lernen/${packId}/durchsehen`}>
               Vokabeln durchsehen
-            </Link>
-            <Link className="btn btn--small" to={`/lernen/${packId}`}>
-              Zurück zum Paket
             </Link>
           </div>
         </Card>

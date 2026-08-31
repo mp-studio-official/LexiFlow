@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Alert, Announcer, Badge, Button, Card } from '../../ui/components';
+import { LearnHeader } from './LearnHeader';
 import { getPack } from '../../data/packRepo';
 import {
   BROWSE_DIRECTION_LABELS,
@@ -105,14 +106,17 @@ export function VocabBrowsePage() {
 
   return (
     <div className="stack">
-      <div>
-        <p className="eyebrow">Durchsehen</p>
-        <h1>{pack.meta.title}</h1>
-        <p className="muted small">
-          {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · {entries.length} Vokabeln ·
-          Diese Ansicht verändert deinen Lernstand nicht.
-        </p>
-      </div>
+      <LearnHeader
+        eyebrow="Durchsehen"
+        title={pack.meta.title}
+        packId={packId}
+        status={
+          <>
+            {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · {entries.length} Vokabeln ·
+            Diese Ansicht verändert deinen Lernstand nicht.
+          </>
+        }
+      />
 
       <Announcer message={status} />
 
@@ -214,14 +218,6 @@ export function VocabBrowsePage() {
         </ul>
       )}
 
-      <div className="row">
-        <Link className="btn" to={`/lernen/${packId}`}>
-          Zurück zum Paket
-        </Link>
-        <Link className="btn" to={`/lernen/${packId}/karten`}>
-          Mit Karten lernen
-        </Link>
-      </div>
     </div>
   );
 }

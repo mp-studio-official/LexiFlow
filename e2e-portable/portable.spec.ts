@@ -198,6 +198,42 @@ test.describe('Exportierte Schülerdatei', () => {
     expect(external).toEqual([]);
   });
 
+  test('@smoke die Kopfnavigation führt durch die Lernwege', async ({ page }) => {
+    const external = watchExternalRequests(page);
+    const fileUrl = await exportStudentFile(page);
+    await page.goto(fileUrl);
+
+    await page.getByRole('link', { name: 'Paket öffnen' }).click();
+
+    // Auf der Paketseite führt der Rückweg zur Startseite, nicht in eine
+    // Bibliothek, die es in dieser Datei nicht gibt.
+    const packNav = page.getByRole('navigation', { name: 'Paketnavigation' });
+    await expect(packNav.getByRole('link', { name: 'Start' })).toBeVisible();
+    await expect(packNav.getByRole('link', { name: 'Alle Pakete' })).toHaveCount(0);
+
+    // Lernmodus starten – die Aktionen stehen oben, nicht am Seitenende.
+    await page.getByRole('link', { name: 'Vokabeln durchsehen' }).click();
+    const nav = page.getByRole('navigation', { name: 'Lernnavigation' });
+    await expect(nav.getByRole('link', { name: 'Zurück zum Paket' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Mit Karten lernen' })).toBeVisible();
+
+    // Zum Paket zurück …
+    await nav.getByRole('link', { name: 'Zurück zum Paket' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Auf eigene Weise lernen' })).toBeVisible();
+
+    // … und von dort in den Kartenmodus, der nur den Rückweg anbietet.
+    await page.getByRole('link', { name: 'Mit Karten lernen' }).click();
+    await expect(page.getByText('Karte 1 von 4')).toBeVisible();
+    const cardNav = page.getByRole('navigation', { name: 'Lernnavigation' });
+    await expect(cardNav.getByRole('link', { name: 'Zurück zum Paket' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Mit Karten lernen' })).toHaveCount(0);
+
+    // Keine Lehrkraftnavigation, keine fremde Anfrage.
+    await expect(page.getByRole('link', { name: 'Erstellen' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Daten' })).toHaveCount(0);
+    expect(external).toEqual([]);
+  });
+
   test('@smoke behält den Lernstand über ein Neuladen', async ({ page }) => {
     const fileUrl = await exportStudentFile(page);
     await page.goto(fileUrl);

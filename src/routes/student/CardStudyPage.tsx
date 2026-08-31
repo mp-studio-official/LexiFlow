@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Announcer, Badge, Button, Card, Meter } from '../../ui/components';
+import { LearnHeader } from './LearnHeader';
 import { getPack } from '../../data/packRepo';
 import { buildCardSet, hasExtras } from '../../domain/studyView';
 import {
@@ -150,15 +151,23 @@ export function CardStudyPage() {
     }
   }
 
+  /*
+    Im Kartenmodus fehlt „Mit Karten lernen“ mit Absicht: Eine Schaltfläche,
+    die auf die gerade geöffnete Seite zeigt, wäre keine Hilfe.
+  */
   const header = (
-    <div>
-      <p className="eyebrow">Karten</p>
-      <h1>{pack.meta.title}</h1>
-      <p className="muted small">
-        {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · Diese Ansicht verändert deinen
-        Lernstand nicht.
-      </p>
-    </div>
+    <LearnHeader
+      eyebrow="Karten"
+      title={pack.meta.title}
+      packId={packId}
+      showCards={false}
+      status={
+        <>
+          {GRADE_LABELS[pack.meta.grade]} · {pack.meta.cefrLevel} · Diese Ansicht verändert deinen
+          Lernstand nicht.
+        </>
+      }
+    />
   );
 
   const directionChooser =
@@ -187,9 +196,6 @@ export function CardStudyPage() {
         <Card>
           <p>Dieses Paket enthält keine Vokabeln zum Ansehen.</p>
         </Card>
-        <Link className="btn" to={`/lernen/${packId}`}>
-          Zurück zum Paket
-        </Link>
       </div>
     );
   }
@@ -210,9 +216,6 @@ export function CardStudyPage() {
               Noch einmal
             </Button>
             <Button onClick={shuffleDeck}>Neu mischen</Button>
-            <Link className="btn" to={`/lernen/${packId}`}>
-              Zurück zum Paket
-            </Link>
           </div>
         </Card>
       </div>
@@ -302,10 +305,6 @@ export function CardStudyPage() {
         <Button small onClick={() => restart(seed, 'Von vorn.')} disabled={index === 0 && !flipped}>
           Von vorn beginnen
         </Button>
-        <span className="spacer" />
-        <Link className="btn btn--small" to={`/lernen/${packId}`}>
-          Zurück zum Paket
-        </Link>
       </div>
 
       <p className="small muted">

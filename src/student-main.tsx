@@ -61,7 +61,11 @@ if (!embedded.ok) {
   renderProblem(root, 'Diese Datei lässt sich nicht öffnen', embedded.errors);
 } else {
   const pack = { meta: embedded.pack.meta, entries: embedded.pack.entries };
-  (globalThis as { __LEXIFLOW_DB__?: string }).__LEXIFLOW_DB__ = studentDatabaseName(pack.meta.id);
+  const flags = globalThis as { __LEXIFLOW_DB__?: string; __LEXIFLOW_SINGLE_PACK__?: boolean };
+  flags.__LEXIFLOW_DB__ = studentDatabaseName(pack.meta.id);
+  // Diese Datei kennt genau ein Paket – die Oberfläche darf keine Bibliothek
+  // versprechen, die es hier nicht gibt.
+  flags.__LEXIFLOW_SINGLE_PACK__ = true;
 
   void import('./StudentApp')
     .then(({ StudentApp }) => {
