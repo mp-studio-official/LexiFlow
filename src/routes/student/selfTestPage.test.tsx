@@ -379,6 +379,39 @@ describe('Selbsttest – Auswertung', () => {
     expect(screen.getByText('2 von 2 richtig')).toBeInTheDocument();
   });
 
+  /*
+    Sprint 3B.2b1: Eine Wiederholungsrunde ist endlich, aber sie ist nicht die
+    letzte. Wer danach immer noch Fehler hat, darf bewusst noch einmal starten –
+    und bekommt dann nur noch das, was auch beim zweiten Mal nicht saß. Eine
+    automatische Schleife „bis alles richtig ist“ gibt es nicht.
+  */
+  it('bietet eine zweite Wiederholung an, mit nur noch den offenen Fehlern', async () => {
+    await seed('en-de', 3);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Selbsttest starten' }));
+    await playAll(user, 3, () => false);
+
+    // Erste Wiederholung: drei Aufgaben, eine davon sitzt jetzt.
+    await user.click(await screen.findByRole('button', { name: 'Fehler noch einmal üben' }));
+    expect(screen.getAllByText('Aufgabe 1 von 3').length).toBeGreaterThan(0);
+    await playAll(user, 3, (position) => position === 0);
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Wiederholung ausgewertet' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('1 von 3 richtig')).toBeInTheDocument();
+
+    // Zweite Wiederholung: nur die beiden verbliebenen Fehler.
+    await user.click(screen.getByRole('button', { name: 'Fehler noch einmal üben' }));
+    expect(screen.getAllByText('Aufgabe 1 von 2').length).toBeGreaterThan(0);
+
+    await playAll(user, 2, () => true);
+    expect(await screen.findByText('2 von 2 richtig')).toBeInTheDocument();
+    // Alles richtig: keine dritte Runde mehr im Angebot – und keine von selbst.
+    expect(screen.queryByRole('button', { name: 'Fehler noch einmal üben' })).not.toBeInTheDocument();
+  });
+
   it('führt über „Neuen Selbsttest starten“ zurück zur Auswahl', async () => {
     await seed('en-de', 3);
     const user = userEvent.setup();

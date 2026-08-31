@@ -18,6 +18,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 3B.2b1** – Freies Üben bleibt einstellbar: „Direkt starten“ für die
+  schnelle Runde, „Runde anpassen“ für Richtung, Umfang und Übungsformen – ohne
+  URL-Parameter von Hand.
 * **Sprint 3B.2b** – Selbsttest mit ehrlicher Auswertung: sich selbst prüfen,
   Fehler gezielt wiederholen, ohne Note und ohne jede Wirkung auf den Lernstand.
   Die Paketseite hat dafür genau einen Einstieg je Lernweg.
@@ -78,9 +81,13 @@ Weitere Befehle:
 | `npm run e2e` | Alle Playwright-Tests (baut vorher automatisch) |
 | `npm run e2e:smoke` | Nur der End-to-End-Smoke-Test |
 | `npm run e2e:a11y` | Nur die Barrierefreiheitstests (Axe, Tastatur, 390 px) |
-| `npx vitest run src/domain/freePractice.test.ts` | Nur die Planung des freien Übens |
-| `npx vitest run src/routes/student/freePractice.test.tsx` | Nur Modusauswahl und wirkungsfreie freie Runde |
+| `npx vitest run src/domain/freePractice.test.ts` | Nur Planung und Vorschau des freien Übens |
+| `npx vitest run src/routes/student/freePractice.test.tsx` | Nur die Einstiege und die wirkungsfreie freie Runde |
+| `npx vitest run src/routes/student/freePracticeSetup.test.tsx` | Nur „Runde anpassen“ |
 | `npx playwright test e2e/free-practice.spec.ts` | Nur der E2E-Ablauf zum freien Üben |
+| `npx vitest run src/domain/selfTest.test.ts` | Nur Planung, Auswertung und Fehlerrunden des Selbsttests |
+| `npx vitest run src/routes/student/selfTestPage.test.tsx` | Nur die Selbsttest-Oberfläche |
+| `npx playwright test e2e/self-test.spec.ts` | Nur der E2E-Ablauf des Selbsttests |
 | `npx vitest run src/import/portability.test.ts` | Nur der Portabilitätsnachweis (Paket ohne KI) |
 | `npx vitest run src/domain/wordRules.test.ts` | Nur die regelbasierten Vorschläge |
 | `npx playwright test e2e/enrichment.spec.ts` | Nur der E2E-Ablauf zu den Vorschlägen |
@@ -140,7 +147,7 @@ src/
     answerCheck.ts   Antwortprüfung (richtig / fast richtig / falsch)
     leitner.ts       Leitner-System, Mastery über alle aktiven Richtungen
     exercises.ts     Aufgabenbau und Auswahl der (Vokabel, Richtung)-Paare
-    freePractice.ts  Planung für freies Üben – ohne Fälligkeit, ohne Wirkung
+    freePractice.ts  Planung und Vorschau fürs freie Üben – ohne Fälligkeit
     selfTest.ts      Selbsttest: Planung, Auswertung, Fehlerwiederholung
     session.ts       Warteschlange einer Runde inkl. Wiedervorlage
     dueDate.ts       verständliche Formulierung von Fälligkeitsterminen
@@ -718,8 +725,8 @@ technisch und fachlich getrennt.
 | Schreibt Lernstände | ja (`startSession`, `recordAnswer`) | **nein** |
 | Zählt als Übungsrunde | ja | nein |
 | Einstieg | Karte „Nach Lernplan üben“ | Karte „Auf eigene Weise lernen“ |
-| Startschaltfläche | „Lernrunde starten“ | „Frei üben starten“ |
-| Rundengröße | wählbar, „Alle bereiten (n)“ | fest 15 als Obergrenze |
+| Startschaltfläche | „Lernrunde starten“ | „Direkt starten“ / „Runde anpassen“ |
+| Rundengröße | wählbar, „Alle bereiten (n)“ | 15 beim Direktstart, sonst wählbar |
 | URL | ohne `mode` bzw. `mode=scheduled` | `mode=free` |
 
 **Freies Üben verändert nichts.** Eine freie Runde ruft weder `startSession`
@@ -753,20 +760,31 @@ freie Üben: die Karte „Auf eigene Weise lernen“ und eine Modusauswahl
 („Lernplan“ / „Frei üben“) in der Übungskarte darunter. Zwei Wege zur selben
 Sache sind eine Einladung zur Verwechslung – die Modusauswahl ist deshalb weg.
 Die untere Karte heißt jetzt „Nach Lernplan üben“ und plant nur noch den
-Lernplan; freies Üben startet mit einem Klick aus der Karte darüber.
+Lernplan.
 
-Das kostet eine Möglichkeit: Richtung, Übungsformen und Rundengröße lassen sich
-für das freie Üben nicht mehr vorab einstellen. Das ist bewusst so. Der
-Ein-Klick-Weg passt zum freiwilligen Charakter, die Übungsform richtet sich wie
-sonst auch automatisch nach dem Leitner-Fach, und die Rundengröße ist mit 15
-(`FREE_ROUND_LENGTH`) eine Obergrenze, keine Vorgabe. Wer genauer zuschneiden
-will, kann die URL-Parameter weiterhin selbst setzen – sie sind unverändert.
+**Zwei Geschwindigkeiten, keine verlorene Möglichkeit (seit Sprint 3B.2b1).**
+Mit der Modusauswahl war zunächst auch die *sichtbare* Einstellbarkeit des
+freien Übens verschwunden – wer Richtung oder Übungsform wählen wollte, hätte
+URL-Parameter tippen müssen. Das war ein Fehler, kein Entwurf. Die Karte „Frei
+üben“ hat deshalb zwei Schaltflächen:
+
+| | „Direkt starten“ | „Runde anpassen“ |
+| --- | --- | --- |
+| Richtung | gemischt (bei `direction: 'both'` beide) | wählbar, sofern es eine echte Wahl gibt |
+| Übungsformen | automatisch passend zum Leitner-Fach | einzeln wählbar, nach offen / halboffen / geschlossen gruppiert |
+| Umfang | bis zu 15 (`FREE_ROUND_DEFAULT_LENGTH`) | 5, 10, 15, 20 oder alle verfügbaren |
+| Weg | direkt in die Runde | Einrichtungsseite `/lernen/:packId/frei` (lazy) |
+| URL | `?mode=free&length=15&seed=…` | zusätzlich `kinds=…` und, außer bei „gemischt“, `direction=…` |
+
+Beide Wege laufen durch **dieselbe** Planung (`planFreeSession` →
+`buildTasksForTargets`); die Einrichtung erzeugt nur die bekannten URL-Parameter
+und plant nichts selbst. Bestehende Links mit Parametern funktionieren deshalb
+unverändert.
 
 Steht nichts an, ist der Lernplan gesperrt und die Schaltfläche „Lernrunde
-starten“ deaktiviert; der nächste reguläre Termin bleibt sichtbar, und der freie
-Weg bleibt offen. Bei einem Paket ohne freigeschaltete Aufgaben verschwindet
-auch der freie Einstieg – statt eines Knopfes, der ins Leere führt, steht dort
-der Grund.
+starten“ deaktiviert; der nächste reguläre Termin bleibt sichtbar, und beide
+freien Wege bleiben offen. Bei einem Paket ohne freigeschaltete Aufgaben
+verschwinden beide – statt Knöpfen, die ins Leere führen, steht dort der Grund.
 
 ---
 
@@ -784,9 +802,19 @@ bleibt der empfohlene Weg und ist unverändert.
 | Karten | `/lernen/:packId/karten` | Vorderseite, Rückseite, mischen, im eigenen Tempo weitergehen |
 | Selbsttest | `/lernen/:packId/selbsttest` | Sich selbst abfragen, am Ende eine ruhige Auswertung, Fehler gezielt wiederholen |
 | Frei üben | `/lernen/:packId/uebung?mode=free` | Richtig abgefragt werden, ohne Wirkung auf den Lernstand |
+| Runde anpassen | `/lernen/:packId/frei` | Richtung, Umfang und Übungsformen fürs freie Üben wählen |
 
-Alle drei neuen Ansichten laden **erst beim Aufruf** (`React.lazy`), damit
-Startseite und Lehrkraft-Werkstätten davon nicht wachsen.
+Die neuen Ansichten laden **erst beim Aufruf** (`React.lazy`), damit Startseite
+und Lehrkraft-Werkstätten davon nicht wachsen.
+
+**Drei Übungswege, in einem Satz auseinandergehalten** – so steht es auch auf
+der Paketseite:
+
+| | Rückmeldung | Lernstand |
+| --- | --- | --- |
+| Frei üben | sofort nach jeder Antwort | wird nicht verändert |
+| Selbsttest | erst am Ende, als Ergebnis mit Fehlerübersicht | wird nicht verändert |
+| Nach Lernplan üben | sofort nach jeder Antwort | Fächer und Termine ändern sich |
 
 ### Eine Domänenschicht für beide
 
@@ -920,9 +948,15 @@ Antwort als Text** (auch die bei Multiple Choice gewählte Option, in Worten),
 die akzeptierten Antworten und, wenn vorhanden, der Beispielsatz. Keine roten
 Anstreichungen, keine Bewertung der Person.
 
-**Die Wiederholung ist endlich.** Sie läuft einmal und wertet danach neu aus –
-sie wiederholt sich nicht automatisch „bis alles richtig ist“. Wer noch einmal
-will, entscheidet das selbst.
+**Jede Wiederholung ist endlich – aber nicht die letzte.** Eine Runde läuft
+einmal durch und wird danach ganz normal ausgewertet. Sind dann immer noch
+Fehler offen, steht „Fehler noch einmal üben“ wieder da: Wer will, startet
+bewusst eine weitere Runde, die dann nur noch die **verbliebenen** Fehler
+enthält. Was beim zweiten Mal saß, kommt nicht wieder. Eine automatische
+Schleife „bis alles richtig ist“ gibt es nicht – jeder Durchgang ist eine
+eigene Entscheidung. Drei Tests in `selfTest.test.ts` halten genau das fest:
+dass die zweite Runde kürzer ist, dass die Kette garantiert abbricht und dass
+`planMistakeRound` eine Liste liefert und keine Schleife.
 
 ### Gestaltung
 

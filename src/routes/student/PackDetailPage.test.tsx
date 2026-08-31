@@ -106,7 +106,8 @@ describe('PackDetailPage – Leerzustand', () => {
     // freiwilligen Lernweisen darüber bleiben offen.
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
     expect(screen.queryByRole('option', { name: /Alle bereiten/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Frei üben starten' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Direkt starten' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Runde anpassen' })).toBeInTheDocument();
   });
 
   it('bietet bei einem leeren Paket keine Runde an', async () => {

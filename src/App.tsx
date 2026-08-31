@@ -21,6 +21,7 @@ import { SessionPage } from './routes/student/SessionPage';
 const VocabBrowsePage = lazy(() => import('./routes/student/VocabBrowsePage'));
 const CardStudyPage = lazy(() => import('./routes/student/CardStudyPage'));
 const SelfTestPage = lazy(() => import('./routes/student/SelfTestPage'));
+const FreePracticeSetupPage = lazy(() => import('./routes/student/FreePracticeSetupPage'));
 
 /**
  * `HashRouter` statt `BrowserRouter`: Die App wird statisch ausgeliefert
@@ -64,6 +65,14 @@ export function App() {
             element={
               <Suspense fallback={<p className="muted">Selbsttest wird geladen …</p>}>
                 <SelfTestPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="lernen/:packId/frei"
+            element={
+              <Suspense fallback={<p className="muted">Einrichtung wird geladen …</p>}>
+                <FreePracticeSetupPage />
               </Suspense>
             }
           />

@@ -1326,6 +1326,18 @@ progress {
   margin-top: var(--space-2);
 }
 
+/*
+ * Zwei Wege in einer Karte: „Direkt starten“ und „Runde anpassen“. Auf dem
+ * Telefon dürfen sie umbrechen, statt sich zu quetschen.
+ */
+.study-option__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-self: flex-start;
+  margin-top: var(--space-2);
+}
+
 /* --- Durchsehen ----------------------------------------------------------- */
 
 .browse-controls {
@@ -1647,5 +1659,24 @@ progress {
 .mistake__example {
   margin: 0;
   font-family: var(--font-display);
+  color: var(--ink-secondary);
+}
+
+/* --- Übungsformen gruppiert ---------------------------------------------- */
+
+/*
+ * Die Gruppe steht als Überschrift da, nicht nur als Einrückung: „offen“,
+ * „halboffen“ und „geschlossen“ sind eine inhaltliche Aussage, keine Optik.
+ */
+.kind-group {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.kind-group__name {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--ink-secondary);
 }

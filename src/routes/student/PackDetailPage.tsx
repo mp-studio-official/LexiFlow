@@ -11,7 +11,7 @@ import {
   planSession,
   type ExerciseKind,
 } from '../../domain/exercises';
-import { planFreeSession } from '../../domain/freePractice';
+import { FREE_ROUND_DEFAULT_LENGTH, planFreeSession } from '../../domain/freePractice';
 import {
   DEFAULT_DIRECTION_CHOICE,
   DIRECTION_CHOICE_HINTS,
@@ -43,14 +43,14 @@ import { directionKey } from '../../domain/ids';
 const LENGTH_LIMITS = [10, 15, 25, 50] as const;
 
 /**
- * Rundengröße für den Ein-Klick-Einstieg ins freie Üben.
+ * Rundengröße für „Direkt starten“.
  *
- * Freies Üben ist seit Sprint 3B.2b eine der vier freiwilligen Lernweisen und
- * startet ohne Vorabeinstellungen. Wer die Runde genauer zuschneiden will,
- * findet die Feineinstellungen weiterhin im Lernplan darunter – dort aber
- * ausdrücklich für den Lernplan, nicht als zweiter Weg ins freie Üben.
+ * Der Direktstart nimmt bewusst keine Einstellungen entgegen: gemischte
+ * Richtung, automatisch passende Übungsformen, bis zu 15 Aufgaben. Wer Richtung,
+ * Umfang oder Übungsformen selbst wählen will, geht über „Runde anpassen“ auf
+ * die Einrichtungsseite – nicht über selbst getippte URL-Parameter.
  */
-const FREE_ROUND_LENGTH = 15;
+const FREE_ROUND_LENGTH = FREE_ROUND_DEFAULT_LENGTH;
 
 interface DirectionStand {
   direction: TaskDirection;
@@ -364,8 +364,7 @@ export function PackDetailPage() {
           <li className="study-option">
             <h3 className="study-option__title">Selbsttest</h3>
             <p className="study-option__text">
-              Teste dich mit einer kurzen, gemischten Runde. Das Ergebnis bleibt auf diesem
-              Gerät und verändert deinen Lernplan nicht.
+              Rückmeldung erst am Ende, als Ergebnis mit Fehlerübersicht. Kein Lernstand.
             </p>
             <Link className="btn" to={`/lernen/${packId}/selbsttest`}>
               Selbsttest starten
@@ -375,7 +374,7 @@ export function PackDetailPage() {
           <li className="study-option">
             <h3 className="study-option__title">Frei üben</h3>
             <p className="study-option__text">
-              Richtig abgefragt werden, ohne dass sich Fächer oder Termine ändern.{' '}
+              Rückmeldung sofort nach jeder Antwort, ohne Ergebnisdruck. Kein Lernstand.{' '}
               {freePossible ? (
                 <>
                   {freePlan.availableCount}{' '}
@@ -386,16 +385,23 @@ export function PackDetailPage() {
               )}
             </p>
             {/*
-              Ohne freigeschaltete Aufgaben liefe die Runde leer. Statt eines
-              Knopfes, der ins Nichts führt, steht hier der ehrliche Grund.
+              Zwei Wege, bewusst unterschiedlich schnell: Der erste startet
+              sofort mit sinnvollen Voreinstellungen, der zweite führt auf die
+              Einrichtung. Ohne freigeschaltete Aufgaben liefe beides leer –
+              statt Knöpfen ins Nichts steht dort der ehrliche Grund.
             */}
             {freePossible ? (
-              <Link
-                className="btn"
-                to={`/lernen/${packId}/uebung?mode=free&length=${FREE_ROUND_LENGTH}&seed=${seed}`}
-              >
-                Frei üben starten
-              </Link>
+              <div className="study-option__actions">
+                <Link
+                  className="btn"
+                  to={`/lernen/${packId}/uebung?mode=free&length=${FREE_ROUND_LENGTH}&seed=${seed}`}
+                >
+                  Direkt starten
+                </Link>
+                <Link className="btn btn--quiet" to={`/lernen/${packId}/frei`}>
+                  Runde anpassen
+                </Link>
+              </div>
             ) : null}
           </li>
         </ul>
@@ -404,8 +410,8 @@ export function PackDetailPage() {
       <Card>
         <h2>Nach Lernplan üben</h2>
         <p className="muted small">
-          Der empfohlene Weg: neue und jetzt fällige Aufgaben. Nur diese Runde verändert deine
-          Fächer und Termine.
+          Der empfohlene Weg: neue und jetzt fällige Aufgaben. Nur diese Runde verändert deinen
+          Lernstand und berücksichtigt Fälligkeiten.
         </p>
 
         {!scheduledPossible ? (

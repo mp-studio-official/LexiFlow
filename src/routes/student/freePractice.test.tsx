@@ -126,14 +126,22 @@ describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
     beides fest: dass der doppelte Einstieg weg ist und dass freies Üben
     trotzdem jederzeit erreichbar bleibt.
   */
-  it('bietet freies Üben als eigene Lernweise an, ohne zweite Modusauswahl', async () => {
+  it('bietet zwei Wege ins freie Üben an, aber keine zweite Modusauswahl', async () => {
     await seed(4);
     renderDetail();
 
-    expect(await screen.findByRole('link', { name: 'Frei üben starten' })).toHaveAttribute(
+    // Direktstart: voreingestellter Umfang, keine Übungsformen in der URL.
+    const direct = await screen.findByRole('link', { name: 'Direkt starten' });
+    expect(direct).toHaveAttribute('href', expect.stringContaining('mode=free'));
+    expect(direct).toHaveAttribute('href', expect.stringContaining('length=15'));
+    expect(direct.getAttribute('href')).not.toContain('kinds=');
+
+    // Und der sichtbare Weg zur Einrichtung – ohne URL-Basteln.
+    expect(screen.getByRole('link', { name: 'Runde anpassen' })).toHaveAttribute(
       'href',
-      expect.stringContaining('mode=free'),
+      `/lernen/${PACK_ID}/frei`,
     );
+
     expect(screen.queryByRole('radio', { name: 'Lernplan' })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'Frei üben' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeEnabled();
@@ -144,22 +152,24 @@ describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
     await scheduleAllLater(4);
     renderDetail();
 
-    expect(await screen.findByRole('link', { name: 'Frei üben starten' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Direkt starten' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Runde anpassen' })).toBeInTheDocument();
     expect(screen.getByText(/Gerade ist nichts fällig/)).toBeInTheDocument();
     expect(screen.getByText(/Die nächste Wiederholung/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
   });
 
-  it('erklärt, dass die freiwilligen Wege den Lernstand nicht verändern', async () => {
+  it('grenzt die drei Übungswege knapp voneinander ab', async () => {
     await seed(4);
     renderDetail();
 
     expect(
       await screen.findByText(/Diese vier Wege verändern deinen Lernstand nicht/),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/ohne dass sich Fächer oder Termine ändern/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Rückmeldung sofort nach jeder Antwort/)).toBeInTheDocument();
+    expect(screen.getByText(/Rückmeldung erst am Ende/)).toBeInTheDocument();
+    expect(screen.getByText(/verändert deinen Lernstand und berücksichtigt Fälligkeiten/))
+      .toBeInTheDocument();
   });
 
   it('nennt die Zahl der frei verfügbaren Aufgaben ehrlich', async () => {
@@ -180,7 +190,8 @@ describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
     expect(
       await screen.findByText(/Dafür ist bisher nichts freigeschaltet/),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Frei üben starten' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Direkt starten' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Runde anpassen' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
   });
 });

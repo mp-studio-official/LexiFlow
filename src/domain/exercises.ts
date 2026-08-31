@@ -34,6 +34,57 @@ export const EXERCISE_LABELS: Readonly<Record<ExerciseKind, string>> = {
 /** Lückensätze verlangen die Zielsprache Englisch und zählen daher produktiv. */
 export const PRODUCTIVE_ONLY_KINDS: readonly ExerciseKind[] = ['cloze-bank', 'cloze-free'];
 
+// ---------------------------------------------------------------------------
+// Übungsformen, fachlich gruppiert
+// ---------------------------------------------------------------------------
+
+/**
+ * Die drei Arten, eine Vokabel abzufragen – in der Sprache des Unterrichts,
+ * nicht in der des Codes. „cloze-bank“ sagt Lernenden nichts, „Lücke ergänzen“
+ * schon.
+ *
+ * Diese Einteilung steht seit Sprint 3B.2b1 hier und nicht mehr im Selbsttest:
+ * Sie beschreibt die Übungsformen selbst und wird von Selbsttest **und** von
+ * der Einrichtung des freien Übens gebraucht. Zwei Einteilungen desselben
+ * Sachverhalts würden früher oder später auseinanderlaufen.
+ */
+export const KIND_GROUPS = ['open', 'semi-open', 'closed'] as const;
+export type KindGroup = (typeof KIND_GROUPS)[number];
+
+/** Was die Gruppe von der lernenden Person verlangt – ganzer Satz. */
+export const KIND_GROUP_LABELS: Readonly<Record<KindGroup, string>> = {
+  open: 'Antwort selbst eingeben',
+  'semi-open': 'Lücke im Satz ergänzen',
+  closed: 'Aus vorgegebenen Antworten auswählen',
+};
+
+export const KIND_GROUP_HINTS: Readonly<Record<KindGroup, string>> = {
+  open: 'Du schreibst die Übersetzung selbst.',
+  'semi-open': 'Ein Satz mit Lücke – manchmal mit Wortbank.',
+  closed: 'Vier Möglichkeiten, eine davon stimmt.',
+};
+
+/**
+ * Kurzer Gruppenname für Listen, in denen die einzelnen Übungsformen darunter
+ * stehen. Er muss auch die Karteikarte tragen – die fragt nichts ab, sondern
+ * zeigt die vorgegebene Antwort – und ist deshalb neutraler formuliert als
+ * `KIND_GROUP_LABELS`.
+ */
+export const KIND_GROUP_NAMES: Readonly<Record<KindGroup, string>> = {
+  open: 'Offen – du schreibst die Antwort selbst',
+  'semi-open': 'Halboffen – ein Satz mit Lücke',
+  closed: 'Geschlossen – die Antwort steht vor dir',
+};
+
+/** Welche Übungsform zu welcher Gruppe gehört. */
+export const GROUP_OF_KIND: Readonly<Record<ExerciseKind, KindGroup>> = {
+  flashcard: 'closed',
+  'multiple-choice': 'closed',
+  'open-translation': 'open',
+  'cloze-bank': 'semi-open',
+  'cloze-free': 'semi-open',
+};
+
 interface TaskBase {
   id: string;
   entryId: string;

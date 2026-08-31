@@ -1,5 +1,7 @@
 import {
   EXERCISE_KINDS,
+  GROUP_OF_KIND,
+  KIND_GROUPS,
   arrangeTargets,
   availableKinds,
   buildTask,
@@ -7,6 +9,7 @@ import {
   shuffle,
   type ExerciseKind,
   type ExerciseTask,
+  type KindGroup,
   type Rng,
   type SessionTarget,
 } from './exercises';
@@ -34,34 +37,13 @@ import type { LearningDirection, VocabEntry } from './schema';
 // Aufgabenarten, fachlich gruppiert
 // ---------------------------------------------------------------------------
 
-/**
- * Die drei Arten, eine Vokabel abzufragen – in der Sprache des Unterrichts,
- * nicht in der des Codes. „cloze-bank“ sagt Lernenden nichts; „Lücke ergänzen“
- * schon.
- */
-export const KIND_GROUPS = ['open', 'semi-open', 'closed'] as const;
-export type KindGroup = (typeof KIND_GROUPS)[number];
-
-export const KIND_GROUP_LABELS: Readonly<Record<KindGroup, string>> = {
-  open: 'Antwort selbst eingeben',
-  'semi-open': 'Lücke im Satz ergänzen',
-  closed: 'Aus vorgegebenen Antworten auswählen',
-};
-
-export const KIND_GROUP_HINTS: Readonly<Record<KindGroup, string>> = {
-  open: 'Du schreibst die Übersetzung selbst.',
-  'semi-open': 'Ein Satz mit Lücke – manchmal mit Wortbank.',
-  closed: 'Vier Möglichkeiten, eine davon stimmt.',
-};
-
-/** Welche Übungsform zu welcher Gruppe gehört. */
-export const GROUP_OF_KIND: Readonly<Record<ExerciseKind, KindGroup>> = {
-  flashcard: 'closed',
-  'multiple-choice': 'closed',
-  'open-translation': 'open',
-  'cloze-bank': 'semi-open',
-  'cloze-free': 'semi-open',
-};
+/*
+  Die Einteilung selbst steht seit Sprint 3B.2b1 in `exercises.ts`, weil auch
+  die Einrichtung des freien Übens sie braucht. Der Selbsttest reicht sie
+  weiter, damit seine Oberfläche eine Anlaufstelle behält.
+*/
+export { GROUP_OF_KIND, KIND_GROUPS, KIND_GROUP_HINTS, KIND_GROUP_LABELS } from './exercises';
+export type { KindGroup } from './exercises';
 
 /**
  * Die Übungsformen einer Gruppe, geordnet nach fachlichem Anspruch.

@@ -382,4 +382,75 @@ describe('Fehlerrunde', () => {
     const second = planMistakeRound(secondResult.mistakes, entries, 6);
     expect(second.plannedCount).toBe(first.plannedCount);
   });
+
+  /*
+    Sprint 3B.2b1, Prüfauftrag: „genau einmal“ war im Bericht missverständlich
+    formuliert. Richtig ist: Jede **einzelne** Runde ist endlich, aber eine
+    bewusst gestartete zweite Wiederholung ist möglich – und enthält dann nur
+    noch das, was auch beim zweiten Mal nicht saß. Diese drei Tests halten
+    genau diese Semantik fest.
+  */
+  it('nimmt in die zweite Wiederholung nur die verbliebenen Fehler', () => {
+    const first = planMistakeRound(result.mistakes, entries, 5);
+    expect(first.plannedCount).toBeGreaterThan(1);
+
+    // Beim zweiten Anlauf sitzt die erste Aufgabe, der Rest noch nicht.
+    const afterFirst = gradeSelfTest(
+      first.tasks,
+      first.tasks.map((task, index) => ({
+        taskId: task.id,
+        given: 'x',
+        verdict: index === 0 ? ('correct' as const) : ('wrong' as const),
+      })),
+    );
+
+    const corrected = first.tasks[0] as ExerciseTask;
+    const second = planMistakeRound(afterFirst.mistakes, entries, 7);
+
+    expect(second.plannedCount).toBe(first.plannedCount - 1);
+    // Die korrigierte Vokabel taucht in dieser Richtung nicht wieder auf.
+    expect(
+      second.tasks.some(
+        (task) => task.entryId === corrected.entryId && task.direction === corrected.direction,
+      ),
+    ).toBe(false);
+  });
+
+  it('endet spätestens, wenn nichts mehr falsch ist', () => {
+    let round = planMistakeRound(result.mistakes, entries, 5);
+    let guard = 0;
+
+    // Simuliert die Person, die jede Runde bewusst neu startet und dabei
+    // jedes Mal eine Aufgabe mehr kann: Die Kette wird garantiert kürzer.
+    while (round.plannedCount > 0) {
+      guard += 1;
+      expect(guard).toBeLessThanOrEqual(result.mistakes.length + 1);
+
+      const next = gradeSelfTest(
+        round.tasks,
+        round.tasks.map((task, index) => ({
+          taskId: task.id,
+          given: 'x',
+          verdict: index === 0 ? ('correct' as const) : ('wrong' as const),
+        })),
+      );
+      const previousCount = round.plannedCount;
+      round = planMistakeRound(next.mistakes, entries, 10 + guard);
+      expect(round.plannedCount).toBeLessThan(previousCount);
+    }
+
+    expect(round.plannedCount).toBe(0);
+  });
+
+  it('plant für sich genommen keine weitere Runde ein', () => {
+    // `planMistakeRound` liefert eine Liste, keine Schleife: Was danach
+    // passiert, entscheidet ausschließlich die aufrufende Oberfläche.
+    const round = planMistakeRound(result.mistakes, entries, 5);
+    expect(Object.keys(round).sort()).toEqual([
+      'availableCount',
+      'plannedCount',
+      'requested',
+      'tasks',
+    ]);
+  });
 });

@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { freeTargets, planFreeSession } from './freePractice';
-import { MIN_SIBLING_GAP, mulberry32, planSession } from './exercises';
+import {
+  freeAvailableCount,
+  freeTargets,
+  planFreeSession,
+  previewFreeRound,
+} from './freePractice';
+import {
+  MIN_SIBLING_GAP,
+  buildTasksForTargets,
+  mulberry32,
+  planSession,
+  type ExerciseKind,
+} from './exercises';
+import { effectiveDirection, type DirectionChoice } from './practiceDirection';
 import { createEntryProgress } from './leitner';
 import { directionKey } from './ids';
 import { makeEntry } from '../test/fixtures';
@@ -187,5 +199,99 @@ describe('Reihenfolge und Umfang', () => {
     const plan = planFreeSession(entries, progress, 'en-de', 100, mulberry32(2));
     expect(plan.plannedCount).toBe(12);
     expect(plan.remainingAvailableCount).toBe(0);
+  });
+});
+
+describe('Runde anpassen: Vorschau', () => {
+  /*
+    Sprint 3B.2b1: Die Vorschau darf nicht schätzen. Sie baut die Runde wirklich
+    und zählt danach – deshalb prüfen diese Tests sie gegen genau den Weg, den
+    die Übungsseite geht.
+  */
+  const entries = entriesNamed(6);
+  const empty = new Map<string, EntryProgress>();
+
+  function actualRound(
+    packDirection: 'en-de' | 'de-en' | 'both',
+    choice: DirectionChoice,
+    kinds: readonly ExerciseKind[],
+    length: number,
+    seed: number,
+  ) {
+    const rng = mulberry32(seed);
+    const plan = planFreeSession(
+      entries,
+      empty,
+      effectiveDirection(packDirection, choice),
+      length,
+      rng,
+    );
+    return buildTasksForTargets(plan.targets, entries, empty, kinds, rng);
+  }
+
+  it('zählt genau die Runde, die anschließend startet', () => {
+    const preview = previewFreeRound(entries, empty, 'both', 'mixed', ['multiple-choice'], 8, 99);
+    const tasks = actualRound('both', 'mixed', ['multiple-choice'], 8, 99);
+
+    expect(preview.plannedCount).toBe(tasks.length);
+    expect(preview.chosenKindCount).toBe(
+      tasks.filter((task) => task.kind === 'multiple-choice').length,
+    );
+  });
+
+  it('kennt alle Ziele der gewählten Richtung, unabhängig von der Fälligkeit', () => {
+    const later = allLater(entries);
+    expect(freeAvailableCount(entries, 'both', 'mixed')).toBe(12);
+    expect(previewFreeRound(entries, later, 'both', 'mixed', [], 100, 1).availableCount).toBe(12);
+  });
+
+  it('folgt der Richtungswahl', () => {
+    expect(freeAvailableCount(entries, 'both', 'en-de')).toBe(6);
+    expect(freeAvailableCount(entries, 'both', 'de-en')).toBe(6);
+    expect(freeAvailableCount(entries, 'both', 'mixed')).toBe(12);
+  });
+
+  it('behandelt den Umfang als Obergrenze und benennt den Rest', () => {
+    const preview = previewFreeRound(entries, empty, 'en-de', 'mixed', [], 4, 7);
+    expect(preview.plannedCount).toBe(4);
+    expect(preview.requested).toBe(4);
+    expect(preview.remainingAvailableCount).toBe(2);
+  });
+
+  it('erfindet nichts, wenn weniger möglich ist als gewünscht', () => {
+    const preview = previewFreeRound(entries, empty, 'en-de', 'mixed', [], 20, 7);
+    expect(preview.plannedCount).toBe(6);
+    expect(preview.remainingAvailableCount).toBe(0);
+  });
+
+  it('weist Aufgaben aus, die auf eine andere Form ausweichen müssen', () => {
+    // Lückensätze gibt es hier nirgends – jede Aufgabe muss ausweichen.
+    const preview = previewFreeRound(entries, empty, 'de-en', 'mixed', ['cloze-free'], 6, 3);
+    expect(preview.plannedCount).toBe(6);
+    expect(preview.chosenKindCount).toBe(0);
+    expect(preview.otherKindCount).toBe(6);
+  });
+
+  it('lässt keine Vokabel wegen der gewählten Form aus der Runde fallen', () => {
+    const withSentence = [
+      makeEntry({
+        id: 'x1',
+        english: 'island',
+        germanAnswers: ['die Insel'],
+        exampleSentences: [{ english: 'The island is famous.', german: 'Die Insel ist berühmt.' }],
+      }),
+      makeEntry({ id: 'x2', english: 'bay', germanAnswers: ['die Bucht'] }),
+    ];
+    const preview = previewFreeRound(withSentence, empty, 'de-en', 'mixed', ['cloze-free'], 10, 5);
+
+    expect(preview.plannedCount).toBe(2);
+    expect(preview.chosenKindCount).toBe(1);
+    expect(preview.otherKindCount).toBe(1);
+  });
+
+  it('ist bei gleichem Seed reproduzierbar', () => {
+    const a = previewFreeRound(entries, empty, 'both', 'mixed', ['flashcard'], 9, 42);
+    const b = previewFreeRound(entries, empty, 'both', 'mixed', ['flashcard'], 9, 42);
+    expect(a).toEqual(b);
   });
 });

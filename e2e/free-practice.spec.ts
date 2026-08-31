@@ -39,20 +39,45 @@ async function expectNoSeriousViolations(page: Page, label: string): Promise<voi
 }
 
 /** Legt ein Paket an und öffnet es im Schülerbereich. */
-async function seedPack(page: Page, title: string): Promise<void> {
+async function seedPack(page: Page, title: string, direction = 'en-de'): Promise<void> {
   await page.goto('/#/material/import');
   await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
   await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('7');
-  // Dieser Test beschreibt das freie Üben, nicht die Richtungswahl. Seit
-  // Sprint 3B.1 stehen neue Pakete auf „beide Richtungen“; hier soll die
-  // Ausgangslage aber eindeutig eine einzige Richtung sein.
-  await page.getByLabel('Lernrichtung').selectOption('en-de');
+  // Die meisten Tests hier beschreiben das freie Üben, nicht die Richtungswahl.
+  // Seit Sprint 3B.1 stehen neue Pakete auf „beide Richtungen“; die
+  // Ausgangslage soll aber eindeutig sein – deshalb ausdrücklich gewählt.
+  await page.getByLabel('Lernrichtung').selectOption(direction);
   await page.getByRole('button', { name: /Paket speichern/ }).click();
   await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+}
+
+/** Vollständiger Abzug des Lernstands – wie in `study-modes.spec.ts`. */
+async function readProgress(page: Page): Promise<unknown> {
+  return page.evaluate(async () => {
+    const open = indexedDB.open('lexiflow');
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      open.onsuccess = () => resolve(open.result);
+      open.onerror = () => reject(open.error);
+    });
+
+    const read = (store: string): Promise<unknown[]> =>
+      new Promise((resolve, reject) => {
+        const request = database.transaction(store).objectStore(store).getAll();
+        request.onsuccess = () => resolve(request.result as unknown[]);
+        request.onerror = () => reject(request.error);
+      });
+
+    const result = {
+      directionProgress: await read('directionProgress'),
+      packProgress: await read('packProgress'),
+    };
+    database.close();
+    return JSON.stringify(result);
+  });
 }
 
 /** Eine vollständige Lernrunde mit vier richtigen Antworten. */
@@ -101,7 +126,8 @@ test.describe('Freies Üben', () => {
 
     // Der Lernplan ist gesperrt – der freiwillige Weg bleibt offen, der Termin sichtbar.
     await expect(page.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
-    await expect(page.getByRole('link', { name: 'Frei üben starten' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Direkt starten' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Runde anpassen' })).toBeVisible();
     await expect(page.getByText('4 Aufgaben sind verfügbar.')).toBeVisible();
     await expect(page.getByText(/morgen|in 1 Tag/).first()).toBeVisible();
 
@@ -171,14 +197,89 @@ test.describe('Freies Üben', () => {
     zweiter Weg zur selben Sache – dieser Test hält fest, dass sie weg ist und
     der verbliebene Weg trägt.
   */
-  test('@smoke der Ein-Klick-Weg startet eine freie Runde', async ({ page }) => {
+  test('@smoke der Direktstart startet eine freie Runde', async ({ page }) => {
     await seedPack(page, 'Ein Einstieg');
 
     await expect(page.getByRole('radio', { name: 'Lernplan' })).toHaveCount(0);
     await expect(page.getByRole('radio', { name: 'Frei üben' })).toHaveCount(0);
 
-    await page.getByRole('link', { name: 'Frei üben starten' }).click();
+    await page.getByRole('link', { name: 'Direkt starten' }).click();
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
+  });
+
+  /*
+    Sprint 3B.2b1: Der ganze Weg über die sichtbare Einrichtung – ohne dass
+    irgendwo eine URL von Hand getippt werden müsste. Am Ende steht der
+    Vergleich der IndexedDB-Inhalte vor und nach der Runde.
+  */
+  test('@smoke Runde anpassen: Richtung, Formen, Vorschau, Start – ohne Lernstand', async ({
+    page,
+  }) => {
+    await seedPack(page, 'Runde anpassen', 'both');
+
+    // Erst eine echte Lernrunde, damit es überhaupt einen Lernstand gibt.
+    await page.getByRole('button', { name: 'Lernrunde starten' }).click();
+    for (let i = 1; i <= 4; i += 1) {
+      await expect(page.getByText(`Aufgabe ${i} von 4`)).toBeVisible();
+      await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
+      await page.getByRole('button', { name: 'Gewusst', exact: true }).click();
+      await page.getByRole('button', { name: /^(Weiter|Runde beenden)$/ }).click();
+    }
+    await page.getByRole('link', { name: 'Zurück zum Paket' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Runde anpassen' })).toBeVisible();
+
+    const before = await readProgress(page);
+    expect(before).toContain('directionProgress');
+
+    await page.getByRole('link', { name: 'Runde anpassen' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Runde anpassen' })).toBeVisible();
+
+    // Richtung wählen …
+    await page.getByRole('radio', { name: 'Deutsch → Englisch' }).check();
+    // … Umfang …
+    await page.getByRole('radio', { name: 'Bis zu 5 Aufgaben' }).check();
+    // … und die Formen auf Karteikarte eingrenzen.
+    await page.getByRole('checkbox', { name: 'Multiple Choice' }).uncheck();
+    await page.getByRole('checkbox', { name: 'Offene Übersetzung' }).uncheck();
+    await expect(page.getByRole('checkbox', { name: 'Karteikarte' })).toBeChecked();
+
+    // Ehrliche Vorschau: vier Ziele in dieser Richtung, vier Aufgaben.
+    const preview = page.locator('.self-test__preview');
+    await expect(preview).toContainText('4 Aufgaben stehen in dieser Richtung zur Verfügung.');
+    await expect(preview).toContainText('4 Aufgaben werden eingeplant.');
+
+    await page.getByRole('button', { name: 'Frei üben starten' }).click();
+
+    // Genau die angekündigte Runde – und genau die gewählte Form.
+    await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Lösung anzeigen' })).toBeVisible();
+    expect(page.url()).toContain('mode=free');
+    expect(page.url()).toContain('direction=de-en');
+    expect(page.url()).toContain('length=5');
+
+    for (let i = 1; i <= 4; i += 1) {
+      await expect(page.getByText(`Aufgabe ${i} von 4`)).toBeVisible();
+      await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
+      await page.getByRole('button', { name: 'Gewusst', exact: true }).click();
+      await page.getByRole('button', { name: /^(Weiter|Runde beenden)$/ }).click();
+    }
+    await expect(page.getByRole('heading', { name: 'Freie Runde abgeschlossen' })).toBeVisible();
+    await page.getByRole('link', { name: 'Zurück zum Paket' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Runde anpassen' })).toBeVisible();
+
+    expect(await readProgress(page)).toBe(before);
+  });
+
+  test('@smoke die Einrichtung nimmt unmögliche Formen beim Richtungswechsel heraus', async ({
+    page,
+  }) => {
+    await seedPack(page, 'Formen aufräumen', 'both');
+    await page.getByRole('link', { name: 'Runde anpassen' }).click();
+
+    await page.getByRole('radio', { name: 'Englisch → Deutsch' }).check();
+    // Lückensätze gibt es nur produktiv – rezeptiv stehen sie gar nicht zur Wahl.
+    await expect(page.getByRole('checkbox', { name: /Lückensatz/ })).toHaveCount(0);
+    await expect(page.getByRole('checkbox', { name: 'Offene Übersetzung' })).toBeChecked();
   });
 
   test('@a11y Paketseite ohne schwerwiegende Befunde und mit der Tastatur bedienbar', async ({
@@ -187,8 +288,18 @@ test.describe('Freies Üben', () => {
     await seedPack(page, 'A11y Modus');
     await expectNoSeriousViolations(page, 'Paketdetail mit Lernwegen');
 
-    // Der freiwillige Weg ist mit der Tastatur erreichbar.
-    await page.getByRole('link', { name: 'Frei üben starten' }).focus();
+    // Die Einrichtung ist mit der Tastatur erreichbar und selbst bedienbar.
+    await page.getByRole('link', { name: 'Runde anpassen' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('heading', { level: 2, name: 'Runde anpassen' })).toBeVisible();
+    await expectNoSeriousViolations(page, 'Freies Üben einrichten');
+    await page.getByRole('radio', { name: 'Bis zu 5 Aufgaben' }).focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('radio', { name: 'Bis zu 5 Aufgaben' })).toBeChecked();
+    await page.goBack();
+
+    // Der Direktstart ebenso.
+    await page.getByRole('link', { name: 'Direkt starten' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
     await expectNoSeriousViolations(page, 'laufende freie Runde');
@@ -217,6 +328,21 @@ test.describe('Freies Üben', () => {
       }));
       expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
       expect(overflow.bodyScrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
+    });
+
+    test('@a11y Einrichtung ohne horizontalen Überlauf', async ({ page }) => {
+      await seedPack(page, 'A11y Einrichtung mobil', 'both');
+      await page.getByRole('link', { name: 'Runde anpassen' }).click();
+      await expect(page.getByRole('heading', { level: 2, name: 'Runde anpassen' })).toBeVisible();
+
+      const overflow = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+        bodyScrollWidth: document.body.scrollWidth,
+      }));
+      expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
+      expect(overflow.bodyScrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
+      await expectNoSeriousViolations(page, 'Einrichtung auf 390 px');
     });
   });
 });
