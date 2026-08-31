@@ -338,6 +338,53 @@ export function PackDetailPage() {
         ) : null}
       </Card>
 
+      {/*
+        Drei freiwillige Wege, gleichrangig nebeneinander. Sie hängen an keiner
+        Fälligkeit und an keiner Freischaltung – und sie verändern nichts.
+        Der Lernplan darunter bleibt der empfohlene Weg.
+      */}
+      <Card>
+        <h2>Auf eigene Weise lernen</h2>
+        <p className="muted small">
+          Diese drei Wege verändern deinen Lernstand nicht. Du kannst sie jederzeit nutzen.
+        </p>
+
+        <ul className="study-options">
+          <li className="study-option">
+            <h3 className="study-option__title">Vokabeln durchsehen</h3>
+            <p className="study-option__text">
+              Alle Wörter in Ruhe ansehen und Übersetzungen selbst aufdecken.
+            </p>
+            <Link className="btn" to={`/lernen/${packId}/durchsehen`}>
+              Vokabeln durchsehen
+            </Link>
+          </li>
+
+          <li className="study-option">
+            <h3 className="study-option__title">Mit Karten lernen</h3>
+            <p className="study-option__text">
+              Vorderseite ansehen, Lösung aufdecken und im eigenen Tempo weitergehen.
+            </p>
+            <Link className="btn" to={`/lernen/${packId}/karten`}>
+              Mit Karten lernen
+            </Link>
+          </li>
+
+          <li className="study-option">
+            <h3 className="study-option__title">Frei üben</h3>
+            <p className="study-option__text">
+              Richtig abgefragt werden, ohne dass sich Fächer oder Termine ändern.
+            </p>
+            <Link
+              className="btn"
+              to={`/lernen/${packId}/uebung?mode=free&length=15&seed=${seed}`}
+            >
+              Frei üben starten
+            </Link>
+          </li>
+        </ul>
+      </Card>
+
       <Card>
         <h2>Übung starten</h2>
 

@@ -18,6 +18,11 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 3B.2a** – Durchsehen und Karten: zwei freiwillige Lernwege im
+  Schülerbereich, unabhängig von Fälligkeiten und ohne jede Wirkung auf den
+  Lernstand.
+* **Sprint 3B.1c** – Kontrastfehler beim Routenwechsel entfernt: Die
+  Seitennavigation wechselt ihre Zustände ohne Zwischenbild.
 * **Sprint 3B.1b** – Vorbereitung kontrollierbar und Wortformen im Satz
   eindeutig: Fortschritt und „Abbrechen“ wirken auch beim ersten Modelldownload,
   ungültige Texte laden kein Modell, und mehrdeutige Formen wie `lives` werden
@@ -742,6 +747,123 @@ kann eine Vokabel zwei Aufgaben stellen. Die Oberfläche benennt das so.
 nichts an, ist „Frei üben“ gewählt und der Lernplan gesperrt – der nächste
 reguläre Termin bleibt aber sichtbar. Ein Paket ohne Vokabeln lässt beides
 gesperrt.
+
+---
+
+## Auf eigene Weise lernen: Durchsehen und Karten
+
+Neben dem Lernplan stehen im Schülerbereich drei freiwillige Wege: **Vokabeln
+durchsehen**, **mit Karten lernen** und **frei üben**. Sie hängen an keiner
+Fälligkeit und an keiner Freischaltung, und sie verändern **nichts** – keine
+Fächer, keine Termine, keinen Rundenzähler. Der Lernplan bleibt der empfohlene
+Weg und ist unverändert.
+
+| | Route | Was sie tut |
+| --- | --- | --- |
+| Durchsehen | `/lernen/:packId/durchsehen` | Alle Vokabeln in Ruhe ansehen, Antworten einzeln aufdecken |
+| Karten | `/lernen/:packId/karten` | Vorderseite, Rückseite, mischen, im eigenen Tempo weitergehen |
+| Frei üben | `/lernen/:packId/uebung?mode=free` | Richtig abgefragt werden, ohne Wirkung auf den Lernstand |
+
+Beide neuen Ansichten laden **erst beim Aufruf** (`React.lazy`), damit
+Startseite und Lehrkraft-Werkstätten davon nicht wachsen.
+
+### Eine Domänenschicht für beide
+
+`src/domain/studyView.ts` beantwortet die Fragen, die Liste und Karten gemeinsam
+haben: Was steht vorn, was hinten, welche Alternativen gibt es, welche
+Zusatzangaben sind überhaupt vorhanden. Die Datei kennt weder React noch
+IndexedDB noch den Lernstand.
+
+* `promptFor` / `answersFor` – Vorder- und Rückseite je Richtung. Bei
+  Englisch → Deutsch ist die Antwort die Bedeutung, bei Deutsch → Englisch das
+  Wort selbst; die zusätzlich akzeptierten englischen Schreibungen sind dann
+  die Alternativen.
+* `buildStudyCard` – das Anzeigemodell. **Leere optionale Felder fehlen ganz**
+  statt als leerer String dazustehen, damit die Oberfläche keine leeren
+  Bereiche erzeugt. Dubletten unter den Antworten fallen weg.
+* `buildCardSet` – die Reihenfolge des Kartensatzes.
+* `filterEntries` / `matchesQuery` – die lokale Suche.
+
+### Durchsehen
+
+Jede Vokabel ist ein redaktioneller Eintrag mit Stichwort als Überschrift und
+der Antwort darunter – keine breite Tabelle, deshalb entsteht auf 390 px kein
+waagerechter Scrollbereich. Die Antwort trägt `hidden`, ist also weder sichtbar
+noch im Accessibility-Tree; der Schalter daneben heißt „Antwort für *island*
+anzeigen“ und meldet seinen Zustand über `aria-expanded`.
+
+Dazu zwei Sammelaktionen und eine lokale Suche über Englisch, deutsche
+Antworten, akzeptierte Schreibweisen, Themen-Tags und Notizen: Teilzeichenkette,
+Groß-/Kleinschreibung egal, kein unscharfer Abgleich, kein Modell. Ohne Treffer
+steht dort „Keine passende Vokabel gefunden.“
+
+Pakete mit beiden Richtungen bieten die Wahl zwischen Englisch → Deutsch und
+Deutsch → Englisch; „Gemischt“ gibt es hier bewusst nicht, weil eine Liste jede
+Vokabel einmal zeigt. Ein Richtungswechsel tauscht die Seiten und **verbirgt
+alle Antworten wieder** – aufgedeckte Antworten passten sonst nicht mehr zur
+neuen Vorderseite. Die Suche bleibt dabei stehen.
+
+### Karten
+
+Der Kartensatz kommt aus denselben neutralen Bausteinen wie das freie Üben:
+`freeTargets` liefert die Ziele, `shuffle` mischt (Fisher-Yates mit
+injizierbarem `mulberry32`), `arrangeTargets` hält den Abstand zwischen den
+beiden Richtungen derselben Vokabel. Eine zweite Mischlogik gibt es nicht.
+
+Ein Unterschied zur Lernrunde ist nötig: `arrangeTargets` verschiebt Karten, die
+sich nicht regelkonform platzieren lassen, auf die nächste Runde. Ein
+Kartensatz hat keine nächste Runde – eine fehlende Karte wäre eine verlorene
+Vokabel. Übrig gebliebene Karten bekommen deshalb noch einen Platz, gesucht von
+hinten, damit die geordnete Reihenfolge stehen bleibt. Nur wenn gar keine Stelle
+passt, gilt: lieber ein knapper Abstand als eine fehlende Karte.
+
+**Seed und Reproduzierbarkeit.** Die Reihenfolge hängt allein am Seed; derselbe
+Seed ergibt denselben Satz. „Karten mischen“ erzeugt einen neuen Seed und
+beginnt von vorn. Der Seed lebt im Zustand der Seite: Beim Neuladen beginnt der
+Satz neu, und es entsteht keine Historie darüber, welche Karten jemand angesehen
+hat.
+
+**Richtungen.** Pakete mit beiden Richtungen bieten Gemischt, Englisch → Deutsch
+und Deutsch → Englisch; einseitige Pakete bieten keine ungültige Wahl. Eine
+einzelne Richtung zeigt jeden Eintrag einmal, Gemischt beide Richtungsziele. Die
+Richtung steht auf jeder Karte, und ein Wechsel startet den Satz neu – angekündigt
+über den Live-Bereich.
+
+**Tastatur.** Ist der Kartenbereich fokussiert, drehen Leertaste und Enter die
+Karte um, Pfeil rechts und links wechseln sie. Der Listener hängt am
+Kartenbereich, **nicht am `window`**: Sonst würde er auch feuern, während jemand
+in einem Suchfeld tippt oder mit den Pfeiltasten scrollt. Auf Schaltflächen
+behalten Leertaste und Enter ihre eigene Bedeutung. Der Fokus bleibt beim
+Umdrehen stehen.
+
+Am Ende steht „Du hast alle Karten angesehen.“ mit „Noch einmal“, „Neu mischen“
+und dem Rückweg – keine Bewertung, kein „bestanden“, keine Statistik.
+
+### Gestaltung
+
+Beide Ansichten führen „Editorial Signal“ fort: warmes Papier, Newsreader für
+Stichwort und Beispielsatz, viel Luft. Die Karte ist eine ruhige Fläche mit
+Schatten – **keine 3D-Drehung**, denn dabei lägen Vorder- und Rückseite
+gleichzeitig im Accessibility-Tree. Die Rückseite blendet kurz ein; die
+Bedienung wartet nicht darauf, und bei `prefers-reduced-motion` entfällt die
+Animation.
+
+Damit `hidden` das auch wirklich leistet, steht in `global.css` seit diesem
+Sprint `[hidden] { display: none !important; }`: Die Regel des Browsers verliert
+sonst gegen jede Klasse mit eigenem `display` – eine verborgen geglaubte Antwort
+stünde dann sichtbar da.
+
+### Was garantiert nicht passiert
+
+* Kein `startSession`, kein `recordAnswer` – aus `data/` wird nur `getPack`
+  gelesen. Geprüft im Komponententest über gezählte Aufrufe und in E2E über
+  einen Vergleich der IndexedDB-Inhalte vor und nach beiden Modi.
+* Keine Fälligkeitsabfrage, keine Freischaltung, keine Änderung von Fächern,
+  Terminen oder Rundenzählern.
+* Keine Historie darüber, was angesehen wurde: Aufgedeckte Antworten und der
+  Kartensatz leben nur im Zustand der geöffneten Seite.
+* Keine externen Requests – der E2E-Test schlägt fehl, sobald ein fremder Host
+  kontaktiert wird.
 
 ---
 
@@ -1795,6 +1917,13 @@ funktioniert vollständig offline.
 * **Das Abkürzungslexikon ist kurz.** Was nicht darin steht, wird als
   „Abkürzung – Langform prüfen“ gemeldet statt geraten. Mehrdeutige Kürzel wie
   `m` und `in` fehlen mit Absicht.
+* **Der Kartensatz ist flüchtig.** Seed, Position und aufgedeckte Antworten
+  leben nur in der geöffneten Seite. Das ist Absicht – aber wer neu lädt,
+  beginnt von vorn.
+* **Durchsehen kennt keine Sortierung.** Die Liste folgt der Paketreihenfolge;
+  alphabetisch oder nach Schwierigkeit sortieren geht noch nicht.
+* **Die Suche ist eine Teilzeichenkette.** Tippfehler und Beugungen findet sie
+  nicht – anders als die Textanalyse wertet sie keine Wortformen aus.
 * **Die Richtungswahl gilt pro Runde, nicht pro Paket.** Sie wird nicht
   gespeichert; nach dem Neuladen steht wieder „Gemischt“. Das ist bewusst
   schlicht gehalten – ob eine gemerkte Wahl hilft, zeigt erst die Nutzung.

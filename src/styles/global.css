@@ -15,6 +15,18 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * `hidden` muss stärker sein als jede Layoutregel.
+ *
+ * Die Regel des Browsers (`[hidden] { display: none }`) verliert gegen jede
+ * Klasse mit eigenem `display` – eine aufgedeckt geglaubte Antwort stünde dann
+ * sichtbar da, obwohl sie verborgen sein sollte. Genau darauf beruhen aber die
+ * Durchsehen-Liste und der Kartenmodus.
+ */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -1269,4 +1281,242 @@ progress {
 
 .suggestion .row {
   margin-top: 0.4rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Sprint 3B.2a: Durchsehen und Karten
+   --------------------------------------------------------------------------- */
+
+/* Drei gleichrangige Wege – Karten mit Luft, keine kleinen Nebenlinks. */
+.study-options {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.study-option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+}
+
+.study-option__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1.25;
+}
+
+.study-option__text {
+  margin: 0;
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+}
+
+/* Der Knopf sitzt unten bündig, damit die drei Karten eine Linie ergeben. */
+.study-option > .btn {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+}
+
+/* --- Durchsehen ----------------------------------------------------------- */
+
+.browse-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.browse-controls__directions {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.browse-controls__directions legend {
+  padding: 0;
+  color: var(--ink-secondary);
+}
+
+.browse-controls__search {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.browse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+/*
+ * Ein redaktioneller Eintrag, keine Tabellenzeile: Stichwort als Überschrift,
+ * Antwort darunter. Dadurch entsteht auf schmalen Geräten kein waagerechter
+ * Scrollbereich – es gibt schlicht keine Spalten, die nicht passen.
+ */
+.browse-item {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+  padding: var(--space-4);
+}
+
+.browse-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.browse-item__prompt {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.browse-item__answer {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.browse-item__solution {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.browse-item__example {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--ink-secondary);
+}
+
+/* --- Karten --------------------------------------------------------------- */
+
+.card-deck__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+}
+
+/*
+ * Eine ruhige Fläche mit Gewicht – haptisch, nicht verspielt. Keine 3D-Drehung:
+ * Vorder- und Rückseite lägen dabei gleichzeitig im Accessibility-Tree.
+ */
+.card-deck {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-2);
+  padding: var(--space-8) var(--space-5);
+  min-height: 14rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+/* Der Kartenbereich ist fokussierbar – dann muss man das auch sehen. */
+.card-deck:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.card-deck__prompt {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: 1.15;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.card-deck__answer {
+  width: 100%;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  /*
+   * Eine kurze, reduzierte Einblendung. Sie bewegt nichts, worauf die Bedienung
+   * warten müsste: Der Inhalt steht sofort im DOM und ist sofort bedienbar.
+   */
+  animation: card-reveal var(--duration-fast) var(--ease-out);
+}
+
+@keyframes card-reveal {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-deck__answer {
+    animation: none;
+  }
+}
+
+.card-deck__solution {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+  overflow-wrap: anywhere;
+}
+
+.card-deck__extras {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.card-deck__example {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--ink-secondary);
+}
+
+.card-deck__hint {
+  margin: 0;
+}
+
+/* Auf dem Telefon sind das die zentralen Bedienelemente – groß genug zum Treffen. */
+.card-deck__controls .btn {
+  flex: 1 1 8rem;
+  min-height: var(--tap-target);
+  justify-content: center;
 }
