@@ -102,9 +102,11 @@ describe('PackDetailPage – Leerzustand', () => {
 
     expect(await screen.findByText(/Gerade ist nichts fällig/)).toBeInTheDocument();
     expect(screen.getAllByText(/in 3 Tagen/).length).toBeGreaterThan(0);
-    // Seit Sprint 2A.2 ist der Lernplan gesperrt – nicht die ganze Seite.
-    expect(screen.getByRole('radio', { name: /Lernplan/ })).toBeDisabled();
+    // Seit Sprint 2A.2 ist der Lernplan gesperrt – nicht die ganze Seite. Die
+    // freiwilligen Lernweisen darüber bleiben offen.
+    expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
     expect(screen.queryByRole('option', { name: /Alle bereiten/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Frei üben starten' })).toBeInTheDocument();
   });
 
   it('bietet bei einem leeren Paket keine Runde an', async () => {

@@ -68,11 +68,16 @@ async function finishScheduledRound(page: Page): Promise<void> {
 }
 
 /**
- * Karteikarte erzwingen. Ohne Auswahl richtet sich die Übungsform nach dem
- * Leitner-Fach – nach der ersten Runde wäre das Multiple Choice.
+ * Karteikarte erzwingen – seit Sprint 3B.2b über die URL.
+ *
+ * Der Einstieg ins freie Üben ist jetzt ein Ein-Klick-Weg ohne
+ * Vorabeinstellungen; die Übungsform richtet sich sonst nach dem Leitner-Fach.
+ * Für die Bedienungstests hier braucht es aber genau eine, vorhersagbare Form.
+ * Der Ein-Klick-Weg selbst wird weiter unten eigens geprüft.
  */
-async function chooseFlashcards(page: Page): Promise<void> {
-  await page.getByRole('checkbox', { name: /Karteikarte/ }).check();
+async function startFreeFlashcards(page: Page): Promise<void> {
+  const packId = (page.url().split('/lernen/')[1] ?? '').split('?')[0] ?? '';
+  await page.goto(`/#/lernen/${packId}/uebung?mode=free&kinds=flashcard&length=15&seed=42`);
 }
 
 /** Bringt das Paket in den Zustand „nichts fällig, freies Üben möglich". */
@@ -94,19 +99,18 @@ test.describe('Freies Üben', () => {
 
     await seedNothingDue(page, 'Freies Üben');
 
-    // Der Lernplan ist gesperrt, freies Üben vorausgewählt – der Termin bleibt sichtbar.
-    await expect(page.getByRole('radio', { name: 'Lernplan' })).toBeDisabled();
-    await expect(page.getByRole('radio', { name: 'Frei üben' })).toBeChecked();
+    // Der Lernplan ist gesperrt – der freiwillige Weg bleibt offen, der Termin sichtbar.
+    await expect(page.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
+    await expect(page.getByRole('link', { name: 'Frei üben starten' })).toBeVisible();
+    await expect(page.getByText('4 Aufgaben sind verfügbar.')).toBeVisible();
     await expect(page.getByText(/morgen|in 1 Tag/).first()).toBeVisible();
-    await expect(page.getByRole('option', { name: 'Alle verfügbaren (4)' })).toBeAttached();
 
     // Lernstand vor der freien Runde.
     await expect(page.getByText(/0 von 4 Vokabeln sicher/)).toBeVisible();
     await expect(page.getByText(/1 Übungsrunden bisher/)).toBeVisible();
     const boxesBefore = await page.locator('.stand .mono').first().innerText();
 
-    await chooseFlashcards(page);
-    await page.getByRole('button', { name: 'Frei üben', exact: true }).click();
+    await startFreeFlashcards(page);
 
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
     await expect(
@@ -140,8 +144,7 @@ test.describe('Freies Üben', () => {
 
   test('@smoke eine falsche Antwort wird in derselben freien Runde wiederholt', async ({ page }) => {
     await seedNothingDue(page, 'Freie Wiedervorlage');
-    await chooseFlashcards(page);
-    await page.getByRole('button', { name: 'Frei üben', exact: true }).click();
+    await startFreeFlashcards(page);
 
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
     await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
@@ -162,23 +165,37 @@ test.describe('Freies Üben', () => {
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
   });
 
-  test('@a11y Modusauswahl ohne schwerwiegende Befunde und mit der Tastatur bedienbar', async ({
+  /*
+    Seit Sprint 3B.2b führt genau ein Weg ins freie Üben: die Karte „Auf eigene
+    Weise lernen". Die frühere Modusauswahl in der Lernplan-Karte war ein
+    zweiter Weg zur selben Sache – dieser Test hält fest, dass sie weg ist und
+    der verbliebene Weg trägt.
+  */
+  test('@smoke der Ein-Klick-Weg startet eine freie Runde', async ({ page }) => {
+    await seedPack(page, 'Ein Einstieg');
+
+    await expect(page.getByRole('radio', { name: 'Lernplan' })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: 'Frei üben' })).toHaveCount(0);
+
+    await page.getByRole('link', { name: 'Frei üben starten' }).click();
+    await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
+  });
+
+  test('@a11y Paketseite ohne schwerwiegende Befunde und mit der Tastatur bedienbar', async ({
     page,
   }) => {
     await seedPack(page, 'A11y Modus');
-    await expectNoSeriousViolations(page, 'Paketdetail mit Modusauswahl');
+    await expectNoSeriousViolations(page, 'Paketdetail mit Lernwegen');
 
-    // Der Lernplan ist vorausgewählt; mit der Pfeiltaste geht es zum freien Üben.
-    await expect(page.getByRole('radio', { name: 'Lernplan' })).toBeChecked();
-    await page.getByRole('radio', { name: 'Lernplan' }).focus();
-    await page.keyboard.press('ArrowDown');
-    await expect(page.getByRole('radio', { name: 'Frei üben' })).toBeChecked();
-
-    await chooseFlashcards(page);
-    await page.getByRole('button', { name: 'Frei üben', exact: true }).focus();
+    // Der freiwillige Weg ist mit der Tastatur erreichbar.
+    await page.getByRole('link', { name: 'Frei üben starten' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
     await expectNoSeriousViolations(page, 'laufende freie Runde');
+
+    await page.goBack();
+    await startFreeFlashcards(page);
+    await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
 
     // Fokus nach der Antwort auf „Weiter“ – ohne Wartezeit.
     await expect(page.getByRole('button', { name: 'Lösung anzeigen' })).toBeFocused();
@@ -191,7 +208,7 @@ test.describe('Freies Üben', () => {
   test.describe('Smartphone-Breite', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test('@a11y Modusauswahl ohne horizontalen Überlauf', async ({ page }) => {
+    test('@a11y Paketseite ohne horizontalen Überlauf', async ({ page }) => {
       await seedPack(page, 'A11y Modus mobil');
       const overflow = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,

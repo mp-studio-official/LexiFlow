@@ -118,64 +118,69 @@ beforeEach(async () => {
   await clearAllLocalData();
 });
 
-describe('Paketansicht – Wahl der Übungsart', () => {
-  it('wählt den Lernplan, solange Aufgaben fällig sind', async () => {
+describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
+  /*
+    Seit Sprint 3B.2b gibt es die frühere Modusauswahl („Lernplan“ / „Frei
+    üben“) nicht mehr. Freies Üben ist eine der vier freiwilligen Lernweisen,
+    der Lernplan bleibt die empfohlene Runde darunter. Diese Tests halten
+    beides fest: dass der doppelte Einstieg weg ist und dass freies Üben
+    trotzdem jederzeit erreichbar bleibt.
+  */
+  it('bietet freies Üben als eigene Lernweise an, ohne zweite Modusauswahl', async () => {
     await seed(4);
     renderDetail();
 
-    expect(await screen.findByRole('radio', { name: 'Lernplan' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Frei üben' })).not.toBeChecked();
+    expect(await screen.findByRole('link', { name: 'Frei üben starten' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('mode=free'),
+    );
+    expect(screen.queryByRole('radio', { name: 'Lernplan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Frei üben' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeEnabled();
   });
 
-  it('wählt freies Üben, wenn nichts fällig ist – und nennt den Termin weiter', async () => {
+  it('bleibt erreichbar, wenn nichts fällig ist – und nennt den Termin weiter', async () => {
     await seed(4);
     await scheduleAllLater(4);
     renderDetail();
 
-    expect(await screen.findByRole('radio', { name: 'Frei üben' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Lernplan' })).toBeDisabled();
+    expect(await screen.findByRole('link', { name: 'Frei üben starten' })).toBeInTheDocument();
     expect(screen.getByText(/Gerade ist nichts fällig/)).toBeInTheDocument();
-    expect(screen.getAllByText(/nächste Wiederholung|Die nächste Wiederholung/).length)
-      .toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'Frei üben' })).toBeEnabled();
+    expect(screen.getByText(/Die nächste Wiederholung/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
   });
 
-  it('erklärt, dass freies Üben den Lernplan nicht verändert', async () => {
+  it('erklärt, dass die freiwilligen Wege den Lernstand nicht verändern', async () => {
     await seed(4);
     renderDetail();
 
-    expect(await screen.findByText('Übe unabhängig vom Lernplan.', { exact: false }))
-      .toBeInTheDocument();
     expect(
-      screen.getByText('Diese Runde verändert deinen Lernplan und die Fälligkeiten nicht.'),
+      await screen.findByText(/Diese vier Wege verändern deinen Lernstand nicht/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/ohne dass sich Fächer oder Termine ändern/),
     ).toBeInTheDocument();
   });
 
-  it('wechselt Texte, Zählungen und Startschaltfläche mit dem Modus', async () => {
+  it('nennt die Zahl der frei verfügbaren Aufgaben ehrlich', async () => {
     await seed(6, 'both');
-    const user = userEvent.setup();
     renderDetail();
 
-    // Lernplan: nur die freigeschaltete Richtung ist bereit.
-    expect(await screen.findByRole('option', { name: 'Alle bereiten (6)' })).toBeInTheDocument();
-    expect(screen.getByText(/Aufgaben sind jetzt bereit/)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('radio', { name: 'Frei üben' }));
-
-    expect(screen.getByRole('button', { name: 'Frei üben' })).toBeEnabled();
-    expect(screen.getByText(/zum freien Üben verfügbar/)).toBeInTheDocument();
-    // Seit Sprint 3B.1 stehen beim freien Üben beide Richtungen sofort bereit.
-    expect(screen.getByRole('option', { name: 'Alle verfügbaren (12)' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /Alle bereiten/ })).not.toBeInTheDocument();
+    // Beim freien Üben stehen seit Sprint 3B.1 beide Richtungen sofort bereit.
+    expect(await screen.findByText(/12 Aufgaben sind verfügbar/)).toBeInTheDocument();
+    // Die Rundengröße darunter gehört jetzt allein dem Lernplan.
+    expect(screen.getByRole('option', { name: 'Alle bereiten (6)' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Alle verfügbaren/ })).not.toBeInTheDocument();
   });
 
-  it('lässt bei einem leeren Paket beide Möglichkeiten gesperrt', async () => {
+  it('bietet bei einem leeren Paket keinen Einstieg an, der ins Leere liefe', async () => {
     await savePack({ meta: makeMeta({ id: PACK_ID, direction: 'en-de' }), entries: [] });
     renderDetail();
 
-    expect(await screen.findByRole('radio', { name: 'Lernplan' })).toBeDisabled();
-    expect(screen.getByRole('radio', { name: 'Frei üben' })).toBeDisabled();
+    expect(
+      await screen.findByText(/Dafür ist bisher nichts freigeschaltet/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Frei üben starten' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
   });
 });

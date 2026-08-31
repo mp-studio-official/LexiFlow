@@ -100,7 +100,7 @@ describe('Wahl der Richtung auf der Paketseite', () => {
     await seed('en-de');
     renderDetail();
 
-    await screen.findByRole('radio', { name: 'Lernplan' });
+    await screen.findByRole('button', { name: 'Lernrunde starten' });
     expect(screen.queryByRole('radio', { name: 'Gemischt' })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: 'Deutsch → Englisch' })).not.toBeInTheDocument();
   });

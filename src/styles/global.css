@@ -1520,3 +1520,132 @@ progress {
   min-height: var(--tap-target);
   justify-content: center;
 }
+
+/* ---------------------------------------------------------------- Selbsttest */
+
+/*
+ * Der Selbsttest ist bewusst schmucklos. Keine Punkte, keine Sterne, keine
+ * Ampel – nur ruhige Typografie. Ein Test, der sich wie eine Klassenarbeit
+ * anfühlt, wird nicht freiwillig genutzt.
+ */
+.self-test__group {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.self-test__group legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.self-test__preview {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--accent);
+  background: var(--surface-sunken);
+  border-radius: 0 var(--radius-surface) var(--radius-surface) 0;
+}
+
+.self-test__score {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+}
+
+/*
+ * Die Aufteilung steht in Worten da. Farbe ist hier Beiwerk, nie das einzige
+ * Unterscheidungsmerkmal – sonst wäre die Auswertung für einen Teil der
+ * Lernenden gar keine.
+ */
+.self-test__tally {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.self-test__tally li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.self-test__tally-count {
+  min-width: 2ch;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+}
+
+/* ------------------------------------------------------------ Fehleransicht */
+
+.mistake-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.mistake {
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.mistake__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  justify-content: space-between;
+}
+
+.mistake__prompt {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.mistake__row {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mistake__label {
+  color: var(--ink-secondary);
+  font-size: var(--text-sm);
+}
+
+/*
+ * Die eigene Antwort steht als Text da, nicht als Fehler markiert. Wer sie
+ * liest, soll den Unterschied selbst sehen – nicht angestrichen bekommen.
+ */
+.mistake__given {
+  font-family: var(--font-mono);
+}
+
+.mistake__expected {
+  font-weight: var(--weight-medium);
+  color: var(--accent-ink);
+}
+
+.mistake__example {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--ink-secondary);
+}

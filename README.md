@@ -18,6 +18,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 3B.2b** – Selbsttest mit ehrlicher Auswertung: sich selbst prüfen,
+  Fehler gezielt wiederholen, ohne Note und ohne jede Wirkung auf den Lernstand.
+  Die Paketseite hat dafür genau einen Einstieg je Lernweg.
 * **Sprint 3B.2a** – Durchsehen und Karten: zwei freiwillige Lernwege im
   Schülerbereich, unabhängig von Fälligkeiten und ohne jede Wirkung auf den
   Lernstand.
@@ -138,6 +141,7 @@ src/
     leitner.ts       Leitner-System, Mastery über alle aktiven Richtungen
     exercises.ts     Aufgabenbau und Auswahl der (Vokabel, Richtung)-Paare
     freePractice.ts  Planung für freies Üben – ohne Fälligkeit, ohne Wirkung
+    selfTest.ts      Selbsttest: Planung, Auswertung, Fehlerwiederholung
     session.ts       Warteschlange einer Runde inkl. Wiedervorlage
     dueDate.ts       verständliche Formulierung von Fälligkeitsterminen
     packDiff.ts      Fingerprint lernrelevanter Felder, Paketvergleich
@@ -713,8 +717,9 @@ technisch und fachlich getrennt.
 | Fälligkeit | entscheidet mit | spielt keine Rolle |
 | Schreibt Lernstände | ja (`startSession`, `recordAnswer`) | **nein** |
 | Zählt als Übungsrunde | ja | nein |
-| Startschaltfläche | „Lernrunde starten“ | „Frei üben“ |
-| Rundengröße | „Alle bereiten (n)“ | „Alle verfügbaren (n)“ |
+| Einstieg | Karte „Nach Lernplan üben“ | Karte „Auf eigene Weise lernen“ |
+| Startschaltfläche | „Lernrunde starten“ | „Frei üben starten“ |
+| Rundengröße | wählbar, „Alle bereiten (n)“ | fest 15 als Obergrenze |
 | URL | ohne `mode` bzw. `mode=scheduled` | `mode=free` |
 
 **Freies Üben verändert nichts.** Eine freie Runde ruft weder `startSession`
@@ -743,28 +748,44 @@ derselben Vokabel (`arrangeTargets`) und die Rundengröße als Obergrenze.
 Aufgaben, also Kombinationen aus Vokabel und Richtung – bei „beide Richtungen“
 kann eine Vokabel zwei Aufgaben stellen. Die Oberfläche benennt das so.
 
-**Vorauswahl.** Stehen reguläre Aufgaben an, ist „Lernplan“ gewählt. Steht
-nichts an, ist „Frei üben“ gewählt und der Lernplan gesperrt – der nächste
-reguläre Termin bleibt aber sichtbar. Ein Paket ohne Vokabeln lässt beides
-gesperrt.
+**Ein Einstieg je Weg (seit Sprint 3B.2b).** Die Paketseite hatte zwei Wege ins
+freie Üben: die Karte „Auf eigene Weise lernen“ und eine Modusauswahl
+(„Lernplan“ / „Frei üben“) in der Übungskarte darunter. Zwei Wege zur selben
+Sache sind eine Einladung zur Verwechslung – die Modusauswahl ist deshalb weg.
+Die untere Karte heißt jetzt „Nach Lernplan üben“ und plant nur noch den
+Lernplan; freies Üben startet mit einem Klick aus der Karte darüber.
+
+Das kostet eine Möglichkeit: Richtung, Übungsformen und Rundengröße lassen sich
+für das freie Üben nicht mehr vorab einstellen. Das ist bewusst so. Der
+Ein-Klick-Weg passt zum freiwilligen Charakter, die Übungsform richtet sich wie
+sonst auch automatisch nach dem Leitner-Fach, und die Rundengröße ist mit 15
+(`FREE_ROUND_LENGTH`) eine Obergrenze, keine Vorgabe. Wer genauer zuschneiden
+will, kann die URL-Parameter weiterhin selbst setzen – sie sind unverändert.
+
+Steht nichts an, ist der Lernplan gesperrt und die Schaltfläche „Lernrunde
+starten“ deaktiviert; der nächste reguläre Termin bleibt sichtbar, und der freie
+Weg bleibt offen. Bei einem Paket ohne freigeschaltete Aufgaben verschwindet
+auch der freie Einstieg – statt eines Knopfes, der ins Leere führt, steht dort
+der Grund.
 
 ---
 
-## Auf eigene Weise lernen: Durchsehen und Karten
+## Auf eigene Weise lernen: Durchsehen, Karten und Selbsttest
 
-Neben dem Lernplan stehen im Schülerbereich drei freiwillige Wege: **Vokabeln
-durchsehen**, **mit Karten lernen** und **frei üben**. Sie hängen an keiner
-Fälligkeit und an keiner Freischaltung, und sie verändern **nichts** – keine
-Fächer, keine Termine, keinen Rundenzähler. Der Lernplan bleibt der empfohlene
-Weg und ist unverändert.
+Neben dem Lernplan stehen im Schülerbereich vier freiwillige Wege: **Vokabeln
+durchsehen**, **mit Karten lernen**, **Selbsttest** und **frei üben**. Sie
+hängen an keiner Fälligkeit und an keiner Freischaltung, und sie verändern
+**nichts** – keine Fächer, keine Termine, keinen Rundenzähler. Der Lernplan
+bleibt der empfohlene Weg und ist unverändert.
 
 | | Route | Was sie tut |
 | --- | --- | --- |
 | Durchsehen | `/lernen/:packId/durchsehen` | Alle Vokabeln in Ruhe ansehen, Antworten einzeln aufdecken |
 | Karten | `/lernen/:packId/karten` | Vorderseite, Rückseite, mischen, im eigenen Tempo weitergehen |
+| Selbsttest | `/lernen/:packId/selbsttest` | Sich selbst abfragen, am Ende eine ruhige Auswertung, Fehler gezielt wiederholen |
 | Frei üben | `/lernen/:packId/uebung?mode=free` | Richtig abgefragt werden, ohne Wirkung auf den Lernstand |
 
-Beide neuen Ansichten laden **erst beim Aufruf** (`React.lazy`), damit
+Alle drei neuen Ansichten laden **erst beim Aufruf** (`React.lazy`), damit
 Startseite und Lehrkraft-Werkstätten davon nicht wachsen.
 
 ### Eine Domänenschicht für beide
@@ -839,9 +860,73 @@ Umdrehen stehen.
 Am Ende steht „Du hast alle Karten angesehen.“ mit „Noch einmal“, „Neu mischen“
 und dem Rückweg – keine Bewertung, kein „bestanden“, keine Statistik.
 
+### Selbsttest
+
+Der Selbsttest ist eine **Selbsteinschätzung, keine Prüfung**. Er fragt richtig
+ab – mit denselben Aufgabenformen und derselben zentralen Antwortprüfung wie der
+Lernplan –, aber niemand außer der lernenden Person erfährt das Ergebnis, und
+der Lernstand bleibt unberührt.
+
+Vier klar getrennte Zustände: **einrichten**, **bearbeiten**, **auswerten**,
+**Fehler ansehen**. Ein Neuladen setzt den Test zurück; das ist Absicht, denn es
+entsteht so gar keine Historie darüber, wer wie abgeschnitten hat.
+
+**Einrichten.** Wählbar sind Richtung (nur wo es eine echte Wahl gibt), Anzahl
+(5, 10, 15, 20 oder alle verfügbaren) und die Aufgabenarten – gruppiert nach dem,
+was sie von der lernenden Person verlangen:
+
+| Gruppe | Bedeutet | Übungsformen |
+| --- | --- | --- |
+| offen | Antwort selbst eingeben | `open-translation` |
+| halboffen | Lücke im Satz ergänzen | `cloze-free`, `cloze-bank` |
+| geschlossen | Aus vorgegebenen Antworten auswählen | `multiple-choice` |
+
+Angeboten wird nur, was das Paket in der gewählten Richtung wirklich hergibt.
+**Karteikarten fehlen bewusst:** Sie zeigen die Lösung und fragen nichts ab –
+in einem Selbsttest wären sie eine Selbsttäuschung. Wer so lernen will, findet
+den Kartenmodus daneben.
+
+Die Anzahl ist eine **Obergrenze**, kein Versprechen. Ergibt die Auswahl weniger
+Aufgaben, steht das vor dem Start da („6 Aufgaben werden zusammengestellt. Mehr
+gibt dieses Paket mit dieser Auswahl nicht her – erfunden wird nichts.“).
+
+**Planung.** `src/domain/selfTest.ts` ist rein: kein Leitner, keine Fälligkeit,
+kein IndexedDB, keine Uhr. Der Zufall kommt als Seed herein.
+
+* `availableGroups` / `kindsForGroups` – welche Gruppen dieses Paket hergibt.
+* `planSelfTest` – der Testplan. Baut auf `freeTargets`, `shuffle` und
+  `arrangeTargets` auf, damit dieselbe Vokabel nicht doppelt vorkommt und
+  zwischen ihren beiden Richtungen Abstand bleibt. `plannedCount` ist die
+  Wahrheit, `requested` der Wunsch.
+* `checkTaskAnswer` – die **eine** Antwortprüfung: `checkChoice` bei Multiple
+  Choice, sonst `checkAnswer`. Eine zweite, vereinfachte Prüfung gibt es
+  nirgends.
+* `gradeSelfTest` – zählt richtig, fast richtig und noch nicht richtig.
+  **Unbeantwortete Aufgaben zählen als falsch**, nicht als „egal“.
+* `planMistakeRound` – die Fehlerwiederholung: nur die Vokabeln, die noch nicht
+  saßen, in derselben Richtung, mit eigenen Aufgaben-IDs (`#retry`) und einer
+  neuen, ganz normalen Auswertung.
+
+**Auswerten.** „7 von 10 richtig“, dazu der Prozentwert und eine Aufteilung in
+richtig / fast richtig / noch nicht richtig. Keine Note, kein „bestanden“, keine
+Ampel, keine Punkte, kein Konfetti. Die Kategorien stehen **als Wort** da –
+Farbe ist nie das einzige Unterscheidungsmerkmal. Fünf Wege führen weiter:
+Fehler wiederholen, Fehler ansehen, neuen Test starten, Vokabeln durchsehen,
+zurück zum Paket. Ist alles richtig, entfallen die beiden Fehler-Aktionen und es
+steht schlicht „Alles richtig – das sitzt.“ da.
+
+**Fehler ansehen.** Je Fehler: Richtung, Aufgabenart, die Frage, die **eigene
+Antwort als Text** (auch die bei Multiple Choice gewählte Option, in Worten),
+die akzeptierten Antworten und, wenn vorhanden, der Beispielsatz. Keine roten
+Anstreichungen, keine Bewertung der Person.
+
+**Die Wiederholung ist endlich.** Sie läuft einmal und wertet danach neu aus –
+sie wiederholt sich nicht automatisch „bis alles richtig ist“. Wer noch einmal
+will, entscheidet das selbst.
+
 ### Gestaltung
 
-Beide Ansichten führen „Editorial Signal“ fort: warmes Papier, Newsreader für
+Alle Ansichten führen „Editorial Signal“ fort: warmes Papier, Newsreader für
 Stichwort und Beispielsatz, viel Luft. Die Karte ist eine ruhige Fläche mit
 Schatten – **keine 3D-Drehung**, denn dabei lägen Vorder- und Rückseite
 gleichzeitig im Accessibility-Tree. Die Rückseite blendet kurz ein; die
@@ -857,11 +942,14 @@ stünde dann sichtbar da.
 
 * Kein `startSession`, kein `recordAnswer` – aus `data/` wird nur `getPack`
   gelesen. Geprüft im Komponententest über gezählte Aufrufe und in E2E über
-  einen Vergleich der IndexedDB-Inhalte vor und nach beiden Modi.
+  einen Vergleich der IndexedDB-Inhalte vor und nach allen Modi, beim Selbsttest
+  ausdrücklich auch **nach der Fehlerwiederholung**.
 * Keine Fälligkeitsabfrage, keine Freischaltung, keine Änderung von Fächern,
   Terminen oder Rundenzählern.
-* Keine Historie darüber, was angesehen wurde: Aufgedeckte Antworten und der
-  Kartensatz leben nur im Zustand der geöffneten Seite.
+* Keine Historie darüber, was angesehen oder wie abgeschnitten wurde:
+  Aufgedeckte Antworten, Kartensatz, Testantworten und Auswertung leben nur im
+  Zustand der geöffneten Seite. Ein Testergebnis wird **weder gespeichert noch
+  übertragen** – auch nicht in `localStorage`.
 * Keine externen Requests – der E2E-Test schlägt fehl, sobald ein fremder Host
   kontaktiert wird.
 

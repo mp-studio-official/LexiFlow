@@ -154,9 +154,9 @@ test.describe('LexiFlow – Grundablauf', () => {
     await page.getByRole('link', { name: 'Öffnen' }).click();
     await expect(page.getByText(/Gerade ist nichts fällig/)).toBeVisible();
     // Seit Sprint 2A.2 ist nur der Lernplan gesperrt – frei üben geht weiter.
-    await expect(page.getByRole('radio', { name: 'Lernplan' })).toBeDisabled();
-    await expect(page.getByRole('radio', { name: 'Frei üben' })).toBeChecked();
-    await expect(page.getByRole('button', { name: 'Frei üben', exact: true })).toBeEnabled();
+    // Seit Sprint 3B.2b führt dorthin genau ein Weg: die Karte darüber.
+    await expect(page.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
+    await expect(page.getByRole('link', { name: 'Frei üben starten' })).toBeVisible();
   });
 
   test('@smoke Export, erneuter Import und Bestätigung', async ({ page }) => {

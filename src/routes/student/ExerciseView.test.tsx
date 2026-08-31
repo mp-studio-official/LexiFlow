@@ -29,7 +29,10 @@ describe('Multiple Choice', () => {
     render(<ExerciseView task={task('multiple-choice', 'e-neighbourhood')} result={null} onSubmit={onSubmit} />);
 
     await user.click(screen.getByRole('button', { name: /Nachbarschaft/ }));
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ verdict: 'correct' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ verdict: 'correct' }),
+      expect.any(String),
+    );
   });
 
   it('meldet eine falsche Auswahl', async () => {
@@ -41,7 +44,10 @@ describe('Multiple Choice', () => {
 
     render(<ExerciseView task={current} result={null} onSubmit={onSubmit} />);
     await user.click(screen.getByRole('button', { name: new RegExp(wrong ?? '') }));
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ verdict: 'wrong' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ verdict: 'wrong' }),
+      expect.any(String),
+    );
   });
 
   it('erlaubt die Auswahl über die Zifferntasten', async () => {
@@ -76,7 +82,10 @@ describe('Offene Übersetzung', () => {
     await user.type(screen.getByRole('textbox'), '  nachbarschaft. ');
     await user.click(screen.getByRole('button', { name: /Antwort prüfen/ }));
 
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ verdict: 'correct' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ verdict: 'correct' }),
+      expect.any(String),
+    );
   });
 
   it('erkennt einen Tippfehler als „fast richtig“', async () => {
@@ -85,7 +94,10 @@ describe('Offene Übersetzung', () => {
     render(<ExerciseView task={task('open-translation', 'e-neighbourhood')} result={null} onSubmit={onSubmit} />);
 
     await user.type(screen.getByRole('textbox'), 'Nachbarschat{Enter}');
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ verdict: 'almost' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ verdict: 'almost' }),
+      expect.any(String),
+    );
   });
 });
 
@@ -106,7 +118,10 @@ describe('Karteikarte', () => {
 
     await user.click(screen.getByRole('button', { name: /Lösung anzeigen/ }));
     await user.click(screen.getByRole('button', { name: /Noch nicht gewusst/ }));
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ verdict: 'wrong' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ verdict: 'wrong' }),
+      expect.any(String),
+    );
   });
 });
 
@@ -123,6 +138,9 @@ describe('Lückensatz', () => {
     render(<ExerciseView task={task('cloze-free', 'e-crowded', 'de-en')} result={null} onSubmit={onSubmit} />);
 
     await user.type(screen.getByRole('textbox'), 'crowded{Enter}');
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ verdict: 'correct' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ verdict: 'correct' }),
+      expect.any(String),
+    );
   });
 });

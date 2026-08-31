@@ -222,7 +222,6 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
 
     // Freies Üben: acht Aufgaben, vier Vokabeln in zwei Richtungen.
-    await page.getByRole('radio', { name: 'Frei üben' }).check();
-    await expect(page.getByText(/8 Aufgaben sind zum freien Üben verfügbar/)).toBeVisible();
+    await expect(page.getByText('8 Aufgaben sind verfügbar.')).toBeVisible();
   });
 });

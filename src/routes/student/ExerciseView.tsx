@@ -6,7 +6,14 @@ import type { ClozeTask, ExerciseTask, MultipleChoiceTask } from '../../domain/e
 export interface ExerciseViewProps {
   task: ExerciseTask;
   result: AnswerCheckResult | null;
-  onSubmit: (result: AnswerCheckResult) => void;
+  /**
+   * `given` ist die Eingabe, so wie sie abgeschickt wurde.
+   *
+   * Der Lernplan braucht sie nicht – er zeigt sein Feedback sofort. Der
+   * Selbsttest zeigt es erst am Ende und muss deshalb festhalten, was
+   * tatsächlich dastand.
+   */
+  onSubmit: (result: AnswerCheckResult, given: string) => void;
 }
 
 const DIRECTION_HINT: Record<'en-de' | 'de-en', string> = {
@@ -48,11 +55,11 @@ function Flashcard({ task, result, onSubmit }: ExerciseViewProps) {
         <div className="row">
           <Button
             variant="primary"
-            onClick={() => onSubmit({ verdict: 'correct', expected: task.expected })}
+            onClick={() => onSubmit({ verdict: 'correct', expected: task.expected }, '')}
           >
             Gewusst
           </Button>
-          <Button onClick={() => onSubmit({ verdict: 'wrong', expected: task.expected })}>
+          <Button onClick={() => onSubmit({ verdict: 'wrong', expected: task.expected }, '')}>
             Noch nicht gewusst
           </Button>
         </div>
@@ -83,7 +90,7 @@ function MultipleChoice({
         const option = task.options[index];
         if (option) {
           setChosen(option);
-          onSubmit(checkChoice(option, task.expected));
+          onSubmit(checkChoice(option, task.expected), option);
         }
       }
     }
@@ -113,7 +120,7 @@ function MultipleChoice({
             {...(stateOf(option) ? { 'data-state': stateOf(option) } : {})}
             onClick={() => {
               setChosen(option);
-              onSubmit(checkChoice(option, task.expected));
+              onSubmit(checkChoice(option, task.expected), option);
             }}
           >
             <span className="option__key" aria-hidden="true">
@@ -146,7 +153,7 @@ function OpenTranslation({ task, result, onSubmit }: ExerciseViewProps) {
       onSubmit={(event) => {
         event.preventDefault();
         if (result) return;
-        onSubmit(checkAnswer(value, task.expected));
+        onSubmit(checkAnswer(value, task.expected), value);
       }}
     >
       <p className="prompt-note">{DIRECTION_HINT[task.direction]} · freie Eingabe</p>
@@ -222,7 +229,7 @@ function Cloze({ task, result, onSubmit }: ExerciseViewProps & { task: ClozeTask
                 : {})}
               onClick={() => {
                 setChosen(option);
-                onSubmit(checkChoice(option, task.expected));
+                onSubmit(checkChoice(option, task.expected), option);
               }}
             >
               <span className="option__key" aria-hidden="true">
@@ -238,7 +245,7 @@ function Cloze({ task, result, onSubmit }: ExerciseViewProps & { task: ClozeTask
           onSubmit={(event) => {
             event.preventDefault();
             if (result) return;
-            onSubmit(checkAnswer(value, task.expected));
+            onSubmit(checkAnswer(value, task.expected), value);
           }}
         >
           <label className="visually-hidden" htmlFor={`cloze-${task.id}`}>
