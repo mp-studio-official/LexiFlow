@@ -256,7 +256,20 @@ a {
     font-weight: var(--weight-medium);
     color: var(--ink-secondary);
     text-decoration: none;
-    transition: background var(--duration-fast) var(--ease-out);
+    /*
+     * Bewusst ohne Übergang.
+     *
+     * Aktiv ist heller Text auf dunklem `--primary`, inaktiv dunkler Text auf
+     * hellem Papier. Beide Zustände haben für sich reichlich Kontrast – aber
+     * beim Routenwechsel wechselt die Textfarbe sofort, während ein animierter
+     * Hintergrund noch ausblendet. In diesen Millisekunden stünde dunkler Text
+     * auf noch dunklem Grund: ein echter, messbarer Kontrastfehler, kein
+     * Testartefakt. Ein Zustandswechsel ohne Zwischenbild ist hier mehr wert
+     * als eine dekorative Animation.
+     *
+     * Die Bottom-Navigation hat dasselbe Muster nie gehabt: Sie wechselt nur
+     * Textfarbe und Marker, nie den Hintergrund.
+     */
   }
   .app-nav__link:hover {
     background: var(--surface-sunken);

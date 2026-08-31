@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -134,5 +136,40 @@ describe('Aktuelle Route', () => {
     await user.keyboard('{Enter}');
 
     expect(screen.getByRole('heading', { level: 1, name: 'Material' })).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1c: Kein Kontrastfehler zwischen zwei Navigationszuständen
+// ---------------------------------------------------------------------------
+
+/** Der Regelkörper zu einem Selektor – genau eine Ebene tief, ohne Parser. */
+function ruleBody(css: string, selector: string): string {
+  const start = css.indexOf(`${selector} {`);
+  expect(start, `Regel „${selector}“ nicht gefunden`).toBeGreaterThan(-1);
+  const end = css.indexOf('}', start);
+  return css.slice(start, end);
+}
+
+describe('Navigationszustände wechseln ohne Zwischenbild', () => {
+  const css = readFileSync(resolve(__dirname, '../styles/global.css'), 'utf8');
+
+  it('animiert den Hintergrund der Seitennavigation nicht', () => {
+    // Aktiv: heller Text auf dunklem Grund. Inaktiv: dunkler Text auf hellem.
+    // Ein animierter Hintergrund ließe beim Routenwechsel für ein paar Frames
+    // dunklen Text auf dunklem Grund stehen – ein echter Kontrastfehler.
+    expect(ruleBody(css, '.app-nav__link')).not.toContain('transition');
+  });
+
+  it('setzt im aktiven Zustand Hintergrund und Textfarbe gemeinsam', () => {
+    const active = ruleBody(css, ".app-nav__link[aria-current='page']");
+    expect(active).toContain('background:');
+    expect(active).toContain('color:');
+  });
+
+  it('lässt die untere Leiste den Hintergrund gar nicht erst wechseln', () => {
+    const active = ruleBody(css, ".bottom-nav__link[aria-current='page']");
+    expect(active).not.toContain('background');
+    expect(ruleBody(css, '.bottom-nav__link')).not.toContain('transition');
   });
 });
