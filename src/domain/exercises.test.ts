@@ -14,6 +14,9 @@ import {
   pickDistractors,
   selectTargets,
   shuffle,
+  buildTasksForTargets,
+  targetsWithKinds,
+  type ExerciseKind,
   type SessionTarget,
 } from './exercises';
 import { createEntryProgress } from './leitner';
@@ -519,5 +522,105 @@ describe('shuffle', () => {
   it('behält alle Elemente', () => {
     const items = [1, 2, 3, 4, 5];
     expect(shuffle(items, mulberry32(1)).sort()).toEqual(items);
+  });
+});
+
+describe('buildTasksForTargets: automatisch oder verbindlich', () => {
+  /*
+    Sprint 3B.2b2: Dieselbe Funktion, zwei klar benannte Bedeutungen.
+
+    `auto` ist das Verhalten des Lernplans und bleibt unverändert: Die
+    gewünschten Formen sind eine Vorliebe, keine Bedingung – sonst fiele eine
+    fällige Vokabel aus ihrer Wiederholung, nur weil ihr ein Beispielsatz fehlt.
+    `strict` ist die Bedeutung einer ausdrücklichen Auswahl.
+  */
+  const withSentence = makeEntry({
+    id: 's1',
+    english: 'island',
+    germanAnswers: ['die Insel'],
+    exampleSentences: [{ english: 'The island is famous.', german: 'Die Insel ist berühmt.' }],
+  });
+  const withoutSentence = makeEntry({ id: 's2', english: 'bay', germanAnswers: ['die Bucht'] });
+  // Der Pool ist größer als die Ziele: Multiple Choice braucht Ablenker.
+  const entries = [
+    withSentence,
+    withoutSentence,
+    makeEntry({ id: 's3', english: 'cave', germanAnswers: ['die Höhle'] }),
+    makeEntry({ id: 's4', english: 'boat', germanAnswers: ['das Boot'] }),
+    makeEntry({ id: 's5', english: 'rock', germanAnswers: ['der Felsen'] }),
+  ];
+  const targets: SessionTarget[] = [withSentence, withoutSentence].map((entry) => ({
+    entry,
+    direction: 'de-en' as const,
+  }));
+  const cloze: ExerciseKind[] = ['cloze-free'];
+
+  it('weicht ohne Angabe der Regel auf eine andere Form aus', () => {
+    const tasks = buildTasksForTargets(targets, entries, new Map(), cloze, mulberry32(3));
+
+    expect(tasks).toHaveLength(2);
+    expect(tasks.some((task) => task.kind !== 'cloze-free')).toBe(true);
+  });
+
+  it('lässt bei `strict` die Vokabel weg, statt die Form zu wechseln', () => {
+    const tasks = buildTasksForTargets(targets, entries, new Map(), cloze, mulberry32(3), 'strict');
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]?.entryId).toBe('s1');
+    expect(tasks[0]?.kind).toBe('cloze-free');
+  });
+
+  it('verhält sich bei `strict` ohne gewählte Formen wie `auto`', () => {
+    const auto = buildTasksForTargets(targets, entries, new Map(), [], mulberry32(3));
+    const strict = buildTasksForTargets(targets, entries, new Map(), [], mulberry32(3), 'strict');
+
+    expect(strict.map((task) => `${task.entryId}:${task.kind}`)).toEqual(
+      auto.map((task) => `${task.entryId}:${task.kind}`),
+    );
+  });
+
+  it('nimmt bei `strict` nie eine ungewählte Form', () => {
+    const chosen: ExerciseKind[] = ['multiple-choice', 'open-translation'];
+    const tasks = buildTasksForTargets(
+      targets,
+      entries,
+      new Map(),
+      chosen,
+      mulberry32(9),
+      'strict',
+    );
+
+    expect(tasks).toHaveLength(2);
+    expect(tasks.every((task) => chosen.includes(task.kind))).toBe(true);
+  });
+
+  it('lässt den Lernstand die Teilnahme nicht entscheiden', () => {
+    // Fach 5 legt automatisch die offene Übersetzung nahe – gewählt ist aber
+    // Multiple Choice, und beide Vokabeln bleiben dabei.
+    const progress = new Map(
+      targets.map(({ entry }) => [
+        directionKey(entry.id, 'de-en'),
+        { ...createEntryProgress('pack-1', entry.id, 'de-en', NOW), box: 5 },
+      ]),
+    );
+    const tasks = buildTasksForTargets(
+      targets,
+      entries,
+      progress,
+      ['multiple-choice'],
+      mulberry32(2),
+      'strict',
+    );
+
+    expect(tasks).toHaveLength(2);
+    expect(tasks.every((task) => task.kind === 'multiple-choice')).toBe(true);
+  });
+
+  it('`targetsWithKinds` zählt genau die machbaren Ziele', () => {
+    expect(targetsWithKinds(targets, entries, cloze).map((target) => target.entry.id)).toEqual([
+      's1',
+    ]);
+    // Ohne Auswahl bleibt alles stehen.
+    expect(targetsWithKinds(targets, entries, [])).toHaveLength(2);
   });
 });

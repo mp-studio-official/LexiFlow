@@ -18,6 +18,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 3B.2b2** – Gewählte Übungsformen sind verbindlich: Wer im freien Üben
+  eine Aufgabenart auswählt, bekommt genau diese – notfalls eine kürzere Runde
+  statt einer stillschweigenden Ersatzform.
 * **Sprint 3B.2b1** – Freies Üben bleibt einstellbar: „Direkt starten“ für die
   schnelle Runde, „Runde anpassen“ für Richtung, Umfang und Übungsformen – ohne
   URL-Parameter von Hand.
@@ -771,15 +774,44 @@ URL-Parameter tippen müssen. Das war ein Fehler, kein Entwurf. Die Karte „Fre
 | | „Direkt starten“ | „Runde anpassen“ |
 | --- | --- | --- |
 | Richtung | gemischt (bei `direction: 'both'` beide) | wählbar, sofern es eine echte Wahl gibt |
-| Übungsformen | automatisch passend zum Leitner-Fach | einzeln wählbar, nach offen / halboffen / geschlossen gruppiert |
+| Übungsformen | automatisch passend zum Leitner-Fach, mit Ersatzform | genau die gewählten, **ohne** Ersatzform |
 | Umfang | bis zu 15 (`FREE_ROUND_DEFAULT_LENGTH`) | 5, 10, 15, 20 oder alle verfügbaren |
 | Weg | direkt in die Runde | Einrichtungsseite `/lernen/:packId/frei` (lazy) |
 | URL | `?mode=free&length=15&seed=…` | zusätzlich `kinds=…` und, außer bei „gemischt“, `direction=…` |
 
 Beide Wege laufen durch **dieselbe** Planung (`planFreeSession` →
 `buildTasksForTargets`); die Einrichtung erzeugt nur die bekannten URL-Parameter
-und plant nichts selbst. Bestehende Links mit Parametern funktionieren deshalb
+und plant nichts selbst. Bestehende Links ohne `kinds` funktionieren deshalb
 unverändert.
+
+**Eine Auswahl ist eine Auswahl (seit Sprint 3B.2b2).** `buildTasksForTargets`
+kennt zwei ausdrücklich benannte Regeln (`KindPolicy`):
+
+| | `auto` | `strict` |
+| --- | --- | --- |
+| Gilt für | Lernplan, `buildSession`, Direktstart (freie Runde **ohne** `kinds`) | freie Runde **mit** `kinds` |
+| Gewünschte Formen sind | eine Vorliebe | eine Bedingung |
+| Vokabel gibt die Form nicht her | sie bekommt eine andere geeignete Form | sie kommt in dieser Runde nicht vor |
+| Rundenlänge | unverändert | ehrlich kürzer |
+
+Der Unterschied ist fachlich, nicht technisch. Im Lernplan geht es um die
+**Wiederholung der Vokabel**: Eine fällige Vokabel darf nicht ausfallen, nur
+weil ihr ein Beispielsatz für den Lückensatz fehlt. Beim ausdrücklichen
+Zuschneiden einer freien Runde geht es um die **Form**: Wer „nur Lückensätze“
+wählt, will keine heimliche Ersatzform.
+
+Damit die Rundengröße nicht an ungeeigneten Vokabeln verloren geht, filtert
+`planFreeSession` die Ziele bei strikter Auswahl **vor** der Begrenzung
+(`targetsWithKinds`). Sind mehrere Formen gewählt, entscheidet der Seed, welche
+eine Vokabel bekommt – nie eine ungewählte. Der Lernstand darf ausschließlich
+die *automatische* Wahl der Form beeinflussen: Ob eine Vokabel überhaupt
+mitspielt, hängt beim freien Üben nie am Fach und nie an `dueAt`.
+
+Die Vorschau zählt deshalb in drei Schritten: was in dieser Richtung zur
+Verfügung steht, für wie viel davon eine der gewählten Formen möglich ist, und
+wie viele Aufgaben nach Rundengröße und Richtungsabstand wirklich entstehen.
+Ist nichts möglich, ist der Start gesperrt und die Seite sagt, dass eine weitere
+Übungsform gewählt werden muss.
 
 Steht nichts an, ist der Lernplan gesperrt und die Schaltfläche „Lernrunde
 starten“ deaktiviert; der nächste reguläre Termin bleibt sichtbar, und beide

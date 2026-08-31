@@ -114,6 +114,7 @@ export function SessionPage() {
         setFreePlan({
           targets: [],
           availableCount: 0,
+          possibleCount: 0,
           plannedCount: 0,
           remainingAvailableCount: 0,
         });
@@ -125,8 +126,27 @@ export function SessionPage() {
       // Ein RNG für Planung und Aufgabenbau – identisch zur Vorschau.
       const rng = mulberry32(roundSeed);
       const direction = effectiveDirection(pack.meta.direction, directionChoice);
+      /*
+        Seit Sprint 3B.2b2 hat der `kinds`-Parameter im freien Üben eine
+        verbindliche Bedeutung: Wer ihn setzt – über „Runde anpassen“ oder in
+        einem selbst gebauten Link –, bekommt ausschließlich diese Formen.
+        Vokabeln, die keine davon hergeben, kommen in dieser Runde nicht vor.
+
+        Ohne `kinds` bleibt alles wie bisher: automatisch passende Formen mit
+        Ersatzform, damit keine Vokabel an ihrer Form scheitert. Der Lernplan
+        ist davon ausgenommen – dort geht es um die Wiederholung der Vokabel,
+        nicht um die Form.
+      */
+      const strict = free && requestedKinds.length > 0;
       const roundPlan = free
-        ? planFreeSession(pack.entries, progress, direction, length, rng)
+        ? planFreeSession(
+            pack.entries,
+            progress,
+            direction,
+            length,
+            rng,
+            strict ? requestedKinds : [],
+          )
         : planSession(pack.entries, progress, direction, length, new Date(), rng);
       const tasks = buildTasksForTargets(
         roundPlan.targets,
@@ -134,6 +154,7 @@ export function SessionPage() {
         progress,
         requestedKinds,
         rng,
+        strict ? 'strict' : 'auto',
       );
 
       setPackTitle(pack.meta.title);

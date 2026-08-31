@@ -4,7 +4,10 @@ import {
   buildTasksForTargets,
   mulberry32,
   shuffle,
+  targetsWithKinds,
   type ExerciseKind,
+  type ExerciseTask,
+  type KindPolicy,
   type Rng,
   type SessionTarget,
 } from './exercises';
@@ -31,9 +34,17 @@ export interface FreeSessionPlan {
   targets: SessionTarget[];
   /** Alle Richtungsziele des Pakets – unabhängig von der Fälligkeit. */
   availableCount: number;
+  /**
+   * Davon die, für die mindestens eine **gewählte** Übungsform möglich ist.
+   *
+   * Ohne ausdrückliche Auswahl gleich `availableCount`. Mit strikter Auswahl
+   * (siehe `KindPolicy`) ist das die ehrliche Obergrenze der Runde: Wer nur
+   * Lückensätze übt, kann nur die Vokabeln üben, die einen hergeben.
+   */
+  possibleCount: number;
   /** Immer `targets.length`. */
   plannedCount: number;
-  /** Verfügbare Ziele, die wegen Rundengröße oder Richtungsabstand warten. */
+  /** Mögliche Ziele, die wegen Rundengröße oder Richtungsabstand warten. */
   remainingAvailableCount: number;
 }
 
@@ -77,15 +88,24 @@ export function planFreeSession(
   packDirection: LearningDirection,
   length: number,
   rng: Rng = Math.random,
+  /**
+   * Ausdrücklich gewählte Übungsformen. Sind welche angegeben, planen wir von
+   * vornherein **nur** die Ziele, die eine davon hergeben – sonst verbrauchte
+   * die Rundengröße Plätze an Vokabeln, die anschließend ohnehin herausfielen.
+   * Leer bedeutet wie bisher: alle Ziele, Formen automatisch.
+   */
+  strictKinds: readonly ExerciseKind[] = [],
 ): FreeSessionPlan {
   const available = freeTargets(entries, progressIndex, packDirection);
-  const targets = arrangeTargets(shuffle(available, rng), Math.max(0, length));
+  const possible = targetsWithKinds(available, entries, strictKinds);
+  const targets = arrangeTargets(shuffle(possible, rng), Math.max(0, length));
 
   return {
     targets,
     availableCount: available.length,
+    possibleCount: possible.length,
     plannedCount: targets.length,
-    remainingAvailableCount: available.length - targets.length,
+    remainingAvailableCount: possible.length - targets.length,
   };
 }
 
@@ -116,23 +136,16 @@ export function freeAvailableCount(
 export interface FreeRoundPreview {
   /** Alle Ziele dieser Richtung – unabhängig von Fälligkeit und Freischaltung. */
   availableCount: number;
+  /** Davon die, für die eine der gewählten Übungsformen möglich ist. */
+  possibleCount: number;
   /** So viele Aufgaben entstehen wirklich. Immer die Zahl, die gezeigt wird. */
   plannedCount: number;
   /** Was gewünscht war – als Obergrenze, nicht als Versprechen. */
   requested: number;
-  /** Aufgaben, die eine der gewählten Übungsformen bekommen. */
-  chosenKindCount: number;
-  /**
-   * Aufgaben, die auf eine andere geeignete Form ausweichen.
-   *
-   * Das passiert, wenn eine Vokabel die gewählte Form nicht hergibt – etwa ein
-   * Lückensatz ohne passenden Beispielsatz. Die Vokabel fällt deshalb **nicht**
-   * aus der Runde; sie wird anders gefragt. Die Vorschau sagt das, statt es
-   * beim Üben zur Überraschung werden zu lassen.
-   */
-  otherKindCount: number;
-  /** Verfügbare Ziele, die wegen Obergrenze oder Richtungsabstand warten. */
+  /** Mögliche Ziele, die wegen Obergrenze oder Richtungsabstand warten. */
   remainingAvailableCount: number;
+  /** Die Aufgaben selbst – damit Tests die Formen prüfen können. */
+  tasks: ExerciseTask[];
 }
 
 /**
@@ -140,8 +153,8 @@ export interface FreeRoundPreview {
  *
  * Die Vorschau darf nicht schätzen. Sie durchläuft deshalb exakt denselben Weg
  * wie die Übungsseite – `planFreeSession`, dann `buildTasksForTargets`, mit
- * demselben Seed und in derselben Reihenfolge. Was hier steht, ist damit die
- * Runde, die gleich startet, und keine zweite Free-Practice-Logik.
+ * demselben Seed, derselben Regel und in derselben Reihenfolge. Was hier steht,
+ * ist damit die Runde, die gleich startet, und keine zweite Planung.
  */
 export function previewFreeRound(
   entries: readonly VocabEntry[],
@@ -151,21 +164,20 @@ export function previewFreeRound(
   kinds: readonly ExerciseKind[],
   length: number,
   seed: number,
+  policy: KindPolicy = 'strict',
 ): FreeRoundPreview {
   const direction = effectiveDirection(packDirection, choice);
   const rng = mulberry32(seed);
-  const plan = planFreeSession(entries, progressIndex, direction, length, rng);
-  const tasks = buildTasksForTargets(plan.targets, entries, progressIndex, kinds, rng);
-
-  const chosen =
-    kinds.length === 0 ? tasks.length : tasks.filter((task) => kinds.includes(task.kind)).length;
+  const strictKinds = policy === 'strict' ? kinds : [];
+  const plan = planFreeSession(entries, progressIndex, direction, length, rng, strictKinds);
+  const tasks = buildTasksForTargets(plan.targets, entries, progressIndex, kinds, rng, policy);
 
   return {
     availableCount: plan.availableCount,
+    possibleCount: plan.possibleCount,
     plannedCount: tasks.length,
     requested: length,
-    chosenKindCount: chosen,
-    otherKindCount: tasks.length - chosen,
-    remainingAvailableCount: plan.availableCount - tasks.length,
+    remainingAvailableCount: plan.possibleCount - tasks.length,
+    tasks,
   };
 }

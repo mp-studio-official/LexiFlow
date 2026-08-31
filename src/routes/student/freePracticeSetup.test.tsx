@@ -204,11 +204,17 @@ describe('Freies Üben einrichten', () => {
     // Vier Vokabeln, eine Richtung – mehr als vier gibt es nicht.
     await screen.findByRole('heading', { level: 2, name: 'Runde anpassen' });
     expect(previewText()).toContain('4 Aufgaben stehen in dieser Richtung zur Verfügung.');
+    expect(previewText()).toContain('Für 4 davon ist eine der gewählten Übungsformen möglich.');
     expect(previewText()).toContain('4 Aufgaben werden eingeplant.');
-    expect(previewText()).toContain('Mehr gibt dieses Paket in dieser Richtung nicht her');
+    expect(previewText()).toContain('Mehr gibt dieses Paket mit dieser Auswahl nicht her');
   });
 
-  it('sagt, wenn eine Vokabel auf eine andere Form ausweichen muss', async () => {
+  /*
+    Sprint 3B.2b2: Eine ausdrücklich gewählte Form wird eingehalten. Vokabeln,
+    die sie nicht hergeben, fallen aus der Runde – und die Vorschau sagt das
+    als Zahl, nicht als Entschuldigung für eine Ersatzform.
+  */
+  it('nennt die durch die Formwahl reduzierte Zahl', async () => {
     await seed('both');
     const user = userEvent.setup();
     renderSetup();
@@ -220,7 +226,47 @@ describe('Freies Üben einrichten', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Offene Übersetzung' }));
     await user.click(screen.getByRole('checkbox', { name: 'Lückensatz ohne Wortbank' }));
 
-    expect(previewText()).toContain('ist die gewählte Form nicht möglich');
+    expect(previewText()).toContain('4 Aufgaben stehen in dieser Richtung zur Verfügung.');
+    expect(previewText()).toContain('Für 1 davon ist eine der gewählten Übungsformen möglich.');
+    expect(previewText()).toContain('1 Aufgabe wird eingeplant.');
+    expect(previewText()).not.toContain('andere geeignete Form');
+  });
+
+  it('sperrt den Start, wenn keine Aufgabe möglich ist', async () => {
+    /*
+      Zur Sicherheit angelegt, nicht als Normalfall: Angeboten werden nur
+      Formen, die dieses Paket in dieser Richtung hergibt, und mindestens eine
+      bleibt immer ausgewählt – über die Bedienung ist die Auswahl deshalb nie
+      leer. Ein Paket ohne Vokabeln kann es aber sehr wohl sein.
+    */
+    await savePack({ meta: makeMeta({ id: PACK_ID, direction: 'both' }), entries: [] });
+    renderSetup();
+
+    await screen.findByRole('heading', { level: 2, name: 'Runde anpassen' });
+    expect(screen.getByRole('button', { name: 'Frei üben starten' })).toBeDisabled();
+    expect(screen.getByText(/Mit dieser Auswahl ist keine Aufgabe möglich/)).toBeInTheDocument();
+    // Die Auswahl bleibt bedienbar – die Seite ist keine Sackgasse.
+    expect(screen.getByRole('radio', { name: 'Deutsch → Englisch' })).toBeEnabled();
+  });
+
+  it('nimmt nur Aufgaben der gewählten Form in die gestartete Runde', async () => {
+    await seed('both');
+    const user = userEvent.setup();
+    renderSetup();
+
+    await user.click(await screen.findByRole('radio', { name: 'Deutsch → Englisch' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Karteikarte' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Multiple Choice' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Offene Übersetzung' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Lückensatz ohne Wortbank' }));
+
+    // Genau eine Vokabel gibt einen Lückensatz her – die Vorschau sagt 1 …
+    expect(previewText()).toContain('1 Aufgabe wird eingeplant.');
+
+    await user.click(screen.getByRole('button', { name: 'Frei üben starten' }));
+
+    // … und genau diese eine Form steht in der URL.
+    expect(roundUrl().get('kinds')).toBe('cloze-bank');
   });
 
   it('erzeugt die bekannten URL-Parameter', async () => {

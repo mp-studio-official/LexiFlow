@@ -55,6 +55,37 @@ async function seedPack(page: Page, title: string, direction = 'en-de'): Promise
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 }
 
+/**
+ * Ein Paket, in dem nur zwei von vier Vokabeln einen Lückensatz hergeben.
+ *
+ * Genau der Alltagsfall: Für „crowded“ und „litter“ gibt es einen englischen
+ * Beispielsatz, für die beiden anderen nicht. Eine strikte Auswahl
+ * „nur Lückensätze“ muss deshalb eine kürzere Runde ergeben.
+ */
+async function seedPackWithSomeSentences(page: Page, title: string): Promise<void> {
+  await page.goto('/#/material/import');
+  await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
+  await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
+
+  for (const [word, sentence] of [
+    ['crowded', 'The bus was crowded this morning.'],
+    ['litter', 'There is litter on the street.'],
+  ] as const) {
+    await page.getByRole('button', { name: `Details für ${word} öffnen` }).click();
+    await page.getByRole('button', { name: `Beispielsatz hinzufügen, ${word}` }).click();
+    await page.getByLabel(`Beispielsatz 1 Englisch, ${word}`).fill(sentence);
+    await page.getByRole('button', { name: `Details für ${word} schließen` }).click();
+  }
+
+  await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
+  await page.getByLabel('Titel', { exact: true }).fill(title);
+  await page.getByLabel('Jahrgang').selectOption('7');
+  await page.getByLabel('Lernrichtung').selectOption('de-en');
+  await page.getByRole('button', { name: /Paket speichern/ }).click();
+  await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+}
+
 /** Vollständiger Abzug des Lernstands – wie in `study-modes.spec.ts`. */
 async function readProgress(page: Page): Promise<unknown> {
   return page.evaluate(async () => {
@@ -267,6 +298,57 @@ test.describe('Freies Üben', () => {
     await page.getByRole('link', { name: 'Zurück zum Paket' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Runde anpassen' })).toBeVisible();
 
+    expect(await readProgress(page)).toBe(before);
+  });
+
+  /*
+    Sprint 3B.2b2: Eine ausdrücklich gewählte Aufgabenart ist verbindlich. Zwei
+    der vier Vokabeln geben keinen Lückensatz her – sie kommen in dieser Runde
+    deshalb nicht vor, statt heimlich anders gefragt zu werden.
+  */
+  test('@smoke nur Lückensätze gewählt: kürzere Runde, keine Ersatzform', async ({ page }) => {
+    await seedPackWithSomeSentences(page, 'Nur Lückensätze');
+
+    const before = await readProgress(page);
+
+    await page.getByRole('link', { name: 'Runde anpassen' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Runde anpassen' })).toBeVisible();
+
+    const preview = page.locator('.self-test__preview');
+    await expect(preview).toContainText('4 Aufgaben stehen in dieser Richtung zur Verfügung.');
+
+    // Alles abwählen außer den Lückensätzen.
+    await page.getByRole('checkbox', { name: 'Karteikarte' }).uncheck();
+    await page.getByRole('checkbox', { name: 'Multiple Choice' }).uncheck();
+    await page.getByRole('checkbox', { name: 'Offene Übersetzung' }).uncheck();
+    await page.getByRole('checkbox', { name: 'Lückensatz ohne Wortbank' }).uncheck();
+    await expect(page.getByRole('checkbox', { name: 'Lückensatz mit Wortbank' })).toBeChecked();
+
+    // Die Vorschau nennt die reduzierte Zahl – und verspricht keine Ersatzform.
+    await expect(preview).toContainText('Für 2 davon ist eine der gewählten Übungsformen möglich.');
+    await expect(preview).toContainText('2 Aufgaben werden eingeplant.');
+    await expect(preview).not.toContainText('andere geeignete Form');
+
+    await expectNoSeriousViolations(page, 'Einrichtung mit strikter Formwahl');
+
+    await page.getByRole('button', { name: 'Frei üben starten' }).click();
+
+    // Genau zwei geplante Aufgaben – und jede einzelne ist ein Lückensatz mit
+    // Wortbank. (Eine falsche Antwort kommt in derselben Runde noch einmal;
+    // deshalb wird bis zum Rundenende gespielt statt exakt zweimal.)
+    await expect(page.getByText(/Frei üben · Aufgabe 1 von 2/)).toBeVisible();
+
+    const finished = page.getByRole('heading', { name: 'Freie Runde abgeschlossen' });
+    for (let step = 0; step < 6 && !(await finished.isVisible()); step += 1) {
+      const bank = page.getByRole('group', { name: 'Wortbank' });
+      await expect(bank).toBeVisible();
+      await bank.getByRole('button').first().click();
+      await page.getByRole('button', { name: /^(Weiter|Runde beenden)$/ }).click();
+    }
+    await expect(finished).toBeVisible();
+
+    await page.getByRole('link', { name: 'Zurück zum Paket' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Nur Lückensätze' })).toBeVisible();
     expect(await readProgress(page)).toBe(before);
   });
 

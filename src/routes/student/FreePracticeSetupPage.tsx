@@ -286,7 +286,11 @@ export function FreePracticeSetupPage() {
           </p>
         </fieldset>
 
-        {/* Ehrliche Vorschau: gebaut wird die Runde, die gleich startet. */}
+        {/*
+          Ehrliche Vorschau in drei Schritten: was es gibt, was die gewählten
+          Formen davon hergeben, was daraus wirklich wird. Gebaut wird dabei die
+          Runde, die gleich startet – gezählt wird nicht geschätzt.
+        */}
         <div className="self-test__preview">
           <p style={{ margin: 0 }}>
             <strong>{available}</strong>{' '}
@@ -294,34 +298,31 @@ export function FreePracticeSetupPage() {
             Verfügung.
           </p>
           <p style={{ margin: '0.3rem 0 0' }}>
+            Für <strong>{preview.possibleCount}</strong> davon ist eine der gewählten Übungsformen
+            möglich.
+          </p>
+          <p style={{ margin: '0.3rem 0 0' }}>
             <strong>{preview.plannedCount}</strong>{' '}
             {preview.plannedCount === 1 ? 'Aufgabe wird' : 'Aufgaben werden'} eingeplant.
           </p>
-          {available < requested ? (
-            <p className="small muted" style={{ margin: '0.3rem 0 0' }}>
-              Mehr gibt dieses Paket in dieser Richtung nicht her – erfunden wird nichts.
-            </p>
-          ) : preview.remainingAvailableCount > 0 ? (
+          {preview.remainingAvailableCount > 0 ? (
             <p className="small muted" style={{ margin: '0.3rem 0 0' }}>
               Die übrigen {preview.remainingAvailableCount} folgen in einer weiteren Runde – wegen
               der gewählten Rundengröße oder weil zwischen beiden Richtungen einer Vokabel Abstand
               bleiben muss.
             </p>
-          ) : null}
-          {preview.otherKindCount > 0 ? (
+          ) : preview.possibleCount < requested ? (
             <p className="small muted" style={{ margin: '0.3rem 0 0' }}>
-              Bei {preview.otherKindCount}{' '}
-              {preview.otherKindCount === 1 ? 'Aufgabe' : 'Aufgaben'} ist die gewählte Form nicht
-              möglich – dort wird eine andere geeignete Form gefragt, statt die Vokabel
-              wegzulassen.
+              Mehr gibt dieses Paket mit dieser Auswahl nicht her – erfunden wird nichts.
             </p>
           ) : null}
         </div>
 
         {preview.plannedCount === 0 ? (
           <Alert tone="info">
-            Mit dieser Auswahl entsteht keine Aufgabe. Wähle eine andere Richtung oder eine andere
-            Übungsform.
+            Mit dieser Auswahl ist keine Aufgabe möglich. Die gewählten Übungsformen gibt dieses
+            Paket in dieser Richtung nicht her – wähle zusätzlich eine andere Übungsform oder eine
+            andere Richtung.
           </Alert>
         ) : null}
 

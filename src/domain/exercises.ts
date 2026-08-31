@@ -539,25 +539,55 @@ function autoKindsFor(box: number, direction: TaskDirection): ExerciseKind[] {
   return ['open-translation', 'cloze-free'];
 }
 
-/** Wandelt geplante Ziele in konkrete Aufgaben um. */
+/**
+ * Wie ernst die gewünschten Übungsformen zu nehmen sind.
+ *
+ * `auto` ist das seit jeher gültige Verhalten: Die gewünschten Formen sind eine
+ * **Vorliebe**. Gibt eine Vokabel sie nicht her – ein Lückensatz braucht einen
+ * passenden Beispielsatz –, bekommt sie eine andere geeignete Form, statt aus
+ * der Runde zu fallen. Das ist im Lernplan richtig: Dort geht es um die
+ * Wiederholung der Vokabel, nicht um die Form.
+ *
+ * `strict` ist die Bedeutung, die eine **ausdrücklich getroffene** Auswahl
+ * haben muss. Wer „nur Lückensätze“ wählt, will nur Lückensätze – und keine
+ * stillschweigende Ersatzform. Vokabeln, die keine der gewählten Formen
+ * hergeben, kommen in dieser Runde nicht vor; die Runde wird dadurch ehrlich
+ * kürzer. Ohne gewählte Formen ist `strict` gegenstandslos und verhält sich wie
+ * `auto`.
+ */
+export type KindPolicy = 'auto' | 'strict';
+
+/**
+ * Wandelt geplante Ziele in konkrete Aufgaben um.
+ *
+ * `policy` ist bewusst optional und steht am Ende: Alle bestehenden Aufrufer –
+ * Lernplan, `buildSession`, der Direktstart des freien Übens – behalten ohne
+ * Änderung ihr bisheriges Verhalten.
+ */
 export function buildTasksForTargets(
   targets: readonly SessionTarget[],
   entries: readonly VocabEntry[],
   progressIndex: ReadonlyMap<string, EntryProgress>,
   kinds: readonly ExerciseKind[],
   rng: Rng,
+  policy: KindPolicy = 'auto',
 ): ExerciseTask[] {
   const tasks: ExerciseTask[] = [];
+  const strict = policy === 'strict' && kinds.length > 0;
 
   targets.forEach(({ entry, direction }, index) => {
     const possible = availableKinds(entry, entries, direction);
+    // Der Lernstand darf nur die *automatische* Wahl der Form beeinflussen –
+    // nie die Teilnahme einer Vokabel und nie eine ausdrückliche Auswahl.
     const box = progressIndex.get(directionKey(entry.id, direction))?.box ?? 1;
     const wanted = kinds.length > 0 ? kinds : autoKindsFor(box, direction);
+    const allowed = wanted.filter((kind) => possible.includes(kind));
 
-    const ranked = [
-      ...wanted.filter((kind) => possible.includes(kind)),
-      ...possible.filter((kind) => !wanted.includes(kind)),
-    ];
+    const ranked = strict
+      ? // Mehrere gewählte Formen: eine davon, welche entscheidet der Seed.
+        // Nie eine ungewählte – deshalb ohne den Fallback von `auto`.
+        shuffle(allowed, rng)
+      : [...allowed, ...possible.filter((kind) => !wanted.includes(kind))];
 
     for (const kind of ranked) {
       const task = buildTask(entry, kind, direction, entries, rng, `#${index}`);
@@ -569,6 +599,24 @@ export function buildTasksForTargets(
   });
 
   return tasks;
+}
+
+/**
+ * Ziele, für die mindestens eine der gewählten Formen möglich ist.
+ *
+ * Das ist die Zahl, die eine strikte Runde ehrlich ankündigen kann – und die
+ * Grundlage dafür, die Rundengröße auf den machbaren Zielen auszuschöpfen,
+ * statt sie an ungeeigneten Vokabeln zu verbrauchen.
+ */
+export function targetsWithKinds(
+  targets: readonly SessionTarget[],
+  entries: readonly VocabEntry[],
+  kinds: readonly ExerciseKind[],
+): SessionTarget[] {
+  if (kinds.length === 0) return [...targets];
+  return targets.filter((target) =>
+    availableKinds(target.entry, entries, target.direction).some((kind) => kinds.includes(kind)),
+  );
 }
 
 /** Baut eine vollständige Übungsreihe für ein Paket. */
