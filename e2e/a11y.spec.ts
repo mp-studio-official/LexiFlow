@@ -98,6 +98,65 @@ test.describe('Barrierefreiheit – Axe', () => {
     await expect(page.getByText('Noch nicht richtig', { exact: true })).toBeVisible();
     await expectNoSeriousViolations(page, 'Feedback nach Antwort');
   });
+
+  /*
+    Sprint 4A.1c: Zwei Ansichten haben sich mit dem Markensystem sichtbar
+    verändert und waren bisher nicht automatisiert geprüft – die
+    Kandidatenprüfung, in der „übernommen“ und „nicht übernommen“ jetzt auch
+    über die Fläche unterschieden werden, und die Auswertung des Selbsttests.
+    (Der Kartenmodus wird bereits in `study-modes.spec.ts` geprüft, auf dem
+    Desktop wie auf 390 px – hier wäre er eine Dopplung.)
+  */
+  test('@a11y Kandidatenprüfung der Textwerkstatt', async ({ page }) => {
+    await page.goto('/#/material/import?quelle=text');
+    await page
+      .getByLabel('Englischer Text')
+      .fill(
+        'The neighbourhood was crowded and noisy. Litter covered the quiet street near the old station.',
+      );
+    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
+    await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
+
+    await expectNoSeriousViolations(page, 'Kandidatenprüfung');
+
+    // Der zweite Zustand ist der interessante: gemischte Auswahl.
+    await page.getByRole('checkbox', { name: /übernehmen$/ }).first().uncheck();
+    await expectNoSeriousViolations(page, 'Kandidatenprüfung – gemischte Auswahl');
+  });
+
+  test('@a11y Auswertung des Selbsttests', async ({ page }) => {
+    await seedPack(page, 'A11y Selbsttest', 'en-de');
+    await page.getByRole('link', { name: 'Selbsttest starten' }).click();
+    await page.getByRole('button', { name: 'Selbsttest starten' }).click();
+
+    /*
+      Absichtlich falsch beantwortet – die Auswertung *mit* Fehlern ist der
+      Zustand mit den meisten Farbflächen. Die Zahl der Aufgaben steht bewusst
+      nicht im Test: Der Selbsttest stellt sie selbst zusammen, und eine feste
+      Zahl hier wäre eine zweite, stillschweigende Behauptung darüber.
+    */
+    const ergebnis = page.getByRole('heading', { level: 2, name: 'Deine Auswertung' });
+    for (let versuch = 0; versuch < 30 && !(await ergebnis.count()); versuch += 1) {
+      const input = page.locator('form input[type="text"]');
+      if (await input.count()) {
+        await input.fill('zzz');
+        await page.getByRole('button', { name: 'Antwort prüfen' }).click();
+      } else {
+        const options = page.locator('.option');
+        if (!(await options.count())) break;
+        await options.first().click();
+      }
+    }
+
+    await expect(ergebnis).toBeVisible();
+    await expectNoSeriousViolations(page, 'Selbsttestauswertung');
+
+    await page.getByRole('button', { name: 'Fehler ansehen' }).click();
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Das war noch nicht richtig' }),
+    ).toBeVisible();
+    await expectNoSeriousViolations(page, 'Fehleransicht');
+  });
 });
 
 test.describe('Barrierefreiheit – Bedienung', () => {

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { APP_CLAIM } from '../pwa/manifest';
 
 /**
  * Editorialer Einstieg (Sprint 3A).
@@ -32,7 +33,7 @@ export function HomePage() {
   return (
     <div>
       <section className="hero">
-        <p className="eyebrow">Local-first Vocab Studio</p>
+        <p className="claim">{APP_CLAIM}</p>
         <h1 className="display">Vokabelarbeit, die sich nicht nach Verwaltung anfühlt.</h1>
         <div className="rule" aria-hidden="true" />
         <p className="lede">
@@ -42,7 +43,7 @@ export function HomePage() {
         </p>
 
         <div className="hero__actions">
-          <Link className="btn btn--accent" to="/material">
+          <Link className="btn btn--primary" to="/material">
             Material erstellen
           </Link>
           <Link className="btn" to="/lernen">

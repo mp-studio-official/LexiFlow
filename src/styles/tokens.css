@@ -1,37 +1,73 @@
 /* ===========================================================================
-   LexiFlow Designsystem – „Editorial Signal“ (Sprint 3A)
+   LexiFlow Designsystem (Sprint 4A.1c)
    ===========================================================================
 
-   Eine Haltung in Zahlen: warmes Papier statt Schulblau, fast schwarze Tinte
-   statt Grau, eine einzige charakteristische Signalfarbe statt Buntheit.
-   Ungefähr 90 % der Fläche bleibt neutral; Farbe ist ein Ereignis, kein
-   Grundrauschen.
+   Vier Markenfarben, unverändert als Basistöne:
 
-   Regeln für die Arbeit mit diesen Tokens:
+     Aubergine   #3B0F3F   Tiefe, Navigation, primäre Aktion
+     Tomato      #E63946   Energie, Akzent, große Displaymomente
+     Orange      #FF8A3D   Wärme, Marker, Verlaufsakzente
+     Parchment   #F8EFE3   warmes Papier als Grundfläche
 
-   1. Keine Einzelwerte in Komponenten. Was hier nicht steht, gehört hierher.
-   2. Radien haben Rollen, keine Größen: Bedienelemente sind leicht gerundet,
-      Flächen fast eckig, nur Marker sind Pillen. Nie alles gleichzeitig stark
-      abrunden.
-   3. `--signal` (Wasabi) ist ein Marker, kein Textton. Er trägt nie allein
-      eine Information und steht nie als Text auf hellem Grund.
-   4. `--accent` ist die Grafikfarbe, `--accent-ink` der textsichere Ton.
-      Für Text auf hellem Grund immer `--accent-ink`.
+   Die Haltung dahinter: LexiFlow ist das unkomplizierte Bindeglied zwischen
+   Unterricht und selbstständigem Lernen – hochwertig und aktivierend, aber
+   ruhig. Ungefähr 90 % der Fläche bleibt Papier und Tinte; Farbe ist ein
+   Ereignis, kein Grundrauschen.
+
+   ## Kontrast vor Markenreinheit
+
+   Gemessen (WCAG-Kontrastverhältnis), nicht geschätzt:
+
+     Weiß auf Tomato          4,17 : 1   → **reicht nicht** für kleinen Text
+     Weiß auf Orange          2,35 : 1   → nur als Fläche unter dunkler Tinte
+     Parchment auf Aubergine 13,91 : 1   → der primäre Knopf
+     Aubergine auf Orange     7,56 : 1   → Orange trägt dunkle Tinte, nicht helle
+
+   Daraus die Regeln, die dieses System durchhält:
+
+   1. **Primäre Aktion ist Aubergine**, nicht Tomato. Helle Schrift auf Tomato
+      wäre eine hübsche Lüge.
+   2. **Tomato und Orange sind Flächen- und Grafikfarben.** Als Text erscheinen
+      nur ihre dunklen Ableitungen (`--accent-ink`, `--warm-ink`), die auf
+      Papier über 5,8 : 1 liegen.
+   3. Farbe trägt nie allein eine Information – jeder Zustand hat ein Wort,
+      ein Symbol oder eine Form neben sich.
+
+   `src/styles/contrast.test.ts` liest diese Datei und rechnet die Verhältnisse
+   bei jedem Testlauf nach. Wer hier einen Wert ändert, erfährt es sofort.
    =========================================================================== */
 
 :root {
   /* Bewusst nur hell: Ein automatischer Dunkelmodus würde auch die noch nicht
-     überarbeiteten Werkstätten betreffen, und geprüft wurde bisher nur die
-     helle Fassung. Ein Dunkelmodus kommt später als eigenes, vollständig
-     geprüftes Theme – nicht als Nebenwirkung. */
+     überarbeiteten Werkstätten betreffen, und geprüft ist bisher nur die helle
+     Fassung. Ein Dunkelmodus kommt später als eigenes, vollständig geprüftes
+     Theme – nicht als Nebenwirkung. */
   color-scheme: light;
 
+  /* ------------------------------------------------------- Markenfarben */
+  /* Diese vier bleiben unverändert. Alles Weitere leitet sich daraus ab. */
+  --brand-aubergine: #3b0f3f;
+  --brand-tomato: #e63946;
+  --brand-orange: #ff8a3d;
+  --brand-parchment: #f8efe3;
+
   /* ---------------------------------------------------------- Typografie */
-  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  /*
+    Satoshi zuerst: Wer die Schrift lokal installiert hat, sieht sie. Geliefert
+    wird sie nicht – die Lizenzlage der Fontshare-Datei ließ sich für die
+    Weitergabe in einer portablen Einzel-HTML nicht zweifelsfrei klären, und
+    eine ungeklärte Schrift bettet man nicht ein (siehe README).
+    Manrope ist die lokal eingebettete, offen lizenzierte Ersatzschrift: eine
+    geometrische Grotesk mit derselben ruhigen, leicht technischen Anmutung.
+  */
+  --font-sans: 'Satoshi', 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-display: 'Satoshi', 'Manrope Variable', system-ui, -apple-system, sans-serif;
+  /* Newsreader bleibt für Beispielsätze und Zitate – die redaktionelle Stimme
+     im Lernmaterial, klar unterscheidbar von der Oberfläche. */
+  --font-quote: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Schriftgrößen – kleine Schritte unten, große Sprünge oben. */
   --text-2xs: 0.6875rem;
   --text-xs: 0.75rem;
   --text-sm: 0.8125rem;
@@ -41,67 +77,85 @@
   --text-xl: 1.375rem;
   --text-2xl: 1.75rem;
   --text-3xl: 2.25rem;
-  /* Der einzige wirklich große Moment: die redaktionelle Schlagzeile. */
   --text-display: clamp(2.25rem, 1.4rem + 3.6vw, 4rem);
 
   --leading-tight: 1.08;
   --leading-snug: 1.25;
   --leading-normal: 1.6;
 
-  --tracking-display: -0.022em;
-  --tracking-tight: -0.012em;
-  --tracking-eyebrow: 0.12em;
+  --tracking-display: -0.028em;
+  --tracking-tight: -0.014em;
+  --tracking-eyebrow: 0.14em;
 
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
+  /* Die Wortmarke steht so schwer wie die Schrift hergibt („Satoshi Black“). */
+  --weight-black: 800;
 
-  /* -------------------------------------------------------------- Farben */
-  /* Flächen: warmes Papier, kein kaltes Grau. */
-  --canvas: #faf7f2;
-  --surface: #ffffff;
+  /* -------------------------------------------------------- Flächen */
+  --canvas: var(--brand-parchment);
+  --surface: #fffcf7;
   --surface-elevated: #ffffff;
-  --surface-sunken: #f2ede4;
+  --surface-sunken: #f0e4d4;
 
-  /* Tinte: fast schwarz, minimal warm. */
-  --ink: #14120f;
-  --ink-secondary: #4a443c;
-  --ink-muted: #6e675c;
-  --ink-inverse: #faf7f2;
+  /* ---------------------------------------------------------- Tinte */
+  /* Kein Schwarz: Die Tinte ist ein sehr dunkler Aubergine-Ton – 15,6 : 1 auf
+     Papier und dadurch mit der Navigation verwandt. */
+  --ink: #2a0b2d;
+  --ink-secondary: #5a4a5c;
+  --ink-muted: #6e5f70;
+  --ink-inverse: var(--brand-parchment);
 
-  /* Primäraktion ist die Tinte selbst – ruhig und selbstbewusst. */
-  --primary: #14120f;
-  --primary-hover: #2a251f;
-  --primary-ink: #faf7f2;
+  /* ----------------------------------------------------- Navigation */
+  --nav: var(--brand-aubergine);
+  --nav-ink: var(--brand-parchment);
+  --nav-ink-muted: #cdb6cf;
+  --nav-active-surface: #55175a;
+  /* Der aktive Eintrag trägt zusätzlich einen Orange-Marker – Farbe allein
+     entscheidet nie. */
+  --nav-marker: var(--brand-orange);
 
-  /* Persimmon/Signal-Coral: die charakteristische Akzentfarbe. */
-  --accent: #e2542a;
-  --accent-hover: #c8441d;
-  /* Textsicherer Ton: 5,6:1 auf Papier, 6,0:1 als Fläche unter Weiß.
-     Die volle Persimmon-Sättigung bleibt der Grafik vorbehalten. */
-  --accent-ink: #b03a12;
-  --accent-ink-hover: #93300d;
-  --accent-soft: #fdeee7;
-  --accent-contrast: #ffffff;
+  /* ------------------------------------------------- Primäre Aktion */
+  --primary: var(--brand-aubergine);
+  --primary-hover: #521657;
+  --primary-ink: var(--brand-parchment);
 
-  /* Wasabi: nur als Marker, nie als Text. */
-  --signal: #c3d63a;
-  --signal-soft: #f2f7d8;
+  /* ----------------------------------------------------- Akzentfarben */
+  /* Tomato als Fläche und Grafik; `--accent-ink` ist der textsichere Ton. */
+  --accent: var(--brand-tomato);
+  --accent-hover: #cf333f;
+  --accent-ink: #ad2b35;
+  --accent-soft: #fbe4e5;
+  /* Orange wärmt und markiert; getragen wird darauf immer dunkle Tinte. */
+  --warm: var(--brand-orange);
+  --warm-ink: #8c4c22;
+  --warm-soft: #ffeedf;
 
-  /* Ränder und Trennungen – weich statt überall sichtbar. */
-  --border-subtle: #e8e0d4;
-  --divider: #f0eae0;
-  --border: #d8cfc0;
-  --border-strong: #8b8171;
+  /* -------------------------------------------------------- Ränder */
+  --divider: #f0e4d4;
+  --border-subtle: #eadccb;
+  --border: #d8c4ae;
+  /* Für alles, was eine Bedienung begrenzt (Felder, Auswahl): ≥ 3 : 1. */
+  --border-strong: #8a7563;
 
-  /* Semantik */
-  --success: #1f6b4a;
-  --success-soft: #e6f1ea;
-  --warning: #7a5200;
-  --warning-soft: #f8efd9;
-  --danger: #a32d1b;
-  --danger-soft: #fbeae5;
+  /* -------------------------------------------------------- Semantik */
+  /*
+    „Hinweis“ liegt bewusst auf Aubergine, nicht auf Tomato: Eine rötliche
+    Hinweisfläche wäre von der Fehlerfläche kaum zu unterscheiden – im
+    Kandidatenschritt der Textwerkstatt standen beide nebeneinander und sahen
+    gleich aus. Ruhig informieren und alarmieren sind zwei verschiedene Dinge,
+    also sind es hier auch zwei verschiedene Farbfamilien.
+  */
+  --info: #3b0f3f;
+  --info-soft: #f2e8f2;
+  --success: #17624a;
+  --success-soft: #e4f0ea;
+  --warning: #8c4c22;
+  --warning-soft: #fbebda;
+  --danger: #a3202c;
+  --danger-soft: #fbe4e5;
 
   /* --------------------------------------------------------- Abstände */
   --space-1: 0.25rem;
@@ -116,19 +170,26 @@
   --space-12: 5.5rem;
 
   /* ----------------------------------------------------------- Radien */
-  --radius-control: 8px; /* Buttons, Eingaben */
-  --radius-surface: 4px; /* Karten, Flächen – bewusst kantig */
-  --radius-pill: 999px; /* nur Marker und Badges */
+  /*
+    Weicher als bisher, aber mit Rollen statt Größen: Bedienelemente rund,
+    Flächen ruhig gerundet, nur Marker sind Pillen.
+  */
+  --radius-control: 12px;
+  --radius-surface: 16px;
+  --radius-surface-lg: 22px;
+  --radius-pill: 999px;
 
   /* --------------------------------------------------------- Schatten */
-  --shadow-1: 0 1px 2px rgb(20 18 15 / 4%);
-  --shadow-2: 0 2px 4px rgb(20 18 15 / 5%), 0 12px 28px -18px rgb(20 18 15 / 30%);
-  --shadow-nav: 0 -1px 0 var(--border-subtle), 0 -8px 24px -20px rgb(20 18 15 / 40%);
+  /* Dezent und warm getönt – die Karten liegen auf Papier, nicht auf Glas. */
+  --shadow-1: 0 1px 2px rgb(59 15 63 / 5%);
+  --shadow-2: 0 2px 6px rgb(59 15 63 / 6%), 0 18px 36px -26px rgb(59 15 63 / 34%);
+  --shadow-3: 0 4px 10px rgb(59 15 63 / 7%), 0 28px 56px -32px rgb(59 15 63 / 40%);
+  --shadow-nav: 0 -1px 0 rgb(59 15 63 / 12%), 0 -10px 26px -22px rgb(59 15 63 / 55%);
 
   /* ---------------------------------------------------------- Layout */
-  --width-content: 74rem;
+  --width-content: 76rem;
   --width-prose: 38rem;
-  --width-sidebar: 15rem;
+  --width-sidebar: 15.5rem;
   --gutter: clamp(1rem, 0.4rem + 2vw, 2.5rem);
 
   /* --------------------------------------------------------- Bewegung */
@@ -137,8 +198,8 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* ------------------------------------------------------------ Fokus */
-  --focus-ring: #14120f;
-  --focus-ring-on-dark: #faf7f2;
+  --focus-ring: var(--brand-aubergine);
+  --focus-ring-on-dark: var(--brand-orange);
   --focus-width: 2px;
   --focus-offset: 2px;
 

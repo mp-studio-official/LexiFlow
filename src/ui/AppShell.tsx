@@ -1,4 +1,6 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import { Logo } from './Logo';
+import { APP_CLAIM } from '../pwa/manifest';
 
 /**
  * App-Shell im Creator-Studio-Zuschnitt (Sprint 3A).
@@ -34,8 +36,10 @@ export function AppShell() {
 
       <header className="app-header">
         <div className="app-header__inner">
-          <Link className="brand" to="/">
-            LexiFlow <span>Vocab Studio</span>
+          {/* Die Wortmarke ist Zeichen plus Text – der Name bleibt markierbar
+              und vorlesbar, das Signet bleibt dekorativ. */}
+          <Link className="brand" to="/" aria-label="LexiFlow – Startseite">
+            <Logo tone="on-dark" size={28} />
           </Link>
         </div>
       </header>
@@ -64,6 +68,7 @@ export function AppShell() {
 
       <footer className="app-footer">
         <div className="app-footer__inner">
+          <p className="app-footer__claim">{APP_CLAIM}</p>
           <p style={{ margin: 0 }}>
             Freiwillige Lernhilfe. Alle Lernstände bleiben auf diesem Gerät.
           </p>

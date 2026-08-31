@@ -92,7 +92,7 @@ export function LearnHeader({
       </div>
 
       {pending ? (
-        <Alert tone="warning" title={confirmTitle}>
+        <Alert tone="warning" title={confirmTitle} className="alert--decision">
           {confirmText}
           <div className="row" style={{ marginTop: '0.6rem' }}>
             <Button small variant="primary" onClick={() => navigate(pending)}>

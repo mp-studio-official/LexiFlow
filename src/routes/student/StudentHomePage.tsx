@@ -11,6 +11,7 @@ import { countMastered } from '../../domain/leitner';
 import { countReady } from '../../domain/exercises';
 import { directionKey } from '../../domain/ids';
 import { GRADE_LABELS } from '../../domain/cefr';
+import { APP_CLAIM } from '../../pwa/manifest';
 import {
   activeDirections,
   LEITNER_BOX_MAX,
@@ -95,7 +96,7 @@ export function StudentHomePage() {
   return (
     <div className="stack stack--editorial">
       <section className="hero" style={{ paddingBottom: 0 }}>
-        <p className="eyebrow">Lernen</p>
+        <p className="claim">{APP_CLAIM}</p>
         <h1 className="display">Bereit für eine kurze Runde?</h1>
         {overview === undefined ? (
           <p className="lede">Deine Pakete werden geladen …</p>

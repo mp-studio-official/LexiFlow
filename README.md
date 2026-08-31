@@ -295,12 +295,15 @@ genügt diese Liste:
 
 ### Welche Tests wo laufen
 
-| Befehl | Umfang | Voraussetzung |
-| --- | --- | --- |
-| `npm run test` | Domäne, Komponenten, Bau-Orchestrierung | keine |
-| `npm run verify:portable` | statische Prüfung der gebauten Dateien + Artefakttests (`*.artifact.test.ts`) | `npm run build:portable` |
-| `npm run e2e` | die gehostete Anwendung über `vite preview` | baut selbst |
-| `npm run e2e:portable` | die Einzeldateien über `file://` | `npm run build:portable` |
+| Befehl | Umfang | Stand 4A.1c | Voraussetzung |
+| --- | --- | --- | --- |
+| `npm run test` | Domäne, Komponenten, Bau-Orchestrierung | 1170 in 67 Dateien | keine |
+| `npm run verify:portable` | statische Prüfung der gebauten Dateien + Artefakttests (`*.artifact.test.ts`) | 15 in 2 Dateien | `npm run build:portable` |
+| `npm run e2e` | die gehostete Anwendung über `vite preview` | 88 | baut selbst |
+| `npm run e2e:portable` | die Einzeldateien über `file://` | 9 | `npm run build:portable` |
+
+Die Zahlen überschneiden sich nicht: Was in `npm run test` läuft, läuft nicht
+in `verify:portable` und umgekehrt.
 
 Die Artefakttests sind in `vite.config.ts` ausdrücklich **ausgeschlossen**
 (`src/**/*.artifact.test.ts`). Ohne diese Zeile liefen sie in beiden Suiten –
@@ -311,7 +314,7 @@ weil `dist-portable/` noch nicht existiert.
 
 Wodurch die Größe entsteht: React und React-DOM, der Router, Dexie und Zod
 machen den größten Block aus; dazu kommen die beiden lokal gebündelten
-variablen Schriften (Manrope und Newsreader, zusammen rund 83 KiB als woff2)
+variablen Schriften (Manrope und Newsreader, zusammen rund 81 KiB als woff2)
 sowie das vollständige CSS. Alles davon steckt als Data-URL beziehungsweise
 Inline-Code im Dokument – genau deshalb braucht es kein Netz. Der Umfang des
 Pakets selbst fällt kaum ins Gewicht: 100 Vokabeln sind rund 14 KiB.
@@ -1186,8 +1189,8 @@ dass die zweite Runde kürzer ist, dass die Kette garantiert abbricht und dass
 
 ### Gestaltung
 
-Alle Ansichten führen „Editorial Signal“ fort: warmes Papier, Newsreader für
-Stichwort und Beispielsatz, viel Luft. Die Karte ist eine ruhige Fläche mit
+Alle Ansichten folgen dem Markensystem: warmes Papier, Newsreader für
+Beispielsatz und Zitat, viel Luft. Die Karte ist eine ruhige Fläche mit
 Schatten – **keine 3D-Drehung**, denn dabei lägen Vorder- und Rückseite
 gleichzeitig im Accessibility-Tree. Die Rückseite blendet kurz ein; die
 Bedienung wartet nicht darauf, und bei `prefers-reduced-motion` entfällt die
@@ -1874,133 +1877,254 @@ Dieselbe Logik greift beim Speichern im Paketeditor.
 
 ---
 
-## Designsystem „Editorial Signal“
+## Markensystem (seit Sprint 4A.1c)
 
-Seit Sprint 3A hat LexiFlow eine eigene visuelle Haltung: hochwertig, modern,
-klar – wie ein Werkzeug für Leute, die Inhalte machen, nicht wie eine
-Verwaltungsmaske. Kein Schulblau, keine Pastelltöne, keine Abschlusskappen.
+LexiFlow ist das unkomplizierte Bindeglied zwischen Unterricht und
+selbstständigem Lernen: hochwertig, modern, redaktionell, aktivierend – und
+dabei ruhig. Kein Schulblau, keine Pastelltöne, kein Maskottchen, keine Sterne,
+Pokale, Flammen oder Konfetti, kein generisches Dashboard.
 
-### Die Grundentscheidungen
+Das vorherige System „Editorial Signal“ (Sprint 3A) ist damit abgelöst. Seine
+Grundhaltung – warmes Papier, ein einziger Akzent, Tokens statt Einzelwerte –
+ist geblieben; Farben, Zeichen und Typografie sind neu.
 
-| | |
-| --- | --- |
-| Fläche | warmes Papier (`--canvas: #faf7f2`) statt kaltem Grau |
-| Text und Primäraktion | fast schwarze, minimal warme Tinte (`--ink: #14120f`) |
-| Akzent | Persimmon/Signal-Coral (`--accent: #e2542a`) |
-| Marker | Wasabi (`--signal: #c3d63a`), sehr sparsam |
-| Verhältnis | rund 90 % neutrale Fläche, 10 % Akzent |
+### Der Claim
 
-Zwei Regeln halten das zusammen:
+> **Einfach ins Lernen kommen.**
 
-* **`--accent` ist die Grafikfarbe, `--accent-ink` der textsichere Ton.** Die
-  volle Persimmon-Sättigung erreicht auf Weiß keine 4,5:1 – überall dort, wo
-  Farbe Text trägt oder hinterlegt, gilt `--accent-ink` (5,6:1 auf Papier,
-  6,0:1 unter Weiß).
-* **Wasabi ist nie Text.** Er markiert (aktiver Navigationseintrag,
-  Trennstrich) und trägt nie allein eine Information.
+Er steht als `APP_CLAIM` in `src/pwa/manifest.ts` und wird von dort überall
+gelesen: Startseiten, Fußzeile, Manifestbeschreibung, Tests. Er erscheint pro
+Ansicht **einmal** – in der Fußzeile der App-Hülle und im Kopf der drei
+Startseiten, nie zweimal übereinander.
 
-### Tokens statt Einzelwerte
+In der Brand-Vorlage stand ein **anderer** Claim. Er gehört einer anderen Marke
+und wird nirgends übernommen; die Texte in der Vorlage waren visuelle Richtung,
+keine Produktanforderung. `src/ui/brand.test.tsx` kennt seinen Wortlaut, liest
+zwölf Quelldateien – Code, Styles, Einstiegsdateien und diese Datei – und prüft,
+dass er auch nicht über einen Kommentar hereinkommt. Deshalb steht er hier
+nicht: Diese Datei ist eine der geprüften.
 
-`src/styles/tokens.css` definiert alles an einer Stelle: Flächen-, Text-,
-Akzent- und Statusfarben, Rand- und Trennstufen, Typografieskala,
-Abstandsskala, Radien, Schatten, Layoutbreiten, Motion-Dauern und -Easings,
-Fokusdarstellung sowie die mobilen Safe-Area-Werte. `global.css` enthält nur
-Zusammensetzungen; wer einen neuen Wert braucht, legt ihn als Token an.
+### Die vier Markenfarben
 
-**Radien haben Rollen, keine Größen.** Bedienelemente sind leicht gerundet
-(`--radius-control: 8px`), Flächen fast kantig (`--radius-surface: 4px`), Pillen
-gibt es nur für Marker (`--radius-pill`). Nichts wird gleichzeitig überall stark
-abgerundet.
+| Ton | Wert | Rolle |
+| --- | --- | --- |
+| Aubergine | `#3B0F3F` | Tiefe, Navigation, primäre Aktion |
+| Tomato | `#E63946` | Akzent, Marker, große Displaymomente |
+| Orange | `#FF8A3D` | Wärme, Auswahlkanten, Verlaufsakzente |
+| Parchment | `#F8EFE3` | warmes Papier als Grundfläche |
+
+Rund 90 % der Fläche bleibt Papier und Tinte. Farbe ist ein Ereignis, kein
+Grundrauschen.
+
+### Kontrast vor Markenreinheit
+
+Gemessen, nicht geschätzt:
+
+| Kombination | Verhältnis | Konsequenz |
+| --- | --- | --- |
+| Weiß auf Tomato | 4,17 : 1 | **reicht nicht** für Text |
+| Weiß auf Orange | 2,35 : 1 | nur Fläche unter dunkler Tinte |
+| Aubergine auf Tomato | 3,80 : 1 | nur Grafik, nie Text |
+| Parchment auf Aubergine | 13,91 : 1 | der primäre Knopf |
+| Aubergine auf Orange | 7,56 : 1 | Orange trägt dunkle Tinte |
+| `--accent-ink` auf Parchment | 5,81 : 1 | der Akzentknopf |
+
+Daraus die drei Regeln, die das System durchhält:
+
+1. **Die primäre Aktion ist Aubergine, nicht Tomato.** Helle Schrift auf Tomato
+   wäre eine hübsche Lüge. Der Akzentknopf trägt deshalb `--accent-ink`, den
+   dunklen Tomato-Ton, nicht die volle Sättigung.
+2. **Tomato und Orange sind Flächen- und Grafikfarben.** Als Text erscheinen nur
+   ihre dunklen Ableitungen (`--accent-ink`, `--warm-ink`).
+3. **Farbe trägt nie allein eine Information.** Jeder Zustand hat ein Wort, ein
+   Symbol oder eine Form neben sich.
+
+`src/styles/contrast.test.ts` liest `tokens.css`, löst `var(--…)`-Verweise auf
+und rechnet die Verhältnisse bei **jedem** Testlauf nach: 41 Prüfungen, davon
+23 auf 4,5 : 1 für Text, sechs auf 3 : 1 für Bedienelemente und Grafik. Zwei
+Prüfungen sind bewusst umgekehrt formuliert – sie schlagen an, wenn jemand Weiß
+auf Tomato oder Weiß auf Orange doch wieder lesbar rechnen will.
+
+### Die semantischen Tokens
+
+`src/styles/tokens.css` definiert alles an einer Stelle; `global.css` enthält
+nur Zusammensetzungen. Wer einen neuen Wert braucht, legt ihn als Token an.
+
+| Token | Wert | Rolle |
+| --- | --- | --- |
+| `--canvas` | Parchment | Grundfläche |
+| `--surface` / `--surface-elevated` / `--surface-sunken` | `#fffcf7` / `#ffffff` / `#f0e4d4` | Karte, Hervorhebung, Rücktritt |
+| `--ink` / `--ink-secondary` / `--ink-muted` | `#2a0b2d` / `#5a4a5c` / `#6e5f70` | Tinte, kein Schwarz |
+| `--nav` / `--nav-ink` / `--nav-marker` | Aubergine / Parchment / Orange | Navigation |
+| `--primary` / `--primary-ink` | Aubergine / Parchment | primäre Aktion |
+| `--accent` / `--accent-ink` / `--accent-soft` | Tomato / `#ad2b35` / `#fbe4e5` | Akzent |
+| `--warm` / `--warm-ink` / `--warm-soft` | Orange / `#8c4c22` / `#ffeedf` | Wärme, Auswahl |
+| `--info` / `--info-soft` | `#3b0f3f` / `#f2e8f2` | ruhiger Hinweis |
+| `--success` / `--warning` / `--danger` | `#17624a` / `#8c4c22` / `#a3202c` | Semantik |
+| `--border` / `--border-strong` | `#d8c4ae` / `#8a7563` | Trennung, Bedienrand (≥ 3 : 1) |
+| `--focus-ring` / `--focus-ring-on-dark` | Aubergine / Orange | Fokus |
+
+**Hinweis und Fehler sind zwei Farbfamilien.** `--info` liegt auf Aubergine,
+nicht auf Tomato. Solange die Hinweisfläche `--accent-soft` trug, war sie mit
+`--danger-soft` bis auf den Hexwert identisch – im Kandidatenschritt der
+Textwerkstatt stand eine rosa Auswahlfläche direkt über einer rosa
+Fehlermeldung, und die ganze Seite las sich wie ein Schadensbericht. Ein Test
+hält jetzt fest, dass die vier semantischen Flächen vier verschiedene sind.
+
+**Radien haben Rollen, keine Größen:** Bedienelemente `--radius-control: 12px`,
+Flächen `--radius-surface: 16px`, große Flächen `--radius-surface-lg: 22px`,
+Pillen nur für Marker.
 
 **Vorerst nur hell.** `color-scheme: light`, kein `prefers-color-scheme`-Block.
 Ein automatischer Dunkelmodus würde auch die noch nicht überarbeiteten
-Werkstätten betreffen, und geprüft wurde bislang ausschließlich die helle
-Fassung. Der Dunkelmodus kommt später als eigenes, vollständig geprüftes Theme –
-nicht als Nebenwirkung.
+Werkstätten betreffen; geprüft ist bisher nur die helle Fassung.
 
-### Marke und PWA
+### Wortmarke und Signet
 
-Der Markenmarker ist auf ein einziges Zeichen reduziert: ein **L aus Papier auf
-Tinte**, dessen waagerechter Arm der Persimmon-Signalstrich des Designsystems
-ist – derselbe Strich, der auf der Startseite unter der Schlagzeile steht. Kein
-Buch, keine Karteikarte, kein Schulsymbol, kein Emoji. Bei 16 px bleiben eine
-dunkle Kachel, ein heller Stamm und ein orangefarbener Fuß erkennbar.
+Das Zeichen ist **Code, keine Bitmap**: `src/ui/Logo.tsx` zeichnet vier Flächen
+in einer 64 × 64-`viewBox`.
+
+Die Bildidee sind **zwei geöffnete Flächen, die sich überlagern**: hinten eine
+ruhige Aubergine-Fläche, davor eine leicht gekippte Tomato-Fläche, die sich wie
+eine umschlagende Karte öffnet; die helle Innenfläche ist der Durchblick. Zwei
+Dinge halten es von einem generischen Dokumentsymbol fern – die vordere Fläche
+ist ein **Trapez**, kein Rechteck, sie steht also schräg im Raum, und die
+Innenfläche sitzt **außermittig**, wodurch die Form eine Richtung bekommt statt
+symmetrisch zu ruhen. Keine Ähnlichkeit zu Office-Kacheln, kein Buch, keine
+Karteikarte, kein Schulsymbol.
+
+| Baustein | Einsatz |
+| --- | --- |
+| `LogoMark` | Signet allein – Navigation, kompakte Köpfe |
+| `Logo` | waagerechte Wortmarke: Signet plus **echter Text** |
+| `LogoAppIcon` | Quadrat mit Fläche – Startbildschirm, Favicon |
+
+Drei Fassungen: `brand` (auf Papier), `on-dark` (auf Aubergine), `mono`
+(einfarbig über `currentColor`, für Druck und `forced-colors`). Die
+monochrome Fassung trennt die beiden Flächen über die Deckkraft, nicht über die
+Farbe – sie bleibt damit auch schwarz-weiß verständlich.
+
+Der Schriftzug ist **Text, kein Pfad**: markierbar, vorlesbar, übersetzbar. Das
+Signet daneben trägt `aria-hidden`; nur wenn es allein steht, bekommt es
+`role="img"` und einen Namen.
 
 | Datei | Zweck |
 | --- | --- |
-| `public/favicon.svg` | Browser-Tab, verlustfrei skalierbar |
+| `public/favicon.svg` | Browser-Tab, dieselbe Geometrie als vier `rect` und ein `path` |
 | `public/icons/icon-192.png` | Startbildschirm |
 | `public/icons/icon-512.png` | Startbildschirm, hohe Auflösung |
-| `public/icons/icon-512-maskable.png` | maskierbar – Marke auf 56 %, randlos |
+| `public/icons/icon-512-maskable.png` | maskierbar – Zeichen auf 56 %, randlos |
 
-Die maskierbare Fassung ist bewusst eine **eigene Datei**: Dieselbe Grafik für
-`any` und `maskable` zu verwenden hätte die Marke beim Ausstanzen beschnitten.
+Die maskierbare Fassung ist bewusst eine eigene Datei: Dieselbe Grafik für `any`
+und `maskable` hätte das Zeichen beim Ausstanzen beschnitten.
 
 Produktname, Theme-Farbe und Manifest liegen in `src/pwa/manifest.ts` – Build
-und Tests lesen dasselbe Objekt, damit die Marke nicht auseinanderlaufen kann.
-Theme- und Hintergrundfarbe sind das Papier (`#faf7f2`), der Titel lautet
-überall „LexiFlow – Vocab Studio“. Die alten Schulblau-Töne (`#1f4d6b`,
-`#1c4f6e`, `#8fc4e2`, `#f6f7f9`) sind vollständig verschwunden; ein Test prüft
-das für `index.html`, Favicon, Tokens, Stylesheet und Manifest.
+und Tests lesen dasselbe Objekt. Theme-Farbe ist Aubergine (`#3b0f3f`, die
+Navigationsfarbe, die auf dem Telefon unter der Statusleiste liegt),
+Hintergrundfarbe das Papier (`#f8efe3`). Der Titel lautet überall
+„LexiFlow – Vokabeln lernen“. Die abgelegten Farben der beiden Vorgängersysteme
+(`#1f4d6b`, `#1c4f6e`, `#8fc4e2`, `#f6f7f9`, `#14120f`, `#e2542a`, `#c3d63a`)
+stehen als `RETIRED_BRAND_COLORS` im Manifest-Modul, damit ein Test sie überall
+ausschließen kann.
 
-### Typografie
+### Typografie – und die Satoshi-Lizenzfrage
 
 | Rolle | Schrift | Einsatz |
 | --- | --- | --- |
-| Bedienung, Fließtext, Formulare | **Manrope Variable** | überall |
-| Große redaktionelle Momente | **Newsreader Variable** | nur `.display` |
+| Wortmarke, Displaymomente | `--font-display` | Schlagzeilen, Wortmarke |
+| Bedienung, Fließtext, Formulare | `--font-sans` | überall |
+| Beispielsätze und Zitate | **Newsreader Variable** | `--font-quote` |
 
-Die Serifenschrift steht **nie** in Formularen, Tabellen oder kleinen
-Bedienelementen – sie ist für Schlagzeilen und Abschnittstitel reserviert.
+**Satoshi wird nicht mitgeliefert.** Die Vorgabe nennt Satoshi Black für die
+Wortmarke und Satoshi Medium für die Oberfläche, ausschließlich aus der
+offiziellen Fontshare-Quelle. Für die Einbettung in eine **portable
+Einzel-HTML**, die eine Lehrkraft an eine Klasse weitergibt, ließ sich aus dem
+Lizenztext nicht zweifelsfrei ableiten, dass diese Weitergabe gedeckt ist – eine
+Schülerdatei ist eine Redistribution der Schriftdatei an unbestimmt viele
+Empfänger, nicht bloß ein Webfont auf einer Domain. Eine ungeklärte Schrift
+bettet man nicht ein, und ein Laufzeit-Request an den Fontshare-CDN ist nach den
+Datenschutzprinzipien dieses Projekts ohnehin ausgeschlossen.
+
+Der gewählte Weg (aus der Vorgabe selbst: „Falls die Weitergabe in der portablen
+HTML nicht eindeutig gedeckt ist …“):
+
+* Satoshi steht in `--font-sans` und `--font-display` **an erster Stelle**. Wer
+  die Schrift lokal installiert hat, sieht sie.
+* Ausgeliefert wird **Manrope Variable** als Ersatz – eine geometrische Grotesk
+  mit derselben ruhigen, leicht technischen Anmutung, offen lizenziert.
+* Die Wortmarke bleibt **echter Text** (kein statisches SVG), weil sie damit
+  vorlesbar und markierbar bleibt; sie steht in `--weight-black` (800), der
+  schwersten Stärke, die die ausgelieferte Schrift hergibt.
+* Es wird **nichts** modifiziert, dekompiliert oder ohne Erlaubnis gesubsettet.
+
+Sollte die Lizenzlage später eindeutig geklärt werden, ist der Wechsel eine
+Änderung an `src/styles/fonts.css` und einer Zeile in `tokens.css` – kein
+Umbau.
 
 ### Lokale Schriften, keine Runtime-Requests
 
-Beide Schriften kommen aus den Fontsource-Paketen
-`@fontsource-variable/manrope` und `@fontsource-variable/newsreader` und werden
-vom Build in `dist/assets/` abgelegt. `src/styles/fonts.css` bindet gezielt nur
-die beiden **Latin-Subsets** ein, die Deutsch und Englisch brauchen – mit
-`font-display: swap`.
+Beide ausgelieferten Schriften kommen aus den Fontsource-Paketen
+`@fontsource-variable/manrope` und `@fontsource-variable/newsreader`.
+`src/styles/fonts.css` bindet gezielt nur die beiden **Latin-Subsets** ein, die
+Deutsch und Englisch brauchen – mit `font-display: swap`.
 
 | Datei | Größe |
 | --- | --- |
-| `manrope-latin-wght-normal.woff2` | 24,83 KiB |
-| `newsreader-latin-wght-normal.woff2` | 58,08 KiB |
-| **zusammen** | **82,91 KiB** |
+| `manrope-latin-wght-normal.woff2` | 24,25 KiB |
+| `newsreader-latin-wght-normal.woff2` | 56,72 KiB |
+| **zusammen** | **80,97 KiB** |
 
-Beide sind unter der **SIL Open Font License 1.1** lizenziert: Manrope
-© 2019 The Manrope Project Authors, Newsreader © 2020 The Newsreader Project
-Authors. Die Lizenztexte liegen in den jeweiligen Paketen.
+Beide unter der **SIL Open Font License 1.1**: Manrope © 2019 The Manrope
+Project Authors, Newsreader © 2020 The Newsreader Project Authors. Die
+Lizenztexte liegen in den jeweiligen Paketen.
 
 Es gibt **keinen** Google-Fonts-Aufruf und keinen sonstigen Laufzeit-Request.
-Die Schriften stehen im Service-Worker-Precache (`globPatterns` enthält seit
-Sprint 3A `woff2`), damit die App auch beim ersten Start ohne Netz richtig
-aussieht. Ein E2E-Test prüft beides: dass `Manrope Variable` und
-`Newsreader Variable` tatsächlich greifen und dass dabei kein fremder Host
-angefragt wird.
+`e2e/brand.spec.ts` prüft beides: dass überhaupt keine Anfrage die eigene
+Auslieferung verlässt, dass die `.woff2`-Dateien vom eigenen Host kommen und
+dass keine Satoshi-Datei angefragt wird oder in der Auslieferung liegt.
 
 ### App-Shell
 
-* **Desktop (ab 62 rem):** eine ruhige, schmale Seitenspalte mit Markenname und
-  den drei Kernbereichen **Lernen**, **Erstellen**, **Daten**. Die Navigation
-  tritt zurück, der Inhalt trägt die Seite. Der aktive Eintrag ist dunkel
-  hinterlegt **und** trägt einen Wasabi-Marker – Farbe allein genügt nie.
-* **Mobil:** ein kompakter Kopf oben und eine sticky Leiste am unteren Rand mit
+* **Desktop (ab 62 rem):** eine Aubergine-Seitenspalte mit Wortmarke im Kopf und
+  den drei Kernbereichen **Lernen**, **Erstellen**, **Daten**. Der aktive
+  Eintrag ist heller hinterlegt **und** trägt einen Orange-Marker.
+* **Mobil:** ein Aubergine-Kopf oben und eine sticky Leiste am unteren Rand mit
   denselben drei Bereichen, mindestens 44 × 44 px je Ziel und
-  `safe-area-inset-bottom` berücksichtigt. Der Inhalt reserviert genau so viel
-  Platz, dass nichts dahinter verschwindet.
+  `safe-area-inset-bottom` berücksichtigt.
 
 Beide Navigationen sind gleichzeitig im DOM; die jeweils unpassende ist per
 `display: none` auch aus dem Accessibility-Baum entfernt. Sie tragen deshalb
-unterschiedliche Namen (`Hauptnavigation`, `Bereichsnavigation`), damit
-Screenreader zwei Landmarken sauber unterscheiden können.
+unterschiedliche Namen (`Hauptnavigation`, `Bereichsnavigation`).
 
-### Was das Redesign nicht tut
+### Zustände, die sich nicht ähneln dürfen
+
+Drei Stellen, an denen die erste Fassung des Markensystems am Bildschirm
+scheiterte und korrigiert wurde – jede ist heute durch einen Test oder einen
+Kommentar an Ort und Stelle abgesichert:
+
+* **Kandidatenprüfung.** Ausgewählte Zeilen trugen die weiche Akzentfläche;
+  weil eine frisch analysierte Vokabel noch keine deutsche Antwort hat, stand
+  darunter jedes Mal eine rote Fehlermeldung. Heute: Auswahl = normales Papier
+  mit **Orange-Kante**, nicht ausgewählt = abgesenkte Fläche mit gedämpftem
+  Titel. Rot bleibt dem vorbehalten, was wirklich ein Fehler ist.
+* **Leitner-Fächer.** Leere Fächer mit Akzentrand sahen aus wie ein roter Strich
+  quer durch den Lernstand. Ein leeres Fach ist kein Fehler – der Rand ist
+  wieder ruhig.
+* **Selbsttest-Auswertung.** Die drei Zahlen standen in Akzentrot; „4 richtig“
+  sah damit aus wie ein Befund. Heute stehen sie in normaler Tinte, die
+  Bedeutung trägt das Wort daneben. Grün-Gelb-Rot wäre die naheliegende Lösung
+  gewesen – und genau die Zeugnisoptik, die hier nichts zu suchen hat.
+
+Ebenfalls neu: Abgeschaltete Schaltflächen sind kein `opacity: 0.5` mehr,
+sondern ein eigener, definierter Zustand (ruhige Fläche, klarer Rand, gedämpfte
+aber lesbare Schrift). WCAG verlangt das nicht; jemand, der wissen will, was
+gerade fehlt, schon.
+
+### Was das Markensystem nicht tut
 
 Es ändert **nichts** an Datenmodell, IndexedDB, Paketformat, Lernlogik,
 Importlogik, KI-Verträgen oder Datenschutzprinzipien. Jede Aktion trägt
-denselben zugänglichen Namen wie vorher – dort, wo eine Schaltfläche
-redaktionell neu gesetzt wurde, hält ein `aria-label` die bisherige
-Beschriftung wörtlich fest.
+denselben zugänglichen Namen wie vorher.
 
 ## Bedienung und Barrierefreiheit
 
@@ -2158,7 +2282,7 @@ funktioniert vollständig offline.
 30. **Farbe ist ein Ereignis, kein Grundrauschen.** Rund 90 % der Fläche bleibt
     neutral. Eine Oberfläche, auf der alles farbig ist, hat keine Hierarchie
     mehr – und ein Akzent, der überall steht, ist keiner.
-31. **Die Grafikfarbe und der Textton sind zwei Tokens.** Persimmon in voller
+31. **Die Grafikfarbe und der Textton sind zwei Tokens.** Tomato in voller
     Sättigung ist schön und schafft auf Weiß keine 4,5:1. Statt den Ton für
     alles zu verwässern, gibt es beide – und eine Regel, wann welcher gilt.
 32. **Schriften liegen im Repository, nicht im Netz.** Ein Google-Fonts-Aufruf
@@ -2172,6 +2296,23 @@ funktioniert vollständig offline.
 35. **Die Marke steht im Quellbaum, nicht in der Build-Konfiguration.**
     `src/pwa/manifest.ts` wird von `vite.config.ts` und von den Tests gelesen.
     Was nur in der Konfiguration steht, prüft am Ende niemand.
+36. **Kontrast schlägt Markenreinheit.** Tomato ist die Akzentfarbe der Marke
+    und trotzdem nicht die Farbe des primären Knopfes: Weiß darauf erreicht
+    4,17 : 1. Lieber eine Marke, die einen Ton dunkler ausfällt, als eine, die
+    sich nur auf Bildschirmen mit gutem Licht lesen lässt.
+37. **Kontrast wird gerechnet, nicht geschätzt.** `contrast.test.ts` liest die
+    Tokendatei und rechnet jedes Paar bei jedem Testlauf nach. Ein Kommentar
+    „sollte reichen“ hätte diese Wirkung nicht – und zwei der Prüfungen sind
+    umgekehrt formuliert, damit niemand eine unlesbare Kombination
+    zurückholt.
+38. **Eine ungeklärte Schrift wird nicht eingebettet.** Satoshi steht im Stack
+    an erster Stelle, ausgeliefert wird das offen lizenzierte Manrope. Eine
+    Schülerdatei ist eine Weitergabe an unbestimmt viele Empfänger; wo die
+    Lizenz das nicht eindeutig deckt, ist „wahrscheinlich erlaubt“ zu wenig.
+39. **Das Zeichen ist Code.** Ein aus einer Vorlage ausgeschnittenes Bild wäre
+    in der portablen Einzeldatei teuer, würde auf großen Displays ausfransen
+    und ließe sich nicht einfarbig ausgeben. Vier Pfade in einer `viewBox`
+    können all das.
 21. **Der Modus steht in der URL.** Eine freie Runde ist damit teilbar und
     direkt aufrufbar; ein fehlender oder unbekannter Wert fällt auf den
     Lernplan zurück, nie umgekehrt.

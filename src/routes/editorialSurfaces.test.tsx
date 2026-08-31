@@ -42,7 +42,7 @@ describe('Startseite', () => {
   it('führt editorial ein, statt zwei Kacheln anzubieten', () => {
     renderPage(<HomePage />);
 
-    expect(screen.getByText('Local-first Vocab Studio')).toBeInTheDocument();
+    expect(screen.getByText('Einfach ins Lernen kommen.')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
         level: 1,

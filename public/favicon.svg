@@ -1,15 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LexiFlow">
   <!--
-    LexiFlow-Markenmarker (Sprint 3A.1).
+    LexiFlow-Signet (Sprint 4A.1c).
 
-    Reduziert auf ein einziges Zeichen: ein L aus Papier auf Tinte, dessen
-    waagerechter Arm der Persimmon-Signalstrich aus dem Designsystem ist –
-    derselbe Strich, der auf der Startseite unter der Schlagzeile steht.
+    Zwei geöffnete Flächen: hinten die Liste (Aubergine), davor die Karte
+    (Tomato) als leicht gekipptes Trapez, dazwischen der helle Durchblick.
+    Ein Orangestrich markiert die Öffnungskante.
 
-    Kein Buch, keine Karteikarte, kein Schulsymbol. Bei 16 px bleibt eine
-    dunkle Kachel mit hellem Stamm und orangefarbenem Fuß erkennbar.
+    Die Datei ist die Rasterfassung von `src/ui/Logo.tsx` – dieselbe Geometrie,
+    damit Favicon, Navigation und App-Icon nicht auseinanderlaufen.
   -->
-  <rect width="64" height="64" rx="13" fill="#14120f" />
-  <rect x="19" y="13" width="10" height="30" fill="#faf7f2" />
-  <rect x="19" y="43" width="27" height="9" fill="#e2542a" />
+  <rect width="64" height="64" rx="14" fill="#3B0F3F" />
+  <g transform="translate(32 32) scale(0.72) translate(-32 -32)">
+    <rect x="4" y="8" width="30" height="42" rx="6" fill="#F8EFE3" />
+    <path d="M26 16 L58 12 Q60 11.7 60 13.7 L60 50.3 Q60 52.3 58 52 L26 48 Q24 47.7 24 45.7 L24 18.3 Q24 16.3 26 16 Z" fill="#E63946" />
+    <rect x="34" y="22" width="12" height="20" rx="3" fill="#3B0F3F" />
+    <rect x="24" y="20" width="3" height="24" rx="1.5" fill="#FF8A3D" />
+  </g>
 </svg>

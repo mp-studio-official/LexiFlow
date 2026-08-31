@@ -9,25 +9,43 @@
  * als Marke. Das alte Schulblau ist vollständig verschwunden.
  */
 
-/** Warmes Papier – identisch mit `--canvas`. */
-export const BRAND_CANVAS = '#faf7f2';
+/** Warmes Papier – identisch mit `--canvas` / Parchment. */
+export const BRAND_CANVAS = '#f8efe3';
 
-/** Fast schwarze, minimal warme Tinte – identisch mit `--ink`. */
-export const BRAND_INK = '#14120f';
+/** Aubergine – Navigation, primäre Aktion und Markenfläche. */
+export const BRAND_INK = '#3b0f3f';
 
-/** Persimmon-Signal – identisch mit `--accent`. */
-export const BRAND_ACCENT = '#e2542a';
+/** Tomato – die Akzentfarbe der Marke. */
+export const BRAND_ACCENT = '#e63946';
+
+/** Orange – der warme Marker. */
+export const BRAND_WARM = '#ff8a3d';
 
 /**
  * Farben, die es in dieser App nicht mehr geben darf.
- * Sie stammen aus der Fassung vor „Editorial Signal“.
+ * `#1f4d6b` und Verwandte stammen aus der Fassung vor „Editorial Signal“,
+ * `#14120f`/`#e2542a` aus der Fassung davor (Sprint 3A bis 4A.1b).
  */
-export const RETIRED_BRAND_COLORS = ['#1f4d6b', '#1c4f6e', '#8fc4e2', '#f6f7f9'] as const;
+export const RETIRED_BRAND_COLORS = [
+  '#1f4d6b',
+  '#1c4f6e',
+  '#8fc4e2',
+  '#f6f7f9',
+  '#14120f',
+  '#e2542a',
+  '#c3d63a',
+] as const;
 
-export const APP_NAME = 'LexiFlow – Vocab Studio';
+/**
+ * Der Markenclaim. Er steht an genau drei Stellen – Lehrkraft-Startseite,
+ * Schüler-Start und Fußzeile – und nicht auf jeder Unterseite.
+ */
+export const APP_CLAIM = 'Einfach ins Lernen kommen.';
+
+export const APP_NAME = 'LexiFlow – Vokabeln lernen';
 export const APP_SHORT_NAME = 'LexiFlow';
 export const APP_DESCRIPTION =
-  'Freiwillige Lernhilfe für englische Vokabeln. Alle Daten bleiben lokal im Browser.';
+  'Einfach ins Lernen kommen. Freiwillige Lernhilfe für englische Vokabeln – alle Daten bleiben lokal im Browser.';
 
 export interface ManifestIcon {
   src: string;
@@ -70,7 +88,7 @@ export function buildManifest(base: string) {
     scope: base,
     display: 'standalone' as const,
     background_color: BRAND_CANVAS,
-    theme_color: BRAND_CANVAS,
+    theme_color: BRAND_INK,
     categories: ['education'],
     icons: APP_ICONS.map((icon) => ({ ...icon })),
   };

@@ -40,12 +40,17 @@ function pngSize(buffer: Buffer): { width: number; height: number } {
 }
 
 describe('Markenfarben', () => {
-  it('benennt Papier, Tinte und Signal wie die Tokens', () => {
+  it('benennt Papier, Aubergine und Tomato wie die Tokens', () => {
     const tokens = readText('src/styles/tokens.css');
 
-    expect(tokens).toContain(`--canvas: ${BRAND_CANVAS}`);
-    expect(tokens).toContain(`--ink: ${BRAND_INK}`);
-    expect(tokens).toContain(`--accent: ${BRAND_ACCENT}`);
+    // Seit Sprint 4A.1c stehen die Markenfarben als eigene Basistöne in den
+    // Tokens; die semantischen Namen verweisen darauf.
+    expect(tokens).toContain(`--brand-parchment: ${BRAND_CANVAS}`);
+    expect(tokens).toContain(`--brand-aubergine: ${BRAND_INK}`);
+    expect(tokens).toContain(`--brand-tomato: ${BRAND_ACCENT}`);
+    expect(tokens).toContain('--canvas: var(--brand-parchment)');
+    expect(tokens).toContain('--nav: var(--brand-aubergine)');
+    expect(tokens).toContain('--accent: var(--brand-tomato)');
   });
 
   it('hat die alten Markenfarben vollständig abgelegt', () => {
@@ -70,8 +75,9 @@ describe('Markenfarben', () => {
 describe('index.html', () => {
   const html = readText('index.html');
 
-  it('setzt die Theme-Farbe auf das Papier des Designsystems', () => {
-    expect(html).toContain(`<meta name="theme-color" content="${BRAND_CANVAS}" />`);
+  it('setzt die Theme-Farbe auf die Navigationsfarbe der Marke', () => {
+    // Die Statusleiste sitzt über der Kopfzeile – und die ist Aubergine.
+    expect(html).toContain(`<meta name="theme-color" content="${BRAND_INK}" />`);
   });
 
   it('legt sich auf das helle Schema fest', () => {
@@ -82,11 +88,10 @@ describe('index.html', () => {
 
   it('nennt das Produkt wie das Manifest', () => {
     expect(html).toContain(`<title>${APP_NAME}</title>`);
-    expect(html).not.toContain('Vokabeltrainer');
   });
 
   it('behält die ehrliche deutsche Beschreibung', () => {
-    expect(html).toContain('Alle Lernstände bleiben lokal im Browser');
+    expect(html).toContain('alle Lernstände bleiben lokal im Browser');
     expect(html).toContain('lang="de"');
   });
 
@@ -99,17 +104,23 @@ describe('index.html', () => {
 describe('Markenmarker', () => {
   const svg = readText('public/favicon.svg');
 
-  it('besteht aus Tinte, Papier und einem Persimmon-Signal', () => {
-    expect(svg).toContain(BRAND_INK);
-    expect(svg).toContain(BRAND_CANVAS);
-    expect(svg).toContain(BRAND_ACCENT);
+  it('besteht aus Aubergine, Parchment, Tomato und einem Orange-Akzent', () => {
+    const lower = svg.toLowerCase();
+    expect(lower).toContain(BRAND_INK);
+    expect(lower).toContain(BRAND_CANVAS);
+    expect(lower).toContain(BRAND_ACCENT);
+    expect(lower).toContain('#ff8a3d');
   });
 
   it('bleibt reduziert – kein Buch, keine Karteikarte, kein Emoji', () => {
-    // Drei Rechtecke: Fläche, Stamm, Signalfuß. Mehr braucht die Marke nicht,
-    // und mehr wäre bei 16 px auch nicht mehr erkennbar.
-    expect(svg.match(/<rect/g)).toHaveLength(3);
-    expect(svg).not.toMatch(/<image|<text|<path/);
+    /*
+      Vier Flächen plus die Kachel: hintere Liste, vordere Karte (das einzige
+      `path`, weil sie ein Trapez ist), Durchblick und Öffnungskante. Mehr
+      wäre bei 16 px ohnehin nicht mehr erkennbar.
+    */
+    expect(svg.match(/<rect/g)).toHaveLength(4);
+    expect(svg.match(/<path/g)).toHaveLength(1);
+    expect(svg).not.toMatch(/<image|<text/);
     // Keine Emoji-Ebenen (alles außerhalb von Latin-1 wäre hier verdächtig).
     expect(svg).not.toMatch(/[\u{1F000}-\u{1FAFF}]/u);
   });
@@ -164,19 +175,19 @@ describe('Manifest', () => {
 
   it('nennt Produktname und Kurzform konsistent', () => {
     expect(manifest.name).toBe(APP_NAME);
-    expect(manifest.name).toBe('LexiFlow – Vocab Studio');
+    expect(manifest.name).toBe('LexiFlow – Vokabeln lernen');
     expect(manifest.short_name).toBe(APP_SHORT_NAME);
   });
 
   it('behält die deutsche Beschreibung und die ehrliche Aussage', () => {
     expect(manifest.description).toBe(APP_DESCRIPTION);
-    expect(manifest.description).toContain('Alle Daten bleiben lokal im Browser');
+    expect(manifest.description).toContain('alle Daten bleiben lokal im Browser');
     expect(manifest.lang).toBe('de');
   });
 
-  it('nutzt Papier als Flächen- und Theme-Farbe', () => {
+  it('nutzt Papier als Fläche und Aubergine als Theme-Farbe', () => {
     expect(manifest.background_color).toBe(BRAND_CANVAS);
-    expect(manifest.theme_color).toBe(BRAND_CANVAS);
+    expect(manifest.theme_color).toBe(BRAND_INK);
   });
 
   it('übernimmt den Deployment-Pfad', () => {

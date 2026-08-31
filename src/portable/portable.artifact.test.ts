@@ -178,6 +178,53 @@ describe('Gebaute Schülerdatei', () => {
     expect(refs).toEqual([]);
   });
 
+  /*
+    Sprint 4A.1c: Die Marke muss die Datei überleben.
+
+    Eine Schülerdatei liegt irgendwo auf einem fremden Rechner, womöglich ohne
+    Netz. Alles Sichtbare muss also *in* ihr stecken: die Schrift, das Zeichen,
+    die Farben. Der Test oben („verweist auf nichts außerhalb der Datei“) prüft
+    `src` und `href` im Markup – die Schriften und Bilder stehen aber in CSS,
+    in `url(...)`, und wären dort bisher unbemerkt durchgerutscht.
+  */
+  it('trägt Schriften und Bilder in sich, nicht als Verweis', () => {
+    const html = build();
+
+    /*
+      Gesucht wird ausschließlich in den Stilblöcken. Ein `url(` im ganzen
+      Dokument zu suchen war der erste Versuch und lieferte lauter Fundstücke
+      aus dem mitgelieferten JavaScript (`new URL(e, window.origin)` und
+      Ähnliches) – richtige Treffer für den Ausdruck, falsche für die Frage.
+    */
+    const styles = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map(
+      (match) => match[1] ?? '',
+    );
+    expect(styles.length, 'eingebettete Stilblöcke').toBeGreaterThan(0);
+
+    const urls = styles.flatMap((css) =>
+      [...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi)].map((match) => match[2] ?? ''),
+    );
+
+    const auswaerts = urls.filter((target) => !target.startsWith('data:'));
+    expect(auswaerts, 'CSS-Verweise nach draußen').toEqual([]);
+
+    // Und die Schrift ist wirklich dabei, nicht bloß nicht verlinkt.
+    expect(urls.some((target) => target.startsWith('data:font'))).toBe(true);
+    expect(styles.join('')).toContain('@font-face');
+  });
+
+  it('bringt das Markenzeichen als Vektor mit', () => {
+    const html = build();
+
+    // Das Signet ist Code: vier Flächen in den Markenfarben, keine Bitmap.
+    expect(html).toContain('#3B0F3F');
+    expect(html).toContain('#E63946');
+    expect(html).not.toContain('data:image/png');
+    expect(html).not.toContain('data:image/jpeg');
+    // Der Name steht als Text daneben und ist damit auch vorlesbar.
+    expect(html).toContain('LexiFlow');
+  });
+
   it('legt eine Beispieldatei zum Nachsehen ab', () => {
     // Kein Test im engeren Sinn, sondern ein Nebenprodukt: Die Datei landet in
     // `dist-portable/` und kann von Hand geöffnet werden.

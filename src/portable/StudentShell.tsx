@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 import { Alert } from '../ui/components';
+import { Logo } from '../ui/Logo';
 import { storageNotice, type StorageState } from './storage';
 
 /**
@@ -25,8 +26,9 @@ export function StudentShell({
 
       <header className="app-header">
         <div className="app-header__inner">
-          <Link className="brand" to="/">
-            LexiFlow <span>{title}</span>
+          <Link className="brand" to="/" aria-label={`LexiFlow – ${title}`}>
+            <Logo tone="on-dark" size={28} />
+            <span className="brand__suffix">{title}</span>
           </Link>
         </div>
       </header>

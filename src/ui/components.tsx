@@ -48,13 +48,23 @@ export function Alert({
   tone = 'info',
   title,
   children,
+  className = '',
 }: {
   tone?: AlertTone;
   title?: string;
   children?: ReactNode;
+  /**
+   * Für Meldungen, die zusätzlich eine Entscheidung verlangen (`alert--decision`).
+   * Bewusst kein eigener `tone`: Der Ton beschreibt, *worum* es geht, die
+   * Klasse nur, *wieviel Gewicht* die Meldung im Layout bekommt.
+   */
+  className?: string;
 }) {
   return (
-    <div className={`alert alert--${tone}`} role={tone === 'error' ? 'alert' : 'status'}>
+    <div
+      className={['alert', `alert--${tone}`, className].filter(Boolean).join(' ')}
+      role={tone === 'error' ? 'alert' : 'status'}
+    >
       {title ? <strong>{title}</strong> : null}
       {title && children ? <br /> : null}
       {children}

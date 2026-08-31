@@ -246,13 +246,28 @@ test.describe('Lokale Schriften', () => {
     await page.goto('/');
     await page.evaluate(() => document.fonts.ready);
 
-    const families = await page.evaluate(() => ({
-      body: getComputedStyle(document.body).fontFamily,
-      display: getComputedStyle(document.querySelector('h1') as Element).fontFamily,
-    }));
+    const families = await page.evaluate(() => {
+      // Ein Element, das die Zitatschrift wirklich trägt – ohne eines zu bauen,
+      // das es in der Anwendung so nicht gibt.
+      const probe = document.createElement('p');
+      probe.style.fontFamily = 'var(--font-quote)';
+      document.body.append(probe);
+      const quote = getComputedStyle(probe).fontFamily;
+      probe.remove();
+      return {
+        body: getComputedStyle(document.body).fontFamily,
+        display: getComputedStyle(document.querySelector('h1') as Element).fontFamily,
+        quote,
+      };
+    });
 
+    // Satoshi steht im Stack an erster Stelle, ausgeliefert wird Manrope –
+    // die Ersatzschrift muss deshalb überall zweiter Eintrag sein.
     expect(families.body).toContain('Manrope Variable');
-    expect(families.display).toContain('Newsreader Variable');
+    expect(families.display).toContain('Manrope Variable');
+    expect(families.body).toContain('Satoshi');
+    // Newsreader trägt seit dem Markensystem nur noch Beispielsätze und Zitate.
+    expect(families.quote).toContain('Newsreader Variable');
     // Geladen wird ausschließlich vom eigenen Server.
     expect(fontRequests.length).toBeGreaterThan(0);
     expect(externalRequests).toEqual([]);
@@ -271,8 +286,9 @@ test.describe('PWA-Marke', () => {
     await page.goto('/');
 
     // Kopfdaten des Dokuments.
-    await expect(page).toHaveTitle('LexiFlow – Vocab Studio');
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#faf7f2');
+    await expect(page).toHaveTitle('LexiFlow – Vokabeln lernen');
+    // Die Statusleiste trägt die Navigationsfarbe, nicht das Papier.
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#3b0f3f');
     await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute('content', 'light');
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /favicon\.svg$/);
 
@@ -290,15 +306,25 @@ test.describe('PWA-Marke', () => {
       icons: { src: string; sizes: string; purpose: string }[];
     };
 
-    expect(manifest.name).toBe('LexiFlow – Vocab Studio');
-    expect(manifest.theme_color).toBe('#faf7f2');
-    expect(manifest.background_color).toBe('#faf7f2');
+    expect(manifest.name).toBe('LexiFlow – Vokabeln lernen');
+    expect(manifest.theme_color).toBe('#3b0f3f');
+    expect(manifest.background_color).toBe('#f8efe3');
     expect(manifest.lang).toBe('de');
-    expect(manifest.description).toContain('Alle Daten bleiben lokal im Browser');
+    expect(manifest.description).toContain('Einfach ins Lernen kommen.');
+    expect(manifest.description).toContain('alle Daten bleiben lokal im Browser');
 
     // Die alten Markenfarben kommen nirgends mehr vor.
     const raw = JSON.stringify(manifest).toLowerCase();
-    for (const retired of ['#1f4d6b', '#1c4f6e', '#8fc4e2', '#f6f7f9']) {
+    // Beide Vorgängersysteme – Schulblau und „Editorial Signal“.
+    for (const retired of [
+      '#1f4d6b',
+      '#1c4f6e',
+      '#8fc4e2',
+      '#f6f7f9',
+      '#14120f',
+      '#e2542a',
+      '#c3d63a',
+    ]) {
       expect(raw, `Manifest enthält noch ${retired}`).not.toContain(retired);
     }
 
@@ -313,16 +339,18 @@ test.describe('PWA-Marke', () => {
       expect(response.headers()['content-type']).toContain('image/png');
     }
 
-    // Und das Favicon selbst trägt Tinte, Papier und Persimmon.
+    // Und das Favicon selbst trägt Aubergine, Parchment, Tomato und Orange.
     const favicon = await page.request.get(new URL('favicon.svg', page.url()).toString());
     expect(favicon.status()).toBe(200);
     const svg = await favicon.text();
-    for (const colour of ['#14120f', '#faf7f2', '#e2542a']) {
+    for (const colour of ['#3B0F3F', '#F8EFE3', '#E63946', '#FF8A3D']) {
       expect(svg).toContain(colour);
     }
-    for (const retired of ['#1f4d6b', '#1c4f6e', '#8fc4e2']) {
-      expect(svg).not.toContain(retired);
+    for (const retired of ['#1f4d6b', '#1c4f6e', '#8fc4e2', '#14120f', '#e2542a', '#c3d63a']) {
+      expect(svg.toLowerCase()).not.toContain(retired);
     }
+    // Ein Vektor, keine eingebettete Rasterdatei.
+    expect(svg).not.toContain('<image');
 
     expect(externalRequests).toEqual([]);
   });
