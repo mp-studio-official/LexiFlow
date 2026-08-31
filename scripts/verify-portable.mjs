@@ -8,9 +8,9 @@
  * 2. Fachliche Zusicherungen an einem echten Export (`vitest.portable.config.ts`):
  *    genau ein Paket, keine Lernstände, sichere Einbettung, Unicode.
  */
-import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { startVitest } from 'vitest/node';
 
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, 'dist-portable');
@@ -111,7 +111,24 @@ if (problems.length > 0) {
 }
 console.log('\nStatische Prüfung bestanden. Jetzt der fachliche Teil …\n');
 
-execFileSync('npx', ['vitest', 'run', '--config', 'vitest.portable.config.ts'], {
-  cwd: root,
-  stdio: 'inherit',
+/*
+ * Vitest in **diesem** Prozess starten, nicht über einen Paketmanager.
+ *
+ * Aus demselben Grund wie im Buildskript (Sprint 4A.1a): Ein `npx`-Aufruf aus
+ * einem laufenden `npm run` heraus kann auf echten Rechnern hängen bleiben.
+ * Die programmatische API kennt weder Shell noch PATH und verhält sich unter
+ * macOS, Linux und Windows gleich.
+ */
+const vitest = await startVitest('test', [], {
+  config: resolve(root, 'vitest.portable.config.ts'),
+  watch: false,
+  root,
 });
+
+const failed = vitest?.state.getCountOfFailedTests() ?? 0;
+await vitest?.close();
+
+if (failed > 0) {
+  console.error(`\n${failed} Prüfung(en) fehlgeschlagen.`);
+  process.exitCode = 1;
+}

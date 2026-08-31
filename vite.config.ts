@@ -47,8 +47,21 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
-    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
+    // Die Bau-Orchestrierung gehört mit in die Standardsuite: Sie ist reine
+    // Logik mit injizierbaren Seiteneffekten und braucht keinen Build.
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
+    exclude: [
+      'e2e/**',
+      'e2e-portable/**',
+      'node_modules/**',
+      'dist/**',
+      'dist-portable/**',
+      // Artefakttests setzen einen vorherigen `npm run build:portable` voraus
+      // und laufen deshalb ausschließlich in `npm run verify:portable`. Ohne
+      // diese Zeile wären sie doppelt gezählt – und `npm run test` schlüge in
+      // einem frischen Checkout fehl.
+      'src/**/*.artifact.test.ts',
+    ],
     restoreMocks: true,
   },
 });

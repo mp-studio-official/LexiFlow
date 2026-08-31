@@ -13,6 +13,9 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['src/portable/*.artifact.test.ts'],
+    // Der Buildskript-Test startet einen echten Build; parallel dazu dürfen
+    // keine anderen Dateien am selben Ausgabeordner arbeiten.
+    fileParallelism: false,
     restoreMocks: true,
   },
 });

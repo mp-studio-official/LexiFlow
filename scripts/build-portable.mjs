@@ -7,54 +7,87 @@
  * statt eines Builds mit zwei Einstiegspunkten, weil beide vollständig
  * eigenständige Dokumente sind und `inlineDynamicImports` je Ausgabe gilt.
  *
+ * ## Warum kein `npx` mehr (Sprint 4A.1a)
+ *
+ * Bis 4A.1 startete dieses Skript Vite über `execFileSync('npx', …)`. Aufgerufen
+ * aus `npm run build:portable` ist das ein npm-Prozess, der einen npm-Prozess
+ * startet, der wiederum das Paket auflösen will – auf echten Rechnern blieb der
+ * Build dabei ohne Ausgabe hängen. Vite selbst war nie das Problem: Derselbe
+ * Schritt lief direkt aufgerufen in Millisekunden durch.
+ *
+ * Jetzt wird Vites programmatische API benutzt (`await import('vite')`).
+ * Kein zweiter Prozess, keine Shell, kein PATH, kein plattformabhängiger Pfad
+ * nach `node_modules/.bin` – das läuft unter macOS, Linux und Windows gleich.
+ *
  * Der normale Build (`npm run build`) bleibt davon unberührt.
  */
-import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
+import { runBuildPipeline, BuildStepError } from './portableBuild.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const out = resolve(root, 'dist-portable');
 
-function run(args) {
-  execFileSync('npx', args, { cwd: root, stdio: 'inherit' });
-}
+/**
+ * Das Ausgabeverzeichnis ist einstellbar, damit ein Regressionstest den echten
+ * Build in einen eigenen Ordner laufen lassen kann, ohne `dist-portable/` zu
+ * zerstören. Ohne die Variable bleibt alles beim Gewohnten.
+ */
+const outDir = resolve(root, process.env['LEXIFLOW_PORTABLE_OUT'] ?? 'dist-portable');
+
+/** Die Vite-Konfigurationen lesen dieselbe Variable (siehe dort). */
+process.env['LEXIFLOW_PORTABLE_OUT'] = relative(root, outDir) || 'dist-portable';
 
 function kib(bytes) {
   return `${(bytes / 1024).toFixed(1)} KiB`;
 }
 
-rmSync(out, { recursive: true, force: true });
-mkdirSync(out, { recursive: true });
+/**
+ * Ein Vite-Build als Schritt – ohne Unterprozess.
+ *
+ * Vite wird **im Schritt** geladen, nicht oben in der Datei. Der Grund ist
+ * praktisch: Fehlt in einer Installation die passende native Rolldown-Bibliothek
+ * (das kommt vor, wenn `node_modules` von einem anderen Betriebssystem stammt),
+ * scheitert schon der Import. Steht er oben, sieht man einen rohen Node-Stack;
+ * hier drin wird daraus eine Meldung, die den Schritt benennt.
+ */
+function viteStep(label, configFile) {
+  return {
+    label,
+    run: async () => {
+      const { build } = await import('vite');
+      await build({ root, configFile: resolve(root, configFile) });
+    },
+  };
+}
 
-console.log('\n[1/2] Schülerlaufzeit …');
-run(['vite', 'build', '--config', 'vite.student.config.ts']);
+try {
+  const results = await runBuildPipeline({
+    outDir,
+    steps: [
+      viteStep('Schülerlaufzeit', 'vite.student.config.ts'),
+      viteStep('Lehrkraftdatei', 'vite.portable.config.ts'),
+    ],
+    outputs: [
+      { from: resolve(outDir, 'student/student.html'), to: resolve(outDir, 'LexiFlow-Schuelerlaufzeit.html') },
+      { from: resolve(outDir, 'teacher/index.html'), to: resolve(outDir, 'LexiFlow-Lehrkraft.html') },
+    ],
+    tempDirs: [resolve(outDir, 'student'), resolve(outDir, 'teacher')],
+  });
 
-console.log('\n[2/2] Lehrkraftdatei …');
-run(['vite', 'build', '--config', 'vite.portable.config.ts']);
+  const runtimeFile = resolve(outDir, 'LexiFlow-Schuelerlaufzeit.html');
+  // Eine erste, harte Zusicherung direkt im Build: Ohne die Einsetzstelle wäre
+  // die Lehrkraftdatei nicht in der Lage, je eine Schülerdatei zu erzeugen.
+  if (!readFileSync(runtimeFile, 'utf8').includes('"__LEXIFLOW_PACK__"')) {
+    throw new Error('In der Schülerlaufzeit fehlt die Stelle für das Paket.');
+  }
 
-const runtimeSource = resolve(out, 'student/student.html');
-const teacherSource = resolve(out, 'teacher/index.html');
-
-const runtimeTarget = resolve(out, 'LexiFlow-Schuelerlaufzeit.html');
-const teacherTarget = resolve(out, 'LexiFlow-Lehrkraft.html');
-
-copyFileSync(runtimeSource, runtimeTarget);
-copyFileSync(teacherSource, teacherTarget);
-rmSync(resolve(out, 'student'), { recursive: true, force: true });
-rmSync(resolve(out, 'teacher'), { recursive: true, force: true });
-
-const runtimeBytes = statSync(runtimeTarget).size;
-const teacherBytes = statSync(teacherTarget).size;
-
-console.log('\nPortable Dateien in dist-portable/:');
-console.log(`  LexiFlow-Lehrkraft.html          ${kib(teacherBytes)}`);
-console.log(`  LexiFlow-Schuelerlaufzeit.html   ${kib(runtimeBytes)}  (Vorlage ohne Paket)`);
-
-// Eine erste, harte Zusicherung direkt im Build: Ohne die Einsetzstelle wäre
-// die Lehrkraftdatei nicht in der Lage, je eine Schülerdatei zu erzeugen.
-const runtime = readFileSync(runtimeTarget, 'utf8');
-if (!runtime.includes('"__LEXIFLOW_PACK__"')) {
-  console.error('\nFEHLER: In der Schülerlaufzeit fehlt die Stelle für das Paket.');
-  process.exit(1);
+  process.stdout.write(`\nPortable Dateien in ${relative(root, outDir)}/:\n`);
+  for (const result of results.toReversed()) {
+    const name = relative(outDir, result.file).padEnd(34);
+    process.stdout.write(`  ${name} ${kib(result.bytes)}\n`);
+  }
+} catch (error) {
+  const message = error instanceof BuildStepError ? error.message : String(error);
+  process.stderr.write(`\nDer portable Build ist fehlgeschlagen.\n  ${message}\n`);
+  process.exitCode = 1;
 }

@@ -16,13 +16,16 @@ import { inlineFavicon } from './scripts/inline-favicon.mjs';
  * sorgt dafür, dass auch die Schriftdateien mitkommen – sonst spränge das
  * Layout beim Öffnen.
  */
+/** Gemeinsames Ausgabeverzeichnis; einstellbar für Tests (siehe build-portable.mjs). */
+const outRoot = process.env['LEXIFLOW_PORTABLE_OUT'] ?? 'dist-portable';
+
 export default defineConfig({
   base: './',
   plugins: [react(), viteSingleFile({ removeViteModuleLoader: true }), inlineFavicon(import.meta.dirname)],
   build: {
     target: 'es2022',
     sourcemap: false,
-    outDir: 'dist-portable/student',
+    outDir: `${outRoot}/student`,
     emptyOutDir: true,
     assetsInlineLimit: Number.MAX_SAFE_INTEGER,
     cssCodeSplit: false,

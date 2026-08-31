@@ -18,6 +18,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 4A.1a** – Portabler Build ohne verschachtelten Paketmanager: Die
+  Orchestrierung ruft Vite jetzt programmatisch auf statt über `npx`, das auf
+  echten Rechnern hängen blieb.
 * **Sprint 4A.1** – Portable Einzeldateien: LexiFlow als eine HTML-Datei für die
   Lehrkraft, dazu ein Export, der aus einem Paket eine eigenständige
   Schülerdatei macht. Beide laufen per Doppelklick, ohne Server und ohne Netz.
@@ -89,6 +92,7 @@ Weitere Befehle:
 | `npm run e2e:a11y` | Nur die Barrierefreiheitstests (Axe, Tastatur, 390 px) |
 | `npm run build:portable` | Die beiden portablen Einzeldateien nach `dist-portable/` |
 | `npm run verify:portable` | Prüft die gebauten Einzeldateien (setzt `build:portable` voraus) |
+| `npx vitest run scripts/portableBuild.test.mjs` | Nur die Bau-Orchestrierung (ohne Build) |
 | `npm run e2e:portable` | Der portable E2E-Ablauf über `file://` (setzt `build:portable` voraus) |
 | `npx vitest run src/domain/freePractice.test.ts` | Nur Planung und Vorschau des freien Übens |
 | `npx vitest run src/routes/student/freePractice.test.tsx` | Nur die Einstiege und die wirkungsfreie freie Runde |
@@ -146,7 +150,32 @@ derselben Domänenlogik und denselben Komponenten.
 **Der normale Build ist unverändert.** `npm run build` macht dasselbe wie
 vorher; die portablen Ziele sind eigene Vite-Konfigurationen
 (`vite.student.config.ts`, `vite.portable.config.ts`) und ein
-Orchestrierungsskript (`scripts/build-portable.mjs`). Es gibt keine zweite,
+Orchestrierungsskript (`scripts/build-portable.mjs`).
+
+**Kein verschachtelter Paketmanager (seit Sprint 4A.1a).** Das
+Orchestrierungsskript rief Vite anfangs über `execFileSync('npx', …)` auf. Aus
+`npm run build:portable` heraus ist das ein npm-Prozess, der einen npm-Prozess
+startet – auf echten Rechnern blieb der Build dabei ohne Ausgabe hängen, während
+derselbe Vite-Schritt direkt aufgerufen in Millisekunden durchlief. Jetzt wird
+Vites programmatische API benutzt (`import { build } from 'vite'`): kein
+zweiter Prozess, keine Shell, kein PATH, kein plattformabhängiger Pfad nach
+`node_modules/.bin`. `npm run verify:portable` startet Vitest aus demselben
+Grund über `startVitest` statt über `npx`.
+
+Der Ablauf selbst steht in `scripts/portableBuild.mjs` – einem kleinen Modul
+**ohne LexiFlow-Fachwissen**: Schritte sind Funktionen, Dateizugriffe laufen
+über ein injizierbares `io`. Deshalb lassen sich Reihenfolge, Abbruch nach dem
+ersten Fehler und das Aufräumen prüfen, ohne einen Build zu starten
+(`scripts/portableBuild.test.mjs`, Teil von `npm run test`). Dass der echte
+Aufruf durchläuft und **von selbst endet**, prüft
+`src/portable/buildScript.artifact.test.ts` in `npm run verify:portable` – mit
+Zeitgrenze, in ein temporäres Verzeichnis (`LEXIFLOW_PORTABLE_OUT`), damit
+`dist-portable/` unberührt bleibt.
+
+Scheitert ein Schritt, endet der Prozess mit einem Code ungleich null, nennt den
+gescheiterten Schritt beim Namen und lässt **keine** Enddatei zurück – auch
+keine alte aus einem früheren Lauf, denn das Ausgabeverzeichnis wird zu Beginn
+neu angelegt. Es gibt keine zweite,
 handgeschriebene HTML-Fassung der Anwendung – die Einzeldateien entstehen aus
 demselben Quellcode, nur mit `vite-plugin-singlefile` und
 `assetsInlineLimit: Infinity`.
@@ -263,6 +292,20 @@ genügt diese Liste:
    nicht, muss der Hinweis „Kein dauerhafter Speicher“ erscheinen – ein Absturz
    oder eine falsche Zusage wäre ein Fehler.
 7. Entwicklermenü → Netzwerk: Es darf keine einzige externe Anfrage geben.
+
+### Welche Tests wo laufen
+
+| Befehl | Umfang | Voraussetzung |
+| --- | --- | --- |
+| `npm run test` | Domäne, Komponenten, Bau-Orchestrierung | keine |
+| `npm run verify:portable` | statische Prüfung der gebauten Dateien + Artefakttests (`*.artifact.test.ts`) | `npm run build:portable` |
+| `npm run e2e` | die gehostete Anwendung über `vite preview` | baut selbst |
+| `npm run e2e:portable` | die Einzeldateien über `file://` | `npm run build:portable` |
+
+Die Artefakttests sind in `vite.config.ts` ausdrücklich **ausgeschlossen**
+(`src/**/*.artifact.test.ts`). Ohne diese Zeile liefen sie in beiden Suiten –
+doppelt gezählt, und `npm run test` schlüge in einem frischen Checkout fehl,
+weil `dist-portable/` noch nicht existiert.
 
 ### Größen
 

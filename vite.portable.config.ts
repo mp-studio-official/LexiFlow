@@ -14,6 +14,9 @@ import { inlineFavicon } from './scripts/inline-favicon.mjs';
  * deshalb vorher gebaut sein (siehe `scripts/build-portable.mjs`).
  */
 
+/** Gemeinsames Ausgabeverzeichnis; einstellbar für Tests (siehe build-portable.mjs). */
+const outRoot = process.env['LEXIFLOW_PORTABLE_OUT'] ?? 'dist-portable';
+
 const RUNTIME_ID = 'virtual:lexiflow-student-runtime';
 const RESOLVED_RUNTIME_ID = `\0${RUNTIME_ID}`;
 
@@ -42,7 +45,7 @@ export default defineConfig({
     __LEXIFLOW_PORTABLE__: 'true',
   },
   plugins: [
-    studentRuntime('dist-portable/student/student.html'),
+    studentRuntime(`${outRoot}/student/student.html`),
     react(),
     viteSingleFile({ removeViteModuleLoader: true }),
     inlineFavicon(import.meta.dirname),
@@ -50,7 +53,7 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: false,
-    outDir: 'dist-portable/teacher',
+    outDir: `${outRoot}/teacher`,
     emptyOutDir: true,
     assetsInlineLimit: Number.MAX_SAFE_INTEGER,
     cssCodeSplit: false,
