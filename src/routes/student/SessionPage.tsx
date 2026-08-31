@@ -14,6 +14,7 @@ import {
   type SessionPlan,
 } from '../../domain/exercises';
 import { planFreeSession, type FreeSessionPlan } from '../../domain/freePractice';
+import { effectiveDirection, parseDirectionChoice } from '../../domain/practiceDirection';
 import {
   createSessionState,
   currentItem,
@@ -85,6 +86,11 @@ export function SessionPage() {
   const sessionStartRef = useRef<Promise<void> | null>(null);
 
   const free = readMode(params.get('mode')) === 'free';
+  /**
+   * Die ausdrücklich gewählte Richtung. Sie wird zur wirksamen Paketrichtung –
+   * damit gilt für eine bewusst gewählte Richtung keine Freischaltbedingung.
+   */
+  const directionChoice = parseDirectionChoice(params.get('direction'));
   const requestedKinds = (params.get('kinds') ?? '')
     .split(',')
     .filter((kind): kind is ExerciseKind => (EXERCISE_KINDS as readonly string[]).includes(kind));
@@ -118,9 +124,10 @@ export function SessionPage() {
 
       // Ein RNG für Planung und Aufgabenbau – identisch zur Vorschau.
       const rng = mulberry32(roundSeed);
+      const direction = effectiveDirection(pack.meta.direction, directionChoice);
       const roundPlan = free
-        ? planFreeSession(pack.entries, progress, pack.meta.direction, length, rng)
-        : planSession(pack.entries, progress, pack.meta.direction, length, new Date(), rng);
+        ? planFreeSession(pack.entries, progress, direction, length, rng)
+        : planSession(pack.entries, progress, direction, length, new Date(), rng);
       const tasks = buildTasksForTargets(
         roundPlan.targets,
         pack.entries,
@@ -161,7 +168,7 @@ export function SessionPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Suchparameter werden bewusst nur beim Rundenstart ausgewertet.
-  }, [packId, roundSeed, free]);
+  }, [packId, roundSeed, free, directionChoice]);
 
   const finished = session !== null && session.items.length > 0 && isFinished(session);
 
@@ -181,13 +188,20 @@ export function SessionPage() {
       const progress = await getProgressIndex(packId);
       if (!active) return;
       setNextRound(
-        planSession(pack.entries, progress, pack.meta.direction, length, new Date(), mulberry32(1)),
+        planSession(
+          pack.entries,
+          progress,
+          effectiveDirection(pack.meta.direction, directionChoice),
+          length,
+          new Date(),
+          mulberry32(1),
+        ),
       );
     })();
     return () => {
       active = false;
     };
-  }, [readyToPlanNextRound, packId, length]);
+  }, [readyToPlanNextRound, packId, length, directionChoice]);
 
   const item = session ? currentItem(session) : undefined;
 

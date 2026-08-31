@@ -1,5 +1,9 @@
 import { newId } from '../domain/ids';
-import type { TextCandidate } from '../domain/textExtraction';
+import {
+  describeCandidateForms,
+  describeCandidateInflections,
+  type TextCandidate,
+} from '../domain/textExtraction';
 import { emptyDraft, newSentence, validateDrafts, type DraftRow } from './draft';
 
 /**
@@ -27,22 +31,33 @@ export interface CandidateSelection {
  * wurde; sonst ist die Zeile eine normale Übernahme aus einem Text (`import`).
  */
 export function candidatesToDrafts(selections: readonly CandidateSelection[]): DraftRow[] {
-  const drafts = selections.map<DraftRow>((selection) => ({
-    ...emptyDraft(),
-    id: newId(),
-    english: selection.candidate.english,
-    german: selection.german.trim(),
-    sentences: selection.includeSentence
-      ? [newSentence(selection.candidate.sourceSentence, selection.germanSentence?.trim() ?? '')]
-      : [],
-    sourceType: selection.translationAccepted ? 'text-ai' : 'import',
-    provenance: {
-      origin: 'text-extraction',
-      occurrences: selection.candidate.occurrences,
-      sourceSentence: selection.candidate.sourceSentence,
-      translation: selection.translationAccepted ? 'accepted' : 'none',
-    },
-  }));
+  const drafts = selections.map<DraftRow>((selection) => {
+    const { candidate } = selection;
+    const inflections = describeCandidateInflections(candidate);
+
+    return {
+      ...emptyDraft(),
+      id: newId(),
+      english: candidate.english,
+      german: selection.german.trim(),
+      // Beobachtete Beugungen bleiben bewusst draußen: `acceptedEnglish` sind
+      // Antworten, die als richtig gewertet werden – `islands` ist auf
+      // „die Insel“ keine richtige Antwort.
+      sentences: selection.includeSentence
+        ? [newSentence(candidate.sourceSentence, selection.germanSentence?.trim() ?? '')]
+        : [],
+      sourceType: selection.translationAccepted ? 'text-ai' : 'import',
+      provenance: {
+        origin: 'text-extraction',
+        occurrences: candidate.occurrences,
+        sourceSentence: candidate.sourceSentence,
+        translation: selection.translationAccepted ? 'accepted' : 'none',
+        formSummary: describeCandidateForms(candidate),
+        ...(inflections.length > 0 ? { inflections } : {}),
+        ...(candidate.abbreviation ? { abbreviationHint: candidate.abbreviation.hint } : {}),
+      },
+    };
+  });
 
   return validateDrafts(drafts);
 }

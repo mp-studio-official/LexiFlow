@@ -1,4 +1,17 @@
 import { ENGLISH_STOPWORDS } from './stopwords';
+import {
+  describeAbbreviation,
+  findAbbreviations,
+  maskEditorialMarkers,
+  type AbbreviationSuggestion,
+} from './abbreviations';
+import {
+  buildFamilies,
+  describeForms,
+  describeInflections,
+  type FamilyForm,
+  type FormObservation,
+} from './wordForms';
 
 /**
  * Lokale Textanalyse: aus einem englischen Text Vokabelkandidaten gewinnen.
@@ -6,6 +19,20 @@ import { ENGLISH_STOPWORDS } from './stopwords';
  * Die Funktion ist rein, deterministisch und ohne jeden Netzwerkzugriff. Sie
  * erfindet nichts: keine Übersetzung, keine Wortart, keine GeR-Stufe. Der
  * Beispielsatz stammt exakt aus dem Quelltext.
+ *
+ * Die Reihenfolge ist seit Sprint 3B.1 festgelegt und steht bewusst als Kette
+ * in `extractTextCandidates`:
+ *
+ * 1. Tokens und Wendungen bestimmen
+ * 2. Wortformen zu lexikalischen Familien gruppieren
+ * 3. Abkürzungen im Kontext auflösen
+ * 4. unbrauchbare Textreste entfernen oder kennzeichnen
+ * 5. Kandidaten sortieren
+ * 6. **erst danach** auf die gewünschte Anzahl begrenzen (in `limitCandidates`)
+ *
+ * Der Grund für diese Reihenfolge ist ein handfester Fehler: Wer zuerst
+ * begrenzt, füllt die Liste mit `sq`, `mi` und `islands` und verdrängt damit
+ * genau die Wörter, wegen derer die Lehrkraft den Text überhaupt eingefügt hat.
  */
 
 export const MAX_TEXT_LENGTH = 20_000;
@@ -34,6 +61,19 @@ export interface TextSentence {
   start: number;
 }
 
+/** Was eine Abkürzung zum Kandidaten beiträgt. */
+export interface CandidateAbbreviation {
+  /** Wie sie im Text steht, z. B. „sq mi“. */
+  abbreviation: string;
+  /** Aufgelöste Langform; fehlt, wenn das Lexikon sie nicht kennt. */
+  longForm?: string;
+  /** Vorgeschlagene deutsche Entsprechung; leer, wenn keine eindeutige existiert. */
+  german: string;
+  /** Hinweis für die Lehrkraft – bei Unbekanntem „Abkürzung – Langform prüfen“. */
+  hint: string;
+  resolved: boolean;
+}
+
 export interface TextCandidate {
   /** Stabil über Läufe hinweg: aus der normalisierten Form abgeleitet. */
   id: string;
@@ -49,6 +89,46 @@ export interface TextCandidate {
   sentenceIndex: number;
   /** Heuristik: durchgehend großgeschrieben und nicht nur am Satzanfang. */
   isLikelyProperNoun: boolean;
+  /**
+   * Alle im Text beobachteten Formen dieses Wortes, häufigste zuerst.
+   *
+   * Optional, damit Bestandscode und Testdaten ohne Wortformen gültig bleiben.
+   */
+  forms?: readonly FamilyForm[];
+  /** Die Form, die im Beispielsatz steht – maßgeblich für Lückentexte. */
+  literal?: string;
+  /** Gesetzt, wenn dieser Kandidat aus einer Abkürzung entstanden ist. */
+  abbreviation?: CandidateAbbreviation;
+}
+
+/** „Im Text: island, islands · insgesamt 18-mal“ – für die Review-Oberfläche. */
+export function describeCandidateForms(candidate: TextCandidate): string {
+  const forms = candidate.forms ?? [];
+  if (forms.length === 0) {
+    return `Im Text: ${candidate.english} · insgesamt ${candidate.occurrences}-mal`;
+  }
+  return describeForms({ forms, occurrences: candidate.occurrences });
+}
+
+/** „Plural: islands“ – leer, wenn nur die Grundform im Text stand. */
+export function describeCandidateInflections(candidate: TextCandidate): string[] {
+  const forms = candidate.forms ?? [];
+  return forms.length === 0 ? [] : describeInflections({ forms });
+}
+
+/** Die Form, die im Beispielsatz steht – Rückfallebene ist das Stichwort. */
+export function candidateLiteral(candidate: TextCandidate): string {
+  return candidate.literal ?? candidate.english;
+}
+
+/**
+ * Taugt der Kandidat ohne Nacharbeit als Vokabel?
+ *
+ * Eine ungeklärte Abkürzung taugt das nicht – sie bleibt in der Liste, damit
+ * die Lehrkraft sie sieht, darf aber kein gutes Wort verdrängen.
+ */
+export function isUsableCandidate(candidate: TextCandidate): boolean {
+  return candidate.abbreviation === undefined || candidate.abbreviation.resolved;
 }
 
 export type CandidateSort = 'text-order' | 'frequency';
@@ -248,9 +328,24 @@ function isCapitalized(token: string): boolean {
   return first !== first.toLowerCase() && first === first.toUpperCase();
 }
 
+/** Eine im Text gefundene Abkürzung, über alle Sätze hinweg gezählt. */
+interface AbbreviationAccumulator {
+  normalized: string;
+  suggestion: AbbreviationSuggestion;
+  occurrences: number;
+  firstOccurrence: number;
+  sentenceIndex: number;
+  sourceSentence: string;
+}
+
+/** Blendet einen Bereich längentreu aus, damit alle Offsets gültig bleiben. */
+function blank(value: string, offset: number, length: number): string {
+  return value.slice(0, offset) + ' '.repeat(length) + value.slice(offset + length);
+}
+
 /**
- * Extrahiert Vokabelkandidaten. Dubletten werden case-insensitiv
- * zusammengeführt; gezählt werden alle Fundstellen.
+ * Extrahiert Vokabelkandidaten. Formen desselben Wortes werden zu einer
+ * Familie zusammengeführt; gezählt werden alle Fundstellen.
  */
 export function extractTextCandidates(
   text: string,
@@ -267,11 +362,36 @@ export function extractTextCandidates(
   } = options;
 
   const accumulators = new Map<string, Accumulator>();
+  const abbreviations = new Map<string, AbbreviationAccumulator>();
 
   for (const sentence of segmentSentences(text)) {
     if (signal?.aborted) throw new AnalysisAbortedError();
 
-    const searchable = maskUrls(sentence.text);
+    // Schritt 4 (vorgezogen, weil längentreu): URLs und redaktionelle Reste
+    // aus Wikipedia dürfen gar nicht erst zu Tokens werden.
+    let searchable = maskUrls(maskEditorialMarkers(sentence.text));
+
+    // Schritt 3: Abkürzungen im Kontext. Sie werden als eigener Kandidat
+    // gezählt und aus dem Satz ausgeblendet – sonst blieben `sq` und `mi`
+    // als sinnlose Bruchstücke übrig.
+    for (const match of findAbbreviations(searchable)) {
+      const existing = abbreviations.get(match.normalized);
+      if (existing) {
+        existing.occurrences += 1;
+      } else {
+        abbreviations.set(match.normalized, {
+          normalized: match.normalized,
+          suggestion: describeAbbreviation(match),
+          occurrences: 1,
+          firstOccurrence: sentence.start + match.offset,
+          sentenceIndex: sentence.index,
+          sourceSentence: sentence.text,
+        });
+      }
+      searchable = blank(searchable, match.offset, match.length);
+    }
+
+    // Schritt 1: Tokens und Wendungen.
     const tokens = segmentWords(searchable);
 
     tokens.forEach((token, tokenIndex) => {
@@ -309,28 +429,99 @@ export function extractTextCandidates(
     });
   }
 
+  // Schritt 2: Wortformen zu lexikalischen Familien gruppieren. Erst hier
+  // weiß die Analyse, welche Formen der Text überhaupt enthält – und nur mit
+  // diesem Wissen darf sie `larger` auf `large` beziehen.
+  const observations: FormObservation[] = [...accumulators.values()].map((item) => ({
+    normalized: item.normalized,
+    display: item.display,
+    occurrences: item.occurrences,
+    firstOccurrence: item.firstOccurrence,
+    sentenceIndex: item.sentenceIndex,
+    sourceSentence: item.sourceSentence,
+  }));
+
   const candidates: TextCandidate[] = [];
-  for (const item of accumulators.values()) {
-    const isLikelyProperNoun = item.capitalizedEverywhere && item.seenMidSentence;
-    if (!includeStopwords && ENGLISH_STOPWORDS.has(item.normalized)) continue;
+  for (const family of buildFamilies(observations)) {
+    // Schritt 4: aussortieren, was keine Vokabel ist. Eine Familie gilt als
+    // Eigenname, wenn *alle* ihre Formen durchgehend großgeschrieben sind.
+    const parts = family.forms.map((form) => accumulators.get(form.normalized));
+    const isLikelyProperNoun = parts.every(
+      (item) => item !== undefined && item.capitalizedEverywhere && item.seenMidSentence,
+    );
+    const isStopword =
+      ENGLISH_STOPWORDS.has(family.lemma) ||
+      family.forms.every((form) => ENGLISH_STOPWORDS.has(form.normalized));
+
+    if (!includeStopwords && isStopword) continue;
     if (!includeProperNouns && isLikelyProperNoun) continue;
 
+    // Die Form, die im Beispielsatz steht: die der frühesten Fundstelle.
+    const atFirstOccurrence = family.forms.find(
+      (form) => form.firstOccurrence === family.firstOccurrence,
+    );
+
     candidates.push({
-      id: `text:${item.normalized}`,
-      english: item.display,
+      id: `text:${family.lemma}`,
+      english: family.display,
+      normalizedEnglish: family.lemma,
+      occurrences: family.occurrences,
+      firstOccurrence: family.firstOccurrence,
+      sourceSentence: family.sourceSentence,
+      sentenceIndex: family.sentenceIndex,
+      isLikelyProperNoun,
+      forms: family.forms,
+      literal: atFirstOccurrence?.display ?? family.display,
+    });
+  }
+
+  for (const item of abbreviations.values()) {
+    if (item.suggestion.literal.length < minLength) continue;
+    const { suggestion } = item;
+    candidates.push({
+      id: `text:abbr:${item.normalized}`,
+      english: suggestion.english,
       normalizedEnglish: item.normalized,
       occurrences: item.occurrences,
       firstOccurrence: item.firstOccurrence,
       sourceSentence: item.sourceSentence,
       sentenceIndex: item.sentenceIndex,
-      isLikelyProperNoun,
+      isLikelyProperNoun: false,
+      forms: [
+        {
+          normalized: item.normalized,
+          display: suggestion.literal,
+          occurrences: item.occurrences,
+          relation: 'base',
+          firstOccurrence: item.firstOccurrence,
+          sourceSentence: item.sourceSentence,
+        },
+      ],
+      literal: suggestion.literal,
+      abbreviation: {
+        abbreviation: suggestion.literal,
+        ...(suggestion.resolved
+          ? { longForm: suggestion.english.replace(/\s*\([^()]*\)$/, '') }
+          : {}),
+        german: suggestion.german,
+        hint: suggestion.hint,
+        resolved: suggestion.resolved,
+      },
     });
   }
 
+  // Schritt 5: sortieren.
   return sortCandidates(candidates, sort);
 }
 
-/** Stabile, deterministische Sortierung. */
+/**
+ * Stabile, deterministische Sortierung.
+ *
+ * `frequency` ist zugleich die Rangfolge für die Begrenzung. Sie stellt
+ * ungeklärte Abkürzungen ans Ende: Sie bleiben sichtbar, verdrängen aber kein
+ * brauchbares Wort aus den gewünschten zehn Vorschlägen. `text-order` ist reine
+ * Anzeigereihenfolge und bewertet nichts.
+ */
 export function sortCandidates(
   candidates: readonly TextCandidate[],
   sort: CandidateSort,
@@ -339,6 +530,7 @@ export function sortCandidates(
   if (sort === 'frequency') {
     copy.sort(
       (a, b) =>
+        Number(isUsableCandidate(b)) - Number(isUsableCandidate(a)) ||
         b.occurrences - a.occurrences ||
         a.firstOccurrence - b.firstOccurrence ||
         a.normalizedEnglish.localeCompare(b.normalizedEnglish),

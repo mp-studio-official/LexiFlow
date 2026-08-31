@@ -1,7 +1,13 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Announcer, Badge, Button, Card } from '../../ui/components';
 import { useTranslationProvider } from '../../providers/ProviderContext';
-import { sortCandidates, type CandidateSort, type TextCandidate } from '../../domain/textExtraction';
+import {
+  describeCandidateForms,
+  describeCandidateInflections,
+  sortCandidates,
+  type CandidateSort,
+  type TextCandidate,
+} from '../../domain/textExtraction';
 import { orderByRecommendation } from '../../import/textRecommendation';
 import { describeCandidateCount } from '../../import/candidateLimit';
 import type { CandidateSelection } from '../../import/textDraft';
@@ -48,6 +54,11 @@ interface CandidateRow {
   candidate: TextCandidate;
   selected: boolean;
   german: string;
+  /**
+   * Nur für Abkürzungen: die von der Lehrkraft bearbeitete Langform.
+   * Leer heißt „unverändert“ – der Vorschlag der Analyse gilt weiter.
+   */
+  english?: string | undefined;
   suggestion?: string | undefined;
   suggestedSentence?: string | undefined;
   translation: RowTranslation;
@@ -56,6 +67,18 @@ interface CandidateRow {
 
 function toRow(candidate: TextCandidate): CandidateRow {
   return { candidate, selected: true, german: '', translation: 'idle' };
+}
+
+/**
+ * Der Kandidat, wie er in den Entwurf geht.
+ *
+ * Bei Abkürzungen darf die Lehrkraft die Langform korrigieren; alles andere
+ * bleibt, wie die Analyse es im Text gefunden hat.
+ */
+function headwordOf(row: CandidateRow): TextCandidate {
+  const edited = row.english?.trim();
+  if (!edited || edited === row.candidate.english) return row.candidate;
+  return { ...row.candidate, english: edited };
 }
 
 export interface TextCandidateReviewProps {
@@ -267,7 +290,7 @@ export function TextCandidateReview({
     const selections: CandidateSelection[] = rows
       .filter((row) => row.selected)
       .map((row) => ({
-        candidate: row.candidate,
+        candidate: headwordOf(row),
         german: row.german,
         translationAccepted: row.translation === 'accepted',
         includeSentence: true,
@@ -441,6 +464,7 @@ export function TextCandidateReview({
         {ordered.map((row) => {
           const { candidate } = row;
           const label = candidate.english;
+          const inflections = describeCandidateInflections(candidate);
           const hasGerman = row.german.trim().length > 0;
           /** Nur ausgewählte Zeilen ohne Antwort sind wirklich fehlerhaft. */
           const missing = row.selected && !hasGerman;
@@ -462,6 +486,11 @@ export function TextCandidateReview({
                   {candidate.occurrences}× im Text
                 </Badge>
                 <Badge>aus Text</Badge>
+                {candidate.abbreviation ? (
+                  <Badge tone={candidate.abbreviation.resolved ? 'success' : 'warning'}>
+                    {candidate.abbreviation.resolved ? 'Abkürzung erkannt' : 'Abkürzung'}
+                  </Badge>
+                ) : null}
                 {recommended.has(candidate.id) ? (
                   <Badge tone="success">Für Lerngruppe empfohlen</Badge>
                 ) : null}
@@ -476,10 +505,31 @@ export function TextCandidateReview({
                 </Button>
               </div>
 
+              {/* Was im Text tatsächlich stand – ehrlicher als eine bloße Zahl. */}
+              <p className="small muted" style={{ margin: '0 0 0.35rem' }}>
+                {describeCandidateForms(candidate)}
+                {inflections.length > 0 ? ` · ${inflections.join(' · ')}` : ''}
+              </p>
+
               <p className="candidate__sentence">
                 <span className="visually-hidden">Originalsatz: </span>
                 „{candidate.sourceSentence}“
               </p>
+
+              {candidate.abbreviation ? (
+                <div className="field">
+                  <label htmlFor={`en-${candidate.id}`}>
+                    Langform für „{candidate.abbreviation.abbreviation}“
+                  </label>
+                  <input
+                    id={`en-${candidate.id}`}
+                    type="text"
+                    value={row.english ?? candidate.english}
+                    onChange={(event) => update(candidate.id, { english: event.target.value })}
+                  />
+                  <span className="small muted">{candidate.abbreviation.hint}</span>
+                </div>
+              ) : null}
 
               <div className="field">
                 <label htmlFor={`de-${candidate.id}`}>Deutsche Antwort für „{label}“</label>

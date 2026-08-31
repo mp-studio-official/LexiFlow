@@ -24,12 +24,23 @@ export interface DraftIssue {
  */
 export interface DraftProvenance {
   origin: 'text-extraction';
-  /** Wie oft die Vokabel im Quelltext vorkam. */
+  /** Wie oft die Vokabel im Quelltext vorkam – über alle Formen zusammen. */
   occurrences: number;
   /** Der Originalsatz, aus dem der Beispielsatz stammt. */
   sourceSentence: string;
   /** Stand der maschinellen Übersetzung für diese Zeile. */
   translation: 'none' | 'accepted' | 'edited';
+  /**
+   * „Im Text: island, islands · insgesamt 18-mal“.
+   *
+   * Reine Information für die Lehrkraft. Sie wandert bewusst **nicht** in
+   * `acceptedEnglish`: `islands` ist keine richtige Antwort auf „die Insel“.
+   */
+  formSummary?: string;
+  /** „Plural: islands“ – dieselbe Zurückhaltung gilt. */
+  inflections?: readonly string[];
+  /** Hinweis zu einer Abkürzung, z. B. „Abkürzung – Langform prüfen“. */
+  abbreviationHint?: string;
 }
 
 /** Ein bearbeitbarer Beispielsatz mit optionaler deutscher Entsprechung. */

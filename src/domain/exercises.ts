@@ -8,6 +8,7 @@ import {
 import { directionKey } from './ids';
 import { isDirectionUnlocked, PRODUCTIVE_UNLOCK_BOX } from './leitner';
 import { normalizeAnswer } from './normalize';
+import { findHeadwordInSentence } from './wordMatch';
 
 export { isDirectionUnlocked, PRODUCTIVE_UNLOCK_BOX };
 
@@ -104,37 +105,31 @@ export interface ClozeSource {
 }
 
 /**
- * Sucht in den Beispielsätzen einen Satz, der die Vokabel als eigenes Wort
- * enthält, und ersetzt sie durch eine Lücke. Gibt `undefined` zurück, wenn kein
- * geeigneter Satz vorliegt – dann ist für diesen Eintrag kein Lückensatz möglich.
+ * Sucht in den Beispielsätzen einen Satz, der die Vokabel enthält, und ersetzt
+ * sie durch eine Lücke. Gibt `undefined` zurück, wenn kein geeigneter Satz
+ * vorliegt – dann ist für diesen Eintrag kein Lückensatz möglich.
+ *
+ * Seit Sprint 3B.1 zählt auch eine gebeugte Form: Steht im Satz `islands`,
+ * während die Vokabel `island` heißt, entsteht die Lücke trotzdem – und sie
+ * erwartet `islands`. Alles andere wäre grammatisch falscher Unterricht.
+ * Die Suche selbst liegt in `wordMatch`, damit Entwurfsprüfung, Satzassistent
+ * und Lückentext dieselbe Antwort geben.
  */
 export function buildCloze(entry: VocabEntry): ClozeSource | undefined {
   const target = entry.english.trim();
   if (!target) return undefined;
 
   for (const sentence of entry.exampleSentences) {
-    const match = findWord(sentence.english, target);
+    const match = findHeadwordInSentence(sentence.english, target);
     if (!match) continue;
     return {
       before: sentence.english.slice(0, match.start),
       after: sentence.english.slice(match.end),
-      solution: sentence.english.slice(match.start, match.end),
+      solution: match.text,
       ...(sentence.german ? { translation: sentence.german } : {}),
     };
   }
   return undefined;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function findWord(haystack: string, needle: string): { start: number; end: number } | undefined {
-  const pattern = new RegExp(`(^|[^\\p{L}\\p{N}'-])(${escapeRegExp(needle)})(?![\\p{L}\\p{N}])`, 'iu');
-  const match = pattern.exec(haystack);
-  if (!match) return undefined;
-  const start = match.index + (match[1]?.length ?? 0);
-  return { start, end: start + (match[2]?.length ?? 0) };
 }
 
 // ---------------------------------------------------------------------------

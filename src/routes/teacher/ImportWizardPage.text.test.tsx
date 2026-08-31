@@ -27,7 +27,7 @@ function setup(provider?: TranslationProvider) {
 async function analyze(user: ReturnType<typeof userEvent.setup>, text = TEXT): Promise<void> {
   await user.click(screen.getByLabelText('Englischer Text'));
   await user.paste(text);
-  await user.click(screen.getByRole('button', { name: 'Text lokal analysieren' }));
+  await user.click(screen.getByRole('button', { name: /^Text (lokal )?analysieren/ }));
 }
 
 describe('Textwerkstatt im Import-Assistenten', () => {
@@ -203,7 +203,7 @@ describe('Gewünschte Anzahl Vokabelvorschläge', () => {
 
     expect(await screen.findByRole('heading', { name: 'Gefundene Vokabelkandidaten (5)' }))
       .toBeInTheDocument();
-    expect(screen.getByText('5 von 5 gewünschten Vokabelvorschlägen gefunden.')).toBeInTheDocument();
+    expect(screen.getByText('5 von 5 geeigneten Vokabeln gefunden.')).toBeInTheDocument();
   });
 
   it('erfindet nichts, wenn der Text weniger hergibt', async () => {
@@ -214,7 +214,7 @@ describe('Gewünschte Anzahl Vokabelvorschläge', () => {
     const found = screen.getAllByRole('checkbox', { name: /übernehmen$/ }).length;
     expect(found).toBeLessThan(30);
     expect(
-      screen.getByText(new RegExp(`${found} von 30 gewünschten Vokabelvorschlägen gefunden\\.`)),
+      screen.getByText(new RegExp(`${found} von 30 geeigneten Vokabeln gefunden\\.`)),
     ).toBeInTheDocument();
     expect(screen.getByText(/erfunden wird nichts/)).toBeInTheDocument();
   });
@@ -233,7 +233,7 @@ describe('Gewünschte Anzahl Vokabelvorschläge', () => {
 
     expect(await screen.findByRole('heading', { name: 'Gefundene Vokabelkandidaten (3)' }))
       .toBeInTheDocument();
-    expect(screen.getByText('3 von 3 gewünschten Vokabelvorschlägen gefunden.')).toBeInTheDocument();
+    expect(screen.getByText('3 von 3 geeigneten Vokabeln gefunden.')).toBeInTheDocument();
   });
 
   it('hält eine unsinnige Eingabe im erlaubten Bereich', async () => {
@@ -262,5 +262,94 @@ describe('Gewünschte Anzahl Vokabelvorschläge', () => {
     expect(
       await screen.findByText(/Dieser Browser bietet kein lokales Sprachmodell/),
     ).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1: Übersetzung im Hauptweg, Wortformen und Abkürzungen sichtbar
+// ---------------------------------------------------------------------------
+
+const BAY_TEXT = [
+  'One island rises out of the water.',
+  'Around 1,969 islands fill the bay, and the islands attract visitors.',
+  'The protected area covers about 600 sq mi.',
+].join(' ');
+
+describe('Übersetzung im Hauptweg', () => {
+  it('verspricht Übersetzungen nur, wenn es sie geben kann', async () => {
+    // Ohne Anbieter bleibt es beim ehrlichen, rein lokalen Versprechen.
+    setup();
+    expect(
+      await screen.findByRole('button', { name: 'Text lokal analysieren' }),
+    ).toBeInTheDocument();
+  });
+
+  it('bietet mit ladbarem Modell die Analyse samt Übersetzungsvorschlägen an', async () => {
+    const { provider } = createFakeTranslationProvider({ availability: 'downloadable' });
+    setup(provider);
+
+    expect(
+      await screen.findByRole('button', { name: 'Text analysieren und Übersetzungen vorschlagen' }),
+    ).toBeInTheDocument();
+  });
+
+  it('startet die Vorbereitung im Klickpfad, ohne auf sie zu warten', async () => {
+    // `gatePrepare` lässt `prepare()` offen. Die Analyse muss trotzdem fertig
+    // werden – sie ist rein lokal und hat mit dem Modell nichts zu tun.
+    const { provider, prepareCount } = createFakeTranslationProvider({ gatePrepare: true });
+    const user = setup(provider);
+    await screen.findByRole('button', { name: 'Text analysieren und Übersetzungen vorschlagen' });
+
+    await analyze(user);
+
+    expect(prepareCount()).toBe(1);
+    expect(await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ }))
+      .toBeInTheDocument();
+  });
+
+  it('bleibt ohne Anbieter vollständig benutzbar und sagt warum', async () => {
+    const user = setup();
+    await analyze(user);
+
+    expect(await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ }))
+      .toBeInTheDocument();
+    expect(screen.getByText(/keine lokale Übersetzung/i)).toBeInTheDocument();
+    // Die deutsche Antwort lässt sich weiterhin von Hand eintragen.
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toBeEnabled();
+  });
+});
+
+describe('Wortformen und Abkürzungen in der Prüfung', () => {
+  it('zeigt die beobachteten Formen und ihre gemeinsame Häufigkeit', async () => {
+    const user = setup();
+    await analyze(user, BAY_TEXT);
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    expect(screen.getByText(/Im Text: islands, island · insgesamt 3-mal/)).toBeInTheDocument();
+    expect(screen.getByText(/Plural: islands/)).toBeInTheDocument();
+    // Und keine zweite Zeile für die Pluralform.
+    expect(screen.queryByLabelText('Deutsche Antwort für „islands“')).not.toBeInTheDocument();
+  });
+
+  it('macht aus „600 sq mi“ einen Vorschlag mit bearbeitbarer Langform', async () => {
+    const user = setup();
+    await analyze(user, BAY_TEXT);
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    const longForm = screen.getByLabelText('Langform für „sq mi“');
+    expect(longForm).toHaveValue('square mile (sq mi)');
+
+    // Bruchstücke gibt es nicht mehr.
+    expect(screen.queryByLabelText('Deutsche Antwort für „sq“')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Deutsche Antwort für „mi“')).not.toBeInTheDocument();
+  });
+
+  it('kennzeichnet eine unbekannte Abkürzung, statt sie zu erfinden', async () => {
+    const user = setup();
+    await analyze(user, 'The engine delivers 400 bhp on the long test track.');
+
+    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
+    expect(screen.getByLabelText('Langform für „bhp“')).toHaveValue('bhp');
+    expect(screen.getByText('Abkürzung – Langform prüfen')).toBeInTheDocument();
   });
 });

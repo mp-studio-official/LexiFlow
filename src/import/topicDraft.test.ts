@@ -45,8 +45,17 @@ describe('Beispielsatz muss das Stichwort enthalten', () => {
 
   it('erlaubt beim Infinitiv auch die Form ohne „to“', () => {
     expect(sentenceContainsHeadword('I want to apologise for the noise.', 'to apologise')).toBe(true);
-    expect(sentenceContainsHeadword('She apologised immediately.', 'to apologise')).toBe(false);
     expect(sentenceContainsHeadword('They apologise every time.', 'to apologise')).toBe(true);
+  });
+
+  it('erkennt seit Sprint 3B.1 auch eine gebeugte Form', () => {
+    // Der Satz enthält das Wort – nur eben so, wie Englisch es beugt. Eine
+    // Warnung wäre hier schlicht falsch, und der Lückentext braucht genau
+    // diese Form.
+    expect(sentenceContainsHeadword('She apologised immediately.', 'to apologise')).toBe(true);
+    expect(sentenceContainsHeadword('The bay has 1,969 islands.', 'island')).toBe(true);
+    // Wortgrenzen gelten weiterhin: „cat“ steckt nicht in „category“.
+    expect(sentenceContainsHeadword('This is a category.', 'cat')).toBe(false);
   });
 
   it('lehnt leere Eingaben ab', () => {

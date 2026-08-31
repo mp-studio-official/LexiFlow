@@ -165,7 +165,8 @@ describe('Paketansicht – Wahl der Übungsart', () => {
 
     expect(screen.getByRole('button', { name: 'Frei üben' })).toBeEnabled();
     expect(screen.getByText(/zum freien Üben verfügbar/)).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Alle verfügbaren (6)' })).toBeInTheDocument();
+    // Seit Sprint 3B.1 stehen beim freien Üben beide Richtungen sofort bereit.
+    expect(screen.getByRole('option', { name: 'Alle verfügbaren (12)' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Alle bereiten/ })).not.toBeInTheDocument();
   });
 

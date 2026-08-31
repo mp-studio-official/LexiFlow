@@ -105,12 +105,12 @@ describe('Begrenzung der Kandidaten', () => {
 
 describe('Ehrliche Anzeige', () => {
   it('nennt Fund und Wunsch', () => {
-    expect(describeCandidateCount(20, 20)).toBe('20 von 20 gewünschten Vokabelvorschlägen gefunden.');
+    expect(describeCandidateCount(20, 20)).toBe('20 von 20 geeigneten Vokabeln gefunden.');
   });
 
   it('erklärt einen kleineren Fund, statt ihn zur Bezugsgröße zu machen', () => {
     const text = describeCandidateCount(12, 20);
-    expect(text).toContain('12 von 20 gewünschten Vokabelvorschlägen gefunden.');
+    expect(text).toContain('12 von 20 geeigneten Vokabeln gefunden.');
     expect(text).toContain('erfunden wird nichts');
     expect(text).not.toContain('12 von 12');
   });

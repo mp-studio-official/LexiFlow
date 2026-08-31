@@ -8,6 +8,8 @@
  * KI- oder UI-Code.
  */
 
+import { isFormOf } from './wordForms';
+
 /** Trimmt und macht aus beliebigen Whitespace-Folgen ein einfaches Leerzeichen. */
 export function collapseWhitespace(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
@@ -18,11 +20,93 @@ function escapeRegExp(value: string): string {
 }
 
 /** Steht `needle` als eigenständiges Wort beziehungsweise ganze Wendung im Satz? */
-function containsAsWord(sentence: string, needle: string): boolean {
-  return new RegExp(
-    `(^|[^\\p{L}\\p{N}])${escapeRegExp(needle)}(?![\\p{L}\\p{N}])`,
+function findAsWord(sentence: string, needle: string): HeadwordMatch | undefined {
+  const pattern = new RegExp(
+    `(^|[^\\p{L}\\p{N}])(${escapeRegExp(needle)})(?![\\p{L}\\p{N}])`,
     'iu',
-  ).test(sentence);
+  );
+  const match = pattern.exec(sentence);
+  if (!match) return undefined;
+  const start = match.index + (match[1]?.length ?? 0);
+  const end = start + (match[2]?.length ?? 0);
+  return { start, end, text: sentence.slice(start, end) };
+}
+
+export interface HeadwordMatch {
+  start: number;
+  end: number;
+  /** Die Zeichen, die tatsächlich im Satz stehen – nicht das Stichwort. */
+  text: string;
+}
+
+/**
+ * Schreibweisen, unter denen ein Stichwort im Satz stehen kann.
+ *
+ * „to apologise“ steht dort meist als „apologise“, und „square mile (sq mi)“
+ * steht dort als „sq mi“. Beides sind keine anderen Vokabeln, sondern dasselbe
+ * Wort in der Form, die der Text nun einmal benutzt.
+ */
+function variantsOf(needle: string): string[] {
+  const variants = [needle];
+
+  const withoutTo = needle.replace(/^to\s+/i, '');
+  if (withoutTo !== needle) variants.push(withoutTo);
+
+  // „square mile (sq mi)“ → zuerst das Kürzel, dann die Langform.
+  const parenthesis = /^(.+?)\s*\(([^()]+)\)$/.exec(needle);
+  if (parenthesis) {
+    const [, longForm = '', short = ''] = parenthesis;
+    variants.push(collapseWhitespace(short), collapseWhitespace(longForm));
+  }
+
+  return variants.filter((variant) => variant.length > 0);
+}
+
+/** Wortartige Tokens eines Satzes mit ihrer Position. */
+function wordPositions(sentence: string): HeadwordMatch[] {
+  const positions: HeadwordMatch[] = [];
+  for (const match of sentence.matchAll(/\p{L}[\p{L}\p{M}'’-]*/gu)) {
+    if (match.index === undefined) continue;
+    positions.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      text: match[0],
+    });
+  }
+  return positions;
+}
+
+/**
+ * Findet das Stichwort im Satz – notfalls in einer gebeugten Form.
+ *
+ * Gesucht wird in drei Runden: die genaue Wendung, ihre Schreibvarianten und
+ * erst zuletzt eine Beugung desselben Wortes. Zurückgegeben wird immer die
+ * Stelle **im Satz**, samt der Zeichen, die dort stehen. Genau darauf beruht
+ * der Lückentext: Die Lücke erwartet `islands`, wenn im Satz `islands` steht,
+ * auch wenn die Vokabel `island` heißt.
+ */
+export function findHeadwordInSentence(
+  sentence: string,
+  english: string,
+): HeadwordMatch | undefined {
+  const needle = collapseWhitespace(english);
+  if (needle.length === 0 || sentence.trim().length === 0) return undefined;
+
+  const variants = variantsOf(needle);
+  for (const variant of variants) {
+    const direct = findAsWord(sentence, variant);
+    if (direct) return direct;
+  }
+
+  // Beugungen gibt es nur bei Einzelwörtern; Wendungen bleiben wörtlich.
+  for (const variant of variants) {
+    if (/\s/.test(variant)) continue;
+    for (const position of wordPositions(sentence)) {
+      if (isFormOf(position.text, variant)) return position;
+    }
+  }
+
+  return undefined;
 }
 
 /**
@@ -31,14 +115,8 @@ function containsAsWord(sentence: string, needle: string): boolean {
  * Groß-/Kleinschreibung spielt keine Rolle, Wortgrenzen schon: „cat“ darf nicht
  * in „category“ gefunden werden. Beim Infinitiv wird zusätzlich die Form ohne
  * „to“ akzeptiert – „to apologise“ steht im Satz nun einmal meist als
- * „apologise“.
+ * „apologise“ –, und seit Sprint 3B.1 zählt auch eine gebeugte Form.
  */
 export function sentenceContainsHeadword(sentence: string, english: string): boolean {
-  const needle = collapseWhitespace(english);
-  if (needle.length === 0 || sentence.trim().length === 0) return false;
-  if (containsAsWord(sentence, needle)) return true;
-
-  const withoutTo = needle.replace(/^to\s+/i, '');
-  if (withoutTo === needle) return false;
-  return containsAsWord(sentence, withoutTo);
+  return findHeadwordInSentence(sentence, english) !== undefined;
 }

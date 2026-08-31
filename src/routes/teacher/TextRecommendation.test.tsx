@@ -237,7 +237,7 @@ describe('Anzeige und Reihenfolge', () => {
   it('zeigt die ehrliche Zahl gefundener Vorschläge', async () => {
     setup();
     expect(
-      await screen.findByText(/\d+ von 20 gewünschten Vokabelvorschlägen gefunden\./),
+      await screen.findByText(/\d+ von 20 geeigneten Vokabeln gefunden\./),
     ).toBeInTheDocument();
   });
 });

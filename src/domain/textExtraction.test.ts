@@ -10,8 +10,13 @@ import {
   segmentSentencesFallback,
   segmentWords,
   segmentWordsFallback,
+  candidateLiteral,
+  describeCandidateForms,
+  describeCandidateInflections,
+  isUsableCandidate,
   sortCandidates,
 } from './textExtraction';
+import { UNKNOWN_ABBREVIATION_HINT } from './abbreviations';
 
 const TEXT = [
   'The neighbourhood is crowded today.',
@@ -193,8 +198,12 @@ describe('extractTextCandidates', () => {
     expect(Object.keys(candidate ?? {}).sort()).toEqual([
       'english',
       'firstOccurrence',
+      // Seit Sprint 3B.1 dabei: die beobachteten Wortformen und die Form, die
+      // im Beispielsatz steht. Beides steht so im Text – erfunden ist nichts.
+      'forms',
       'id',
       'isLikelyProperNoun',
+      'literal',
       'normalizedEnglish',
       'occurrences',
       'sentenceIndex',
@@ -283,5 +292,116 @@ describe('analyzeText', () => {
   it('zählt ausgeblendete Eigennamen getrennt', () => {
     const analysis = analyzeText('We visited Berlin. Berlin was crowded.');
     expect(analysis.hiddenProperNouns).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 3B.1: Wortformen, Abkürzungen und die Reihenfolge der Verarbeitung
+// ---------------------------------------------------------------------------
+
+/**
+ * Ein kurzer, selbst geschriebener Text im Stil eines Erdkunde-Absatzes.
+ * Bewusst kein Wikipedia-Zitat: Er enthält genau die Fälle, um die es geht.
+ */
+const BAY_TEXT = [
+  'The bay lies in the north of the country.',
+  'One island rises straight out of the water.',
+  'Around 1,969 islands fill the bay, and the islands attract many visitors.',
+  'The protected area covers about 600 sq mi.',
+  'Boats visit the caves every day, and tourists visited the caves last year.',
+].join(' ');
+
+describe('Lexikalische Familien in der Textanalyse', () => {
+  const candidates = extractTextCandidates(BAY_TEXT);
+
+  it('macht aus island und islands genau einen Vorschlag', () => {
+    const islands = candidates.filter((candidate) =>
+      ['island', 'islands'].includes(candidate.normalizedEnglish),
+    );
+
+    expect(islands).toHaveLength(1);
+    expect(islands[0]?.english).toBe('island');
+  });
+
+  it('zählt beide Formen gemeinsam', () => {
+    const island = candidates.find((candidate) => candidate.normalizedEnglish === 'island');
+    expect(island?.occurrences).toBe(3);
+    expect(describeCandidateForms(island!)).toBe('Im Text: islands, island · insgesamt 3-mal');
+  });
+
+  it('nennt die grammatische Form als Hinweis', () => {
+    const island = candidates.find((candidate) => candidate.normalizedEnglish === 'island');
+    expect(describeCandidateInflections(island!)).toEqual(['Plural: islands']);
+  });
+
+  it('merkt sich die Form, die im Beispielsatz steht', () => {
+    const island = candidates.find((candidate) => candidate.normalizedEnglish === 'island');
+    // Die früheste Fundstelle ist „One island rises …“.
+    expect(island?.sourceSentence).toContain('One island rises');
+    expect(candidateLiteral(island!)).toBe('island');
+
+    const visit = candidates.find((candidate) => candidate.normalizedEnglish === 'visit');
+    expect(visit?.occurrences).toBe(2);
+    expect(candidateLiteral(visit!)).toBe('visit');
+  });
+
+  it('trägt gebeugte Formen nicht als eigene Vorschläge ein', () => {
+    expect(candidates.some((candidate) => candidate.normalizedEnglish === 'islands')).toBe(false);
+    expect(candidates.some((candidate) => candidate.normalizedEnglish === 'visited')).toBe(false);
+  });
+});
+
+describe('Abkürzungen in der Textanalyse', () => {
+  const candidates = extractTextCandidates(BAY_TEXT);
+
+  it('macht aus „600 sq mi“ einen Vorschlag statt zweier Bruchstücke', () => {
+    expect(candidates.some((candidate) => candidate.normalizedEnglish === 'sq')).toBe(false);
+    expect(candidates.some((candidate) => candidate.normalizedEnglish === 'mi')).toBe(false);
+
+    const unit = candidates.find((candidate) => candidate.abbreviation !== undefined);
+    expect(unit?.english).toBe('square mile (sq mi)');
+    expect(unit?.abbreviation?.german).toBe('die Quadratmeile');
+    expect(unit?.abbreviation?.resolved).toBe(true);
+    expect(candidateLiteral(unit!)).toBe('sq mi');
+  });
+
+  it('kennzeichnet unbekannte Abkürzungen, statt sie zu erfinden', () => {
+    const found = extractTextCandidates('The engine delivers 400 bhp on the test track.');
+    const unknown = found.find((candidate) => candidate.abbreviation !== undefined);
+
+    expect(unknown?.english).toBe('bhp');
+    expect(unknown?.abbreviation?.longForm).toBeUndefined();
+    expect(unknown?.abbreviation?.hint).toBe(UNKNOWN_ABBREVIATION_HINT);
+    expect(isUsableCandidate(unknown!)).toBe(false);
+  });
+
+  it('lässt Wikipedia-Marker gar nicht erst zu Kandidaten werden', () => {
+    const found = extractTextCandidates(
+      'The bay is famous.[1] Jump to navigation Retrieved from the archive.',
+    );
+    const words = found.map((candidate) => candidate.normalizedEnglish);
+
+    expect(words).not.toContain('navigation');
+    expect(words).not.toContain('retrieved');
+    expect(words).toContain('bay');
+  });
+});
+
+describe('Reihenfolge der Verarbeitung', () => {
+  it('gruppiert und bereinigt vor der Begrenzung', () => {
+    // Vor Sprint 3B.1 hätten „islands“, „sq“ und „mi“ drei der Plätze belegt.
+    const ranked = sortCandidates(extractTextCandidates(BAY_TEXT), 'frequency').slice(0, 5);
+    const words = ranked.map((candidate) => candidate.normalizedEnglish);
+
+    expect(words).not.toContain('islands');
+    expect(words).not.toContain('sq');
+    expect(words).toContain('island');
+  });
+
+  it('stellt ungeklärte Abkürzungen hinter brauchbare Wörter', () => {
+    const found = extractTextCandidates('The engine delivers 400 bhp. The engine is quiet.');
+    const ranked = sortCandidates(found, 'frequency');
+
+    expect(ranked[ranked.length - 1]?.normalizedEnglish).toBe('bhp');
   });
 });

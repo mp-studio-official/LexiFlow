@@ -3,6 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card, Field } from '../../ui/components';
 import { DraftTable } from './DraftTable';
 import { MetadataForm, emptyMetaDraft, type MetaDraft } from './MetadataForm';
+import { useTranslationProvider } from '../../providers/ProviderContext';
+import type { ProviderState } from '../../providers/state';
+
+/** Die Textwerkstatt übersetzt ausschließlich Englisch → Deutsch. */
+const TRANSLATION_SOURCE = 'en';
+const TRANSLATION_TARGET = 'de';
 import {
   COLUMN_ROLES,
   COLUMN_ROLE_LABELS,
@@ -111,10 +117,27 @@ export function ImportWizardPage() {
   const [existingEnglish, setExistingEnglish] = useState<string[]>([]);
 
   // Textwerkstatt
+  const translationProvider = useTranslationProvider();
+  /**
+   * Zustand der lokalen Übersetzung. Er entscheidet nur über die Beschriftung
+   * der Schaltfläche – nie darüber, ob analysiert werden kann.
+   */
+  const [translationState, setTranslationState] = useState<ProviderState>('unavailable');
   const [englishText, setEnglishText] = useState('');
   const [includeStopwords, setIncludeStopwords] = useState(false);
   const [includeProperNouns, setIncludeProperNouns] = useState(false);
   const [analysis, setAnalysis] = useState<TextAnalysis | null>(null);
+  /**
+   * „Bereit oder ladbar“ – nur dann verspricht die Schaltfläche Übersetzungen.
+   * Ein nicht gestarteter Anbieter gilt nie als vorbereitet.
+   */
+  const translatorReady =
+    translationState === 'available' ||
+    translationState === 'downloadable' ||
+    translationState === 'downloading';
+  const analyzeLabel = translatorReady
+    ? 'Text analysieren und Übersetzungen vorschlagen'
+    : 'Text lokal analysieren';
   /** Vor der Analyse gewählte Obergrenze für die angezeigten Kandidaten. */
   const [candidateCount, setCandidateCount] = useState<number>(DEFAULT_CANDIDATE_COUNT);
   const [customCount, setCustomCount] = useState(false);
@@ -186,13 +209,29 @@ export function ImportWizardPage() {
     setAnnouncement(`${built.length} Zeilen erkannt. Vorschau geöffnet.`);
   }
 
-  /** Reine, lokale Analyse – kein Netzwerkzugriff, keine Speicherung des Textes. */
+  /**
+   * Reine, lokale Analyse – kein Netzwerkzugriff, keine Speicherung des Textes.
+   *
+   * Ist eine lokale Übersetzung verfügbar oder ladbar, startet dieser Klick
+   * zusätzlich ihre Vorbereitung. Das geschieht **synchron im Klickpfad**, weil
+   * die Nutzeraktivierung des Browsers sonst verfällt und der Download nie
+   * beginnt. Die Analyse wartet trotzdem nicht darauf: Sie ist rein lokal und
+   * fertig, bevor irgendein Modell reagiert hat.
+   */
   function handleAnalyze(): void {
     const text = englishText.trim();
     if (text.length === 0) {
       setError('Bitte zuerst einen englischen Text einfügen.');
       return;
     }
+    if (translatorReady) {
+      // Bewusst kein `await`: Der Fehlerfall wird in der Kandidatenansicht
+      // gemeldet, wo auch der Zustand des Anbieters steht.
+      void translationProvider
+        .prepare(TRANSLATION_SOURCE, TRANSLATION_TARGET)
+        .catch(() => undefined);
+    }
+
     try {
       const result = analyzeText(englishText, { includeStopwords, includeProperNouns });
       if (result.candidates.length === 0) {
@@ -212,7 +251,7 @@ export function ImportWizardPage() {
       setError('');
       setStep('candidates');
       setAnnouncement(
-        `${limited.length} von ${wanted} gewünschten Vokabelvorschlägen aus ${result.sentenceCount} Sätzen gefunden.`,
+        `${limited.length} von ${wanted} geeigneten Vokabeln aus ${result.sentenceCount} Sätzen gefunden.`,
       );
     } catch (caught: unknown) {
       setAnalysis(null);
@@ -228,6 +267,27 @@ export function ImportWizardPage() {
    * Vorhandene englische Stichwörter – mehr geht nie an das Sprachmodell.
    * Geladen wird erst, wenn die Themenwerkstatt tatsächlich gewählt ist.
    */
+  /**
+   * Nur *fragen*, nichts starten: `getAvailability` lädt kein Modell. Ohne
+   * diese Trennung würde die Oberfläche Bereitschaft behaupten, die niemand
+   * hergestellt hat.
+   */
+  useEffect(() => {
+    if (source !== 'text') return;
+    let active = true;
+    void translationProvider
+      .getAvailability(TRANSLATION_SOURCE, TRANSLATION_TARGET)
+      .then((state) => {
+        if (active) setTranslationState(state);
+      })
+      .catch(() => {
+        if (active) setTranslationState('unavailable');
+      });
+    return () => {
+      active = false;
+    };
+  }, [source, translationProvider]);
+
   useEffect(() => {
     if (source !== 'topic') return;
     let active = true;
@@ -587,7 +647,7 @@ export function ImportWizardPage() {
                   onClick={handleAnalyze}
                   disabled={englishText.trim().length === 0}
                 >
-                  Text lokal analysieren
+                  {analyzeLabel}
                 </Button>
                 {analysis ? (
                   <Button variant="quiet" onClick={() => setStep('candidates')}>

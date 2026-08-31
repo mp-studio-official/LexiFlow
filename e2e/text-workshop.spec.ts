@@ -59,7 +59,7 @@ async function analyze(page: Page): Promise<void> {
     page.getByText(/vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/),
   ).toBeVisible();
   await page.getByLabel('Englischer Text').fill(TEXT);
-  await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
+  await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
   await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
 }
 
@@ -86,7 +86,7 @@ test.describe('Textwerkstatt', () => {
     ).toBeVisible();
 
     await page.getByLabel('Englischer Text').fill(TEXT);
-    await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
+    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
 
     // Kandidaten mit Originalsatz, ohne erfundene Übersetzung.
     await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
@@ -161,7 +161,7 @@ test.describe('Textwerkstatt', () => {
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').fill('a '.repeat(11_000));
     await expect(page.getByText('22.000 von 20.000 Zeichen')).toBeVisible();
-    await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
+    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
     await expect(page.getByRole('alert')).toContainText('20.000 Zeichen');
     await expect(page.getByLabel('Englischer Text')).toBeVisible();
   });
@@ -181,7 +181,7 @@ test.describe('Textwerkstatt', () => {
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').focus();
     await page.keyboard.type('The neighbourhood is crowded today.');
-    await page.getByRole('button', { name: 'Text lokal analysieren' }).focus();
+    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).focus();
     await page.keyboard.press('Enter');
 
     await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();

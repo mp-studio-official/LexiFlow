@@ -91,6 +91,46 @@ describe('buildCloze', () => {
   it('gibt ohne passenden Beispielsatz nichts zurück', () => {
     expect(buildCloze(makeEntry({ exampleSentences: [] }))).toBeUndefined();
   });
+
+  // Sprint 3B.1: Die Vokabel heißt „island“, im Satz steht „islands“.
+  it('erwartet die Form, die tatsächlich im Beispielsatz steht', () => {
+    const entry = makeEntry({
+      english: 'island',
+      exampleSentences: [{ english: 'The bay has 1,969 islands.' }],
+    });
+    const cloze = buildCloze(entry);
+
+    expect(cloze?.solution).toBe('islands');
+    expect(cloze?.before).toBe('The bay has 1,969 ');
+    expect(cloze?.after).toBe('.');
+  });
+
+  it('bevorzugt die wörtliche Fundstelle vor der gebeugten', () => {
+    const entry = makeEntry({
+      english: 'island',
+      exampleSentences: [{ english: 'One island rises out of the water; the islands are famous.' }],
+    });
+    expect(buildCloze(entry)?.solution).toBe('island');
+  });
+
+  it('findet eine Abkürzung unter ihrer Langform', () => {
+    const entry = makeEntry({
+      english: 'square mile (sq mi)',
+      exampleSentences: [{ english: 'The area covers 600 sq mi in total.' }],
+    });
+    const cloze = buildCloze(entry);
+
+    expect(cloze?.solution).toBe('sq mi');
+    expect(cloze?.before).toBe('The area covers 600 ');
+  });
+
+  it('verwechselt weiterhin keine zufällig ähnlichen Wörter', () => {
+    const entry = makeEntry({
+      english: 'water',
+      exampleSentences: [{ english: 'The waiter brought the menu.' }],
+    });
+    expect(buildCloze(entry)).toBeUndefined();
+  });
 });
 
 describe('availableKinds', () => {

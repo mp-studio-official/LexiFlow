@@ -18,6 +18,10 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 3B.1** – Textqualität, Übersetzung und Lernrichtungen: Wortformen
+  desselben Wortes werden zu einer Vokabel zusammengefasst, Abkürzungen wie
+  „600 sq mi“ in Kontext aufgelöst, Übersetzungsvorschläge sind Teil des
+  Hauptwegs, und die Lernenden wählen die Richtung selbst.
 * **Sprint 2B.2b** – Satzassistent und Textempfehlungen: zu einer Vokabel einen
   einfacheren Satz oder einen anderen Kontext vorschlagen lassen, und aus den
   lokal gefundenen Textkandidaten diejenigen markieren, die zur Lerngruppe
@@ -713,12 +717,12 @@ nichts gespeichert wird, entfällt auch das Warten: „Weiter“ ist unmittelbar
 dem Feedback frei, und der Hinweis „Lernstand wird gespeichert …“ erscheint
 nicht.
 
-**Was gleich bleibt:** die Freischaltung. `planFreeSession` benutzt dasselbe
-`isDirectionUnlocked`; bei Paketen mit „beide Richtungen“ bleibt Deutsch →
-Englisch also auch beim freien Üben gesperrt, bis die rezeptive Richtung Fach 2
-erreicht hat. Ebenso gilt weiterhin der Abstand zwischen den beiden Richtungen
-derselben Vokabel (`arrangeTargets`), und die gewählte Rundengröße ist eine
-Obergrenze.
+**Seit Sprint 3B.1 anders:** die Freischaltung. `freeTargets` kennt sie nicht
+mehr – freies Üben bietet bei „beide Richtungen“ **beide sofort** an. Die
+Staffelung ist eine Empfehlung für den Lernplan, der Lernstände schreibt; freies
+Üben schreibt keine und kann deshalb nichts verderben (siehe „Lernrichtungen
+wählen“). Unverändert gelten der Abstand zwischen den beiden Richtungen
+derselben Vokabel (`arrangeTargets`) und die Rundengröße als Obergrenze.
 
 **Eigene Begriffe.** Freies Üben spricht von *verfügbaren* Aufgaben
 (`availableCount`, `plannedCount`, `remainingAvailableCount`), der Lernplan von
@@ -730,6 +734,62 @@ kann eine Vokabel zwei Aufgaben stellen. Die Oberfläche benennt das so.
 nichts an, ist „Frei üben“ gewählt und der Lernplan gesperrt – der nächste
 reguläre Termin bleibt aber sichtbar. Ein Paket ohne Vokabeln lässt beides
 gesperrt.
+
+---
+
+## Lernrichtungen wählen
+
+Ein Paket führt eine oder beide Richtungen (`meta.direction`). Was daraus wird,
+entscheidet seit Sprint 3B.1 die lernende Person – vor jeder Runde, auf der
+Paketseite.
+
+| Wahl | Wirkung |
+| --- | --- |
+| **Gemischt** (Voreinstellung) | beide Richtungen; die Staffelung „erst verstehen, dann selbst formulieren“ gilt |
+| **Englisch → Deutsch** | nur rezeptiv |
+| **Deutsch → Englisch** | nur produktiv – **ohne** Freischaltbedingung |
+
+Ein Paket mit nur einer Richtung zeigt die Auswahl gar nicht: Eine Auswahl mit
+einer gültigen Option ist keine Auswahl, sondern eine Attrappe
+(`directionChoicesFor`).
+
+### Warum die Staffelung bleibt – als Empfehlung
+
+`isDirectionUnlocked` hält bei `both` die produktive Richtung zurück, bis die
+rezeptive Fach 2 erreicht hat. Als Voreinstellung ist das gute Didaktik. Als
+Verbot ist es eine Bevormundung: Wer heute Vokabelarbeit schreibt, muss gezielt
+produktiv üben dürfen.
+
+Die Lösung braucht keine zweite Mechanik. Die gewählte Richtung wird zur
+*wirksamen* Paketrichtung der Planung (`effectiveDirection`), und
+`isDirectionUnlocked` greift ohnehin nur bei `both` – also genau im gemischten
+Modus. Es gibt deshalb keinen zweiten Planungspfad, den man vergessen könnte,
+und die Wahl reist als `?direction=` an die Übungsseite.
+
+### Freies Üben
+
+Freies Üben bietet **beide Richtungen sofort** an, ohne jede Freischaltung
+(`freeTargets`). Es schreibt keine Lernstände, keine Fächer und keine Termine –
+es kann also nichts verderben. Vier Vokabeln in einem Paket mit beiden
+Richtungen ergeben acht Aufgaben.
+
+### In der Runde
+
+Gemischte Runden enthalten beide Richtungen mit dem gewohnten Abstand zwischen
+Gegenrichtungen derselben Vokabel (`arrangeTargets`, `MIN_SIBLING_GAP = 3`).
+Jede Aufgabe ist mit ihrer Richtung beschriftet – im Kopf der Übungsseite und
+über der Aufgabe selbst („Englisch → Deutsch (rezeptiv)“).
+
+Der Lernstand bleibt **pro Vokabel und Richtung** getrennt (`directionKey`); an
+dieser Trennung ändert die Wahl nichts.
+
+### Voreinstellung für neue Pakete
+
+Neue Pakete – von Hand, aus einem Text oder aus der Themenwerkstatt – stehen auf
+**„beide Richtungen“** (`emptyMetaDraft`). Wer eine Vokabel kann, kann sie in
+beide Richtungen, und die Lernenden wählen ohnehin selbst. **Bestehende und
+importierte Pakete behalten ihre Angabe**; eine gespeicherte Entscheidung wird
+nie stillschweigend überschrieben.
 
 ---
 
@@ -770,10 +830,14 @@ Neu: 4 · Fach 1: 0 · Fach 2: 0 · Fach 3: 0 · Fach 4: 0 · Fach 5: 0
 
 Die Beschriftung der Grafik (`role="img"` mit `aria-label`) nennt dieselben
 Kategorien, ergänzt um noch nicht freigeschaltete Vokabeln. Ist die produktive
-Richtung bei `both` noch komplett gesperrt, steht dort statt der Grafik:
+Richtung im gemischten Modus noch komplett zurückgestellt, steht dort statt der
+Grafik:
 
 > Produktiv noch nicht begonnen – wird nach der ersten erfolgreichen rezeptiven
 > Wiederholung freigeschaltet.
+
+Wer nicht warten will, wählt „Deutsch → Englisch“ oder „Frei üben“; beides steht
+sofort offen.
 
 Die Zahl „Aufgaben jetzt bereit“ stammt aus **derselben** Funktion, die auch die
 Sitzung plant (`planSession`). Ein neues `both`-Paket mit vier Vokabeln zeigt
@@ -811,8 +875,8 @@ insgesamt**, nicht nur die späteren KI-Empfehlungen.
 
 Sie ist eine Obergrenze und kein Soll. Enthält der Text weniger geeignete
 Wörter, wird nichts erfunden und nichts aufgefüllt – stattdessen steht dort
-ehrlich *„12 von 20 gewünschten Vokabelvorschlägen gefunden. Der Text enthält
-nicht mehr geeignete Kandidaten – erfunden wird nichts.“*
+ehrlich *„12 von 20 geeigneten Vokabeln gefunden. Der Text enthält nicht mehr
+geeignete Kandidaten – erfunden wird nichts.“*
 
 Ausgewählt werden die häufigsten Kandidaten; bei gleicher Häufigkeit entscheidet
 die Reihenfolge im Text. Das ist deterministisch, nachvollziehbar und
@@ -848,8 +912,10 @@ sortiert sie – ohne die Auswahl zu verändern.
   standardmäßig ausgeblendet und lassen sich einblenden. Die Eigennamen-Erkennung
   ist eine Heuristik (durchgehende Großschreibung auch außerhalb des
   Satzanfangs) und liegt gelegentlich daneben.
-* Es findet keine Grundformbildung statt: `child` und `children` sind zwei
-  Kandidaten. Mehrwortverbindungen (`look after`) werden nicht erkannt.
+* Wortformen werden seit Sprint 3B.1 zu einer Vokabel zusammengefasst
+  (siehe „Wortformen und Abkürzungen“). Mehrwortverbindungen (`look after`)
+  werden weiterhin nicht erkannt; erkannt werden nur Abkürzungen aus dem
+  Lexikon.
 * Segmentiert wird mit `Intl.Segmenter`; fehlt die API, greift ein
   handgeschriebener, getesteter Fallback (Abkürzungen wie `Mr.` inklusive).
 
@@ -858,9 +924,23 @@ sortiert sie – ohne die Auswahl zu verändern.
 | | |
 | --- | --- |
 | Wo | ausschließlich in Browsern mit eingebauter Translator-API (derzeit Chrome, je nach Version und Gerät) |
-| Wann | erst nach ausdrücklichem Klick auf „Sprachmodell laden und Vorschläge erzeugen“ |
+| Wann | erst nach ausdrücklichem Klick – auf „Text analysieren und Übersetzungen vorschlagen“ oder später auf „Sprachmodell laden und Vorschläge erzeugen“ |
 | Wohin | nirgendwohin: *„Die Übersetzung läuft lokal in Chrome. Der Text wird nicht an LexiFlow oder einen Cloud-Dienst übertragen.“* |
 | Ohne Unterstützung | ein normaler Zustand, kein Fehler – alles wird von Hand eingetragen, sonst ändert sich nichts |
+
+**Die Übersetzung liegt seit Sprint 3B.1 im Hauptweg.** Ist ein lokales Modell
+verfügbar oder ladbar, heißt die Hauptaktion der Textwerkstatt „Text analysieren
+und Übersetzungen vorschlagen“; ohne Modell bleibt es bei „Text lokal
+analysieren“. Keine Schaltfläche verspricht also ein Modell, das es nicht gibt.
+
+Der Klick startet `prepare()` **synchron im Klickpfad** – sonst verfällt die
+User-Activation und der Download beginnt nie. Die Analyse wartet trotzdem nicht:
+Sie ist rein lokal und fertig, bevor irgendein Modell reagiert hat. Die
+Vorschläge erscheinen anschließend an den jeweiligen Kandidaten. Bestehende
+Vorbereitungssperren und geteilte `prepare()`-Promises gelten weiter; ein zweiter
+Aufruf löst keinen zweiten Download aus. Fehler stehen **an der betroffenen
+Zeile** samt „Erneut versuchen“, Abbruch und Anbieterwechsel funktionieren
+unverändert.
 
 Ein Vorschlag ist **immer ungeprüft**. Er steht getrennt neben dem Eingabefeld
 und wird nie automatisch übernommen; erst „Vorschlag übernehmen“ schreibt ihn in
@@ -875,7 +955,8 @@ Lehrkraft bleibt für jede Vokabel und jeden Satz verantwortlich.**
 Die vorhandenen `sourceType`-Werte werden weiterverwendet: `import` für aus dem
 Text übernommene und selbst übersetzte Vokabeln, `text-ai` nur dort, wo ein
 maschineller Vorschlag tatsächlich übernommen wurde. Zusätzliche Angaben
-(Häufigkeit im Text, Originalsatz, Übersetzungsstand) leben ausschließlich im
+(Häufigkeit im Text, Originalsatz, Übersetzungsstand, seit Sprint 3B.1 auch die
+beobachteten Wortformen und Abkürzungshinweise) leben ausschließlich im
 Entwurfsmodell (`DraftProvenance`); das Austauschformat `.vocabpack.json` und
 seine `formatVersion` bleiben unverändert.
 
@@ -919,6 +1000,156 @@ ausdrücklicher Auslösung, melden echten Fortschritt und lassen sich über ein
 (`ProviderRegistry`, React-Context) – in Tests vollständig ersetzbar, ohne
 Modulzustand zu verbiegen. Standard bleibt in beiden Fällen der ehrliche
 Nullanbieter; ein Anbieter ruft niemals selbst `fetch` auf.
+
+---
+
+## Wortformen und Abkürzungen im Text
+
+Bis Sprint 3A zählte die Textanalyse Schreibweisen. Ein Absatz über eine Bucht
+lieferte damit `island` **und** `islands` als zwei Vorschläge, dazu `sq` und
+`mi` als zwei sinnlose Bruchstücke aus „600 sq mi“. Bei zehn gewünschten
+Vokabeln belegten solche Reste die Hälfte der Liste. Seit Sprint 3B.1 sind
+Wortformen und Abkürzungen eigene Schritte **vor** der Begrenzung.
+
+### Reihenfolge der Verarbeitung
+
+Die Reihenfolge steht als Kette in `extractTextCandidates` und ist der Kern der
+Verbesserung:
+
+1. **Tokens und Wendungen** bestimmen (`segmentSentences`, `segmentWords`)
+2. **Wortformen zu lexikalischen Familien gruppieren** (`buildFamilies`)
+3. **Abkürzungen im Kontext auflösen** (`findAbbreviations`)
+4. **unbrauchbare Textreste** entfernen oder kennzeichnen
+   (`maskUrls`, `maskEditorialMarkers`)
+5. **Kandidaten sortieren** (`sortCandidates`)
+6. **erst danach** auf die gewünschte Anzahl begrenzen (`limitCandidates`)
+
+Wer zuerst begrenzt, füllt die Liste mit Beugungen und Bruchstücken. Deshalb ist
+die Begrenzung der letzte Schritt – und ungeklärte Abkürzungen stehen in der
+Rangfolge hinten, damit sie kein brauchbares Wort verdrängen
+(`isUsableCandidate`).
+
+### Lexikalische Familien
+
+Eine Familie ist ein Lemma mit allen Formen, die der Text tatsächlich enthält.
+Sie trägt Lemma, beobachtete Formen, Häufigkeit je Form, die gemeinsame
+Häufigkeit und die Fundstellen (`LexicalFamily` in `src/domain/wordForms.ts`).
+
+In der Prüfansicht steht das als ein Satz:
+
+> Im Text: islands, island · insgesamt 18-mal
+
+Dazu ein grammatischer Hinweis wie *„Plural: islands“*. Steht in derselben
+Familie eine `-ed`- oder `-ing`-Form, ist das Wort ein Verb – dann heißt es
+*„3. Person Singular: visits“* statt *„Plural: visits“*.
+
+**Zwei Sicherheitsstufen.** Ein Vokabeltrainer ohne Wörterbuch kann englische
+Morphologie nicht sicher auflösen; er kann nur entscheiden, wann er sich sicher
+genug ist.
+
+| Stufe | Regeln | Bedingung |
+| --- | --- | --- |
+| sicher | reguläre Plurale (`-s`, `-es`, `-ies`), zuverlässige unregelmäßige Plurale (`children`, `women`, `leaves` …) | greifen auch, wenn die Grundform im Text fehlt |
+| belegpflichtig | `-ed`, `-ing`, Steigerung `-er`/`-est` | greifen nur, wenn die Grundform **im selben Text** steht |
+
+Warum `-ed` und `-ing` belegpflichtig sind: `crowded` ist in den meisten Texten
+das Adjektiv und nicht die Vergangenheit von `crowd`, und `protected area` ist
+kein Beleg für die Vokabel `protect`. Steht `visit` im Text, ist die Sache
+eindeutig – dann werden `visit`, `visits` und `visited` zu einer Vokabel. Steht
+es nicht da, bleibt `visited` stehen. Zwei Vorschläge sind ein
+Schönheitsfehler; zwei zusammengeworfene Wörter sind ein fachlicher Fehler.
+
+**Schutzmechanismen**, alle sichtbar und geprüft statt in einer Heuristik
+versteckt:
+
+* `INVARIANT_S` – `news`, `series`, `species`, `means`, `glasses`, `physics`,
+  `analysis` … werden nie zerlegt.
+* `NOT_INFLECTED` – `water`, `other`, `forest`, `building`, `thing`, `best` …
+  enden nur zufällig wie eine Beugung. Aus `water` wird niemals `wat`.
+* Mindestlänge 3 für jede erzeugte Grundform, keine Ketten über eine selbst
+  gebeugte Form, und Wörter unter vier Zeichen bleiben unangetastet.
+* Zusammengeführt wird nur über Morphologie, nie über Ähnlichkeit der
+  Schreibung: `bank` und `banks` gehören zusammen, `banner` steht für sich.
+
+**Beobachtete Formen sind keine akzeptierten Antworten.** `islands` wandert
+nicht in `acceptedEnglishAnswers` – auf „die Insel“ ist es keine richtige
+Antwort. Die Formen erscheinen als Hinweis für die Lehrkraft (im Entwurf unter
+`provenance`) und wirken im Lückentext.
+
+### Lückentexte mit gebeugten Formen
+
+Der Lückentext erwartet die Form, die **im Beispielsatz** steht:
+
+> Around 1,969 \_\_\_\_ fill the bay. → erwartet `islands`, nicht `island`
+
+Möglich wird das durch `findHeadwordInSentence` (`src/domain/wordMatch.ts`), die
+gemeinsame Wortsuche von Entwurfsprüfung, Satzassistent und Lückentext. Sie
+sucht in drei Runden: die genaue Wendung, ihre Schreibvarianten (`to apologise`
+→ `apologise`, `square mile (sq mi)` → `sq mi`) und erst zuletzt eine Beugung
+desselben Wortes. Zurückgegeben wird immer die Stelle im Satz samt der Zeichen,
+die dort stehen. Wortgrenzen gelten unverändert: `cat` steckt nicht in
+`category`, und `water` nicht in `waiter`.
+
+### Abkürzungen
+
+`src/domain/abbreviations.ts` löst Abkürzungen auf – oder meldet ehrlich, dass
+sie ungeklärt sind. Zwei Regeln bestimmen alles:
+
+1. **Nichts erfinden.** Was das Lexikon nicht kennt, bekommt den Hinweis
+   *„Abkürzung – Langform prüfen“* und keine geratene Langform.
+2. **Kontext entscheidet.** Maßeinheiten gelten nur unmittelbar hinter einer
+   Zahl. Ohne diese Bedingung würde aus „She lives in Berlin“ ein Zoll.
+
+| | |
+| --- | --- |
+| Einheiten | `km`, `km²`, `cm`, `mm`, `kg`, `mph`, `km/h`, `sq mi`, `sq km`, `sq ft`, `ft`, `yd`, `mi`, `lb`, `ha`, `°C`, `°F` |
+| Akronyme | `UNESCO`, `UN`, `UK`, `USA`, `EU`, `NATO`, `AD`, `BC`, `e.g.`, `i.e.`, `etc.`, `approx.` |
+| Anzeige | „square mile (sq mi)“ mit dem Vorschlag „die Quadratmeile“ |
+| Unbekannt | bleibt stehen, mit dem Hinweis „Abkürzung – Langform prüfen“ |
+
+Aus „600 sq mi“ wird **ein** Vorschlag, nie `sq` und `mi`. Die längere
+Abkürzung gewinnt, Punkte und fehlende Leerzeichen sind erlaubt
+(`600 sq. mi.`, `12km`). Bewusst **nicht** im Lexikon stehen mehrdeutige
+Kürzel: `m` kann Meter oder Million sein, `in` ist häufiger eine Präposition
+als ein Zoll.
+
+Eine unbekannte Abkürzung wird nur dort vermutet, wo normale Prosa sie nicht
+hat: ein sehr kurzes Kürzel **ohne Vokal** direkt hinter einer Zahl („400 bhp“)
+oder ein Wort mit Binnenpunkten („a.m.“). Deshalb bleibt „5 men“ unangetastet –
+und keine Abkürzung wird gelöscht, nur weil sie kurz ist.
+
+In der Prüfansicht ist die **Langform bearbeitbar** („Langform für „sq mi““),
+ebenso Übersetzung und Hinweis; entfernen lässt sich der Vorschlag wie jeder
+andere.
+
+### Redaktionelle Reste
+
+Kopierte Wikipedia-Absätze bringen Fußnoten und Navigationstexte mit.
+`maskEditorialMarkers` blendet sie **längentreu** aus – dieselbe Technik, mit
+der die Analyse schon URLs ausblendet, damit alle Zeichenoffsets gültig
+bleiben: `[1]`, `[citation needed]`, `[edit]`, „Jump to navigation“,
+„Retrieved from“, „From Wikipedia, the free encyclopedia“, „Categories:“,
+`ISBN 978-…`, `doi:`, `PMID`. Sie werden nie zu Kandidaten – und eine Fußnote
+`[1]` wird auch nicht als unbekannte Abkürzung gemeldet.
+
+### Was das Paketformat davon sieht: nichts
+
+Familien, Häufigkeiten je Form und Abkürzungshinweise leben ausschließlich im
+Entwurfsmodell (`TextCandidate`, `DraftProvenance`). Das portable Format bleibt
+bei **`formatVersion 1`** und unverändert; ein Paket aus Sprint 2 öffnet sich
+weiterhin, und ein neues Paket enthält weder `provenance` noch `formSummary`
+noch `occurrences`. Geprüft in `src/import/textFormsPortability.test.ts`.
+
+### Grenzen
+
+* Ohne Wörterbuch bleibt jede Zuordnung eine Regel. Unregelmäßige Verben
+  (`go`/`went`, `buy`/`bought`) werden **nicht** zusammengeführt.
+* Homonyme kann die Analyse nicht trennen: `lives` als Verb und als Plural von
+  `life` sind für sie dasselbe. Zugeordnet wird der Plural.
+* `glasses` gilt bewusst als eigenes Wort – als Brille ist es kein Plural von
+  `glass`, und welche Bedeutung ein Text meint, weiß die Datei nicht.
+* Das Abkürzungslexikon ist kurz und handgepflegt. Es soll die häufigen Fälle
+  des Schulalltags treffen, nicht vollständig sein.
 
 ---
 
@@ -1390,10 +1621,9 @@ funktioniert vollständig offline.
   Prüfung durch die Lehrkraft ist keine Formalie.
 * **Keine Themenwerkstatt ohne Prompt-API.** Firefox und Safari bieten sie
   derzeit nicht; dort bleiben Einfügen und die leere Liste.
-* **Satzprüfung verlangt die Grundform.** Der Vorschlag muss das Stichwort
-  wörtlich enthalten; „She apologised“ zählt für „to apologise“ nicht. Das ist
-  streng, aber für Lückensätze notwendig – gebeugte Formen lassen sich von Hand
-  eintragen.
+* **Satzprüfung erkennt seit Sprint 3B.1 auch Beugungen.** „She apologised“
+  zählt für „to apologise“, und der Lückentext erwartet dann genau diese Form.
+  Unregelmäßige Formen (`went` für `to go`) erkennt sie weiterhin nicht.
 * **Empfehlungen bleiben eine Einschätzung.** Sie stützen sich auf ein kleines
   Browsermodell, das Wort, Häufigkeit und einen Satz sieht – nicht auf den
   Lehrplan und nicht auf die Lerngruppe selbst.
@@ -1420,3 +1650,13 @@ funktioniert vollständig offline.
   unangenehm.
 * **Bundle wächst.** Die Textanalyse liegt im Hauptbündel; ein späteres
   Code-Splitting des Lehrkraft-Bereichs wäre der nächste sinnvolle Schritt.
+* **Wortformen ohne Wörterbuch bleiben Regelwerk.** Unregelmäßige Verben
+  (`go`/`went`) werden nicht zusammengeführt, Homonyme wie `lives` nicht
+  getrennt. Die Listen `INVARIANT_S` und `NOT_INFLECTED` sind handgepflegt und
+  decken den Schulwortschatz ab, nicht das Englische.
+* **Das Abkürzungslexikon ist kurz.** Was nicht darin steht, wird als
+  „Abkürzung – Langform prüfen“ gemeldet statt geraten. Mehrdeutige Kürzel wie
+  `m` und `in` fehlen mit Absicht.
+* **Die Richtungswahl gilt pro Runde, nicht pro Paket.** Sie wird nicht
+  gespeichert; nach dem Neuladen steht wieder „Gemischt“. Das ist bewusst
+  schlicht gehalten – ob eine gemerkte Wahl hilft, zeigt erst die Nutzung.

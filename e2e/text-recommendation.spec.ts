@@ -87,7 +87,7 @@ async function analyze(page: Page, count?: string): Promise<void> {
   if (count) {
     await page.getByLabel('Gewünschte Anzahl Vokabelvorschläge').selectOption(count);
   }
-  await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
+  await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
 }
 
 /** Die Namen aller angezeigten Kandidaten, in Anzeigereihenfolge. */
@@ -218,7 +218,7 @@ test.describe('Empfehlungen aus einem Text', () => {
 
     await analyze(page, '5');
     await expect(page.getByRole('heading', { name: 'Gefundene Vokabelkandidaten (5)' })).toBeVisible();
-    await expect(page.getByText('5 von 5 gewünschten Vokabelvorschlägen gefunden.')).toBeVisible();
+    await expect(page.getByText('5 von 5 geeigneten Vokabeln gefunden.')).toBeVisible();
     expect(await listedWords(page)).toHaveLength(5);
 
     // Ohne Sprachmodell bleibt alles benutzbar – nur eben ohne Priorisierung.
@@ -232,13 +232,13 @@ test.describe('Empfehlungen aus einem Text', () => {
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').fill('The bus was crowded. Litter is a problem.');
     await page.getByLabel('Gewünschte Anzahl Vokabelvorschläge').selectOption('30');
-    await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
+    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
 
     const found = (await listedWords(page)).length;
     expect(found).toBeGreaterThan(0);
     expect(found).toBeLessThan(30);
     await expect(
-      page.getByText(`${found} von 30 gewünschten Vokabelvorschlägen gefunden.`),
+      page.getByText(`${found} von 30 geeigneten Vokabeln gefunden.`),
     ).toBeVisible();
     await expect(page.getByText(/erfunden wird nichts/)).toBeVisible();
   });
@@ -250,10 +250,10 @@ test.describe('Empfehlungen aus einem Text', () => {
 
     const field = page.getByLabel('Eigene Anzahl');
     await field.fill('3');
-    await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
+    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
 
     await expect(page.getByRole('heading', { name: 'Gefundene Vokabelkandidaten (3)' })).toBeVisible();
-    await expect(page.getByText('3 von 3 gewünschten Vokabelvorschlägen gefunden.')).toBeVisible();
+    await expect(page.getByText('3 von 3 geeigneten Vokabeln gefunden.')).toBeVisible();
   });
 
   test('@a11y Priorisierung ohne schwerwiegende Befunde und mit der Tastatur bedienbar', async ({

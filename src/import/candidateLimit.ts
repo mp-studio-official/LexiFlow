@@ -35,6 +35,12 @@ export function clampCandidateCount(value: number): number {
  * Reihenfolge im Text. Das ist deterministisch, braucht kein Modell und ist
  * nachvollziehbar: Was oft vorkommt, lohnt sich am ehesten.
  *
+ * Die Begrenzung ist bewusst der **letzte** Schritt: Erst nachdem Wortformen
+ * zusammengeführt, Abkürzungen aufgelöst und Textreste entfernt sind, darf
+ * gekürzt werden. Sonst füllen `islands`, `sq` und `mi` die Liste und
+ * verdrängen die Wörter, um die es geht. Ungeklärte Abkürzungen stehen in der
+ * Rangfolge hinten und fallen deshalb zuerst heraus.
+ *
  * Zurückgegeben wird in der **ursprünglichen Reihenfolge**; die Begrenzung
  * entscheidet nur, *welche* Kandidaten bleiben, nicht wie sie sortiert sind.
  */
@@ -58,7 +64,7 @@ export function limitCandidates(
  * „12 von 12“ wäre keine Antwort auf die Frage, die die Lehrkraft gestellt hat.
  */
 export function describeCandidateCount(found: number, requested: number): string {
-  const base = `${found} von ${requested} gewünschten Vokabelvorschlägen gefunden.`;
+  const base = `${found} von ${requested} geeigneten Vokabeln gefunden.`;
   if (found >= requested) return base;
   return `${base} Der Text enthält nicht mehr geeignete Kandidaten – erfunden wird nichts.`;
 }

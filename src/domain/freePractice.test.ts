@@ -85,15 +85,25 @@ describe('Auswahl der Ziele', () => {
     expect([...ids].sort()).toEqual(['e1', 'e2', 'e3']);
   });
 
-  it('lässt bei „beide Richtungen“ die produktive Richtung gesperrt', () => {
+  // Sprint 3B.1: Freies Üben bietet beide Richtungen sofort an.
+  it('bietet bei „beide Richtungen“ sofort beide Richtungen an', () => {
     const entries = entriesNamed(4);
     const progress = progressFor(
       entries.map((entry) => ({ id: entry.id, direction: 'en-de' as const, box: 1, dueAt: LATER })),
     );
 
     const plan = planFreeSession(entries, progress, 'both', 20, mulberry32(3));
-    expect(plan.availableCount).toBe(4);
-    expect(plan.targets.every((target) => target.direction === 'en-de')).toBe(true);
+    expect(plan.availableCount).toBe(8);
+    expect(plan.targets.some((target) => target.direction === 'de-en')).toBe(true);
+    expect(plan.targets.some((target) => target.direction === 'en-de')).toBe(true);
+  });
+
+  it('bietet beide Richtungen auch ganz ohne Lernstand an', () => {
+    const entries = entriesNamed(3);
+    const plan = planFreeSession(entries, new Map(), 'both', 20, mulberry32(3));
+
+    expect(plan.availableCount).toBe(6);
+    expect(plan.targets.some((target) => target.direction === 'de-en')).toBe(true);
   });
 
   it('nimmt nach der Freischaltung beide Richtungen auf', () => {

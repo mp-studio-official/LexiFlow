@@ -13,6 +13,14 @@ import {
 } from '../../domain/exercises';
 import { planFreeSession } from '../../domain/freePractice';
 import {
+  DEFAULT_DIRECTION_CHOICE,
+  DIRECTION_CHOICE_HINTS,
+  DIRECTION_CHOICE_LABELS,
+  directionChoicesFor,
+  effectiveDirection,
+  type DirectionChoice,
+} from '../../domain/practiceDirection';
+import {
   activeDirections,
   DIRECTION_LABELS,
   LEITNER_BOX_MAX,
@@ -65,6 +73,10 @@ export function PackDetailPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   /** `null` = noch keine bewusste Wahl; dann gilt die sinnvolle Vorauswahl. */
   const [chosenMode, setChosenMode] = useState<PracticeMode | null>(null);
+  /** Richtung dieser Runde. „Gemischt“ ist die Empfehlung, nicht die Vorschrift. */
+  const [directionChoice, setDirectionChoice] = useState<DirectionChoice>(
+    DEFAULT_DIRECTION_CHOICE,
+  );
   const [reloadToken, setReloadToken] = useState(0);
   /**
    * Derselbe Seed geht an die Übungsseite. Nur so entspricht die angezeigte
@@ -122,18 +134,24 @@ export function PackDetailPage() {
     return planSession(
       pack.entries,
       progress,
-      pack.meta.direction,
+      effectiveDirection(pack.meta.direction, directionChoice),
       length,
       new Date(),
       mulberry32(seed),
     );
-  }, [pack, progress, length, seed]);
+  }, [pack, progress, length, seed, directionChoice]);
 
   // Getrennte Planung mit demselben Seed – Vorschau und Runde bleiben gleich.
   const freePlan = useMemo(() => {
     if (!pack) return null;
-    return planFreeSession(pack.entries, progress, pack.meta.direction, length, mulberry32(seed));
-  }, [pack, progress, length, seed]);
+    return planFreeSession(
+      pack.entries,
+      progress,
+      effectiveDirection(pack.meta.direction, directionChoice),
+      length,
+      mulberry32(seed),
+    );
+  }, [pack, progress, length, seed, directionChoice]);
 
   if (loading) return <p className="muted">Paket wird geladen …</p>;
   if (!pack || !plan || !freePlan) {
@@ -147,7 +165,10 @@ export function PackDetailPage() {
     );
   }
 
-  const possibleKinds = kindsAvailableInPack(pack.entries, pack.meta.direction);
+  // Die Richtungswahl gibt es nur, wo sie eine echte Wahl ist.
+  const directionOptions = directionChoicesFor(pack.meta.direction);
+  const roundDirection = effectiveDirection(pack.meta.direction, directionChoice);
+  const possibleKinds = kindsAvailableInPack(pack.entries, roundDirection);
   const bothDirections = pack.meta.direction === 'both';
   const lockedTotal = stands.reduce((sum, stand) => sum + stand.breakdown.locked, 0);
 
@@ -185,6 +206,8 @@ export function PackDetailPage() {
     params.set('seed', String(seed));
     // Freies Üben wird ausdrücklich transportiert; ohne `mode` gilt der Lernplan.
     if (free) params.set('mode', 'free');
+    // Ebenso die Richtung: ohne Angabe übt die Runde gemischt.
+    if (directionChoice !== DEFAULT_DIRECTION_CHOICE) params.set('direction', directionChoice);
     navigate(`/lernen/${packId}/uebung?${params.toString()}`);
   }
 
@@ -383,6 +406,34 @@ export function PackDetailPage() {
             </span>
           </label>
         </fieldset>
+
+        {directionOptions.length > 0 ? (
+          <fieldset className="modes" style={{ border: 0, padding: 0, margin: '0 0 1rem' }}>
+            <legend style={{ fontWeight: 560, fontSize: '0.92rem', padding: 0 }}>
+              In welche Richtung möchtest du üben?
+            </legend>
+            {directionOptions.map((choice) => (
+              <label className="mode" key={choice}>
+                <input
+                  type="radio"
+                  name="practice-direction"
+                  value={choice}
+                  aria-label={DIRECTION_CHOICE_LABELS[choice]}
+                  aria-describedby={`direction-${choice}-info`}
+                  checked={directionChoice === choice}
+                  onChange={() => setDirectionChoice(choice)}
+                />
+                <span>
+                  <strong>{DIRECTION_CHOICE_LABELS[choice]}</strong>
+                  <span id={`direction-${choice}-info`} className="small muted">
+                    {' '}
+                    – {DIRECTION_CHOICE_HINTS[choice]}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        ) : null}
 
         {canStart ? (
           <p style={{ marginBottom: '1rem' }}>

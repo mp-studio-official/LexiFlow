@@ -46,6 +46,10 @@ async function seedPack(page: Page, title: string): Promise<void> {
   await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('7');
+  // Dieser Test beschreibt das freie Üben, nicht die Richtungswahl. Seit
+  // Sprint 3B.1 stehen neue Pakete auf „beide Richtungen“; hier soll die
+  // Ausgangslage aber eindeutig eine einzige Richtung sein.
+  await page.getByLabel('Lernrichtung').selectOption('en-de');
   await page.getByRole('button', { name: /Paket speichern/ }).click();
   await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();

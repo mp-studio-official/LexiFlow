@@ -12,6 +12,14 @@ export interface MetaDraft {
   description: string;
 }
 
+/**
+ * Voreinstellung für **neue** Pakete.
+ *
+ * Seit Sprint 3B.1 stehen sie auf „beide Richtungen“: Wer eine Vokabel kann,
+ * kann sie in beide Richtungen, und die Lernenden wählen vor jeder Runde
+ * ohnehin selbst. Bestehende und importierte Pakete behalten ihre Angabe –
+ * eine gespeicherte Entscheidung wird nie stillschweigend überschrieben.
+ */
 export function emptyMetaDraft(): MetaDraft {
   return {
     title: '',
@@ -19,7 +27,7 @@ export function emptyMetaDraft(): MetaDraft {
     grade: '5',
     cefrLevel: suggestCefrLevel('5'),
     cefrLevelOverridden: false,
-    direction: 'en-de',
+    direction: 'both',
     description: '',
   };
 }
