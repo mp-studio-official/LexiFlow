@@ -15,6 +15,8 @@ import {
 import { countClozeReady, serializePack, suggestFilename } from '../../domain/vocabpack';
 import { describeUpdateSummary } from '../../domain/packDiff';
 import { downloadText } from '../../ui/download';
+import { buildStudentHtml } from '../../portable/studentExport';
+import { PORTABLE_BUILD, loadStudentRuntime } from '../../portable/studentRuntime';
 import { suggestCefrLevel } from '../../domain/cefr';
 import type { PackMeta } from '../../domain/schema';
 
@@ -104,23 +106,62 @@ export function PackEditorPage() {
     );
   }
 
-  function handleExport(): void {
-    if (!meta || !original) return;
-    const pack = {
+  /** Das Paket so, wie es gerade im Formular steht – für beide Exporte. */
+  function currentPack(
+    form: NonNullable<typeof meta>,
+    base: NonNullable<typeof original>,
+  ) {
+    const metaForm = form;
+    const original = base;
+    return {
       meta: {
         ...original,
-        title: meta.title.trim(),
-        topic: meta.topic.trim(),
-        grade: meta.grade,
-        cefrLevel: meta.cefrLevel,
-        cefrLevelOverridden: meta.cefrLevel !== suggestCefrLevel(meta.grade),
-        direction: meta.direction,
-        ...(meta.description.trim() ? { description: meta.description.trim() } : {}),
+        title: metaForm.title.trim(),
+        topic: metaForm.topic.trim(),
+        grade: metaForm.grade,
+        cefrLevel: metaForm.cefrLevel,
+        cefrLevelOverridden: metaForm.cefrLevel !== suggestCefrLevel(metaForm.grade),
+        direction: metaForm.direction,
+        ...(metaForm.description.trim() ? { description: metaForm.description.trim() } : {}),
       },
       entries,
     };
+  }
+
+  function handleExport(): void {
+    if (!meta || !original) return;
+    const pack = currentPack(meta, original);
     downloadText(suggestFilename(pack.meta), serializePack(pack));
     setStatus('Export erstellt.');
+  }
+
+  /**
+   * Schülerdatei erzeugen – ein Paket, eine HTML-Datei.
+   *
+   * Der Weg ist bewusst derselbe wie beim JSON-Export: Blob, Objekt-URL,
+   * Anker-Klick. Das funktioniert auch in Safari und ohne Server; nichts
+   * verlässt dabei das Gerät.
+   */
+  async function handleStudentExport(): Promise<void> {
+    if (!meta || !original) return;
+    setError('');
+
+    const runtime = await loadStudentRuntime();
+    if (!runtime) {
+      setError(
+        'Der Schüler-Export steht in der portablen Datei „LexiFlow-Lehrkraft.html“ zur Verfügung.',
+      );
+      return;
+    }
+
+    const result = buildStudentHtml(runtime, currentPack(meta, original));
+    if (!result.ok) {
+      setError(`Die Schülerdatei konnte nicht erzeugt werden: ${result.errors.join(' · ')}`);
+      return;
+    }
+
+    downloadText(result.filename, result.html, 'text/html');
+    setStatus(`Schülerdatei erstellt: ${result.filename}`);
   }
 
   async function handleDelete(): Promise<void> {
@@ -141,6 +182,22 @@ export function PackEditorPage() {
       <Announcer message={status} />
       {status ? <Alert tone="success">{status}</Alert> : null}
       {error ? <Alert tone="error">{error}</Alert> : null}
+
+      <Card quiet>
+        <h2 style={{ fontSize: '1rem', marginTop: 0 }}>Weitergeben an die Klasse</h2>
+        <p className="small muted" style={{ marginBottom: 0 }}>
+          Die Datei enthält dieses Vokabelpaket und den vollständigen Schülertrainer. Sie
+          funktioniert ohne Konto und ohne Internet. Lernstände und andere Pakete wandern nicht
+          mit. Personenbezogene Daten stehen nur darin, wenn du selbst welche in Titel, Thema,
+          Beschreibung oder Notizen geschrieben hast.
+          {PORTABLE_BUILD ? null : (
+            <>
+              {' '}
+              Erzeugen lässt sie sich in der portablen Datei „LexiFlow-Lehrkraft.html“.
+            </>
+          )}
+        </p>
+      </Card>
 
       <Card>
         <h2>Metadaten</h2>
@@ -173,6 +230,9 @@ export function PackEditorPage() {
           Änderungen speichern
         </Button>
         <Button onClick={handleExport}>Als .vocabpack.json exportieren</Button>
+        <Button onClick={() => void handleStudentExport()}>
+          Als Schülerdatei (.html) exportieren
+        </Button>
         <Link className="btn" to={`/lernen/${packId}`}>
           Im Schülerbereich ansehen
         </Link>

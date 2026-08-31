@@ -15,6 +15,12 @@ const base = process.env['LEXIFLOW_BASE'] ?? '/';
 
 export default defineConfig({
   base,
+  define: {
+    // Nur die portable Lehrkraftdatei bringt die Schülerlaufzeit mit; im
+    // normalen Build bliebe sie ungenutztes Gewicht (siehe
+    // `src/portable/studentRuntime.ts`).
+    __LEXIFLOW_PORTABLE__: 'false',
+  },
   plugins: [
     react(),
     VitePWA({

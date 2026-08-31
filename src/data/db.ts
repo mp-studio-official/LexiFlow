@@ -120,7 +120,27 @@ async function migrateV1ToV2(tx: Transaction): Promise<void> {
   }
 }
 
-export const db = new LexiFlowDatabase();
+/**
+ * Der Datenbankname ist ab Sprint 4A.1 einstellbar.
+ *
+ * Grund ist `file://`: Chromium behandelt **alle** lokalen Dateien als
+ * denselben Ursprung. Ohne eigenen Namen läge der Lernstand einer portablen
+ * Schülerdatei in derselben Datenbank wie die der Lehrkraftdatei und aller
+ * anderen Schülerdateien. Der Einstiegspunkt der Schülerdatei setzt deshalb
+ * `globalThis.__LEXIFLOW_DB__`, **bevor** dieses Modul geladen wird (er lädt die
+ * App dynamisch nach). Im normalen Web-Build ist die Variable nicht gesetzt und
+ * es bleibt bei `lexiflow`.
+ */
+export const DEFAULT_DATABASE_NAME = 'lexiflow';
+
+function configuredDatabaseName(): string {
+  const configured = (globalThis as { __LEXIFLOW_DB__?: unknown }).__LEXIFLOW_DB__;
+  return typeof configured === 'string' && configured.length > 0
+    ? configured
+    : DEFAULT_DATABASE_NAME;
+}
+
+export const db = new LexiFlowDatabase(configuredDatabaseName());
 
 /** Löscht sämtliche lokal gespeicherten Daten (Pakete und Lernstände). */
 export async function clearAllLocalData(): Promise<void> {

@@ -1680,3 +1680,24 @@ progress {
   font-weight: var(--weight-medium);
   color: var(--ink-secondary);
 }
+
+/* --- Portable Schülerdatei ------------------------------------------------ */
+
+/*
+ * Die Schülerdatei hat keine Navigation – sie hat genau ein Paket. Ohne die
+ * Seitenspalte darf der Inhalt nicht in der linken Rasterspur kleben, und ohne
+ * die Leiste am unteren Rand braucht es dort auch keinen Platzhalter.
+ */
+.app--portable .app-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app--portable .app-main {
+  padding-bottom: var(--space-8);
+}
+
+@media (min-width: 62rem) {
+  .app--portable .app-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

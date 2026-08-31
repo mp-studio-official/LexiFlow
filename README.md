@@ -18,6 +18,9 @@ Freiwillige Lernhilfe – ohne Konten, ohne Backend, ohne KI, ohne Tracking.
 * **Sprint 3A** – Editorial-Creator-Design: ein dokumentiertes Token-System,
   lokal gebündelte Schriften, eine Creator-Studio-Shell und vier vollständig
   überarbeitete Oberflächen. Funktional ändert sich nichts.
+* **Sprint 4A.1** – Portable Einzeldateien: LexiFlow als eine HTML-Datei für die
+  Lehrkraft, dazu ein Export, der aus einem Paket eine eigenständige
+  Schülerdatei macht. Beide laufen per Doppelklick, ohne Server und ohne Netz.
 * **Sprint 3B.2b2** – Gewählte Übungsformen sind verbindlich: Wer im freien Üben
   eine Aufgabenart auswählt, bekommt genau diese – notfalls eine kürzere Runde
   statt einer stillschweigenden Ersatzform.
@@ -84,6 +87,9 @@ Weitere Befehle:
 | `npm run e2e` | Alle Playwright-Tests (baut vorher automatisch) |
 | `npm run e2e:smoke` | Nur der End-to-End-Smoke-Test |
 | `npm run e2e:a11y` | Nur die Barrierefreiheitstests (Axe, Tastatur, 390 px) |
+| `npm run build:portable` | Die beiden portablen Einzeldateien nach `dist-portable/` |
+| `npm run verify:portable` | Prüft die gebauten Einzeldateien (setzt `build:portable` voraus) |
+| `npm run e2e:portable` | Der portable E2E-Ablauf über `file://` (setzt `build:portable` voraus) |
 | `npx vitest run src/domain/freePractice.test.ts` | Nur Planung und Vorschau des freien Übens |
 | `npx vitest run src/routes/student/freePractice.test.tsx` | Nur die Einstiege und die wirkungsfreie freie Runde |
 | `npx vitest run src/routes/student/freePracticeSetup.test.tsx` | Nur „Runde anpassen“ |
@@ -126,6 +132,149 @@ Beide werden von `src/domain/examplePack.test.ts` bei jedem Testlauf geprüft.
 
 ---
 
+## Drei Auslieferungsformen
+
+LexiFlow gibt es seit Sprint 4A.1 dreimal – aus **einem** Quellbaum, mit
+derselben Domänenlogik und denselben Komponenten.
+
+| | Befehl | Ergebnis | Wofür |
+| --- | --- | --- | --- |
+| PWA | `npm run build` | `dist/` (viele Dateien, Service Worker, Manifest) | gehostet unter HTTPS, installierbar, offlinefähig |
+| Lehrkraftdatei | `npm run build:portable` | `dist-portable/LexiFlow-Lehrkraft.html` | eine Datei, Doppelklick, ohne Server |
+| Schülerdatei | Export aus der Lehrkraftdatei | z. B. `unit-3-city-life-8-lexiflow.html` | ein Paket + Trainer, für die Klasse |
+
+**Der normale Build ist unverändert.** `npm run build` macht dasselbe wie
+vorher; die portablen Ziele sind eigene Vite-Konfigurationen
+(`vite.student.config.ts`, `vite.portable.config.ts`) und ein
+Orchestrierungsskript (`scripts/build-portable.mjs`). Es gibt keine zweite,
+handgeschriebene HTML-Fassung der Anwendung – die Einzeldateien entstehen aus
+demselben Quellcode, nur mit `vite-plugin-singlefile` und
+`assetsInlineLimit: Infinity`.
+
+### Wie die Lehrkraftdatei die Schülerdatei erzeugt
+
+Der Build läuft in zwei Schritten, und die Reihenfolge ist Pflicht:
+
+1. **Schülerlaufzeit** (`student.html` → `src/student-main.tsx`) wird zu einer
+   einzigen HTML-Datei gebaut. Sie enthält alles außer dem Paket: an dessen
+   Stelle steht die Markierung `"__LEXIFLOW_PACK__"`.
+2. **Lehrkraftdatei** wird gebaut und bekommt diese Laufzeit über ein virtuelles
+   Modul als Zeichenkette einkompiliert. Deshalb kann sie unter `file://` eine
+   Schülerdatei erzeugen, ohne irgendetwas nachzuladen.
+
+Beim Export ersetzt `buildStudentHtml` die beiden Markierungen (Paket und
+Fenstertitel) und bietet das Ergebnis über einen Blob-Download an – derselbe
+Weg wie beim `.vocabpack.json`-Export, der unverändert daneben bleibt.
+
+Der **Web-Build kennt die Aktion, aber nicht die Laufzeit**: Die Schülerlaufzeit
+dort mitzubündeln würde das Bündel verdoppeln, für eine Funktion, die auf einer
+gehosteten Instanz niemand braucht. Die Paketseite sagt deshalb, wo der Export
+zu finden ist, statt einen Knopf anzubieten, der nichts erzeugen kann
+(`__LEXIFLOW_PORTABLE__`, siehe `src/portable/studentRuntime.ts`).
+
+### Die Schülerdatei ist eine eigene Anwendung
+
+`src/StudentApp.tsx` versteckt die Lehrkraftseiten nicht – es **kennt** sie
+nicht. Importwizard, Paketeditor, Themenwerkstatt, Satzassistent und die
+gesamte Provider-Registrierung (Übersetzung, Sprachmodell) werden dort nicht
+importiert und landen deshalb nicht im Bündel. `#/material/import` endet auf der
+Startseite, weil es diese Route nicht gibt.
+
+Enthalten sind: Paketübersicht (das eine Paket), Lernplan, freies Üben inklusive
+„Runde anpassen“, Durchsehen, Karten, Selbsttest mit Fehlerwiederholung, beide
+Lernrichtungen und der lokale Lernstand.
+
+### Sichere Einbettung der Paketdaten
+
+Die Paketdaten stehen in einem `<script id="lexiflow-pack"
+type="application/json">` – einem Element, das der Browser **nicht ausführt**.
+Beim Serialisieren wird jedes `<`, `>` und `&` zu einer `\u`-Folge, dazu die
+JavaScript-Zeilentrenner U+2028/U+2029. Damit kann die Zeichenfolge `</script`
+im eingebetteten JSON gar nicht vorkommen – unabhängig davon, was in den
+Vokabeln steht. Gelesen wird mit `JSON.parse(el.textContent)` und **erneut**
+gegen `vocabPackFileSchema` geprüft, mit derselben Migration wie beim
+Dateiimport. Kein `eval`, kein `document.write`, kein `innerHTML`. Beschädigte
+oder zu neue Daten führen zu einer verständlichen Seite statt zu einem weißen
+Fenster.
+
+Vor dem Export wird das Paket ebenfalls validiert: Eine kaputte Datei bei 28
+Lernenden ist teurer als eine Fehlermeldung bei einer Lehrkraft.
+
+### Verhalten unter `file://`
+
+* **Hash-Routing** funktioniert unverändert; das Neuladen einer Schülerroute
+  landet wieder an derselben Stelle.
+* **Kein Service Worker.** Unter `file://` lässt sich keiner registrieren – die
+  portablen Builds versuchen es gar nicht erst, und das ist kein Fehlerzustand.
+  Im PWA-Build bleibt der Service Worker unverändert.
+* **Nichts wird nachgeladen.** `npm run verify:portable` durchsucht beide
+  Dateien nach jedem `src=`/`href=`, das nicht `data:` oder `#` ist – ein
+  einziger Treffer lässt den Build scheitern. Die E2E-Suite behandelt zusätzlich
+  jede Anfrage, die nicht `file:`, `data:` oder `blob:` ist, als Fehler.
+* **Speicher wird geprüft, bevor etwas behauptet wird.** `checkStorage()` legt
+  testweise eine eigene, winzige Datenbank an und räumt nur diese wieder weg.
+  Fremde Browserdaten werden nie gelöscht.
+
+**Datenbankname.** Chromium behandelt *alle* lokalen Dateien als denselben
+Ursprung. Ohne Gegenmaßnahme läge der Lernstand einer Schülerdatei in derselben
+Datenbank wie der der Lehrkraftdatei. Die Schülerdatei setzt deshalb vor dem
+Laden der App `globalThis.__LEXIFLOW_DB__` auf `lexiflow-schueler-<paket-id>`
+(siehe `src/data/db.ts`) – getrennt von der Lehrkraftdatei und von jeder anderen
+Schülerdatei.
+
+### Lernstand in der Schülerdatei
+
+Der Lernstand liegt im Browser, nicht in der Datei. Die Schülerdatei sagt das im
+Fuß jeder Seite:
+
+> „Dein Lernstand wird in diesem Browser gespeichert. Wenn du die Datei
+> umbenennst, verschiebst oder in einem anderen Browser öffnest, kann er dort
+> nicht verfügbar sein.“
+
+Lässt der Browser keinen dauerhaften Speicher zu, erscheint stattdessen ein
+Hinweis und die Datei behauptet nichts Falsches.
+
+**Noch nicht enthalten:** „Lernstand sichern“ / „Lernstand wiederherstellen“ als
+lokale Datei. Das ist bewusst aufgeschoben – dafür braucht es ein eigenes,
+versioniertes Dateiformat für Lernstände (mit Paketbezug, Richtungsschlüsseln
+und einer Migrationsregel), und ein halbfertiges Format wäre schlimmer als
+keines. Konkreter nächster Schritt: `lexiflow.progress` v1 mit `packId`,
+`formatVersion`, den `directionProgress`-Datensätzen und dem Paketzähler, plus
+einer Zusammenführungsregel für den Fall, dass beim Wiederherstellen schon ein
+Lernstand existiert.
+
+### Browser
+
+Die portable E2E-Suite läuft in **Chromium**. Dort steht unter `file://`
+IndexedDB zur Verfügung, und der Lernstand übersteht ein Neuladen – das ist
+getestet.
+
+**Safari ist nicht automatisiert geprüft.** Playwright-WebKit ließ sich in
+dieser Umgebung nicht installieren (der Download-Host ist nicht freigegeben),
+und WebKit wäre ohnehin nur eine technische Annäherung. Für den echten Test
+genügt diese Liste:
+
+1. `LexiFlow-Lehrkraft.html` per Doppelklick öffnen – Startseite sichtbar?
+2. Paket über „Liste einfügen“ anlegen und speichern.
+3. „Als Schülerdatei (.html) exportieren“ – kommt der Download an?
+4. Die Schülerdatei per Doppelklick öffnen – Titel und Paket sichtbar?
+5. Durchsehen, Karten, freie Runde, Selbsttest durchklicken.
+6. Eine Lernrunde beantworten, dann Seite neu laden: Bleibt der Lernstand? Wenn
+   nicht, muss der Hinweis „Kein dauerhafter Speicher“ erscheinen – ein Absturz
+   oder eine falsche Zusage wäre ein Fehler.
+7. Entwicklermenü → Netzwerk: Es darf keine einzige externe Anfrage geben.
+
+### Größen
+
+Wodurch die Größe entsteht: React und React-DOM, der Router, Dexie und Zod
+machen den größten Block aus; dazu kommen die beiden lokal gebündelten
+variablen Schriften (Manrope und Newsreader, zusammen rund 83 KiB als woff2)
+sowie das vollständige CSS. Alles davon steckt als Data-URL beziehungsweise
+Inline-Code im Dokument – genau deshalb braucht es kein Netz. Der Umfang des
+Pakets selbst fällt kaum ins Gewicht: 100 Vokabeln sind rund 14 KiB.
+
+---
+
 ## Grundprinzipien in der Umsetzung
 
 | Prinzip | Wie es technisch abgesichert ist |
@@ -152,6 +301,8 @@ src/
     exercises.ts     Aufgabenbau und Auswahl der (Vokabel, Richtung)-Paare
     freePractice.ts  Planung und Vorschau fürs freie Üben – ohne Fälligkeit
     selfTest.ts      Selbsttest: Planung, Auswertung, Fehlerwiederholung
+  portable/      Schülerdatei erzeugen und einlesen, Speicherprüfung
+  dictionary/    Platzhalter für das Offline-Wörterbuch (Sprint 4A.2)
     session.ts       Warteschlange einer Runde inkl. Wiedervorlage
     dueDate.ts       verständliche Formulierung von Fälligkeitsterminen
     packDiff.ts      Fingerprint lernrelevanter Felder, Paketvergleich

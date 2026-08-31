@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#faf7f2" />
+    <meta
+      name="description"
+      content="LexiFlow – dein Vokabelpaket zum Üben. Alles bleibt auf deinem Gerät."
+    />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <title><!--LEXIFLOW_TITLE--></title>
+    <!--
+      Hier steht das Vokabelpaket. `type="application/json"` heißt: Der Browser
+      führt diesen Inhalt nicht aus, er hält ihn als Text bereit. Beim Export
+      wird die Markierung durch JSON ersetzt, in dem jedes `<` maskiert ist –
+      damit kann kein Vokabeltext dieses Element verlassen.
+    -->
+    <script id="lexiflow-pack" type="application/json">"__LEXIFLOW_PACK__"</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/student-main.tsx"></script>
+  </body>
+</html>

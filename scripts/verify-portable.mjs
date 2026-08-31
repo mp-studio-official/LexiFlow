@@ -1,0 +1,117 @@
+#!/usr/bin/env node
+/**
+ * Prüft die gebauten portablen Dateien – bevor sie jemand weitergibt.
+ *
+ * Zwei Teile:
+ * 1. Statische Zusicherungen an den Dateien selbst (hier): Wirklich alles drin?
+ *    Kein Verweis nach draußen? Keine Stelle, an der etwas nachgeladen würde?
+ * 2. Fachliche Zusicherungen an einem echten Export (`vitest.portable.config.ts`):
+ *    genau ein Paket, keine Lernstände, sichere Einbettung, Unicode.
+ */
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const root = resolve(import.meta.dirname, '..');
+const out = resolve(root, 'dist-portable');
+
+const teacher = resolve(out, 'LexiFlow-Lehrkraft.html');
+const runtime = resolve(out, 'LexiFlow-Schuelerlaufzeit.html');
+
+const problems = [];
+
+function check(condition, message) {
+  if (!condition) problems.push(message);
+}
+
+function kib(bytes) {
+  return `${(bytes / 1024).toFixed(1)} KiB`;
+}
+
+for (const file of [teacher, runtime]) {
+  if (!existsSync(file)) {
+    console.error(`FEHLT: ${file}\nBitte zuerst \`npm run build:portable\` ausführen.`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Verweise, die beim Öffnen etwas nachladen würden.
+ *
+ * Gesucht wird nach `src=` und `href=` mit einem Ziel, das kein `data:`,
+ * kein `#` und kein `mailto:` ist. Ein einziger Treffer bedeutet: Die Datei ist
+ * nicht portabel – unter `file://` bliebe an dieser Stelle ein Loch.
+ */
+function externalReferences(html) {
+  const found = [];
+  const pattern = /\s(?:src|href)\s*=\s*"([^"]*)"/gi;
+  let match;
+  while ((match = pattern.exec(html)) !== null) {
+    const target = (match[1] ?? '').trim();
+    if (!target) continue;
+    if (target.startsWith('data:')) continue;
+    if (target.startsWith('#')) continue;
+    if (target.startsWith('mailto:')) continue;
+    found.push(target);
+  }
+  return found;
+}
+
+const report = [];
+
+for (const [label, file] of [
+  ['LexiFlow-Lehrkraft.html', teacher],
+  ['LexiFlow-Schuelerlaufzeit.html', runtime],
+]) {
+  const html = readFileSync(file, 'utf8');
+  report.push({ label, bytes: statSync(file).size });
+
+  const refs = externalReferences(html);
+  check(
+    refs.length === 0,
+    `${label}: verweist auf ${refs.length} externe Datei(en): ${refs.slice(0, 5).join(', ')}`,
+  );
+
+  check(!/serviceWorker\s*\.\s*register/.test(html), `${label}: registriert einen Service Worker.`);
+  check(!/\beval\s*\(/.test(html), `${label}: enthält einen eval-Aufruf.`);
+  check(!/document\s*\.\s*write\s*\(/.test(html), `${label}: enthält document.write.`);
+  check(
+    !/<link[^>]+rel="manifest"/i.test(html),
+    `${label}: verweist auf ein Web-App-Manifest, das unter file:// nicht existiert.`,
+  );
+}
+
+const runtimeHtml = readFileSync(runtime, 'utf8');
+check(
+  runtimeHtml.includes('"__LEXIFLOW_PACK__"'),
+  'Schülerlaufzeit: die Einsetzstelle für das Paket fehlt.',
+);
+check(
+  runtimeHtml.includes('<!--LEXIFLOW_TITLE-->'),
+  'Schülerlaufzeit: die Einsetzstelle für den Titel fehlt.',
+);
+check(
+  !/id="lexiflow-pack"[^>]*type="application\/json"[^>]*>\s*\{/.test(runtimeHtml),
+  'Schülerlaufzeit: enthält bereits ein Paket – die Vorlage muss leer sein.',
+);
+
+const teacherHtml = readFileSync(teacher, 'utf8');
+check(
+  teacherHtml.includes('__LEXIFLOW_PACK__'),
+  'Lehrkraftdatei: die Schülerlaufzeit ist nicht einkompiliert – der Export könnte nichts erzeugen.',
+);
+
+console.log('\nGrößen:');
+for (const entry of report) console.log(`  ${entry.label.padEnd(34)} ${kib(entry.bytes)}`);
+
+if (problems.length > 0) {
+  console.error('\nProbleme:');
+  for (const problem of problems) console.error(`  – ${problem}`);
+  process.exit(1);
+}
+console.log('\nStatische Prüfung bestanden. Jetzt der fachliche Teil …\n');
+
+execFileSync('npx', ['vitest', 'run', '--config', 'vitest.portable.config.ts'], {
+  cwd: root,
+  stdio: 'inherit',
+});
