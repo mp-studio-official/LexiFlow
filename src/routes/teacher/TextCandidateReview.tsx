@@ -20,6 +20,13 @@ import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
 import { describePrepareError, type TranslationPreparation } from '../../translation/preparation';
+import type { DictionaryProvider } from '../../dictionary/DictionaryProvider';
+import { createOfflineDictionary } from '../../dictionary/offlineDictionary';
+import {
+  enrichWithDictionary,
+  type DictionarySuggestionSummary,
+} from '../../import/dictionarySuggestions';
+import { DictionarySuggestionList } from './DictionarySuggestionList';
 
 /**
  * Die Priorisierung lädt erst, wenn die Kandidatenansicht offen ist – der
@@ -54,6 +61,19 @@ type ReviewSort = CandidateSort | 'recommended';
 const SOURCE_LANGUAGE = 'en';
 const TARGET_LANGUAGE = 'de';
 
+/**
+ * Ein Wörterbuch je Sitzung, nicht je Ansicht.
+ *
+ * Die 6 MB werden einmal geladen und behalten dann ihre entpackten Fächer im
+ * Cache. Jede Ansicht ihr eigenes Exemplar bauen zu lassen hieße, denselben
+ * Datensatz mehrfach zu halten.
+ */
+let sharedDictionary: DictionaryProvider | undefined;
+function defaultDictionary(): DictionaryProvider {
+  sharedDictionary ??= createOfflineDictionary();
+  return sharedDictionary;
+}
+
 type RowTranslation = 'idle' | 'pending' | 'suggested' | 'accepted' | 'error';
 
 interface CandidateRow {
@@ -71,7 +91,11 @@ interface CandidateRow {
    * deterministisch und ohne jedes Modell – ein Modell darf ihn nicht
    * stillschweigend überschreiben.
    */
-  suggestionSource?: 'local' | 'model' | undefined;
+  suggestionSource?: 'local' | 'model' | 'dictionary' | undefined;
+  /** Alle Wörterbuchtreffer zu dieser Zeile – Vorschläge, nie Antworten. */
+  dictionary?: DictionarySuggestionSummary | undefined;
+  /** Gesetzt, wenn ein Wort derselben Familie schon eine Zeile weiter oben steht. */
+  family?: string | undefined;
   suggestedSentence?: string | undefined;
   translation: RowTranslation;
   error?: string | undefined;
@@ -143,6 +167,11 @@ export interface TextCandidateReviewProps {
    * `prepare()`-Aufruf findet nicht statt.
    */
   preparation?: TranslationPreparation | null;
+  /**
+   * Das Offline-Wörterbuch. Einspeisbar, damit Tests einen kleinen Bestand
+   * einsetzen können; im Betrieb der eingebaute Datensatz.
+   */
+  dictionary?: DictionaryProvider;
   onApply: (selections: CandidateSelection[]) => void;
   onBack: () => void;
 }
@@ -153,6 +182,7 @@ export function TextCandidateReview({
   onContextChange,
   requestedCount,
   preparation,
+  dictionary,
   onApply,
   onBack,
 }: TextCandidateReviewProps) {
@@ -185,10 +215,86 @@ export function TextCandidateReview({
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [providerError, setProviderError] = useState('');
+  const [dictionaryState, setDictionaryState] = useState<'prueft' | 'laeuft' | 'fertig' | 'fehlt'>(
+    'prueft',
+  );
+  const [dictionaryUnambiguous, setDictionaryUnambiguous] = useState(0);
 
   // Fokus nach der Analyse auf die Ergebnisüberschrift.
   useEffect(() => {
     headingRef.current?.focus();
+  }, []);
+
+  /*
+    Das Offline-Wörterbuch läuft **von selbst**, gleich nach der Analyse.
+
+    Kein Knopf, keine Erlaubnis, kein Modell: Es ist der verlässliche Grundweg
+    und funktioniert in Safari wie in Chrome. Was es liefert, sind Vorschläge –
+    eingetragen wird nichts, überschrieben schon gar nichts.
+  */
+  useEffect(() => {
+    let active = true;
+    const provider = dictionary ?? defaultDictionary();
+
+    void (async () => {
+      if (!(await provider.isAvailable())) {
+        if (active) setDictionaryState('fehlt');
+        return;
+      }
+      if (!active) return;
+      setDictionaryState('laeuft');
+
+      /*
+        Gesammelt wird in einer eigenen Ablage, **nicht** in den Zeilen selbst.
+
+        Die Suche über alle Kandidaten dauert einen Moment, und in diesem Moment
+        tippt die Lehrkraft womöglich schon. Ein früherer Entwurf schrieb am
+        Ende `setRows(result.rows)` – und warf damit jede Eingabe weg, die
+        während der Suche entstanden war. Ein E2E-Test hat das aufgedeckt:
+        Angehakte Zeilen verschwanden mitten im Ablauf wieder.
+
+        Deshalb wird am Schluss **zusammengeführt**, nicht ersetzt: Jede Zeile
+        wird über ihre Id wiedergefunden, und wer inzwischen eine Antwort trägt,
+        bekommt gar keinen Vorschlag mehr.
+      */
+      const found = new Map<string, { summary: DictionarySuggestionSummary; family?: string }>();
+      const result = await enrichWithDictionary(
+        rowsRef.current,
+        (row) => headwordOf(row).english,
+        provider,
+        (row, summary, family) => {
+          found.set(row.candidate.id, { summary, ...(family ? { family } : {}) });
+          return row;
+        },
+      );
+
+      if (!active) return;
+      setRows((current) =>
+        current.map((row) => {
+          const hit = found.get(row.candidate.id);
+          if (!hit) return row;
+          // Zweite Prüfung, jetzt gegen den *aktuellen* Stand der Zeile.
+          if (row.german.trim().length > 0) return row;
+          return { ...row, dictionary: hit.summary, family: hit.family };
+        }),
+      );
+      setDictionaryState('fertig');
+      setDictionaryUnambiguous(result.unambiguous);
+      setStatus(
+        result.filled === 0
+          ? 'Das Offline-Wörterbuch hat zu diesen Wörtern nichts gefunden.'
+          : `Offline-Wörterbuch: ${result.filled} von ${rowsRef.current.length} Wörtern gefunden, ` +
+            `${result.unambiguous} davon eindeutig.`,
+      );
+    })();
+
+    return () => {
+      active = false;
+    };
+    // Absichtlich nur beim ersten Aufbau: Die Kandidatenliste ist zu diesem
+    // Zeitpunkt vollständig, und ein erneuter Lauf würde bereits übernommene
+    // Antworten wieder mit Vorschlägen überziehen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -267,6 +373,32 @@ export function TextCandidateReview({
 
   function setAllSelected(selected: boolean): void {
     setRows((current) => current.map((row) => ({ ...row, selected })));
+  }
+
+  /**
+   * Die Sammelaktion – und ihre Grenze.
+   *
+   * Übernommen wird nur, was das Wörterbuch **eindeutig** hergibt: eine
+   * Wortart, eine Bedeutung, eine unmarkierte Entsprechung. Alles Mehrdeutige
+   * bleibt liegen, und alles, was die Lehrkraft schon geschrieben hat, wird
+   * nicht angefasst. Die Zahl steht vorher auf dem Knopf, damit niemand
+   * überrascht wird.
+   */
+  function acceptUnambiguousDictionarySuggestions(): void {
+    let taken = 0;
+    setRows((current) =>
+      current.map((row) => {
+        if (!row.dictionary?.unambiguous) return row;
+        if (row.german.trim().length > 0) return row;
+        taken += 1;
+        return { ...row, german: row.dictionary.primary, translation: 'accepted' };
+      }),
+    );
+    setStatus(
+      taken === 0
+        ? 'Es gab nichts zu übernehmen – alle eindeutigen Zeilen haben schon eine Antwort.'
+        : `${taken} eindeutige Wörterbuchvorschläge übernommen. Bitte trotzdem durchsehen.`,
+    );
   }
 
   /**
@@ -511,6 +643,15 @@ export function TextCandidateReview({
           <Button small onClick={() => setAllSelected(false)}>
             Keine auswählen
           </Button>
+          {dictionaryUnambiguous > 0 ? (
+            <Button
+              small
+              onClick={acceptUnambiguousDictionarySuggestions}
+              title="Nur Wörter mit genau einer unmarkierten Bedeutung"
+            >
+              Eindeutige Wörterbuchvorschläge übernehmen ({dictionaryUnambiguous})
+            </Button>
+          ) : null}
           <span className="spacer" />
           <label className="checkbox">
             <span>Sortierung:</span>
@@ -562,6 +703,41 @@ export function TextCandidateReview({
           onRecommend={applyRecommendations}
         />
       </Suspense>
+
+      {/*
+        Der Browserhinweis – einmal je Ansicht, nicht bei jeder Suche.
+
+        Erkannt wird über Feature Detection (`getAvailability`), nicht über den
+        User-Agent: Was ein Browser kann, sagt der Browser, nicht sein Name.
+        Und der Hinweis behauptet nicht, Chrome könne das überall – er nennt
+        die Bedingung mit.
+      */}
+      {dictionaryState === 'fertig' || dictionaryState === 'fehlt' ? (
+        <Alert tone="info" title="Lokale Grundvorschläge">
+          {dictionaryState === 'fertig' ? (
+            <>
+              Das integrierte Offline-Wörterbuch funktioniert auch in Safari. Übersetzungsvorschläge
+              sowie Wortform- und Abkürzungserkennung laufen vollständig auf deinem Gerät.
+            </>
+          ) : (
+            <>
+              Das integrierte Offline-Wörterbuch steht hier gerade nicht zur Verfügung. Wortform-
+              und Abkürzungserkennung funktionieren unverändert; deutsche Antworten trägst du
+              selbst ein.
+            </>
+          )}{' '}
+          {providerState === 'unavailable' ? (
+            <>
+              Für zusätzliche, kontextbezogene KI-Vorschläge kannst du LexiFlow in einer aktuellen
+              Desktop-Version von Google Chrome öffnen – dort sind sie verfügbar, sofern Chrome und
+              das Gerät die lokalen Modelle unterstützen.
+            </>
+          ) : (
+            <>In diesem Browser kann zusätzlich ein lokales Sprachmodell kontextbezogene Vorschläge
+              erzeugen.</>
+          )}
+        </Alert>
+      ) : null}
 
       <Card quiet>
         <h3 style={{ fontSize: '1rem' }}>Übersetzungsvorschläge (optional)</h3>
@@ -787,6 +963,18 @@ export function TextCandidateReview({
                     Vorschlag übernehmen
                   </Button>
                 </div>
+              ) : null}
+
+              {row.dictionary ? (
+                <DictionarySuggestionList
+                  label={label}
+                  summary={row.dictionary}
+                  current={row.german}
+                  family={row.family}
+                  onAccept={(german) =>
+                    update(candidate.id, { german, translation: 'accepted' })
+                  }
+                />
               ) : null}
             </li>
           );

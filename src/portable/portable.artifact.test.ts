@@ -225,6 +225,43 @@ describe('Gebaute Schülerdatei', () => {
     expect(html).toContain('LexiFlow');
   });
 
+  /*
+    Sprint 4A.2: Das Wörterbuch gehört in die Lehrkraftdatei – und nur dorthin.
+
+    Eine Schülerdatei wird an eine ganze Klasse weitergegeben. Sechs Megabyte
+    Wörterbuch mitzuschicken, das dort niemand benutzen kann, wäre eine Zumutung
+    für jede Mailbox und jedes Datenvolumen.
+  */
+  it('trägt das Wörterbuch nicht in die Schülerlaufzeit', () => {
+    const marker = '4c27d202e875550c2cc7ea93a4d21ddf80440e5030606d3edbb8b0e65dc64006';
+    expect(runtime).not.toContain(marker);
+    expect(runtime).not.toContain('Offline-Wörterbuch');
+    // Und auch nicht in die fertige Schülerdatei.
+    const html = build();
+    expect(html).not.toContain(marker);
+    expect(html).not.toContain('Offline-Wörterbuch');
+  });
+
+  it('hält die Schülerdatei in der bisherigen Größenordnung', () => {
+    /*
+      Vor Sprint 4A.2 war die Schülerlaufzeit 620,7 KiB groß. Sie darf durch das
+      Wörterbuch nicht wachsen – der einzige zulässige Zuwachs ist das bisschen
+      CSS für die Vorschlagsanzeige im Lehrkraftbereich. Die Schranke liegt
+      bewusst knapp darüber: Sie soll anschlagen, sobald jemand versehentlich
+      Wörterbuchdaten in den Schülerpfad zieht.
+    */
+    const kiB = Buffer.byteLength(runtime, 'utf8') / 1024;
+    expect(kiB).toBeLessThan(700);
+  });
+
+  it('trägt das Wörterbuch samt Quelle und Lizenz in der Lehrkraftdatei', () => {
+    const teacher = readFileSync(resolve(root, 'dist-portable/LexiFlow-Lehrkraft.html'), 'utf8');
+    expect(teacher).toContain('4c27d202e875550c2cc7ea93a4d21ddf80440e5030606d3edbb8b0e65dc64006');
+    expect(teacher).toContain('CC BY-SA 4.0');
+    expect(teacher).toContain('en.wiktionary.org');
+    expect(teacher).toContain('wiktextract');
+  });
+
   it('legt eine Beispieldatei zum Nachsehen ab', () => {
     // Kein Test im engeren Sinn, sondern ein Nebenprodukt: Die Datei landet in
     // `dist-portable/` und kann von Hand geöffnet werden.

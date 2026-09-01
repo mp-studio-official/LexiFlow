@@ -1979,6 +1979,108 @@ progress {
   }
 }
 
+/* --- Wörterbuchvorschläge ------------------------------------------------- */
+
+/*
+ * Die Wörterbuchtreffer stehen unter der Zeile, zu der sie gehören – deutlich
+ * abgesetzt vom Eingabefeld, damit niemand sie für die Antwort hält. Getragen
+ * wird die Abgrenzung von der Orangekante, derselben Markerfarbe wie bei der
+ * Auswahl: „hier steht etwas Zusätzliches“, nicht „hier ist ein Fehler“.
+ */
+.dictionary {
+  border-left: 3px solid var(--warm);
+  background: var(--warm-soft);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  padding: var(--space-2) var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dictionary__head {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.dictionary__note,
+.dictionary__warn {
+  margin: 0;
+}
+
+.dictionary__warn {
+  color: var(--warning);
+  font-weight: var(--weight-medium);
+}
+
+.dictionary__senses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dictionary__sense {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: start;
+}
+
+.dictionary__meta {
+  margin: 0;
+}
+
+/* Die Wortart als kleines, ruhiges Etikett – Information, kein Schmuck. */
+.dictionary__pos {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dictionary__words {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.25rem;
+  font-size: var(--text-md);
+}
+
+.dictionary__word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+/*
+ * Jede Bedeutung ist einzeln anklickbar. Als Schaltfläche, nicht als Link:
+ * Sie führt nirgendwohin, sie trägt etwas ein.
+ */
+.dictionary__pick {
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed var(--border-strong);
+  padding: 0 0 1px;
+  cursor: pointer;
+  min-height: 1.6rem;
+}
+
+.dictionary__pick:hover {
+  border-bottom-style: solid;
+  color: var(--accent-ink);
+}
+
+.dictionary__gender {
+  color: var(--ink-secondary);
+  font-size: var(--text-sm);
+}
+
 /* --- Kopf der Lernansichten ---------------------------------------------- */
 
 /*

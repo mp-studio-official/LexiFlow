@@ -1,6 +1,6 @@
-import { existsSync, mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join, resolve } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -125,6 +125,50 @@ test.describe('Portable Lehrkraftdatei', () => {
     expect(external).toEqual([]);
   });
 
+  /*
+    Sprint 4A.2: Der eigentliche Prüfstein.
+
+    Eine Lehrkraftdatei per Doppelklick, ohne Netz, ohne Browsermodell – und
+    trotzdem stehen deutsche Vorschläge da. Genau das war bisher der Punkt, an
+    dem Safari nichts zu bieten hatte.
+  */
+  test('@smoke schlägt offline im Wörterbuch nach, ohne Modell und ohne Netz', async ({ page }) => {
+    const external = watchExternalRequests(page);
+    const errors = watchPageErrors(page);
+
+    await page.goto(`${TEACHER_URL}#/material/import?quelle=text`);
+    await page
+      .getByLabel('Englischer Text')
+      .fill('The neighbourhood was crowded. Litter covered the quiet street near the old station.');
+    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
+    await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
+
+    // Der Vorschlag kommt aus dem eingebauten Bestand – ohne einen einzigen Klick.
+    await expect(page.getByText('Offline-Wörterbuch').first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/funktioniert auch in Safari/)).toBeVisible();
+
+    // Übernehmen ist ein Klick, kein Automatismus.
+    const übernehmen = page.getByRole('button', { name: /„.+“ als Antwort für .+ einsetzen/ }).first();
+    await expect(übernehmen).toBeVisible();
+    await übernehmen.click();
+
+    expect(errors).toEqual([]);
+    expect(external).toEqual([]);
+  });
+
+  test('@smoke nennt Quelle und Lizenz und exportiert sie', async ({ page }) => {
+    const external = watchExternalRequests(page);
+    await page.goto(`${TEACHER_URL}#/datenschutz`);
+
+    await expect(page.getByRole('heading', { name: /Quelle und Lizenz/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'CC BY-SA 4.0' })).toBeVisible();
+    await expect(
+      page.getByText('4c27d202e875550c2cc7ea93a4d21ddf80440e5030606d3edbb8b0e65dc64006'),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /Quelle und Lizenz exportieren/ })).toBeVisible();
+    expect(external).toEqual([]);
+  });
+
   test('@a11y Paketseite mit Exportaktion ohne schwerwiegende Befunde', async ({ page }) => {
     await page.goto(`${TEACHER_URL}#/material/import`);
     await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
@@ -140,6 +184,16 @@ test.describe('Portable Lehrkraftdatei', () => {
 });
 
 test.describe('Exportierte Schülerdatei', () => {
+  test('@smoke enthält kein Wörterbuch', async ({ page }) => {
+    const fileUrl = await exportStudentFile(page);
+    const html = readFileSync(fileURLToPath(fileUrl), 'utf8');
+
+    expect(html).not.toContain('4c27d202e875550c2cc7ea93a4d21ddf80440e5030606d3edbb8b0e65dc64006');
+    expect(html).not.toContain('Offline-Wörterbuch');
+    // Sechs Megabyte Wörterbuch wären hier sofort sichtbar.
+    expect(Buffer.byteLength(html, 'utf8')).toBeLessThan(1_200_000);
+  });
+
   test('@smoke zeigt genau ihr Paket und keine Lehrkraftbereiche', async ({ page }) => {
     const fileUrl = await exportStudentFile(page);
 

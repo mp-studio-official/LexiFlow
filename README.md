@@ -297,10 +297,10 @@ genügt diese Liste:
 
 | Befehl | Umfang | Stand 4A.1c | Voraussetzung |
 | --- | --- | --- | --- |
-| `npm run test` | Domäne, Komponenten, Bau-Orchestrierung | 1170 in 67 Dateien | keine |
-| `npm run verify:portable` | statische Prüfung der gebauten Dateien + Artefakttests (`*.artifact.test.ts`) | 15 in 2 Dateien | `npm run build:portable` |
+| `npm run test` | Domäne, Komponenten, Bau-Orchestrierung, Wörterbuch | 1265 in 72 Dateien | keine |
+| `npm run verify:portable` | statische Prüfung der gebauten Dateien + Artefakttests (`*.artifact.test.ts`) | 18 in 2 Dateien | `npm run build:portable` |
 | `npm run e2e` | die gehostete Anwendung über `vite preview` | 88 | baut selbst |
-| `npm run e2e:portable` | die Einzeldateien über `file://` | 9 | `npm run build:portable` |
+| `npm run e2e:portable` | die Einzeldateien über `file://` | 12 | `npm run build:portable` |
 
 Die Zahlen überschneiden sich nicht: Was in `npm run test` läuft, läuft nicht
 in `verify:portable` und umgekehrt.
@@ -1876,6 +1876,202 @@ Regeln:
 Dieselbe Logik greift beim Speichern im Paketeditor.
 
 ---
+
+## Offline-Wörterbuch (seit Sprint 4A.2)
+
+LexiFlow bringt ein englisch-deutsches Wörterbuch mit, das **ohne Netz, ohne
+Konto und ohne Browsermodell** arbeitet. Es ist der verlässliche Grundweg für
+Übersetzungsvorschläge – in Safari genauso wie in Chrome. Ein lokales
+Sprachmodell bleibt eine optionale zusätzliche Stufe, keine Voraussetzung.
+
+Die Reihenfolge der Vorschläge:
+
+1. Abkürzungs- und Wortformregeln (deterministisch, aus dem Text hergeleitet),
+2. **das eingebaute Offline-Wörterbuch**,
+3. ein lokaler Übersetzer oder ein lokales Sprachmodell, falls vorhanden,
+4. die Prüfung durch die Lehrkraft.
+
+**Kein Wörterbuchvorschlag wird ungeprüft gespeichert.** Vorschläge stehen neben
+dem Antwortfeld, nie darin. Eine getippte Antwort wird nie überschrieben, ein
+lokaler Abkürzungsvorschlag nie verdrängt. Schwierigkeitsgrad und Thementags
+kommen nie aus Wörterbuchdaten – die Quelle kennt beides nicht.
+
+### Quelle, Lizenz und Prüfsumme
+
+| | |
+| --- | --- |
+| Quelle | englisches Wiktionary, extrahiert mit [wiktextract](https://github.com/tatuylonen/wiktextract) |
+| Datei | `https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz` (2,63 GiB) |
+| Dump | **2026-08-05**, Extraktion **2026-08-28**, wiktextract `872fc7b` / `4deed51` |
+| SHA-256 | `4c27d202e875550c2cc7ea93a4d21ddf80440e5030606d3edbb8b0e65dc64006` |
+| Lizenz Daten | **CC BY-SA 4.0** (Wiktionary, dual mit GFDL) |
+| Lizenz Werkzeug | MIT (wiktextract, © Tatu Ylonen) |
+
+Die Prüfsumme ist **lokal berechnet**, nicht offiziell veröffentlicht:
+kaikki.org bietet keine an. Sie belegt Reproduzierbarkeit, nicht Echtheit
+gegenüber dem Anbieter. Einzelheiten stehen in `third_party/wiktionary/SOURCE.md`.
+
+Attribution und Lizenz sind in der Anwendung selbst sichtbar – unter
+**Daten & Datenschutz**, samt Ausgabe von Quelle und Lizenz als JSON. Die
+Weitergabepflichten betreffen den **Datensatz**; LexiFlows Programmcode ist
+keine Bearbeitung eines Wörterbuchs, beide liegen in derselben Datei
+nebeneinander. Das ist eine technische Einordnung, keine Rechtsberatung.
+
+Zitate, Bilder, Audio, Aussprache und Etymologie sind **nicht** enthalten. Die
+Umformung nimmt nur Stichwort, Wortart, Bedeutungsüberschrift, deutsche
+Entsprechung, Genus und Marker.
+
+### Die Pipeline
+
+Zwei Schritte, beide reproduzierbar, beide ohne Laufzeit-Download:
+
+```
+node scripts/dictionary/extract-wiktextract.mjs \
+  --source raw-wiktextract-data.jsonl.gz \
+  --out    build/dictionary/en-de.raw.jsonl \
+  --report build/dictionary/report.json
+
+node scripts/dictionary/build-dictionary-runtime.mjs \
+  --in   build/dictionary/en-de.raw.jsonl \
+  --out  src/dictionary/data/dictionary.json \
+  --meta src/dictionary/data/runtime-report.json \
+  --source-report build/dictionary/report.json
+```
+
+Die 2,63-GB-Quelldatei liegt **außerhalb** des Repositorys und wird **nie
+vollständig entpackt**: `gunzip` läuft als Transform-Stream, es liegt immer nur
+eine Zeile im Speicher. Ein voller Durchlauf über 10 806 865 Zeilen dauert rund
+100 Sekunden.
+
+Am erzeugten Datensatz wird **nichts von Hand geändert**. Korrekturen gehören in
+die Regeln in `scripts/dictionary/wiktextract.mjs`, wo sie durch
+`scripts/dictionary/wiktextract.test.mjs` abgesichert sind.
+
+### Was aus 22,9 GB übrig bleibt
+
+| | |
+| --- | --- |
+| Rohzeilen | 10 806 865 |
+| englische Einträge | 1 540 602 (alle geparst) |
+| Stichwörter mit deutscher Entsprechung | 73 023 |
+| davon im Laufzeitbestand (ohne Eigennamen) | **66 372** |
+| Bedeutungsgruppen | 88 249 |
+| deutsche Entsprechungen | 152 339 |
+| mit Genus | 108 104 |
+| Flexionsformen | 116 507 |
+| Eigennamen entfernt | 6 651 (spart 408 KiB, 6,2 %) |
+| verworfene Affixfragmente | 757 |
+
+Abdeckung, gemessen gegen eine Häufigkeitsliste des Englischen
+(direkt bzw. über die Grundform): **99,2 %** der 500 häufigsten Wörter,
+**96,6 %** der 1000 häufigsten, **95,7 %** der 2000 häufigsten. Was fehlt, sind
+fast ausschließlich Eigennamen und Umgangsformen (*york, gonna, wanna*) – für
+einen Vokabeltrainer kein Verlust.
+
+### Der Fall `doctor`: Verweise zwischen Stichwörtern
+
+Im englischen Wiktionary hat `doctor` für die medizinische Bedeutung **keinen
+eigenen Übersetzungsblock**, sondern einen Verweis auf `physician`. Dieser
+Verweis überlebt die Extraktion nicht – im Rohdatensatz ist von `trans-see`
+nichts mehr zu finden. Übrig bleibt die Glosse „A physician; a member of the
+medical profession …“, deren erster Link auf `physician` zeigt.
+
+Daraus wird der Verweis rekonstruiert, mit vier Bedingungen:
+
+1. Der **erste Teilsatz** der Glosse ist genau das verlinkte Stichwort.
+2. Das Ziel nennt das verweisende Wort in seiner **eigenen** Erklärung.
+3. Es wird **eine** Bedeutung übernommen, ausgewählt über die Wortüberschneidung.
+4. Tiefe eins, keine Zyklen, gleiche Wortart.
+
+Jede der vier Bedingungen ist an einem Fehlversuch entstanden, den die Messung
+am echten Datensatz gezeigt hat:
+
+| ohne Bedingung | Ergebnis |
+| --- | --- |
+| 1 | `physician` erbte von `medical` |
+| 2 | `crow` → *Vogel*, `hour` → *Jahreszeit*, `brown` → *kacken* |
+| 3 | `word` erbte alle elf Bedeutungen von `order`, bis zum Polynomgrad |
+| 4 | das Ergebnis hing an der Lesereihenfolge der Quelle |
+
+Von 100 265 Verweiszielen werden **603** übernommen, 25 122 an Bedingung 2
+abgelehnt, 49 als Zyklus abgebrochen, der Rest bleibt unauflösbar. Jede geerbte
+Bedeutung trägt sichtbar `via` – sie ist eine Schlussfolgerung, keine Auskunft.
+
+### Laufzeitformat: 64 Fächer
+
+Eine Lehrkraftdatei liegt als **eine** HTML auf einem fremden Rechner. Beim
+Öffnen darf sie nicht 66 000 Stichwörter auspacken. Der Datensatz zerfällt
+deshalb in 64 Fächer; ein Suchschlüssel gehört über eine deterministische
+Streuung (FNV-1a) in genau eines, und nur dieses wird entpackt.
+
+Gestreut statt nach Anfangsbuchstaben aufgeteilt, weil Buchstaben sehr ungleich
+besetzt sind und das größte Fach die Wartezeit bestimmt. Gemessen liegen die
+Fächer zwischen 92 KiB und 105 KiB Base64.
+
+Entpackt wird mit **fflate**, nicht mit `DecompressionStream`: Die browsereigene
+API ist unter `file://` in Safari kein verlässlicher Weg, und genau dort muss
+die Datei funktionieren. Kein Worker – ein Worker unter `file://` wäre in Safari
+eine Wette. `src/dictionary/runtimeFormat.ts` und der Erzeuger werden in
+`src/dictionary/dictionary.test.ts` **gegeneinander** geprüft, nicht bloß
+nebeneinander gepflegt.
+
+### Rangfolge: zurückstufen statt umsortieren
+
+Die Quelle kennt keine Häufigkeit. Die einzige belegte Reihenfolge ist ihre
+eigene – also wird nicht umsortiert, sondern **zurückgestuft**: Registermarker
+(veraltet, umgangssprachlich, derb) kosten am meisten, danach sehr lange
+Komposita, Mehrwortausdrücke und Klammerzusätze. Geerbte Bedeutungen stehen
+hinter eigenen. Bei gleichem Zuschlag bleibt die Reihenfolge der Quelle.
+
+Warum nicht „kürzeste zuerst“: Bei `limestone` stünde dann *Kalk* vor
+*Kalkstein*.
+
+### Größen und Zeiten
+
+| | vor 4A.2 | mit Wörterbuch |
+| --- | --- | --- |
+| Laufzeitdatensatz roh (JSON der Fächer) | – | 19,2 MiB |
+| deflatiert | – | 4,54 MiB |
+| als Base64 im Bündel | – | 6,06 MiB |
+| PWA-Bündel gesamt | 761,4 KiB | 761,4 KiB + eigener Chunk 6,06 MiB |
+| **Lehrkraftdatei** | 1374,6 KiB | **7591,2 KiB (7,41 MiB)** |
+| Schülerlaufzeit | 620,7 KiB | 622,0 KiB |
+| Schülerdatei (Beispiel) | 621,3 KiB | 622,6 KiB |
+
+Der Zuwachs der Schülerdatei sind 1,3 KiB CSS für die Vorschlagsanzeige – das
+Wörterbuch selbst ist dort **nicht** enthalten, und ein Artefakttest hält das
+fest.
+
+Gemessen auf dem Prüfrechner (Chromium):
+
+| | |
+| --- | --- |
+| Start der Lehrkraftdatei unter `file://` | 683 ms |
+| Textanalyse, 20 Kandidaten | 543 ms |
+| Wörterbuch für alle 20 Kandidaten | **15 ms** |
+| erste Suche inkl. Entpacken eines Fachs | 9–20 ms |
+| Flexionsform (zwei Fächer) | 40 ms |
+| jede weitere Suche aus dem Cache | < 0,01 ms |
+| JS-Heap nach der Suche | 73 MiB |
+
+In der installierten PWA liegt das Wörterbuch **nicht** im Precache: Es wird beim
+ersten Nachschlagen geholt und danach dauerhaft gecacht. Sonst zahlte jede
+Schülerin beim Installieren 6 MB für etwas, das nur der Lehrkraftbereich nutzt.
+
+### Bekannte Grenzen
+
+* **Wiktionary ist ein Wiki.** Die Einträge sind unterschiedlich gut belegt,
+  manche veraltet, manche regional, manche falsch. Deshalb prüft die Lehrkraft
+  jeden Vorschlag.
+* **Die Reihenfolge der Quelle ist nicht immer die didaktisch beste.**
+  `limestone` liefert *Calciumcarbonat* an zweiter Stelle, `shell shock` nur
+  *Kriegszitterer*. Markiertes wird zurückgestuft und gekennzeichnet, aber eine
+  pädagogische Rangfolge ist damit nicht gebaut – die kommt in 4B.1.
+* **Verweise bleiben eine Rekonstruktion.** 74 302 Verweise bleiben unauflösbar,
+  weil das Ziel keine deutschen Entsprechungen hat oder die Wortart nicht passt.
+* **Nur Chromium in der E2E-Stufe.** Das Format ist bewusst so gewählt, dass es
+  in Safari trägt (fflate statt `DecompressionStream`, kein Worker) – geprüft
+  wurde es dort aber nicht automatisiert.
 
 ## Markensystem (seit Sprint 4A.1c)
 

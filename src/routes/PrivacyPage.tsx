@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Button, Card } from '../ui/components';
 import { clearAllLocalData } from '../data/db';
+import { DictionaryLicencePanel } from './teacher/DictionaryLicencePanel';
 
 export function PrivacyPage() {
   const [status, setStatus] = useState<string>('');
@@ -47,6 +48,12 @@ export function PrivacyPage() {
           Nutzungsstatistiken erhoben.
         </p>
       </Card>
+
+      {/*
+        Quelle und Lizenz des Wörterbuchs stehen dort, wo ohnehin steht, was mit
+        Daten geschieht – und nicht in einer Fußnote, die niemand aufschlägt.
+      */}
+      <DictionaryLicencePanel />
 
       <Card>
         <h2>Lokale Daten löschen</h2>

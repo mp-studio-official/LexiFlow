@@ -1,0 +1,19 @@
+{
+  "erzeugt": "2026-09-01T06:58:45.492Z",
+  "dauerSekunden": 14.4,
+  "eintraege": 66372,
+  "eigennamenEntfernt": 6651,
+  "formen": 116507,
+  "schluessel": 176292,
+  "bedeutungen": 88249,
+  "uebersetzungen": 152339,
+  "formenOhneGrundform": 3910,
+  "shards": 64,
+  "shardRohBytes": 20091964,
+  "shardPackedBytes": 4762086,
+  "base64Bytes": 6349536,
+  "dateiBytes": 6351667,
+  "groessterShardBase64": 104768,
+  "kleinsterShardBase64": 92448,
+  "sha256": "96eb0f50e9143d61adb3c4c444ecdc16a5b5291da6f351126435f0168385cb18"
+}

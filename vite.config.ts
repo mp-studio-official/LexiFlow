@@ -32,8 +32,30 @@ export default defineConfig({
         // fiele die App offline auf Systemschriften zurück, und das Layout
         // spränge beim ersten Start ohne Netz.
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],
-        // Bewusst kein Runtime-Caching fremder Hosts: die App lädt nichts aus dem Netz.
-        runtimeCaching: [],
+        /*
+          Das Wörterbuch wird **nicht** vorab gecacht.
+
+          Es ist mit gut 6 MB der größte Einzelposten der Auslieferung und wird
+          nur im Lehrkraftbereich gebraucht. Es in den Precache zu legen hieße,
+          jede Schülerin beim Installieren dafür zahlen zu lassen. Stattdessen
+          holt der Service Worker es beim ersten Nachschlagen und behält es
+          danach – ab dann arbeitet auch die installierte App damit offline.
+
+          Die portable Lehrkraftdatei ist davon unberührt: Dort steckt das
+          Wörterbuch fest im Dokument, ohne Service Worker und ohne Netz.
+        */
+        globIgnores: ['**/dictionary-*.js'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/dictionary-[^/]+\.js$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'lexiflow-dictionary',
+              expiration: { maxEntries: 2 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
         navigateFallback: `${base}index.html`,
       },
       devOptions: { enabled: false },

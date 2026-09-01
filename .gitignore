@@ -6,6 +6,10 @@ dist/
 dist-portable/
 dev-dist/
 .vite/
+# Zwischenstände der Wörterbuch-Pipeline: Die 27-MB-Extraktion ist ein
+# Arbeitsergebnis, kein Quellcode. Ausgeliefert wird nur der fertige
+# Laufzeitdatensatz unter src/dictionary/data/.
+build/
 
 # Playwright-Artefakte
 test-results/
