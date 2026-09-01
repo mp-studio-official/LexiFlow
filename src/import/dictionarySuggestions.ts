@@ -1,5 +1,6 @@
 import type { DictionaryEntry, DictionaryProvider } from '../dictionary/DictionaryProvider';
 import { isQuestionable } from '../dictionary/ranking';
+import { isVerifiedReference } from '../dictionary/verifiedReferences';
 import type { PartOfSpeech } from '../domain/schema';
 
 /**
@@ -241,10 +242,18 @@ export const MAX_AUTO_SYNONYMS = 2;
  *    Antwort. `shell shock` liefert nur den veralteten *Kriegszitterer*; das
  *    Feld bleibt leer.
  *
- * 4. **Kein erschlossener Verweis als Standardantwort.** Eine `via`-Bedeutung
- *    ist eine Schlussfolgerung, keine Auskunft. `doctor` bekommt automatisch
- *    *Doktor* (die eigene, bestplatzierte Bedeutung); *Arzt* über `physician`
- *    bleibt als sichtbarer Ein-Klick-Vorschlag daneben stehen.
+ * 4. **Kein erschlossener Verweis als Standardantwort – außer einem geprüften.**
+ *    Eine `via`-Bedeutung ist eine Schlussfolgerung, keine Auskunft, und
+ *    Schlussfolgerungen werden nicht eingetragen. Die eine Ausnahme steht in
+ *    `verifiedReferences.ts`: `doctor → physician` ist an der Originalquelle
+ *    geprüft worden, und die medizinische Bedeutung ist die, wegen der jemand
+ *    `doctor` in ein Vokabelpaket nimmt. Sie wird deshalb **bevorzugt** – aus
+ *    `doctor` wird *Arzt*, nicht *Doktor*.
+ *
+ *    Was die Ausnahme nicht tut: Sie nimmt nichts hinzu. `veterinarian` →
+ *    *Tierarzt* steht in einer anderen Bedeutungsgruppe und bleibt draußen, wie
+ *    Regel 1 es verlangt. Und sie gilt nur für die eine geprüfte Paarung:
+ *    `medic`, ebenfalls über `physician` erschlossen, bleibt leer.
  *
  * Im Zweifel: gar nichts. Ein leeres Feld ist eine Aufgabe; eine falsche
  * Antwort ist ein Fehler, den jemand später glaubt.
@@ -253,15 +262,22 @@ export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined)
   const entries = summary?.entries ?? [];
   if (!entries.length) return '';
 
-  // Regel 1: genau eine Gruppe – die erste mit Inhalt, in der Rangfolge des
-  // Providers. Alles Weitere bleibt der Lehrkraft überlassen.
-  const sense = entries
+  const headword = entries[0]?.headword ?? '';
+  const withContent = entries
     .flatMap((entry) => entry.senses)
-    .find((candidate) => candidate.suggestions.length);
-  if (!sense) return '';
+    .filter((candidate) => candidate.suggestions.length > 0);
 
-  // Regel 4: erschlossene Verweise tragen keine Standardantwort.
-  if (sense.via) return '';
+  /*
+    Regel 1 und 4 zusammen: **genau eine** Bedeutungsgruppe.
+
+    Bevorzugt wird die geprüfte Verweisbedeutung, sonst die erste eigene. Ein
+    ungeprüfter Verweis kommt nie infrage – auch dann nicht, wenn er die einzige
+    Gruppe mit Inhalt ist.
+  */
+  const sense =
+    withContent.find((candidate) => isVerifiedReference(headword, candidate.via)) ??
+    withContent.find((candidate) => !candidate.via);
+  if (!sense) return '';
 
   // Regel 3: Markiertes und Bedingtes zählt nicht mit.
   const safe = sense.suggestions.filter(

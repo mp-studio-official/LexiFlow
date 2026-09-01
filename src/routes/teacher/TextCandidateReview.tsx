@@ -23,11 +23,14 @@ import {
   DEFAULT_RECOMMENDATION_COUNT,
   RECOMMENDATION_COUNTS,
   RECOMMENDATION_SORT_LABELS,
+  describeReplacement,
   familyKey,
-  recommend,
+  familyKeys,
+  replaceOpenRecommendations,
   type RecommendationInput,
   type RecommendationSort,
 } from '../../import/recommendation';
+import type { TopicSuggestion } from '../../import/topicSuggestion';
 import { CEFR_LEVELS, GRADES, GRADE_LABELS } from '../../domain/cefr';
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
@@ -82,6 +85,8 @@ interface CandidateRow {
   german: string;
   /** Der Lexemschlüssel – über ihn werden Wortfamilien auseinandergehalten. */
   family: string;
+  /** Alle beanspruchten Familien; bei Mehrwortbegriffen auch die der Teile. */
+  families: readonly string[];
   /** Vorausgefüllt aus dem Wörterbuch, jederzeit änderbar. */
   partOfSpeech: PartOfSpeech | '';
   /**
@@ -110,6 +115,7 @@ function toRow(input: RecommendationInput): CandidateRow {
     candidate,
     german: '',
     family: familyKey(candidate.english, dictionary),
+    families: familyKeys(candidate.english, dictionary),
     partOfSpeech: partOfSpeechOf(dictionary),
     dictionary,
     translation: 'idle',
@@ -139,6 +145,25 @@ function hasAnswer(row: CandidateRow): boolean {
   return row.german.trim().length > 0;
 }
 
+/**
+ * Woher der Themenvorschlag kommt – oder dass es keinen gibt.
+ *
+ * Der dritte Fall ist der wichtigste: Wenn im Text nichts heraussticht,
+ * erfindet LexiFlow kein Thema und sagt das auch. Ein falscher Vorschlag muss
+ * bemerkt und weggeklickt werden; ein leeres Feld ist eine Aufgabe.
+ */
+export function describeTopicSuggestion(
+  source: TopicSuggestion['source'],
+  topic: string | undefined,
+): string {
+  if (!topic) {
+    return 'Aus diesem Text ließ sich kein Thema ableiten – trag es selbst ein, wenn du magst.';
+  }
+  return source === 'heading'
+    ? `Aus der Überschrift des Textes vorgeschlagen: „${topic}“. Frei änderbar.`
+    : `Aus den häufigsten Begriffen des Textes vorgeschlagen: „${topic}“. Frei änderbar.`;
+}
+
 /** „7 Vokabeln werden übernommen · 3 Empfehlungen sind noch offen.“ */
 export function describeProgress(taken: number, open: number): string {
   const links =
@@ -157,6 +182,13 @@ export interface TextCandidateReviewProps {
   onContextChange: (context: LearningContext) => void;
   /** Ein Themenvorschlag aus dem Text, sofern etwas herausstach. */
   suggestedTopic?: string;
+  /** Woraus er entstanden ist – die Beschriftung sagt es dazu. */
+  topicSource?: TopicSuggestion['source'];
+  /**
+   * Trägt der Quelltext Zeitschriftenapparat? Dann werden `issue`, `volume`
+   * und Verwandtes abgewertet – sie sind Kopfdaten, nicht Lernvokabeln.
+   */
+  publicationContext?: boolean;
   /**
    * Die im Klickpfad der Analyse gestartete Vorbereitung.
    *
@@ -179,6 +211,8 @@ export function TextCandidateReview({
   context,
   onContextChange,
   suggestedTopic,
+  topicSource = 'none',
+  publicationContext,
   preparation,
   dictionary,
   onApply,
@@ -353,29 +387,26 @@ export function TextCandidateReview({
    * ein Wort auch wieder auftauchen, wenn es zum neuen Niveau nun passt.
    */
   const refill = useCallback(
-    (options: { excludeShown: boolean; announce: (fresh: number) => string }): void => {
-      const kept = rowsRef.current.filter(hasAnswer);
-      const open = rowsRef.current.filter((row) => !hasAnswer(row));
-      const nextEarlier = [...open, ...earlier];
-
-      const excluded = new Set(kept.map((row) => row.family));
-      if (options.excludeShown) for (const row of nextEarlier) excluded.add(row.family);
-
-      const wanted = Math.max(0, count - kept.length);
-      const fresh = recommend(inputs, {
+    (options: { excludeShown: boolean; announce: (result: { added: number; requested: number }) => string }): void => {
+      const result = replaceOpenRecommendations<CandidateRow>({
+        inputs,
+        rows: rowsRef.current,
+        earlier,
         context: { grade: context.grade, cefrLevel: context.cefrLevel },
         sort,
-        count: wanted,
-        excludedFamilies: excluded,
+        count,
+        excludeShown: options.excludeShown,
+        ...(publicationContext === undefined ? {} : { publicationContext }),
+        toRow,
       });
 
-      const freshRows = fresh.map(toRow);
-      setRows([...kept, ...freshRows]);
-      setEarlier(nextEarlier);
+      setRows(result.rows);
+      setEarlier(result.earlier);
       setGenerated(true);
-      setStatus(options.announce(fresh.length));
+      setStatus(options.announce(result));
 
       // Ein bereits eingelöstes Modellversprechen gilt für die neuen Zeilen.
+      const freshRows = result.rows.slice(result.rows.length - result.added);
       if (awaitingAutoTranslation.current && freshRows.length > 0) {
         awaitingAutoTranslation.current = false;
         void runTranslationRef.current(freshRows);
@@ -384,27 +415,21 @@ export function TextCandidateReview({
       // oben und weiß nicht, dass sich unten etwas geändert hat.
       window.requestAnimationFrame(() => resultRef.current?.focus());
     },
-    [count, sort, inputs, context.grade, context.cefrLevel, earlier],
+    [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext],
   );
 
   function generate(): void {
     refill({
       excludeShown: false,
-      announce: (fresh) =>
-        fresh === 0
+      announce: (result) =>
+        result.added === 0
           ? 'Der Text gibt keine weiteren geeigneten Vokabeln her.'
-          : `${fresh} Empfehlungen erzeugt. Bitte durchsehen und ergänzen.`,
+          : `${result.added} Empfehlungen erzeugt. Bitte durchsehen und ergänzen.`,
     });
   }
 
   function replaceOpen(): void {
-    refill({
-      excludeShown: true,
-      announce: (fresh) =>
-        fresh === 0
-          ? 'Der Text gibt keine weiteren Vokabeln her. Die bisherigen stehen unter „Frühere Empfehlungen“.'
-          : `${fresh} neue Empfehlungen. Die ersetzten stehen unter „Frühere Empfehlungen“.`,
-    });
+    refill({ excludeShown: true, announce: describeReplacement });
   }
 
   /**
@@ -422,12 +447,25 @@ export function TextCandidateReview({
     setStatus(`„${row.candidate.english}“ steht jetzt unter „Frühere Empfehlungen“.`);
   }
 
+  /**
+   * Eine frühere Empfehlung zurückholen.
+   *
+   * Sie legt sich **oben drauf** und verdrängt nichts – auch dann nicht, wenn
+   * die Liste dadurch länger wird als die eingestellte Anzahl. Etwas
+   * stillschweigend hinauszuwerfen, um Platz zu machen, wäre das Gegenteil
+   * dessen, was dieser Knopf verspricht. Damit niemand nachzählen muss, sagt
+   * die Meldung, wie viele Zeilen jetzt dastehen.
+   */
   function restore(id: string): void {
     const row = earlier.find((item) => item.candidate.id === id);
     if (!row) return;
     setEarlier((current) => current.filter((item) => item.candidate.id !== id));
     setRows((current) => [...current, row]);
-    setStatus(`„${row.candidate.english}“ wieder aufgenommen.`);
+    const gesamt = rowsRef.current.length + 1;
+    setStatus(
+      `„${row.candidate.english}“ wieder aufgenommen. Die Liste hat jetzt ${gesamt} Empfehlungen` +
+        (gesamt > count ? ` – mehr als die eingestellten ${count}. Es wurde nichts verdrängt.` : '.'),
+    );
   }
 
   /**
@@ -694,18 +732,21 @@ export function TextCandidateReview({
           Jahrgang und Niveau bestimmen die Auswahl. Sie stehen im letzten Schritt schon bereit.
         </p>
         <div className="field-grid">
-          <Field
-            label="Thema"
-            {...(suggestedTopic && !context.topic
-              ? { hint: `Aus dem Text vorgeschlagen: „${suggestedTopic}“` }
-              : {})}
-          >
+          {/*
+            Das Thema ist vorgeschlagen und trotzdem ein ganz normales Feld.
+
+            Die Beschriftung sagt, woher der Vorschlag kommt – aus einer
+            Überschrift oder aus den häufigsten Begriffen –, und sie sagt es
+            auch, wenn es keinen gibt. „Kein Vorschlag“ ist eine Auskunft;
+            ein stillschweigend leeres Feld ist keine.
+          */}
+          <Field label="Thema" hint={describeTopicSuggestion(topicSource, suggestedTopic)}>
             {(props) => (
               <input
                 {...props}
                 type="text"
                 value={context.topic}
-                placeholder={suggestedTopic ?? 'z. B. Coastal erosion'}
+                placeholder="z. B. Coastal erosion"
                 onChange={(event) => onContextChange({ ...context, topic: event.target.value })}
               />
             )}

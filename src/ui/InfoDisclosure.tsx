@@ -1,30 +1,38 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 /**
- * Erklärender Text, der nicht dauernd im Weg steht.
+ * Erklärender Text hinter einem kleinen runden **i**.
  *
  * Der Datenschutzhinweis der Textwerkstatt ist wichtig und lang. Beides
  * zugleich geht nicht: Steht er offen, liest ihn nach dem zweiten Mal niemand
  * mehr und er verdrängt das Textfeld nach unten; versteckt man ihn, ist er
- * nicht mehr da. Also: eine Schaltfläche, die sagt, was dahinter steckt, und
- * ein Bereich, der auf Klick erscheint.
+ * nicht mehr da. Ein beschrifteter Knopf („Was passiert mit meinem Text?“) war
+ * der erste Versuch und auch der falsche: Er stand als eigene Zeile im Weg und
+ * sah aus wie eine Aktion, die man ausführen soll.
+ *
+ * Ein **i** neben der Überschrift ist die richtige Größe für diese Sache. Es
+ * sagt „hier steht noch etwas“ und beansprucht nichts.
  *
  * Was das barrierefrei macht, ist kein Detail, sondern die ganze Sache:
  *
+ * - `aria-label` trägt den Namen, den das Symbol nicht hat.
  * - `aria-expanded` sagt vor dem Klick, ob offen oder zu ist.
- * - `aria-controls` verbindet Schaltfläche und Bereich, damit die Hilfstechnik
- *   den Sprung anbietet.
+ * - `aria-controls` verbindet Schaltfläche und Bereich.
  * - **Escape schließt** und gibt den Fokus zurück. Wer mit der Tastatur
  *   arbeitet, darf nicht in einem geöffneten Kasten festsitzen.
- * - Ein Klick daneben schließt ebenfalls – das erwartet man von etwas, das
- *   über dem Inhalt liegt.
+ * - Ein zweiter Klick auf das **i** schließt ebenso, ein Klick daneben auch.
+ * - Die Klickfläche ist mindestens 44 × 44 px groß, obwohl das Symbol
+ *   kleiner ist. Ein 20-px-Ziel trifft auf einem Telefon niemand zuverlässig.
  *
  * Der Inhalt wird erst gerendert, wenn er offen ist. Ein zugeklappter
  * Hinweistext, den ein Screenreader trotzdem vorliest, wäre das Gegenteil von
  * dem, was hier beabsichtigt ist.
  */
 export interface InfoDisclosureProps {
-  /** Beschriftung der Schaltfläche, z. B. „Was passiert mit meinem Text?“. */
+  /**
+   * Der zugängliche Name des **i**-Knopfes, z. B. „Hinweis zur
+   * Textverarbeitung“. Sichtbar ist nur das Symbol.
+   */
   label: string;
   /** Überschrift über dem geöffneten Bereich. */
   title?: string;
@@ -71,20 +79,23 @@ export function InfoDisclosure({ label, title, children }: InfoDisclosureProps):
   }, [open]);
 
   return (
-    <div className="disclosure" ref={wrapperRef}>
+    <div className="info" ref={wrapperRef}>
       <button
         type="button"
         ref={buttonRef}
-        className="btn btn--quiet btn--small disclosure__toggle"
+        className="info__button"
+        aria-label={label}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((current) => !current)}
       >
-        {label}
+        <span className="info__mark" aria-hidden="true">
+          i
+        </span>
       </button>
       {open ? (
-        <div className="disclosure__panel" id={panelId} role="group" aria-label={title ?? label}>
-          {title ? <strong className="disclosure__title">{title}</strong> : null}
+        <div className="info__panel" id={panelId} role="group" aria-label={title ?? label}>
+          {title ? <strong className="info__title">{title}</strong> : null}
           {children}
           <div className="row">
             <button

@@ -164,17 +164,38 @@ describe('Der Weg durch die drei Schritte', () => {
   });
 });
 
-describe('Der Datenschutzhinweis steht bereit, ohne im Weg zu stehen', () => {
-  it('ist zunächst zugeklappt', () => {
+describe('Der Datenschutzhinweis steht als kleines i hinter der Überschrift', () => {
+  it('ist zunächst zugeklappt und trägt seinen Namen im aria-label', () => {
     setup();
-    const knopf = screen.getByRole('button', { name: 'Was passiert mit meinem Text?' });
+    const knopf = screen.getByRole('button', { name: 'Hinweis zur Textverarbeitung' });
     expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    expect(knopf).toHaveAttribute('aria-controls');
     expect(screen.queryByText(/Der Text wird auf diesem Gerät verarbeitet/)).not.toBeInTheDocument();
+    // Der alte, beschriftete Knopf ist weg.
+    expect(
+      screen.queryByRole('button', { name: 'Was passiert mit meinem Text?' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('steht direkt hinter „Woher kommen die Vokabeln?“', () => {
+    setup();
+    const kopf = screen.getByRole('heading', { name: 'Woher kommen die Vokabeln?' }).parentElement;
+    expect(kopf).toContainElement(screen.getByRole('button', { name: 'Hinweis zur Textverarbeitung' }));
+  });
+
+  it('schließt mit Escape und gibt den Fokus zurück', async () => {
+    const user = setup();
+    const knopf = screen.getByRole('button', { name: 'Hinweis zur Textverarbeitung' });
+    await user.click(knopf);
+    expect(knopf).toHaveAttribute('aria-expanded', 'true');
+    await user.keyboard('{Escape}');
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    expect(knopf).toHaveFocus();
   });
 
   it('sagt aufgeklappt genau, was gespeichert wird und was nicht', async () => {
     const user = setup();
-    await user.click(screen.getByRole('button', { name: 'Was passiert mit meinem Text?' }));
+    await user.click(screen.getByRole('button', { name: 'Hinweis zur Textverarbeitung' }));
     const panel = screen.getByRole('group', { name: 'Verarbeitung auf diesem Gerät' });
 
     // Der Gesamttext bleibt außen vor …
@@ -217,6 +238,242 @@ describe('Die Schalter vor der Analyse sind weg', () => {
     const user = setup();
     await analyze(user);
     expect(await screen.findByLabelText('Anzahl')).toBeInTheDocument();
+  });
+});
+
+describe('Der Stepper im Assistenten', () => {
+  it('beginnt bei Schritt 1 und lässt die übrigen gesperrt', () => {
+    setup();
+    expect(screen.getByRole('button', { name: 'Schritt 1: Text analysieren' })).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(
+      screen.getByRole('button', { name: /Schritt 2: Empfehlungen generieren/ }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Schritt 3: Prüfen & Speichern/ })).toBeDisabled();
+  });
+
+  it('gibt Schritt 3 erst frei, wenn eine Vokabel übernommen wird', async () => {
+    const user = setup();
+    await analyzeAndRecommend(user);
+    expect(screen.getByRole('button', { name: /Schritt 3: Prüfen & Speichern/ })).toBeDisabled();
+
+    await toReview(user, 'crowded', 'überfüllt');
+    expect(screen.getByRole('button', { name: /Schritt 3: Prüfen & Speichern/ })).toBeEnabled();
+  });
+
+  it('bewahrt bei 3 → 2 → 3 alle Eingaben beider Schritte', async () => {
+    /*
+      Der Test, für den es den Stepper gibt. Wer im letzten Schritt merkt, dass
+      eine Vokabel fehlt, geht zurück, ergänzt sie und kommt wieder – Titel,
+      Beschreibung und Lernrichtung müssen dann noch dastehen, und die
+      Empfehlungen ebenso.
+    */
+    const user = setup();
+    await analyzeAndRecommend(user);
+    await toReview(user, 'crowded', 'überfüllt');
+
+    await user.type(screen.getByLabelText('Titel'), 'Unit 3');
+    await user.type(screen.getByLabelText('Beschreibung (optional)'), 'Kurzer Hinweis.');
+    await user.selectOptions(screen.getByLabelText('Lernrichtung'), 'de-en');
+
+    // Zurück in Schritt 2 …
+    await user.click(screen.getByRole('button', { name: /Schritt 2: Empfehlungen generieren/ }));
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
+    await user.type(screen.getByLabelText('Deutsche Antwort für „Litter“'), 'Müll');
+
+    // … und wieder nach vorn.
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
+    expect(screen.getByLabelText('Titel')).toHaveValue('Unit 3');
+    expect(screen.getByLabelText('Beschreibung (optional)')).toHaveValue('Kurzer Hinweis.');
+    expect(screen.getByLabelText('Lernrichtung')).toHaveValue('de-en');
+    expect(screen.getByText(/^2 Zeilen ·/)).toBeInTheDocument();
+  });
+
+  it('ist mit der Tastatur bedienbar und setzt den Fokus sichtbar', async () => {
+    const user = setup();
+    await analyzeAndRecommend(user);
+
+    const erster = screen.getByRole('button', { name: 'Schritt 1: Text analysieren' });
+    erster.focus();
+    expect(erster).toHaveFocus();
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByLabelText('Englischer Text')).toBeInTheDocument();
+    expect(erster).toHaveAttribute('aria-current', 'step');
+  });
+
+  it('zeigt für andere Quellen nur zwei Schritte', () => {
+    /*
+      Aus einer CSV-Datei gibt es nichts zu empfehlen – dort stehen die
+      Vokabeln schon. Ein Schritt, den es für diese Quelle nicht gibt, wird
+      nicht angezeigt.
+    */
+    render(
+      <ProviderRegistry>
+        <MemoryRouter initialEntries={['/material/import']}>
+          <Routes>
+            <Route path="/material/import" element={<ImportWizardPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ProviderRegistry>,
+    );
+    expect(screen.getByRole('button', { name: 'Schritt 1: Quelle wählen' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Schritt 2: Prüfen & Speichern/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Empfehlungen generieren/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('Schritt 3 zeigt im Textimport nur, was es wirklich gibt', () => {
+  async function toStepThree(user: User): Promise<void> {
+    await analyzeAndRecommend(user);
+    await toReview(user, 'crowded', 'überfüllt');
+  }
+
+  it('zeigt genau die vorgesehenen Angaben', async () => {
+    const user = setup();
+    await toStepThree(user);
+
+    expect(screen.getByLabelText('Titel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Beschreibung (optional)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Lernrichtung')).toBeInTheDocument();
+    expect(screen.getByText(/Lernkontext:/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Englisch, Zeile 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Deutsch, Zeile 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Wortart, Zeile 1')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('zeigt Schwierigkeit und Themen-Tags nirgends – auch nicht aufgeklappt', async () => {
+    /*
+      Der Kern der Nachbesserung: Sie aus der Tabelle in den aufgeklappten
+      Bereich zu schieben war keine Vereinfachung, sondern eine Umzugskiste.
+      Für eine aus einem Artikel gehobene Vokabel kennt niemand ihre
+      Schwierigkeit, und ein leeres Themen-Tag-Feld fragt nach etwas, das
+      es nicht gibt.
+    */
+    const user = setup();
+    await toStepThree(user);
+
+    expect(screen.queryByLabelText(/Schwierigkeit/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Themen-Tags/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+
+    expect(screen.queryByLabelText(/Schwierigkeit/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Themen-Tags/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Notiz/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Alternativantworten/)).not.toBeInTheDocument();
+  });
+
+  it('lässt im aufgeklappten Bereich nur den Beispielsatz und sein Entfernen', async () => {
+    const user = setup();
+    await toStepThree(user);
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+
+    expect(screen.getByLabelText('Beispielsatz 1 Englisch, crowded')).toHaveValue(
+      'The neighbourhood is crowded.',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Beispielsatz 1 entfernen, crowded' }),
+    ).toHaveTextContent('Entfernen');
+
+    // Ohne deutsche Satzübersetzung gibt es auch kein Feld dafür.
+    expect(screen.queryByLabelText('Beispielsatz 1 Deutsch, crowded')).not.toBeInTheDocument();
+    // Und kein Umsortieren, kein Hinzufügen, kein Satzassistent.
+    expect(screen.queryByRole('button', { name: /nach oben/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Beispielsatz hinzufügen/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Satzassistent/)).not.toBeInTheDocument();
+  });
+
+  it('zeigt die deutsche Satzübersetzung, wenn es eine gibt', async () => {
+    const { provider } = createFakeTranslationProvider();
+    const user = setup(provider);
+    await analyzeAndRecommend(user);
+
+    await screen.findByText('crowded-de');
+    await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+
+    expect(screen.getByLabelText('Beispielsatz 1 Deutsch, crowded')).toHaveValue(
+      'The neighbourhood is crowded.-de',
+    );
+  });
+
+  it('nimmt nur beantwortete Empfehlungen mit', async () => {
+    const user = setup();
+    await analyzeAndRecommend(user);
+
+    const offen = screen.getAllByLabelText(/^Deutsche Antwort für/).length;
+    expect(offen).toBeGreaterThan(1);
+
+    await toReview(user, 'crowded', 'überfüllt');
+    // Genau eine Zeile – die anderen Empfehlungen blieben offen und bleiben dort.
+    expect(screen.getAllByRole('row')).toHaveLength(2); // Kopfzeile + eine Vokabel
+    expect(screen.getByText(/^1 Zeilen ·/)).toBeInTheDocument();
+  });
+});
+
+describe('GeR folgt dem Jahrgang, bis jemand widerspricht', () => {
+  it('schlägt zum Jahrgang vor', async () => {
+    const user = setup();
+    await analyzeAndRecommend(user);
+
+    await user.selectOptions(screen.getByLabelText('Jahrgang'), '5');
+    expect(screen.getByLabelText('GeR-Niveau')).toHaveValue('A1+');
+
+    await user.selectOptions(screen.getByLabelText('Jahrgang'), '9');
+    expect(screen.getByLabelText('GeR-Niveau')).toHaveValue('B1');
+  });
+
+  it('lässt eine manuelle Wahl auch beim Jahrgangswechsel stehen', async () => {
+    /*
+      Der Punkt der Überschreibung: Wer das Niveau bewusst gesetzt hat, will es
+      nicht beim nächsten Klick auf den Jahrgang wieder verlieren.
+    */
+    const user = setup();
+    await analyzeAndRecommend(user);
+
+    await user.selectOptions(screen.getByLabelText('Jahrgang'), '9');
+    await user.selectOptions(screen.getByLabelText('GeR-Niveau'), 'B2');
+    expect(screen.getByLabelText('GeR-Niveau')).toHaveValue('B2');
+
+    await user.selectOptions(screen.getByLabelText('Jahrgang'), '7');
+    expect(screen.getByLabelText('GeR-Niveau')).toHaveValue('B2');
+  });
+
+  it('trägt den Themenvorschlag aus dem Text ein, statt ihn nur anzudeuten', async () => {
+    const user = setup();
+    await analyzeAndRecommend(
+      user,
+      'Coastal Erosion in Cornwall\n\nErosion threatens the settlement. Erosion is measured yearly.',
+    );
+
+    const thema = screen.getByLabelText('Thema');
+    expect(thema).toHaveValue('Coastal Erosion in Cornwall');
+    expect(thema).toHaveAccessibleDescription(/Aus der Überschrift des Textes vorgeschlagen/);
+
+    // Und er ist ein ganz normales Feld.
+    await user.clear(thema);
+    await user.type(thema, 'City life');
+    expect(thema).toHaveValue('City life');
+  });
+
+  it('erfindet kein Thema, wenn nichts heraussticht', async () => {
+    const user = setup();
+    await analyzeAndRecommend(user, 'One two three four five six seven eight nine.');
+    expect(screen.getByLabelText('Thema')).toHaveValue('');
+    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
+      /ließ sich kein Thema ableiten/,
+    );
   });
 });
 

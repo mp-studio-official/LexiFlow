@@ -1,0 +1,181 @@
+import { ENGLISH_STOPWORDS } from './stopwords';
+
+/**
+ * Mehrwortbegriffe aus einem englischen Text – **konservativ** gewonnen.
+ *
+ * Der Anlass ist ein Fachtext: In „psychological casualties of attritional
+ * combat“ steckt nicht Vokabel *psychological* und Vokabel *casualties*,
+ * sondern ein Begriff. Wer ihn zerlegt, gibt der Lerngruppe zwei Wörter, aus
+ * denen sich die Bedeutung nicht zusammensetzen lässt, und verliert genau das,
+ * wofür der Text ausgewählt wurde.
+ *
+ * Bigramme sind allerdings ein Minenfeld: In jedem Satz stehen Wörter
+ * nebeneinander, ohne einen Begriff zu bilden. Die Regeln sind deshalb streng,
+ * und jede hat einen Grund:
+ *
+ * 1. **Beide Teile sind Inhaltswörter.** Kein Funktionswort, keine Zahl,
+ *    mindestens vier Buchstaben – „of the“ und „was a“ sind keine Vokabeln.
+ * 2. **Nur innerhalb eines Satzes und ohne Satzzeichen dazwischen.** Über einen
+ *    Punkt oder ein Komma hinweg ist Nachbarschaft ein Zufall des Layouts.
+ * 3. **Mindestens zweimal im Text.** Das ist die eigentliche Hürde. Ein Begriff,
+ *    um den es einem Text geht, kommt wieder; eine zufällige Nachbarschaft
+ *    nicht. Diese Regel wirft mehr weg, als sie behält – und das ist die
+ *    Absicht: Ein übersehener Begriff kostet die Lehrkraft einen Handgriff,
+ *    ein erfundener kostet Vertrauen.
+ * 4. **Kein Bigramm über einem anderen.** Aus drei Wörtern in Folge entstehen
+ *    zwei überlappende Paare; genommen wird nur das häufigere.
+ * 5. **Kein Wort mit sich selbst.** „gamma gamma“ ist eine Wiederholung, kein
+ *    Begriff – und in einer Aufzählung („red, red apples“) sogar häufig.
+ *
+ * Rein und deterministisch: Text hinein, Begriffe heraus. Kein Modell, keine
+ * Wortliste, kein Netz.
+ */
+
+/** Wie oft ein Paar vorkommen muss, um als Begriff zu gelten. */
+export const MIN_COLLOCATION_OCCURRENCES = 2;
+
+/** Wie lang jeder Teil mindestens sein muss. */
+export const MIN_PART_LENGTH = 4;
+
+export interface CollocationSource {
+  /** Der Satz, exakt aus dem Quelltext. */
+  text: string;
+  /** Zeichenoffset des ersten Zeichens im Quelltext. */
+  start: number;
+  index: number;
+}
+
+export interface Collocation {
+  /** Kleingeschrieben und normalisiert – der Vergleichsschlüssel. */
+  normalized: string;
+  /** Anzeigeform der ersten Fundstelle, Schreibung wie im Text. */
+  display: string;
+  occurrences: number;
+  firstOccurrence: number;
+  sentenceIndex: number;
+  sourceSentence: string;
+}
+
+interface Part {
+  raw: string;
+  normalized: string;
+  offset: number;
+}
+
+/**
+ * Zerlegt einen Satz in Läufe benachbarter Inhaltswörter.
+ *
+ * Ein Lauf endet an jedem Satzzeichen und an jedem Funktionswort. Was übrig
+ * bleibt, sind Ketten wie `attritional combat` oder `standardized regulations`
+ * – und aus denen entstehen die Paare.
+ */
+export function contentRuns(sentence: string): Part[][] {
+  const runs: Part[][] = [];
+  let current: Part[] = [];
+
+  // Alles außer Buchstaben, Bindestrich und Apostroph trennt.
+  const pattern = /[\p{L}][\p{L}'’-]*|[^\p{L}\s]+|\s+/gu;
+  for (const match of sentence.matchAll(pattern)) {
+    const raw = match[0];
+    const offset = match.index;
+
+    if (/^\s+$/.test(raw)) continue;
+    if (!/^\p{L}/u.test(raw)) {
+      // Satzzeichen: Der Lauf endet hier.
+      if (current.length > 1) runs.push(current);
+      current = [];
+      continue;
+    }
+
+    const normalized = raw
+      .normalize('NFC')
+      .replace(/[’ʼ]/g, "'")
+      .toLowerCase();
+
+    const usable =
+      normalized.length >= MIN_PART_LENGTH &&
+      !ENGLISH_STOPWORDS.has(normalized) &&
+      !/\d/.test(normalized);
+
+    if (!usable) {
+      if (current.length > 1) runs.push(current);
+      current = [];
+      continue;
+    }
+    current.push({ raw, normalized, offset });
+  }
+  if (current.length > 1) runs.push(current);
+  return runs;
+}
+
+interface PairAccumulator extends Collocation {
+  /** Alle Fundstellen – gebraucht, um Überlappungen aufzulösen. */
+  positions: number[];
+}
+
+/**
+ * Sammelt Mehrwortbegriffe über alle Sätze eines Textes.
+ *
+ * Zurückgegeben wird nur, was die Häufigkeitshürde nimmt und nicht von einem
+ * häufigeren, überlappenden Paar verdrängt wird.
+ */
+export function findCollocations(sentences: readonly CollocationSource[]): Collocation[] {
+  const pairs = new Map<string, PairAccumulator>();
+
+  for (const sentence of sentences) {
+    for (const run of contentRuns(sentence.text)) {
+      for (let index = 0; index + 1 < run.length; index += 1) {
+        const left = run[index]!;
+        const right = run[index + 1]!;
+        // Regel 5: Ein Wort mit sich selbst ist eine Wiederholung.
+        if (left.normalized === right.normalized) continue;
+        const normalized = `${left.normalized} ${right.normalized}`;
+        const existing = pairs.get(normalized);
+        const at = sentence.start + left.offset;
+
+        if (existing) {
+          existing.occurrences += 1;
+          existing.positions.push(at);
+          continue;
+        }
+        pairs.set(normalized, {
+          normalized,
+          display: `${left.raw} ${right.raw}`,
+          occurrences: 1,
+          firstOccurrence: at,
+          sentenceIndex: sentence.index,
+          sourceSentence: sentence.text,
+          positions: [at],
+        });
+      }
+    }
+  }
+
+  const frequent = [...pairs.values()].filter(
+    (pair) => pair.occurrences >= MIN_COLLOCATION_OCCURRENCES,
+  );
+
+  /*
+    Überlappungen auflösen. „standardized regulations“ und „regulations
+    governing“ teilen sich ein Wort; beide anzubieten hieße, dasselbe Stück
+    Text zweimal zu verkaufen. Es gewinnt das häufigere Paar, bei Gleichstand
+    das frühere – deterministisch, nicht zufällig.
+  */
+  const ordered = [...frequent].sort(
+    (left, right) => right.occurrences - left.occurrences || left.firstOccurrence - right.firstOccurrence,
+  );
+  const takenWords = new Set<string>();
+  const chosen: Collocation[] = [];
+
+  for (const pair of ordered) {
+    const [first, second] = pair.normalized.split(' ');
+    if (!first || !second) continue;
+    if (takenWords.has(first) || takenWords.has(second)) continue;
+    takenWords.add(first);
+    takenWords.add(second);
+    const { positions: _positions, ...collocation } = pair;
+    chosen.push(collocation);
+  }
+
+  return chosen.sort((left, right) => left.firstOccurrence - right.firstOccurrence);
+}

@@ -249,7 +249,16 @@ export function PackDetailPage() {
             </Link>
           </nav>
         </div>
-        {pack.meta.description ? <p>{pack.meta.description}</p> : null}
+        {/*
+          Die Beschreibung der Lehrkraft, dezent unter dem Titel.
+
+          Sie ist ein Hinweis, keine Überschrift: gedämpft und klein, damit sie
+          den Lernstand nicht verdrängt – aber unübersehbar genug, dass man sie
+          vor der ersten Runde liest.
+        */}
+        {pack.meta.description ? (
+          <p className="muted small pack-description">{pack.meta.description}</p>
+        ) : null}
       </div>
 
       <Card>

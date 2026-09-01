@@ -328,22 +328,12 @@ describe('Sichere Sammelübernahme', () => {
     expect(safeAutoAnswer(summarizeLookup([shellShock]))).toBe('');
   });
 
-  it('trägt einen erschlossenen Verweis nicht als Standardantwort ein', () => {
+  it('trägt einen ungeprüften Verweis nicht als Standardantwort ein', () => {
     /*
-      `doctor` bekommt automatisch die eigene, bestplatzierte Bedeutung.
-      *Arzt* über `physician` ist eine Schlussfolgerung und bleibt ein
-      sichtbarer Ein-Klick-Vorschlag daneben.
+      `medic` ist ebenfalls über `physician` erschlossen – aber diese Paarung
+      steht nicht in der Tabelle der geprüften Verweise. Eine Schlussfolgerung
+      bleibt sie damit, und Schlussfolgerungen werden nicht eingetragen.
     */
-    const doctor = entry({
-      headword: 'doctor',
-      senses: [
-        { sense: 'doctorate holder', suggestions: [{ german: 'Doktor', gender: 'm' }] },
-        { sense: 'medical doctor', via: 'physician', suggestions: [{ german: 'Arzt', gender: 'm' }] },
-      ],
-    });
-    expect(safeAutoAnswer(summarizeLookup([doctor]))).toBe('Doktor');
-
-    // Steht nur die erschlossene Bedeutung da, bleibt das Feld leer.
     const nurVia = entry({
       headword: 'medic',
       senses: [{ sense: 'medical doctor', via: 'physician', suggestions: [{ german: 'Arzt' }] }],

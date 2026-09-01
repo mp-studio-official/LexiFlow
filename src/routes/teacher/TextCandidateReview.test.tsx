@@ -39,7 +39,7 @@ const LEERES_WOERTERBUCH: DictionaryProvider = {
   },
 };
 
-function mount(provider?: TranslationProvider) {
+function mount(provider?: TranslationProvider, dictionary: DictionaryProvider = LEERES_WOERTERBUCH) {
   const onApply = vi.fn();
   const onBack = vi.fn();
   const onContextChange = vi.fn();
@@ -49,7 +49,7 @@ function mount(provider?: TranslationProvider) {
         candidates={candidates()}
         context={CONTEXT}
         onContextChange={onContextChange}
-        dictionary={LEERES_WOERTERBUCH}
+        dictionary={dictionary}
         onApply={onApply}
         onBack={onBack}
       />
@@ -101,6 +101,122 @@ describe('Der Schritt beginnt mit einer Entscheidung, nicht mit einer Liste', ()
     const { onContextChange, user } = await setup();
     await user.selectOptions(screen.getByLabelText('Jahrgang'), '9');
     expect(onContextChange).toHaveBeenCalledWith(expect.objectContaining({ grade: '9' }));
+  });
+
+  it('bietet alle vier Sortierungen an', async () => {
+    await setup();
+    const auswahl = screen.getByLabelText('Sortierung');
+    for (const name of [
+      'Empfehlung',
+      'Anspruchsvollste zuerst',
+      'Häufigkeit im Text',
+      'Reihenfolge im Text',
+    ]) {
+      expect(within(auswahl).getByRole('option', { name })).toBeInTheDocument();
+    }
+    expect(within(auswahl).getAllByRole('option')).toHaveLength(4);
+    // Vorbelegt ist die Empfehlung – das ist der Sinn dieses Schritts.
+    expect(auswahl).toHaveValue('recommended');
+  });
+
+  it('bietet die Anzahlen 5, 10, 15 und 20 an', async () => {
+    await setup();
+    const auswahl = screen.getByLabelText('Anzahl');
+    for (const wert of ['5', '10', '15', '20']) {
+      expect(within(auswahl).getByRole('option', { name: `${wert} Vokabeln` })).toBeInTheDocument();
+    }
+    expect(within(auswahl).getAllByRole('option')).toHaveLength(4);
+  });
+
+  it('erzeugt genau so viele Empfehlungen, wie eingestellt sind', async () => {
+    const viele = extractTextCandidates(
+      'Coastal erosion threatens the settlement. Evacuation of residents demonstrates ' +
+        'the resilience of the local infrastructure. Bombardment and regulation followed.',
+    );
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={viele}
+          context={CONTEXT}
+          onContextChange={vi.fn()}
+          dictionary={LEERES_WOERTERBUCH}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+    const user = userEvent.setup();
+    const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await user.selectOptions(screen.getByLabelText('Anzahl'), '5');
+    await user.click(knopf);
+
+    expect(screen.getByRole('heading', { name: 'Vorgeschlagene Vokabeln (5)' })).toBeInTheDocument();
+  });
+});
+
+describe('Der Themenvorschlag', () => {
+  function mountWithTopic(suggested: string, source: 'heading' | 'frequency' | 'none') {
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={candidates()}
+          context={CONTEXT}
+          onContextChange={vi.fn()}
+          suggestedTopic={suggested}
+          topicSource={source}
+          dictionary={LEERES_WOERTERBUCH}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+  }
+
+  it('sagt, dass er aus der Überschrift stammt', () => {
+    mountWithTopic('Coastal Erosion in Cornwall', 'heading');
+    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
+      /Aus der Überschrift des Textes vorgeschlagen: „Coastal Erosion in Cornwall“/,
+    );
+  });
+
+  it('sagt, dass er aus den häufigsten Begriffen stammt', () => {
+    mountWithTopic('Erosion und Settlement', 'frequency');
+    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
+      /häufigsten Begriffen des Textes vorgeschlagen/,
+    );
+  });
+
+  it('sagt es auch, wenn nichts herausstach', () => {
+    /*
+      Der wichtigste Fall. Ein erfundenes Thema kostet Vertrauen und muss
+      weggeklickt werden; ein leeres Feld mit einer Erklärung kostet nichts.
+    */
+    mountWithTopic('', 'none');
+    expect(screen.getByLabelText('Thema')).toHaveValue('');
+    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
+      /ließ sich kein Thema ableiten/,
+    );
+  });
+
+  it('bleibt ein ganz normales, editierbares Feld', async () => {
+    const onContextChange = vi.fn();
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={candidates()}
+          context={CONTEXT}
+          onContextChange={onContextChange}
+          suggestedTopic="Coastal Erosion"
+          topicSource="heading"
+          dictionary={LEERES_WOERTERBUCH}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+    await userEvent.type(screen.getByLabelText('Thema'), 'X');
+    expect(onContextChange).toHaveBeenCalledWith(expect.objectContaining({ topic: 'X' }));
   });
 });
 
@@ -215,6 +331,94 @@ describe('Nachlegen, ohne Arbeit zu verlieren', () => {
     await user.click(screen.getByRole('button', { name: 'Empfehlungen neu berechnen' }));
 
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
+  });
+
+  it('nennt die echte Anzahl, wenn der Text nichts mehr hergibt', async () => {
+    /*
+      Der Text hat vier Kandidaten und alle stehen schon da. Ein „3 neue
+      Empfehlungen“ wäre hier eine Lüge; es kommt keine einzige.
+    */
+    const { user } = await setup();
+    await user.click(screen.getByRole('button', { name: /Offene Empfehlungen ersetzen/ }));
+
+    const meldung = screen
+      .getAllByRole('status')
+      .map((element) => element.textContent ?? '')
+      .join(' ');
+    expect(meldung).toMatch(/keine weiteren Vokabeln her/);
+  });
+
+  it('sagt beim Wiederaufnehmen, dass die Liste dadurch wächst', async () => {
+    /*
+      Zurückholen verdrängt nichts – es legt oben drauf. Wer nach dem
+      Wiederaufnehmen elf statt zehn Zeilen hat, soll das gelesen haben und
+      nicht selbst nachzählen müssen.
+    */
+    const { user } = await setup();
+    await user.selectOptions(screen.getByLabelText('Anzahl'), '5');
+    await user.click(screen.getByRole('button', { name: 'Empfehlungen neu berechnen' }));
+
+    const vorher = screen.getAllByText(/× im Text/).length;
+    await user.click(screen.getByRole('button', { name: 'Litter entfernen' }));
+    await user.click(screen.getByRole('button', { name: /Frühere Empfehlungen/ }));
+    await user.click(screen.getByRole('button', { name: 'Litter wieder aufnehmen' }));
+
+    expect(screen.getAllByText(/× im Text/).length).toBe(vorher);
+    const meldung = screen
+      .getAllByRole('status')
+      .map((element) => element.textContent ?? '')
+      .join(' ');
+    expect(meldung).toMatch(/wieder aufgenommen/);
+  });
+});
+
+describe('Der Wörterbuchlauf kommt niemandem in die Quere', () => {
+  it('sperrt die Hauptaktion, solange nachgeschlagen wird', async () => {
+    /*
+      Das ist die Absicherung gegen das alte Problem: Ein Wörterbuchergebnis,
+      das nach dem Empfehlen eintrifft, dürfte Zeilen nicht mehr anfassen.
+      Gelöst ist es nicht durch Zusammenführen, sondern durch Reihenfolge – die
+      Suche ist fertig, bevor es überhaupt Zeilen gibt.
+    */
+    let freigeben = (): void => undefined;
+    const tor = new Promise<void>((resolve) => {
+      freigeben = resolve;
+    });
+    const langsam: DictionaryProvider = {
+      ...LEERES_WOERTERBUCH,
+      async lookup() {
+        await tor;
+        return [];
+      },
+    };
+
+    const { user } = mount(undefined, langsam);
+    const knopf = screen.getByRole('button', { name: 'Empfehlungen generieren' });
+    expect(knopf).toBeDisabled();
+    expect(screen.getByText(/Das Offline-Wörterbuch schlägt gerade nach/)).toBeInTheDocument();
+
+    freigeben();
+    await waitFor(() => expect(knopf).toBeEnabled());
+
+    await user.click(knopf);
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+    // Und nichts kommt später und schreibt darüber.
+    await waitFor(() =>
+      expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt'),
+    );
+  });
+
+  it('überschreibt eine getippte Antwort auch nicht mit einem Modellvorschlag', async () => {
+    const { provider } = createFakeTranslationProvider();
+    const { user } = await setup(provider);
+
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'meine Antwort');
+    await user.click(
+      await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
+    );
+    await screen.findByText('neighbourhood-de');
+
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('meine Antwort');
   });
 });
 

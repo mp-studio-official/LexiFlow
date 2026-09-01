@@ -118,3 +118,30 @@ describe('PackDetailPage – Leerzustand', () => {
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
   });
 });
+
+describe('PackDetailPage – Beschreibung der Lehrkraft', () => {
+  it('zeigt sie dezent unter dem Titel', async () => {
+    await savePack({
+      meta: makeMeta({
+        id: PACK_ID,
+        direction: 'en-de',
+        description: 'Achte auf die Nomenendungen.',
+      }),
+      entries: entriesNamed(4),
+    });
+    renderDetail();
+
+    const hinweis = await screen.findByText('Achte auf die Nomenendungen.');
+    // Dezent heißt: gedämpft und klein – ein Hinweis, keine zweite Überschrift.
+    expect(hinweis).toHaveClass('muted', 'small');
+    expect(hinweis.tagName).toBe('P');
+  });
+
+  it('lässt die Zeile weg, wenn es keine Beschreibung gibt', async () => {
+    await seed(4, 'en-de');
+    renderDetail();
+
+    await screen.findByRole('button', { name: 'Lernrunde starten' });
+    expect(document.querySelector('.pack-description')).toBeNull();
+  });
+});

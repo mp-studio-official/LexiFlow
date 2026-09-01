@@ -75,7 +75,6 @@ async function exportStudentFile(page: Page, title = 'Unit 3 – City life'): Pr
   await page.goto(`${TEACHER_URL}#/material/import`);
   await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-  await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('8');
   await page.getByLabel('Lernrichtung').selectOption('en-de');
@@ -137,23 +136,84 @@ test.describe('Portable Lehrkraftdatei', () => {
     const errors = watchPageErrors(page);
 
     await page.goto(`${TEACHER_URL}#/material/import?quelle=text`);
+
+    // Schritt 1: der Hinweis hinter dem kleinen i, dann analysieren.
+    await page.getByRole('button', { name: 'Hinweis zur Textverarbeitung' }).click();
+    await expect(page.getByText(/nicht als eigener Datensatz gespeichert/)).toBeVisible();
+    await page.keyboard.press('Escape');
+
     await page
       .getByLabel('Englischer Text')
       .fill('The neighbourhood was crowded. Litter covered the quiet street near the old station.');
-    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
-    await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+
+    // Schritt 2: Empfehlungen – erst nachdem das Wörterbuch durch ist.
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+    await expect(page.getByText(/funktioniert auch in Safari/)).toBeVisible({ timeout: 30_000 });
+    const empfehlen = page.getByRole('button', { name: 'Empfehlungen generieren', exact: true });
+    await expect(empfehlen).toBeEnabled({ timeout: 30_000 });
+    await page.getByLabel('Anzahl').selectOption('5');
+    await empfehlen.click();
+    await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
 
     // Der Vorschlag kommt aus dem eingebauten Bestand – ohne einen einzigen Klick.
-    await expect(page.getByText('Offline-Wörterbuch').first()).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText(/funktioniert auch in Safari/)).toBeVisible();
+    await expect(page.getByText('Offline-Wörterbuch').first()).toBeVisible();
+    // Es gibt keine Häkchen: Die Antwort entscheidet.
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
+    await expect(page.getByText(/0 Vokabeln werden übernommen/)).toBeVisible();
 
     // Übernehmen ist ein Klick, kein Automatismus.
     const übernehmen = page.getByRole('button', { name: /„.+“ als Antwort für .+ einsetzen/ }).first();
     await expect(übernehmen).toBeVisible();
     await übernehmen.click();
+    await expect(page.getByText(/1 Vokabel wird übernommen/)).toBeVisible();
 
+    // Schritt 3: Prüfen & Speichern – Tabelle, Titel und Speichern in einem.
+    await page.getByRole('button', { name: '1 Vokabel prüfen & speichern' }).click();
+    await expect(page.getByRole('table')).toBeVisible();
+    await expect(page.getByText(/Lernkontext:/)).toBeVisible();
+    // Schwierigkeit und Themen-Tags gibt es hier nicht – auch nicht aufgeklappt.
+    await expect(page.getByLabel(/Schwierigkeit/)).toHaveCount(0);
+    await expect(page.getByLabel(/Themen-Tags/)).toHaveCount(0);
+
+    await page.getByLabel('Titel', { exact: true }).fill('Offline – aus einem Text');
+    await page.getByLabel('Beschreibung (optional)').fill('Ohne Netz entstanden.');
+    await page.getByRole('button', { name: /Paket speichern/ }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Offline – aus einem Text' }),
+    ).toBeVisible();
+
+    // Und der Weg zurück durch den Stepper hat nichts gekostet.
     expect(errors).toEqual([]);
     expect(external).toEqual([]);
+  });
+
+  test('@smoke der Stepper führt unter file:// zurück, ohne Arbeit zu verlieren', async ({
+    page,
+  }) => {
+    const errors = watchPageErrors(page);
+    await page.goto(`${TEACHER_URL}#/material/import?quelle=text`);
+    await page
+      .getByLabel('Englischer Text')
+      .fill('The neighbourhood was crowded. Litter covered the quiet street near the old station.');
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+
+    const empfehlen = page.getByRole('button', { name: 'Empfehlungen generieren', exact: true });
+    await expect(empfehlen).toBeEnabled({ timeout: 30_000 });
+    await empfehlen.click();
+
+    const antwort = page.getByLabel(/^Deutsche Antwort für/).first();
+    await antwort.fill('meine Antwort');
+    await page.getByRole('button', { name: '1 Vokabel prüfen & speichern' }).click();
+    await page.getByLabel('Titel', { exact: true }).fill('Zurück und vor');
+
+    await page.getByRole('button', { name: 'Schritt 2: Empfehlungen generieren' }).click();
+    await expect(page.getByLabel(/^Deutsche Antwort für/).first()).toHaveValue('meine Antwort');
+
+    await page.getByRole('button', { name: 'Schritt 3: Prüfen & Speichern' }).click();
+    await expect(page.getByLabel('Titel', { exact: true })).toHaveValue('Zurück und vor');
+
+    expect(errors).toEqual([]);
   });
 
   test('@smoke nennt Quelle und Lizenz und exportiert sie', async ({ page }) => {
@@ -173,7 +233,6 @@ test.describe('Portable Lehrkraftdatei', () => {
     await page.goto(`${TEACHER_URL}#/material/import`);
     await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
     await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('A11y Export');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'A11y Export' })).toBeVisible();

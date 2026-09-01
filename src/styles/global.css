@@ -1516,31 +1516,105 @@ progress {
 }
 
 /*
-  Aufklappbarer Hinweis. Er liegt **im Fluss**, nicht schwebend über dem
-  Inhalt: Ein echtes Overlay müsste sich um Bildschirmränder, Scrollposition
-  und Tastaturfallen kümmern, und der Gewinn wäre ein Stück Layout.
+  Das kleine runde i und sein Popover.
+
+  Der Knopf ist 44 x 44 px groß, das Symbol darin 1.35rem. Das ist Absicht:
+  Die WCAG-Zielgröße gilt für die Klickfläche, nicht für das Gemalte – und ein
+  20-px-Ziel trifft auf einem Telefon niemand zuverlässig. Sichtbar bleibt
+  trotzdem nur ein kleiner Kreis neben der Überschrift.
 */
-.disclosure {
-  position: relative;
+/* Überschrift und ihr i-Knopf in einer Zeile. */
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+.card-head h2,
+.card-head h3 {
+  margin: 0;
 }
 
-.disclosure__panel {
-  margin-top: var(--space-2);
+.info {
+  position: relative;
+  display: inline-flex;
+}
+
+.info__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--tap-target);
+  block-size: var(--tap-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  flex: none;
+}
+
+.info__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.35rem;
+  block-size: 1.35rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--info);
+  color: var(--info);
+  background: var(--surface);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+.info__button:hover .info__mark,
+.info__button[aria-expanded='true'] .info__mark {
+  background: var(--info);
+  color: var(--surface);
+}
+
+/*
+  Das Popover hängt links am Knopf und ist auf die Breite des Fensters
+  begrenzt. `min()` statt einer festen Breite: Auf 390 px darf es nicht über
+  den Rand hinausragen, auf dem Desktop soll es nicht die halbe Seite
+  einnehmen.
+*/
+.info__panel {
+  position: absolute;
+  z-index: 25;
+  top: calc(var(--tap-target) - var(--space-1));
+  left: 0;
+  inline-size: min(30rem, calc(100vw - 2 * var(--gutter)));
+  max-inline-size: min(30rem, calc(100vw - 2 * var(--gutter)));
   padding: var(--space-3);
   border: 1px solid var(--info);
   border-radius: var(--radius-surface);
   background: var(--info-soft);
+  box-shadow: var(--shadow-2);
   font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
   display: grid;
   gap: var(--space-2);
+  text-align: left;
 }
 
-.disclosure__title {
+.info__title {
   display: block;
 }
 
-.disclosure__panel p {
+.info__panel p {
   margin: 0;
+}
+
+/* Nah am rechten Rand kippt das Popover nach links, statt hinauszulaufen. */
+@media (max-width: 32rem) {
+  .info__panel {
+    left: auto;
+    right: 0;
+  }
 }
 
 /* Wahl der Übungsart: zwei gut trennbare, große Klickflächen. */
@@ -2194,6 +2268,13 @@ progress {
 
 .learn-header__status {
   margin: var(--space-2) 0 0;
+}
+
+/* Der Hinweis der Lehrkraft: eine Zeile Kontext, keine zweite Überschrift. */
+.pack-description {
+  margin: var(--space-3) 0 0;
+  max-inline-size: var(--width-prose, 60ch);
+  overflow-wrap: anywhere;
 }
 
 .learn-header__actions {

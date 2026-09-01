@@ -1,4 +1,5 @@
 import { ENGLISH_STOPWORDS } from './stopwords';
+import { findCollocations } from './collocations';
 import {
   describeAbbreviation,
   findAbbreviations,
@@ -369,8 +370,10 @@ export function extractTextCandidates(
 
   const accumulators = new Map<string, Accumulator>();
   const abbreviations = new Map<string, AbbreviationAccumulator>();
+  /** Für die Mehrwortbegriffe: dieselben Sätze, nur einmal zerlegt. */
+  const sentences = segmentSentences(text);
 
-  for (const sentence of segmentSentences(text)) {
+  for (const sentence of sentences) {
     if (signal?.aborted) throw new AnalysisAbortedError();
 
     // Schritt 4 (vorgezogen, weil längentreu): URLs und redaktionelle Reste
@@ -492,6 +495,38 @@ export function extractTextCandidates(
       isLikelyProperNoun,
       forms: family.forms,
       literal: atFirstOccurrence?.display ?? family.display,
+    });
+  }
+
+  /*
+    Schritt 4b: Mehrwortbegriffe.
+
+    Sie entstehen **nach** den Einzelwörtern und ersetzen sie nicht: `combat`
+    bleibt eine Vokabel, auch wenn `attritional combat` eine ist. Welche der
+    beiden ins Paket geht, entscheidet die Lehrkraft im Empfehlungsschritt –
+    hier wird nur angeboten, was der Text zweimal hergegeben hat.
+  */
+  for (const collocation of findCollocations(sentences)) {
+    candidates.push({
+      id: `text:phrase:${collocation.normalized}`,
+      english: collocation.display,
+      normalizedEnglish: collocation.normalized,
+      occurrences: collocation.occurrences,
+      firstOccurrence: collocation.firstOccurrence,
+      sourceSentence: collocation.sourceSentence,
+      sentenceIndex: collocation.sentenceIndex,
+      isLikelyProperNoun: false,
+      forms: [
+        {
+          normalized: collocation.normalized,
+          display: collocation.display,
+          occurrences: collocation.occurrences,
+          relation: 'base',
+          firstOccurrence: collocation.firstOccurrence,
+          sourceSentence: collocation.sourceSentence,
+        },
+      ],
+      literal: collocation.display,
     });
   }
 

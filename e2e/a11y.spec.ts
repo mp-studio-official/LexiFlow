@@ -135,7 +135,7 @@ test.describe('Barrierefreiheit – Axe', () => {
 
   test('@a11y aufgeklappter Datenschutzhinweis', async ({ page }) => {
     await page.goto('/#/material/import?quelle=text');
-    await page.getByRole('button', { name: 'Was passiert mit meinem Text?' }).click();
+    await page.getByRole('button', { name: 'Hinweis zur Textverarbeitung' }).click();
     await expect(
       page.getByRole('group', { name: 'Verarbeitung auf diesem Gerät' }),
     ).toBeVisible();

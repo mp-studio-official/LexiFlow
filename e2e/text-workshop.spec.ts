@@ -54,7 +54,7 @@ async function withoutBrowserModels(page: Page): Promise<void> {
 
 /** Der Hinweis steht hinter einer Schaltfläche – aufklappen und lesen. */
 async function readNotice(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Was passiert mit meinem Text?' }).click();
+  await page.getByRole('button', { name: 'Hinweis zur Textverarbeitung' }).click();
   await expect(
     page.getByText(/vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/),
   ).toBeVisible();
@@ -94,7 +94,7 @@ test.describe('Textwerkstatt', () => {
     await expect(page.getByLabel('Englischer Text')).toBeVisible();
 
     // Der Hinweis nennt beides: Gesamttext bleibt außen vor, Originalsätze nicht.
-    await page.getByRole('button', { name: 'Was passiert mit meinem Text?' }).click();
+    await page.getByRole('button', { name: 'Hinweis zur Textverarbeitung' }).click();
     await expect(
       page.getByText(/vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/),
     ).toBeVisible();

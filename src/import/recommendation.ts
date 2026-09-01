@@ -54,6 +54,8 @@ export interface ScoredCandidate extends RecommendationInput {
   difficulty: number;
   /** Der Lexemschlüssel, über den Dubletten erkannt werden. */
   family: string;
+  /** Alle beanspruchten Familien – bei Mehrwortbegriffen auch die der Teile. */
+  families: readonly string[];
 }
 
 /* -------------------------------------------------------------- Schwierigkeit */
@@ -69,7 +71,53 @@ const ACADEMIC_SUFFIXES = [
   'tion', 'sion', 'ment', 'ance', 'ence', 'ity', 'ism', 'ology', 'ography',
   'ical', 'ative', 'itive', 'ious', 'eous', 'ance', 'ency', 'ship', 'hood',
   'ness', 'able', 'ible', 'ise', 'ize', 'ify',
+  // Fachadjektive und -substantive, die keine der obigen Endungen tragen:
+  // `neuropsychiatric`, `divisional`, `archival`, `regulatory`, `documentary`.
+  'atric', 'ional', 'ival', 'ory', 'ary',
 ];
+
+/**
+ * Ab hier ist ein Wort auch ohne erkennbare Endung ein gelehrtes Wort.
+ *
+ * `neuropsychiatric` trägt keine der Endungen oben und ist trotzdem kein
+ * Wort für Klasse 7. Die Länge allein ist ein grobes, aber ehrliches Maß:
+ * Englische Alltagswörter werden selten so lang.
+ */
+const LEARNED_WORD_LENGTH = 12;
+
+/**
+ * Zeitschriftenapparat – Wörter, die im Kopf eines Artikels stehen und dort
+ * nichts über sein Thema sagen.
+ *
+ * `issue` ist die Heftnummer, `volume` der Jahrgang, `abstract` die
+ * Zusammenfassung. Als Vokabeln sind sie nicht falsch – nur nicht das, wofür
+ * die Lehrkraft diesen Text ausgewählt hat.
+ *
+ * Diese Liste wirkt **nur**, wenn der Text tatsächlich wie eine Publikation
+ * aussieht (siehe `looksLikePublication`). In einem Text über eine Zeitung
+ * oder über ein Streitthema bleibt „issue“ eine ganz normale Vokabel; ein
+ * ständiger Abschlag wäre eine Bevormundung.
+ */
+const PUBLICATION_APPARATUS = new Set([
+  'issue', 'volume', 'abstract', 'journal', 'editor', 'editorial', 'quarterly',
+  'appendix', 'footnote', 'bibliography', 'citation', 'keyword', 'reprint',
+]);
+
+/** Wie stark der Apparat abgewertet wird – genug, um ihn aus den ersten zu drängen. */
+const APPARATUS_PENALTY = 2.0;
+
+/**
+ * Sieht dieser Text nach einer Publikation mit Kopfdaten aus?
+ *
+ * Erkannt wird der Apparat, nicht der Inhalt: eine Bandangabe, eine
+ * Heftnummer, ein DOI, eine Seitenspanne. Ohne einen dieser Marker gilt der
+ * Text als gewöhnlicher Sachtext und die Liste oben bleibt wirkungslos.
+ */
+export function looksLikePublication(text: string): boolean {
+  return /\bvol\.\s*\d|\bvolume\s+\d|\bissue\s+\d|\bno\.\s*\d|\bdoi:|\bpp\.\s*\d|\bissn\b/i.test(
+    text,
+  );
+}
 
 /**
  * Der englische Grundwortschatz, den niemand aus einem Text „gewinnen“ muss.
@@ -97,6 +145,22 @@ export function countSyllables(word: string): number {
 }
 
 /**
+ * Der aussagekräftigste Teil eines Begriffs – das längste Wort darin.
+ *
+ * Bei `attritional combat` ist das `attritional`. Auf das ganze Bigramm zu
+ * schauen wäre falsch: Dessen Endung ist die von `combat`, und danach sähe der
+ * Fachbegriff aus wie ein Alltagswort. Genau dieser Fehler hatte im ersten
+ * Anlauf die Einzelwörter über ihre eigenen Mehrwortbegriffe gehoben.
+ */
+export function longestPart(word: string): string {
+  return word
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .reduce((best, part) => (part.length > best.length ? part : best), '');
+}
+
+/**
  * Wie schwer ist dieses Wort, geschätzt aus messbaren Merkmalen?
  *
  * 0 heißt „Grundwortschatz“, 1 heißt „Fachbegriff“. Die Gewichte sind gesetzt,
@@ -109,7 +173,7 @@ export function estimateDifficulty(word: string): number {
   if (!lower) return 0;
 
   const words = lower.split(/\s+/);
-  const longest = words.reduce((best, part) => (part.length > best.length ? part : best), '');
+  const longest = longestPart(lower);
 
   let score = 0;
 
@@ -119,6 +183,9 @@ export function estimateDifficulty(word: string): number {
 
   // Akademische Wortbildung.
   if (ACADEMIC_SUFFIXES.some((suffix) => longest.endsWith(suffix))) score += 0.25;
+
+  // Gelehrte Wörter ohne erkennbare Endung.
+  if (longest.length >= LEARNED_WORD_LENGTH) score += 0.1;
 
   // Mehrwortbegriffe sind fast immer Fachbegriffe („shell shock“, „land use“).
   if (words.length > 1) score += 0.15;
@@ -174,13 +241,8 @@ export function levelFit(difficulty: number, level: CefrLevel): number {
  * aggressiver Stemmer wirft `casualty` und `casual` zusammen. Was hier gekürzt
  * wird, sind nur die Endungen, bei denen sich das sicher sagen lässt.
  */
-export function familyKey(word: string, dictionary?: DictionarySuggestionSummary): string {
-  // Kennt das Wörterbuch die Grundform, ist sie die bessere Auskunft.
-  const fromDictionary = dictionary?.entries[0]?.headword;
-  const base = (fromDictionary ?? word).toLowerCase().trim();
-  const head = base.split(/\s+/)[0] ?? base;
-
-  if (head.length <= 3) return base;
+function stem(word: string): string {
+  if (word.length <= 3) return word;
   for (const [suffix, replacement] of [
     ['ies', 'y'],
     ['sses', 'ss'],
@@ -192,11 +254,42 @@ export function familyKey(word: string, dictionary?: DictionarySuggestionSummary
     ['es', ''],
     ['s', ''],
   ] as const) {
-    if (head.endsWith(suffix) && head.length - suffix.length >= 3) {
-      return base.replace(new RegExp(head + '$'), head.slice(0, head.length - suffix.length) + replacement);
+    if (word.endsWith(suffix) && word.length - suffix.length >= 3) {
+      return word.slice(0, word.length - suffix.length) + replacement;
     }
   }
-  return base;
+  return word;
+}
+
+export function familyKey(word: string, dictionary?: DictionarySuggestionSummary): string {
+  // Kennt das Wörterbuch die Grundform, ist sie die bessere Auskunft.
+  const fromDictionary = dictionary?.entries[0]?.headword;
+  const base = (fromDictionary ?? word).toLowerCase().trim();
+  const parts = base.split(/\s+/);
+  const head = parts[0] ?? base;
+  return [stem(head), ...parts.slice(1)].join(' ');
+}
+
+/**
+ * **Alle** Familien, die ein Kandidat beansprucht.
+ *
+ * Ein Mehrwortbegriff beansprucht auch seine Teile. Das ist der Unterschied
+ * zwischen einer brauchbaren und einer peinlichen Liste: `Psychological
+ * casualties` und `psychological` nebeneinander vorzuschlagen sieht aus, als
+ * hätte niemand hingesehen – und für die Lerngruppe ist es dieselbe Vokabel
+ * zweimal, einmal mit und einmal ohne ihren Sinn.
+ *
+ * Welcher der beiden überlebt, entscheidet die Punktzahl, nicht die
+ * Reihenfolge: `recommend` dünnt **nach** dem Sortieren aus.
+ */
+export function familyKeys(
+  word: string,
+  dictionary?: DictionarySuggestionSummary,
+): readonly string[] {
+  const whole = familyKey(word, dictionary);
+  const parts = whole.split(/\s+/);
+  if (parts.length === 1) return [whole];
+  return [whole, ...parts.map((part) => stem(part))];
 }
 
 /* ------------------------------------------------------------------ Rangfolge */
@@ -208,8 +301,11 @@ export interface RankOptions {
   count: number;
   /** Familien, die schon vergeben, abgelehnt oder übernommen sind. */
   excludedFamilies?: Iterable<string>;
-  /** Wie viele Wörter der Text insgesamt hat – für die relative Häufigkeit. */
-  totalOccurrences?: number;
+  /**
+   * Trägt der Quelltext Zeitschriftenapparat? Dann wird `issue`, `volume` und
+   * Verwandtes abgewertet – siehe `looksLikePublication`.
+   */
+  publicationContext?: boolean;
 }
 
 /**
@@ -243,8 +339,12 @@ export function scoreCandidates(
     const word = input.candidate.english;
     const difficulty = estimateDifficulty(word);
     const lower = word.toLowerCase();
-    const academic = ACADEMIC_SUFFIXES.some((suffix) => lower.endsWith(suffix)) ? 1 : 0;
+    const academic = ACADEMIC_SUFFIXES.some((suffix) => longestPart(lower).endsWith(suffix))
+      ? 1
+      : 0;
     const multiword = /\s/.test(word.trim()) ? 1 : 0;
+    const apparatus =
+      options.publicationContext === true && PUBLICATION_APPARATUS.has(lower) ? 1 : 0;
 
     const score =
       WEIGHT.fit * levelFit(difficulty, options.context.cefrLevel) +
@@ -252,9 +352,16 @@ export function scoreCandidates(
       WEIGHT.weightInText * (input.candidate.occurrences / maxOccurrences) +
       WEIGHT.position * (1 - input.candidate.firstOccurrence / maxPosition) +
       WEIGHT.dictionary * (input.dictionary ? 1 : 0) +
-      WEIGHT.multiword * multiword;
+      WEIGHT.multiword * multiword -
+      APPARATUS_PENALTY * apparatus;
 
-    return { ...input, score, difficulty, family: familyKey(word, input.dictionary) };
+    return {
+      ...input,
+      score,
+      difficulty,
+      family: familyKey(word, input.dictionary),
+      families: familyKeys(word, input.dictionary),
+    };
   });
 }
 
@@ -292,12 +399,139 @@ export function recommend(
   const excluded = new Set(options.excludedFamilies ?? []);
   const chosen: ScoredCandidate[] = [];
   for (const item of ordered) {
-    if (excluded.has(item.family)) continue;
-    excluded.add(item.family);
+    // Ein Mehrwortbegriff beansprucht auch die Familien seiner Teile: Steht
+    // `Psychological casualties` schon da, ist `psychological` vergeben.
+    if (item.families.some((family) => excluded.has(family))) continue;
+    for (const family of item.families) excluded.add(family);
     chosen.push(item);
     if (chosen.length >= options.count) break;
   }
   return chosen;
+}
+
+/* ------------------------------------------------------------- Nachlegen */
+
+/** Was von einer Empfehlungszeile gebraucht wird, um sie nachzulegen. */
+export interface ReplaceableRow {
+  /** Der Kandidat – über seine Id wird die Zeile wiedererkannt. */
+  candidate: TextCandidate;
+  /** Nicht leer heißt: beantwortet, also unantastbar. */
+  german: string;
+  /** Alle Familien, die diese Zeile beansprucht. */
+  families: readonly string[];
+}
+
+export interface ReplacementResult<Row extends ReplaceableRow> {
+  /** Die neue aktuelle Liste: beantwortete zuerst, dann die frischen. */
+  rows: Row[];
+  /** Die zurückgelegten Zeilen, neueste zuerst. */
+  earlier: Row[];
+  /** Wie viele Empfehlungen tatsächlich nachgelegt wurden. */
+  added: number;
+  /** Wie viele angefordert waren – für die ehrliche Meldung. */
+  requested: number;
+}
+
+export interface ReplacementOptions<Row extends ReplaceableRow> {
+  /** Alle Kandidaten des Textes, mit Wörterbuchauskunft. */
+  inputs: readonly RecommendationInput[];
+  /** Die aktuelle Liste. */
+  rows: readonly Row[];
+  /** Die bisher zurückgelegten Zeilen. */
+  earlier: readonly Row[];
+  context: RecommendationContext;
+  sort: RecommendationSort;
+  /** Die gewünschte Gesamtzahl. */
+  count: number;
+  publicationContext?: boolean;
+  /**
+   * Sollen die schon gezeigten Familien ausgeschlossen werden?
+   *
+   * Beim „Offene Empfehlungen ersetzen“ ja – es sollen ausdrücklich **andere**
+   * Wörter kommen. Bei geänderten Einstellungen nein: Ein Wort, das zum neuen
+   * Niveau nun passt, darf wieder auftauchen.
+   */
+  excludeShown: boolean;
+  /** Wie aus einem bewerteten Kandidaten eine Zeile wird. */
+  toRow: (scored: ScoredCandidate) => Row;
+}
+
+/**
+ * Legt Empfehlungen nach, ohne beantwortete anzurühren.
+ *
+ * Das ist die Rechnung hinter „Offene Empfehlungen ersetzen“, und sie steht
+ * hier statt in der Komponente, damit sie sich ohne Oberfläche prüfen lässt.
+ * Die Zusagen im Einzelnen:
+ *
+ * - **Beantwortete Zeilen bleiben unverändert** – dieselben Objekte, nicht
+ *   nachgebaute. Wer zehn Minuten getippt hat, verliert davon nichts, auch
+ *   nicht die Wortart oder einen übernommenen Vorschlag.
+ * - **Nachgelegt wird genau die Lücke.** Zehn gewünscht, sieben beantwortet:
+ *   drei neue.
+ * - **Nichts kommt doppelt.** Ausgeschlossen sind die Familien der
+ *   beantworteten Zeilen und – beim Ersetzen – die aller zurückgelegten.
+ * - **Zurückgelegt statt weggeworfen.** Die offenen Zeilen wandern nach
+ *   `earlier`, neueste zuerst.
+ * - **Die echte Zahl.** Gibt der Text weniger her, steht das in `added` und
+ *   `requested`; erfunden wird nichts.
+ */
+export function replaceOpenRecommendations<Row extends ReplaceableRow>(
+  options: ReplacementOptions<Row>,
+): ReplacementResult<Row> {
+  const answered = options.rows.filter((row) => row.german.trim().length > 0);
+  const open = options.rows.filter((row) => row.german.trim().length === 0);
+  const earlier = [...open, ...options.earlier];
+
+  const excluded = new Set<string>();
+  for (const row of answered) for (const family of row.families) excluded.add(family);
+  if (options.excludeShown) {
+    for (const row of earlier) for (const family of row.families) excluded.add(family);
+  }
+
+  const requested = Math.max(0, options.count - answered.length);
+  const fresh = recommend(options.inputs, {
+    context: options.context,
+    sort: options.sort,
+    count: requested,
+    excludedFamilies: excluded,
+    ...(options.publicationContext === undefined
+      ? {}
+      : { publicationContext: options.publicationContext }),
+  }).map(options.toRow);
+
+  const rows = [...answered, ...fresh];
+
+  /*
+    Nichts steht gleichzeitig oben und unter „Frühere Empfehlungen“.
+
+    Beim Neuberechnen (`excludeShown: false`) darf ein zurückgelegtes Wort
+    zurückkommen – dann gehört es aber nach oben und nicht mehr in die
+    Rückschau. Ohne diesen Schritt stand dieselbe Vokabel zweimal auf der
+    Seite, einmal mit „Entfernen“ und einmal mit „Wieder aufnehmen“.
+  */
+  const current = new Set(rows.map((row) => row.candidate.id));
+  const remaining = earlier.filter((row) => !current.has(row.candidate.id));
+
+  return { rows, earlier: remaining, added: fresh.length, requested };
+}
+
+/** „3 neue Empfehlungen.“ – oder die ehrliche Auskunft, dass es weniger sind. */
+export function describeReplacement(result: {
+  added: number;
+  requested: number;
+}): string {
+  if (result.requested === 0) return 'Es war keine Empfehlung offen.';
+  if (result.added === 0) {
+    return 'Der Text gibt keine weiteren Vokabeln her. Die bisherigen stehen unter „Frühere Empfehlungen“.';
+  }
+  const neue = result.added === 1 ? '1 neue Empfehlung' : `${result.added} neue Empfehlungen`;
+  if (result.added < result.requested) {
+    return (
+      `${neue} – gewünscht waren ${result.requested}. ` +
+      'Mehr geeignete Wörter enthält der Text nicht; erfunden wird nichts.'
+    );
+  }
+  return `${neue}. Die ersetzten stehen unter „Frühere Empfehlungen“.`;
 }
 
 /**

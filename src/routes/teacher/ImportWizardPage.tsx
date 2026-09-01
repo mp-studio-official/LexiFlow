@@ -46,7 +46,8 @@ import { CEFR_LEVELS, GRADES, GRADE_LABELS, suggestCefrLevel } from '../../domai
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
 import { countCandidates } from '../../import/candidateLimit';
-import { suggestTopic } from '../../import/topicSuggestion';
+import { suggestTopic, type TopicSuggestion } from '../../import/topicSuggestion';
+import { looksLikePublication } from '../../import/recommendation';
 import { DIRECTION_LABELS, LEARNING_DIRECTIONS, type LearningDirection } from '../../domain/schema';
 import {
   MAX_TEXT_LENGTH,
@@ -146,6 +147,16 @@ export function ImportWizardPage() {
   const [analysis, setAnalysis] = useState<TextAnalysis | null>(null);
   /** Der Themenvorschlag aus dem Text – leer, wenn nichts heraussticht. */
   const [topicHint, setTopicHint] = useState('');
+  /** Woraus er entstanden ist – für eine ehrliche Beschriftung im Schritt 2. */
+  const [topicSource, setTopicSource] = useState<TopicSuggestion['source']>('none');
+  /**
+   * Sieht der Text nach einer Publikation mit Kopfdaten aus?
+   *
+   * Dann ist `issue` die Heftnummer und keine Vokabel. Erkannt wird der
+   * Apparat, nicht der Inhalt – in einem Text über ein Streitthema bleibt
+   * `issue` ein ganz normales Wort.
+   */
+  const [publicationContext, setPublicationContext] = useState(false);
   /**
    * „Bereit oder ladbar“ – nur dann verspricht die Schaltfläche Übersetzungen.
    * Ein nicht gestarteter Anbieter gilt nie als vorbereitet.
@@ -277,8 +288,21 @@ export function ImportWizardPage() {
       setAnalysis(result);
       setCandidates(result.candidates);
       // Ein Themenvorschlag – oder keiner. Erfunden wird nichts.
+      /*
+        Der Themenvorschlag wird **eingetragen**, nicht nur angedeutet.
+
+        Ein Vorschlag, der als Platzhalter im leeren Feld steht, ist keiner:
+        Wer ihn übernehmen will, muss ihn abtippen. Eingetragen ist er in einem
+        Klick wieder weg – und was die Lehrkraft schon selbst geschrieben hat,
+        wird nie überschrieben.
+      */
       const topic = suggestTopic(englishText);
       setTopicHint(topic.topic);
+      setTopicSource(topic.source);
+      if (topic.topic && !meta.topic.trim()) {
+        setMeta((current) => (current.topic.trim() ? current : { ...current, topic: topic.topic }));
+      }
+      setPublicationContext(looksLikePublication(englishText));
       setError('');
 
       // Jetzt – und nur jetzt – lohnt sich das Modell. Immer noch synchron:
@@ -578,7 +602,36 @@ export function ImportWizardPage() {
 
       {step === 'source' ? (
         <Card>
-          <h2>Woher kommen die Vokabeln?</h2>
+          {/*
+            Der Datenschutzhinweis sitzt als kleines **i** direkt hinter der
+            Überschrift.
+
+            Als beschrifteter Knopf („Was passiert mit meinem Text?“) stand er
+            als eigene Zeile im Weg und sah aus wie eine Aktion. Ein i neben der
+            Überschrift ist die richtige Größe: Es sagt „hier steht noch etwas“
+            und beansprucht nichts.
+          */}
+          <div className="card-head">
+            <h2>Woher kommen die Vokabeln?</h2>
+            <InfoDisclosure
+              label="Hinweis zur Textverarbeitung"
+              title="Verarbeitung auf diesem Gerät"
+            >
+              <p>
+                Der Text wird auf diesem Gerät verarbeitet und nicht übertragen. Der vollständige
+                eingefügte Text wird nicht als eigener Datensatz gespeichert.
+              </p>
+              <p>
+                Die Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze Teil
+                des Pakets und beim Export mitgegeben; du kannst sie in „Prüfen &amp; Speichern“
+                bearbeiten oder entfernen.
+              </p>
+              <p>
+                Verwende nur Texte, die du verwenden darfst, und füge keine personenbezogenen Daten
+                von Schülerinnen und Schülern ein.
+              </p>
+            </InfoDisclosure>
+          </div>
           <fieldset style={{ border: 0, padding: 0, margin: '0 0 1rem' }}>
             <legend className="visually-hidden">Importquelle</legend>
             <div className="row">
@@ -620,32 +673,6 @@ export function ImportWizardPage() {
             </Suspense>
           ) : source === 'text' ? (
             <div className="stack">
-              {/*
-                Der Datenschutzhinweis, aufgeklappt statt ausgebreitet.
-
-                Er ist wichtig genug, um dazustehen, und lang genug, um beim
-                dritten Mal nicht mehr gelesen zu werden. Offen schob er das
-                Textfeld unter die Falz – die eigentliche Aufgabe dieses
-                Schritts war dann nicht mehr das Erste, was man sieht.
-              */}
-              <InfoDisclosure
-                label="Was passiert mit meinem Text?"
-                title="Verarbeitung auf diesem Gerät"
-              >
-                <p>
-                  Der Text wird auf diesem Gerät verarbeitet und nicht übertragen. Der
-                  vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert.
-                </p>
-                <p>
-                  Die Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze
-                  Teil des Pakets und beim Export mitgegeben; du kannst sie in „Prüfen &amp;
-                  Speichern“ bearbeiten oder entfernen.
-                </p>
-                <p>
-                  Verwende nur Texte, die du verwenden darfst, und füge keine personenbezogenen
-                  Daten von Schülerinnen und Schülern ein.
-                </p>
-              </InfoDisclosure>
               <Field
                 label="Englischer Text"
                 hint={`Bis zu ${MAX_TEXT_LENGTH.toLocaleString('de-DE')} Zeichen. LexiFlow zerlegt den Text lokal in Sätze und Wörter. Gespeichert wird nur, was du übernimmst: die Vokabeln und ihre Originalsätze.`}
@@ -780,6 +807,8 @@ export function ImportWizardPage() {
             candidates={candidates}
             context={learningContext}
             suggestedTopic={topicHint}
+            topicSource={topicSource}
+            publicationContext={publicationContext}
             preparation={preparation}
             onContextChange={(next) => {
               // Derselbe Meta-Zustand wie im übrigen Assistenten – der letzte
@@ -1017,15 +1046,23 @@ export function ImportWizardPage() {
             </p>
           </Card>
 
-          <Suspense
-            fallback={
-              <p className="muted small" role="status">
-                Vorschlagswerkstatt wird geladen …
-              </p>
-            }
-          >
-            <EnrichmentPanel drafts={drafts} context={learningContext} onChange={updateDrafts} />
-          </Suspense>
+          {/*
+            Die Vorschlagswerkstatt schlägt Schwierigkeit und Themen-Tags vor –
+            genau die beiden Angaben, die der Textweg nicht mehr zeigt. Sie dort
+            trotzdem anzubieten wäre widersprüchlich: Man könnte etwas
+            übernehmen, das man anschließend nirgends sieht.
+          */}
+          {source === 'text' ? null : (
+            <Suspense
+              fallback={
+                <p className="muted small" role="status">
+                  Vorschlagswerkstatt wird geladen …
+                </p>
+              }
+            >
+              <EnrichmentPanel drafts={drafts} context={learningContext} onChange={updateDrafts} />
+            </Suspense>
+          )}
 
           <div className="row">
             <p className="small" style={{ margin: 0 }}>
@@ -1043,7 +1080,17 @@ export function ImportWizardPage() {
             </Button>
           </div>
 
-          <DraftTable drafts={drafts} onChange={updateDrafts} sentenceContext={learningContext} />
+          {/*
+            Der Textweg zeigt weniger. Alle anderen Wege zeigen alles – dort
+            können die Angaben aus einem vorhandenen Paket stammen, und die
+            dürfen nicht stillschweigend unsichtbar werden.
+          */}
+          <DraftTable
+            drafts={drafts}
+            onChange={updateDrafts}
+            sentenceContext={learningContext}
+            variant={source === 'text' ? 'text' : 'full'}
+          />
 
           <div className="row">
             <Button onClick={() => setStep(source === 'text' ? 'candidates' : 'source')}>
