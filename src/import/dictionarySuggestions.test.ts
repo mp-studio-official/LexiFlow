@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_AUTO_SYNONYMS,
   enrichWithDictionary,
   familyKeyOf,
   mayReceiveDictionarySuggestion,
+  safeAutoAnswer,
   summarizeLookup,
 } from './dictionarySuggestions';
 import type { DictionaryEntry, DictionaryProvider } from '../dictionary/DictionaryProvider';
@@ -237,5 +239,98 @@ describe('Alle Zeilen anreichern', () => {
   it('bildet den Familienschlüssel aus dem Stichwort', () => {
     expect(familyKeyOf(summarizeLookup([insel]))).toBe('island');
     expect(familyKeyOf(undefined)).toBeUndefined();
+  });
+});
+
+describe('Sichere Sammelübernahme', () => {
+  it('nimmt eine einzelne, unmarkierte Entsprechung', () => {
+    expect(safeAutoAnswer(summarizeLookup([insel]))).toBe('Insel');
+  });
+
+  it('nimmt zwei Entsprechungen einer Bedeutung als Alternativen', () => {
+    const station = entry({
+      headword: 'station',
+      senses: [
+        {
+          sense: 'place',
+          suggestions: [
+            { german: 'Bahnhof', gender: 'm' },
+            { german: 'Station', gender: 'f' },
+          ],
+        },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([station]))).toBe('Bahnhof, Station');
+    expect(MAX_AUTO_SYNONYMS).toBe(2);
+  });
+
+  it('nimmt bei drei Entsprechungen nur die erste', () => {
+    /*
+      `limestone` liefert *Kalkstein, Calciumcarbonat, Kalk*. Ab drei Einträgen
+      ist das keine Liste von Synonymen mehr, sondern eine Aufzählung
+      verwandter Begriffe – Calciumcarbonat ist ein anderer Stoff.
+    */
+    const limestone = entry({
+      headword: 'limestone',
+      senses: [
+        {
+          sense: 'rock',
+          suggestions: [
+            { german: 'Kalkstein', gender: 'm' },
+            { german: 'Calciumcarbonat', gender: 'n' },
+            { german: 'Kalk', gender: 'm' },
+          ],
+        },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([limestone]))).toBe('Kalkstein');
+  });
+
+  it('verbindet niemals über Bedeutungen hinweg', () => {
+    // `casualty`: *Unfall* ODER *Notaufnahme* ODER *Opfer*.
+    const answer = safeAutoAnswer(summarizeLookup([casualty]));
+    expect(answer).toBe('Unfall, Unglück');
+    expect(answer).not.toContain('Opfer');
+  });
+
+  it('trägt nichts ein, wenn nur Markiertes vorliegt', () => {
+    // `shell shock` → nur der veraltete *Kriegszitterer*.
+    expect(safeAutoAnswer(summarizeLookup([shellShock]))).toBe('');
+  });
+
+  it('trägt einen erschlossenen Verweis nicht als Standardantwort ein', () => {
+    /*
+      `doctor` bekommt automatisch die eigene, bestplatzierte Bedeutung.
+      *Arzt* über `physician` ist eine Schlussfolgerung und bleibt ein
+      sichtbarer Ein-Klick-Vorschlag daneben.
+    */
+    const doctor = entry({
+      headword: 'doctor',
+      senses: [
+        { sense: 'doctorate holder', suggestions: [{ german: 'Doktor', gender: 'm' }] },
+        { sense: 'medical doctor', via: 'physician', suggestions: [{ german: 'Arzt', gender: 'm' }] },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([doctor]))).toBe('Doktor');
+
+    // Steht nur die erschlossene Bedeutung da, bleibt das Feld leer.
+    const nurVia = entry({
+      headword: 'medic',
+      senses: [{ sense: 'medical doctor', via: 'physician', suggestions: [{ german: 'Arzt' }] }],
+    });
+    expect(safeAutoAnswer(summarizeLookup([nurVia]))).toBe('');
+  });
+
+  it('übergeht Entsprechungen mit Klammerbedingung', () => {
+    const bedingt = entry({
+      headword: 'lime',
+      senses: [{ sense: 'mineral', suggestions: [{ german: 'Kalk', qualifier: 'gebrannt' }] }],
+    });
+    expect(safeAutoAnswer(summarizeLookup([bedingt]))).toBe('');
+  });
+
+  it('liefert für einen leeren Treffer nichts', () => {
+    expect(safeAutoAnswer(undefined)).toBe('');
+    expect(safeAutoAnswer(summarizeLookup([]))).toBe('');
   });
 });

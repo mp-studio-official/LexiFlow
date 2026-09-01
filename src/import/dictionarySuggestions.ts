@@ -161,3 +161,69 @@ export async function enrichWithDictionary<Row extends EnrichableRow>(
 
   return { rows: result, filled, unambiguous, skipped };
 }
+
+/* ------------------------------------------------- Sichere Sammelübernahme */
+
+/** Wie viele echte Synonyme höchstens automatisch eingetragen werden. */
+export const MAX_AUTO_SYNONYMS = 2;
+
+/**
+ * Die Antwort, die sich **ohne Rückfrage** eintragen lässt – oder gar keine.
+ *
+ * Die Sammelaktion „Übersetzungsvorschläge eintragen“ ist bequem und deshalb
+ * gefährlich: Sie schreibt in Felder, die hinterher niemand mehr einzeln
+ * ansieht. Vier Regeln, jede an einem echten Beispiel entstanden:
+ *
+ * 1. **Nie über Bedeutungen hinweg verbinden.** `casualty` heißt *Unfall*
+ *    **oder** *Notaufnahme* **oder** *Opfer*. „Unfall, Notaufnahme“ wäre kein
+ *    Synonympaar, sondern das Zusammenrühren zweier Begriffe. Genommen wird
+ *    ausschließlich die bestbewertete Bedeutungsgruppe.
+ *
+ * 2. **Zwei Entsprechungen sind Alternativen, drei sind eine Aufzählung.**
+ *    Nennt die Quelle für *eine* Bedeutung genau zwei deutsche Wörter, sind das
+ *    Varianten desselben Begriffs (`station` → *Bahnhof, Station*). Nennt sie
+ *    drei oder mehr, ist die erste das Stichwort und der Rest Verwandtschaft:
+ *    `limestone` liefert *Kalkstein, Calciumcarbonat, Kalk* – und
+ *    Calciumcarbonat ist keine zweite Übersetzung, sondern ein anderer Stoff.
+ *    Ab drei wird deshalb nur die erste übernommen.
+ *
+ * 3. **Nichts Markiertes.** Veraltet, umgangssprachlich, derb, mit
+ *    Klammerbedingung – all das bleibt sichtbar, wird aber nie automatisch zur
+ *    Antwort. `shell shock` liefert nur den veralteten *Kriegszitterer*; das
+ *    Feld bleibt leer.
+ *
+ * 4. **Kein erschlossener Verweis als Standardantwort.** Eine `via`-Bedeutung
+ *    ist eine Schlussfolgerung, keine Auskunft. `doctor` bekommt automatisch
+ *    *Doktor* (die eigene, bestplatzierte Bedeutung); *Arzt* über `physician`
+ *    bleibt als sichtbarer Ein-Klick-Vorschlag daneben stehen.
+ *
+ * Im Zweifel: gar nichts. Ein leeres Feld ist eine Aufgabe; eine falsche
+ * Antwort ist ein Fehler, den jemand später glaubt.
+ */
+export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined): string {
+  const entries = summary?.entries ?? [];
+  if (!entries.length) return '';
+
+  // Regel 1: genau eine Gruppe – die erste mit Inhalt, in der Rangfolge des
+  // Providers. Alles Weitere bleibt der Lehrkraft überlassen.
+  const sense = entries
+    .flatMap((entry) => entry.senses)
+    .find((candidate) => candidate.suggestions.length);
+  if (!sense) return '';
+
+  // Regel 4: erschlossene Verweise tragen keine Standardantwort.
+  if (sense.via) return '';
+
+  // Regel 3: Markiertes und Bedingtes zählt nicht mit.
+  const safe = sense.suggestions.filter(
+    (suggestion) => !suggestion.register?.length && !suggestion.qualifier,
+  );
+  if (!safe.length || isQuestionable(sense)) return '';
+
+  // Regel 2: eins, zwei – oder bei dreien nur das erste.
+  const take = safe.length <= MAX_AUTO_SYNONYMS ? safe.length : 1;
+  return safe
+    .slice(0, take)
+    .map((suggestion) => suggestion.german)
+    .join(', ');
+}
