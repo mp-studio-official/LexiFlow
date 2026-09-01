@@ -141,14 +141,17 @@ test.describe('Themenwerkstatt', () => {
     await expect(page.getByLabel('Englisch, Zeile 1', { exact: true })).toHaveValue('crowded');
     await expect(page.getByLabel('Deutsch, Zeile 1', { exact: true })).toHaveValue('überfüllt');
     await expect(page.getByLabel('Wortart, Zeile 1', { exact: true })).toHaveValue('adjective');
-    await expect(page.getByLabel('Schwierigkeit, Zeile 1', { exact: true })).toHaveValue('3');
+    // Schwierigkeit ist keine Tabellenspalte mehr, sondern steht im
+    // aufgeklappten Bereich der Zeile.
+    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
+    await expect(page.getByLabel('Schwierigkeit', { exact: true })).toHaveValue('3');
+    await page.getByRole('button', { name: 'Beispielsatz für crowded schließen' }).click();
 
     await page.getByLabel('Deutsch, Zeile 2', { exact: true }).fill('Abfall');
     await page.getByLabel('quiet übernehmen').uncheck();
     await expect(page.getByText(/9 werden übernommen/)).toBeVisible();
 
     // Speichern.
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await expect(page.getByRole('textbox', { name: 'Thema', exact: true })).toHaveValue('City life');
     await page.getByLabel('Titel', { exact: true }).fill('City life – Vorschläge');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
@@ -234,10 +237,15 @@ test.describe('Themenwerkstatt', () => {
 
     // Eine normale, bearbeitbare Zeile mit dem Thema als Tag.
     await expect(page.getByText('1 Zeilen ·')).toBeVisible();
-    await expect(page.getByLabel('Themen-Tags, Zeile 1', { exact: true })).toHaveValue('City life');
     await page.getByLabel('Englisch, Zeile 1', { exact: true }).fill('crowded');
     await page.getByLabel('Deutsch, Zeile 1', { exact: true }).fill('überfüllt');
-    await expect(page.getByRole('button', { name: 'Weiter zu den Metadaten' })).toBeEnabled();
+    // Der Themen-Tag steht jetzt im aufgeklappten Bereich der Zeile.
+    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
+    await expect(page.getByLabel('Themen-Tags', { exact: true })).toHaveValue('City life');
+    await page.getByRole('button', { name: 'Beispielsatz für crowded schließen' }).click();
+    // Titel und Speichern stehen in demselben Schritt.
+    await page.getByLabel('Titel', { exact: true }).fill('City life – leer');
+    await expect(page.getByRole('button', { name: /Paket speichern/ })).toBeEnabled();
   });
 
   test('@a11y Themenwerkstatt ohne schwerwiegende Befunde und mit der Tastatur bedienbar', async ({

@@ -9,8 +9,13 @@ import { expect, test, type Page } from '@playwright/test';
  * Wikipedia-Absatz, keine Zitate, keine echten Modelle.
  */
 
+/*
+  Bewusst knapp gehalten: Der Text liefert 19 Kandidaten und passt damit
+  vollständig in einen Empfehlungslauf mit der Obergrenze 20. Geprüft werden
+  hier Wortformen, Abkürzungen und Lernrichtungen – nicht die Rangfolge, die
+  `recommendation.test.ts` für sich prüft.
+*/
 const TEXT = [
-  'The bay lies in the north of the country.',
   'One island rises straight out of the calm water.',
   'Around 1,969 islands fill the bay, and the islands attract many visitors.',
   'The protected area covers about 600 sq mi.',
@@ -69,6 +74,15 @@ async function withFakeTranslator(page: Page): Promise<void> {
   });
 }
 
+/** Schritt 2 in einem Aufruf: warten, Anzahl setzen, empfehlen lassen. */
+async function recommend(page: Page, count = '20'): Promise<void> {
+  const knopf = page.getByRole('button', { name: 'Empfehlungen generieren', exact: true });
+  await expect(knopf).toBeEnabled({ timeout: 30_000 });
+  await page.getByLabel('Anzahl').selectOption(count);
+  await knopf.click();
+  await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
+}
+
 /** Alles, was nicht der lokale Testserver ist, wäre ein Fehler. */
 function watchExternalRequests(page: Page): string[] {
   const external: string[] = [];
@@ -89,32 +103,27 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').fill(TEXT);
 
-    // 1. Die gewünschte Anzahl wird vor der Analyse gewählt.
-    await page.getByLabel('Gewünschte Anzahl Vokabelvorschläge').selectOption('30');
+    // 1. Die Hauptaktion heißt überall gleich; dass dabei ein Modell geladen
+    //    wird, steht als Satz darunter statt als Versprechen im Knopf.
+    await expect(page.getByText(/Sprachmodell im Hintergrund vorbereitet/)).toBeVisible();
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
 
-    // 2. Mit ladbarem Modell verspricht die Hauptaktion auch Übersetzungen.
-    const analyze = page.getByRole('button', {
-      name: 'Text analysieren und Übersetzungen vorschlagen',
-    });
-    await expect(analyze).toBeVisible();
-    await analyze.click();
+    // 2. Schritt 2: Die Anzahl steht jetzt hier – nach der Analyse, wenn man
+    //    weiß, was der Text hergibt.
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+    await recommend(page);
 
-    await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
-
-    // 3. Ehrliche Mengenanzeige – bezogen auf den Wunsch, nicht auf den Fund.
-    await expect(page.getByText(/von 30 geeigneten Vokabeln gefunden\./).first()).toBeVisible();
-
-    // 4. „island“ und „islands“ sind ein Vorschlag mit gemeinsamer Häufigkeit.
+    // 3. „island“ und „islands“ sind ein Vorschlag mit gemeinsamer Häufigkeit.
     await expect(page.getByText('Im Text: islands, island · insgesamt 3-mal')).toBeVisible();
     await expect(page.getByText(/Plural: islands/)).toBeVisible();
     await expect(page.getByLabel('Deutsche Antwort für „islands“')).toHaveCount(0);
 
-    // 5. „600 sq mi“ ist ein Vorschlag mit Langform – und keine Bruchstücke.
+    // 4. „600 sq mi“ ist ein Vorschlag mit Langform – und keine Bruchstücke.
     await expect(page.getByLabel('Langform für „sq mi“')).toHaveValue('square mile (sq mi)');
     await expect(page.getByLabel('Deutsche Antwort für „sq“')).toHaveCount(0);
     await expect(page.getByLabel('Deutsche Antwort für „mi“')).toHaveCount(0);
 
-    // 6. Der eine Klick genügt: Die Vorschläge laufen nach der Vorbereitung von
+    // 5. Der eine Klick genügt: Die Vorschläge laufen nach der Vorbereitung von
     //    selbst an. Ein zweiter Knopf wird hier bewusst nicht gedrückt.
     await expect(
       page.getByRole('button', { name: 'Vorschlag für island übernehmen' }),
@@ -128,17 +137,17 @@ test.describe('Textqualität und Lernrichtungen', () => {
     // Der Abkürzungsvorschlag stammt aus dem Lexikon, nicht aus dem Modell.
     await expect(page.getByText('die Quadratmeile')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Keine auswählen' }).click();
-    // Ausdrücklich die Auswahlkästchen: „… übernehmen“ heißt jetzt auch der
-    // Knopf am Vorschlag.
-    await page.getByRole('checkbox', { name: 'island übernehmen' }).check();
-    await page.getByRole('checkbox', { name: 'bay übernehmen' }).check();
+    /*
+      6. Es gibt keine Auswahlkästchen mehr. Was eine deutsche Antwort trägt,
+         geht mit; alles andere bleibt offen und bleibt hier. Die übrigen
+         Empfehlungen werden deshalb ausdrücklich zurückgelegt.
+    */
     await page.getByLabel('Deutsche Antwort für „bay“').fill('die Bucht');
+    await expect(page.getByText(/2 Vokabeln werden übernommen/)).toBeVisible();
 
-    await page.getByRole('button', { name: /2 Vokabeln in die Vorschau übernehmen/ }).click();
+    await page.getByRole('button', { name: '2 Vokabeln prüfen & speichern' }).click();
 
     // 7. Speichern – neue Pakete stehen auf „beide Richtungen“.
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await expect(page.getByLabel('Lernrichtung')).toHaveValue('both');
     await page.getByLabel('Titel', { exact: true }).fill('Halong Bay – aus einem Text');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
@@ -173,9 +182,10 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').fill(TEXT);
 
-    // Ohne Modell verspricht die Schaltfläche keine Übersetzung.
-    await page.getByRole('button', { name: 'Text lokal analysieren' }).click();
-    await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
+    // Ohne Modell steht kein Hinweis auf einen Download da.
+    await expect(page.getByText(/Sprachmodell im Hintergrund vorbereitet/)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await recommend(page);
 
     // Die Analyse ist vollständig – inklusive Wortformen und Abkürzung.
     await expect(page.getByText('Im Text: islands, island · insgesamt 3-mal')).toBeVisible();
@@ -201,9 +211,8 @@ test.describe('Textqualität und Lernrichtungen', () => {
     // prüft die Richtungswahl, nicht noch einmal den Import.
     await page.goto('/#/material/import?quelle=text');
     await page.getByLabel('Englischer Text').fill(TEXT);
-    await page.getByLabel('Gewünschte Anzahl Vokabelvorschläge').selectOption('30');
-    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
-    await page.getByRole('button', { name: 'Keine auswählen' }).click();
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await recommend(page);
 
     for (const [english, german] of [
       ['island', 'die Insel'],
@@ -211,12 +220,10 @@ test.describe('Textqualität und Lernrichtungen', () => {
       ['water', 'das Wasser'],
       ['cave', 'die Höhle'],
     ] as const) {
-      await page.getByLabel(`${english} übernehmen`).check();
       await page.getByLabel(`Deutsche Antwort für „${english}“`).fill(german);
     }
 
-    await page.getByRole('button', { name: /4 Vokabeln in die Vorschau übernehmen/ }).click();
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
+    await page.getByRole('button', { name: '4 Vokabeln prüfen & speichern' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('Halong Bay – frei üben');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();

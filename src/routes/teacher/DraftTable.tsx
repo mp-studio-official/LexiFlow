@@ -30,7 +30,17 @@ interface DraftTableProps {
 }
 
 const DIFFICULTIES = [1, 2, 3, 4, 5] as const;
-const COLUMN_COUNT = 9;
+
+/**
+ * Sieben Spalten, nicht neun.
+ *
+ * Schwierigkeit und Themen-Tags standen bisher als eigene Spalten in der
+ * Tabelle und drängten sich damit auf: zwei Pflichtfelder dem Anschein nach,
+ * die in Wahrheit optional sind und die für eine aus einem Text übernommene
+ * Vokabel niemand kennt. Sie sind nicht verschwunden – sie stehen jetzt dort,
+ * wo man sie sucht, wenn man sie will: im aufgeklappten Bereich der Zeile.
+ */
+const COLUMN_COUNT = 7;
 
 export function DraftTable({ drafts, onChange, sentenceContext }: DraftTableProps) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -60,8 +70,8 @@ export function DraftTable({ drafts, onChange, sentenceContext }: DraftTableProp
     <div className="table-wrap">
       <table>
         <caption className="visually-hidden">
-          Vorschau der erkannten Vokabeln. Alle Felder sind bearbeitbar; weitere Angaben
-          stehen unter „Details“.
+          Vorschau der erkannten Vokabeln. Alle Felder sind bearbeitbar; Beispielsätze,
+          Schwierigkeit und Themen-Tags stehen unter „Beispielsatz bearbeiten“.
         </caption>
         <thead>
           <tr>
@@ -72,9 +82,7 @@ export function DraftTable({ drafts, onChange, sentenceContext }: DraftTableProp
             <th scope="col">Englisch</th>
             <th scope="col">Deutsch</th>
             <th scope="col">Wortart</th>
-            <th scope="col">Schwierigkeit</th>
-            <th scope="col">Themen-Tags</th>
-            <th scope="col">Details</th>
+            <th scope="col">Beispielsatz</th>
             <th scope="col">Status</th>
             <th scope="col">
               <span className="visually-hidden">Aktionen</span>
@@ -135,43 +143,18 @@ export function DraftTable({ drafts, onChange, sentenceContext }: DraftTableProp
                     </select>
                   </td>
                   <td>
-                    <select
-                      value={draft.difficulty}
-                      aria-label={`Schwierigkeit, Zeile ${index + 1}`}
-                      onChange={(event) =>
-                        patch(draft.id, {
-                          difficulty:
-                            event.target.value === ''
-                              ? ''
-                              : (Number(event.target.value) as 1 | 2 | 3 | 4 | 5),
-                        })
-                      }
-                    >
-                      <option value="">–</option>
-                      {DIFFICULTIES.map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      value={draft.tags}
-                      aria-label={`Themen-Tags, Zeile ${index + 1}`}
-                      onChange={(event) => patch(draft.id, { tags: event.target.value })}
-                    />
-                  </td>
-                  <td>
+                    {/*
+                      „Details“ sagte nichts. Fast immer geht es um den
+                      Beispielsatz – und wer ihn sucht, soll ihn benannt finden.
+                    */}
                     <Button
                       small
                       variant="quiet"
                       aria-expanded={isOpen}
-                      aria-label={`Details für ${rowLabel} ${isOpen ? 'schließen' : 'öffnen'}`}
+                      aria-label={`Beispielsatz für ${rowLabel} ${isOpen ? 'schließen' : 'bearbeiten'}`}
                       onClick={() => toggleDetails(draft.id)}
                     >
-                      {isOpen ? 'Schließen' : 'Details'} ({draft.sentences.length})
+                      {isOpen ? 'Schließen' : 'Beispielsatz bearbeiten'} ({draft.sentences.length})
                     </Button>
                   </td>
                   <td>
@@ -236,6 +219,43 @@ export function DraftTable({ drafts, onChange, sentenceContext }: DraftTableProp
                             <span className="field__hint">
                               Wird nach der Antwort als Hinweis angezeigt.
                             </span>
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`difficulty-${draft.id}`}>Schwierigkeit</label>
+                            <select
+                              id={`difficulty-${draft.id}`}
+                              value={draft.difficulty}
+                              onChange={(event) =>
+                                patch(draft.id, {
+                                  difficulty:
+                                    event.target.value === ''
+                                      ? ''
+                                      : (Number(event.target.value) as 1 | 2 | 3 | 4 | 5),
+                                })
+                              }
+                            >
+                              <option value="">–</option>
+                              {DIFFICULTIES.map((value) => (
+                                <option key={value} value={value}>
+                                  {value}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="field__hint">
+                              1 = sehr leicht bis 5 = sehr schwer. Freiwillig – LexiFlow errät sie
+                              nicht.
+                            </span>
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`tags-${draft.id}`}>Themen-Tags</label>
+                            <input
+                              id={`tags-${draft.id}`}
+                              type="text"
+                              value={draft.tags}
+                              placeholder="z. B. City life"
+                              onChange={(event) => patch(draft.id, { tags: event.target.value })}
+                            />
+                            <span className="field__hint">Durch Komma getrennt.</span>
                           </div>
                         </div>
 

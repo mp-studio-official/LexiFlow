@@ -106,6 +106,11 @@ export function resolveRecommendations(
 }
 
 /**
+ * **Außer Dienst seit Sprint 4B.1**, zusammen mit `TextRecommendationPanel`.
+ * Der Empfehlungsschritt zeigt nur noch die Empfehlungen selbst; eine Liste,
+ * in der Empfohlenes nach vorn sortiert wird, gibt es dort nicht mehr. Die
+ * Funktion bleibt geprüft stehen, weil sie richtig ist und klein.
+ *
  * Sortiert Empfehlungen nach vorn, ohne die übrigen zu verlieren.
  *
  * Innerhalb der Empfehlungen gilt die Reihenfolge des Modells, danach folgt der

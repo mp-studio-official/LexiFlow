@@ -43,7 +43,6 @@ async function seedPack(page: Page, title: string, direction = 'en-de'): Promise
   await page.goto('/#/material/import');
   await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-  await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('7');
   // Die meisten Tests hier beschreiben das freie Üben, nicht die Richtungswahl.
@@ -71,13 +70,12 @@ async function seedPackWithSomeSentences(page: Page, title: string): Promise<voi
     ['crowded', 'The bus was crowded this morning.'],
     ['litter', 'There is litter on the street.'],
   ] as const) {
-    await page.getByRole('button', { name: `Details für ${word} öffnen` }).click();
+    await page.getByRole('button', { name: `Beispielsatz für ${word} bearbeiten` }).click();
     await page.getByRole('button', { name: `Beispielsatz hinzufügen, ${word}` }).click();
     await page.getByLabel(`Beispielsatz 1 Englisch, ${word}`).fill(sentence);
-    await page.getByRole('button', { name: `Details für ${word} schließen` }).click();
+    await page.getByRole('button', { name: `Beispielsatz für ${word} schließen` }).click();
   }
 
-  await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('7');
   await page.getByLabel('Lernrichtung').selectOption('de-en');

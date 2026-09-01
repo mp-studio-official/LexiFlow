@@ -51,9 +51,21 @@ export function Stepper<Id extends string>({
           const isCurrent = step.id === current;
           return (
             <li key={step.id}>
+              {/*
+                Der zugängliche Name trägt die Nummer mit: „Schritt 2:
+                Empfehlungen generieren“.
+
+                Ohne sie hieße der Stepper-Knopf genauso wie die Hauptaktion im
+                Schritt – zweimal „Text analysieren“ auf einer Seite, zwei ganz
+                verschiedene Dinge. Sichtbar bleibt die Nummer, was sie ist:
+                eine Ziffer im Kreis.
+              */}
               <button
                 type="button"
                 className="steps__step"
+                aria-label={`Schritt ${index + 1}: ${step.label}${
+                  step.note ? ` – ${step.note}` : ''
+                }${step.reachable ? '' : ' – noch nicht erreichbar'}`}
                 aria-current={isCurrent ? 'step' : undefined}
                 disabled={!step.reachable}
                 onClick={() => onNavigate(step.id)}
@@ -62,10 +74,6 @@ export function Stepper<Id extends string>({
                   {index + 1}
                 </span>
                 <span className="steps__label">{step.label}</span>
-                {step.note ? <span className="visually-hidden"> – {step.note}</span> : null}
-                {!step.reachable ? (
-                  <span className="visually-hidden"> – noch nicht erreichbar</span>
-                ) : null}
               </button>
             </li>
           );

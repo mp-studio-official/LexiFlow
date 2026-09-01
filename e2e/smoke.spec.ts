@@ -44,7 +44,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     await expect(page.getByLabel('Deutsch, Zeile 1', { exact: true })).toHaveValue('überfüllt, voll');
 
     // 4b. Detailbereich: mehrere Beispielsätze bearbeiten
-    await page.getByRole('button', { name: 'Details für crowded öffnen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
     await page.getByRole('button', { name: 'Beispielsatz hinzufügen, crowded' }).click();
     await page
       .getByLabel('Beispielsatz 1 Englisch, crowded')
@@ -52,10 +52,9 @@ test.describe('LexiFlow – Grundablauf', () => {
     await page.getByLabel('Beispielsatz 1 Deutsch, crowded').fill('Der Bus war heute voll.');
     await page.getByRole('button', { name: 'Beispielsatz hinzufügen, crowded' }).click();
     await page.getByLabel('Beispielsatz 2 Englisch, crowded').fill('It is always crowded here.');
-    await page.getByRole('button', { name: 'Details für crowded schließen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded schließen' }).click();
 
     // 5. Metadaten inklusive automatischem GeR-Vorschlag
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('Unit 3 – City life');
     await page.getByLabel('Thema').fill('City');
     await page.getByLabel('Jahrgang').selectOption('7');
@@ -104,7 +103,6 @@ test.describe('LexiFlow – Grundablauf', () => {
     await page.goto('/#/material/import');
     await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
     await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('Staffelung');
     await page.getByLabel('Lernrichtung').selectOption('both');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
@@ -165,7 +163,6 @@ test.describe('LexiFlow – Grundablauf', () => {
     await page.goto('/#/material/import');
     await page.getByLabel('Vokabelliste einfügen').fill('litter\tMüll\nquiet\truhig');
     await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('Export-Test');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Export-Test' })).toBeVisible();

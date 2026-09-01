@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ImportWizardPage } from './ImportWizardPage';
@@ -8,6 +8,16 @@ import { MAX_TEXT_LENGTH } from '../../domain/textExtraction';
 import { createFakeTranslationProvider } from '../../test/fakeTranslator';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
 import type { ProviderState } from '../../providers/state';
+
+/**
+ * Der Import-Assistent auf dem Textweg – jetzt in drei Schritten:
+ * **Text analysieren → Empfehlungen generieren → Prüfen & Speichern**.
+ *
+ * Der Empfehlungsschritt ist neu dazwischengetreten und ändert den Rhythmus:
+ * Die Analyse liefert Kandidaten, aber noch keine Liste zum Abhaken. Erst ein
+ * ausdrücklicher Klick erzeugt Empfehlungen – und was dabei entsteht, wird
+ * übernommen, sobald es eine deutsche Antwort hat.
+ */
 
 const TEXT = 'The neighbourhood is crowded. Litter is a problem in the neighbourhood.';
 
@@ -25,91 +35,107 @@ function setup(provider?: TranslationProvider) {
   return userEvent.setup();
 }
 
-async function analyze(user: ReturnType<typeof userEvent.setup>, text = TEXT): Promise<void> {
+type User = ReturnType<typeof userEvent.setup>;
+
+async function analyze(user: User, text = TEXT): Promise<void> {
   await user.click(screen.getByLabelText('Englischer Text'));
   await user.paste(text);
-  await user.click(screen.getByRole('button', { name: /^Text (lokal )?analysieren/ }));
+  await user.click(screen.getByRole('button', { name: 'Text analysieren' }));
 }
 
-describe('Textwerkstatt im Import-Assistenten', () => {
+/**
+ * Der zweite Schritt in einem Aufruf.
+ *
+ * Die Anzahl steht auf 20, damit die geprüften Wörter der kurzen Testtexte
+ * sicher dabei sind – die Rangfolge selbst prüft `recommendation.test.ts`.
+ */
+async function recommend(user: User): Promise<void> {
+  const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+  await waitFor(() => expect(knopf).toBeEnabled(), { timeout: 20000 });
+  await user.selectOptions(screen.getByLabelText('Anzahl'), '20');
+  await user.click(knopf);
+}
+
+async function analyzeAndRecommend(user: User, text = TEXT): Promise<void> {
+  await analyze(user, text);
+  await recommend(user);
+}
+
+/** Antworten eintragen und in den letzten Schritt gehen. */
+async function toReview(user: User, word: string, answer: string): Promise<void> {
+  await user.type(screen.getByLabelText(`Deutsche Antwort für „${word}“`), answer);
+  await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
+}
+
+describe('Der Weg durch die drei Schritte', () => {
   it('startet über ?quelle=text direkt in der Textquelle', () => {
     setup();
     expect(screen.getByLabelText('Englischer Text')).toBeInTheDocument();
-    expect(screen.getByText('Kandidaten prüfen')).toBeInTheDocument();
-  });
-
-  it('sagt vor der Analyse genau, was gespeichert wird und was nicht', () => {
-    setup();
-    const notice = screen.getByText(/Der Text wird auf diesem Gerät verarbeitet/);
-
-    // Der Gesamttext bleibt außen vor …
-    expect(notice).toHaveTextContent(
-      /vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/,
+    expect(screen.getByRole('button', { name: 'Schritt 1: Text analysieren' })).toHaveAttribute(
+      'aria-current',
+      'step',
     );
-    // … die Originalsätze der übernommenen Vokabeln aber nicht.
-    expect(notice).toHaveTextContent(
-      /Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze Teil des Pakets und beim Export mitgegeben/,
-    );
-    expect(notice).toHaveTextContent(/in der Vorschau bearbeiten oder entfernen/);
-  });
-
-  it('nennt denselben Umfang auch im Feldhinweis', () => {
-    setup();
     expect(
-      screen.getByText(/Gespeichert wird nur, was du übernimmst: die Vokabeln und ihre Originalsätze/),
+      screen.getByRole('button', { name: /Schritt 2: Empfehlungen generieren/ }),
     ).toBeInTheDocument();
   });
 
-  it('führt vom Text über die Kandidaten in Vorschau und Metadaten', async () => {
+  it('macht die späteren Schritte erst erreichbar, wenn sie es sind', async () => {
     const user = setup();
+    const zweiter = () =>
+      screen.getByRole('button', { name: /Schritt 2: Empfehlungen generieren/ });
+    const dritter = () => screen.getByRole('button', { name: /Schritt 3: Prüfen & Speichern/ });
+    expect(zweiter()).toBeDisabled();
+    expect(dritter()).toBeDisabled();
+
     await analyze(user);
+    await waitFor(() => expect(zweiter()).toBeEnabled());
+    // Der dritte bleibt gesperrt, solange keine Vokabel übernommen wird.
+    expect(dritter()).toBeDisabled();
+  });
 
-    expect(
-      await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ }),
-    ).toBeInTheDocument();
+  it('führt vom Text über die Empfehlungen bis zum Speichern', async () => {
+    const user = setup();
+    await analyzeAndRecommend(user);
 
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
-    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+    expect(screen.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeInTheDocument();
+    await toReview(user, 'crowded', 'überfüllt');
 
     // Weitergabe an die vorhandene DraftTable – keine zweite Editorlogik.
     expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getByLabelText('Englisch, Zeile 1')).toHaveValue('crowded');
     expect(screen.getByLabelText('Deutsch, Zeile 1')).toHaveValue('überfüllt');
 
-    await user.click(screen.getByRole('button', { name: 'Weiter zu den Metadaten' }));
-
-    // Weitergabe an das vorhandene MetadataForm.
-    expect(screen.getByRole('heading', { name: 'Metadaten' })).toBeInTheDocument();
+    // Titel und Speichern stehen in **demselben** Schritt wie die Tabelle.
     expect(screen.getByLabelText('Titel')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Paket speichern (1 Vokabeln)' })).toBeInTheDocument();
   });
 
-  it('übernimmt den Originalsatz als Beispielsatz', async () => {
+  it('hält den Zustand fest, wenn man im Stepper zurückspringt', async () => {
+    /*
+      Der wichtigste Test dieses Sprints. Ein Stepper, der beim Zurückgehen die
+      Arbeit vergisst, ist schlimmer als gar keiner: Er lädt zu einem Klick
+      ein, der etwas kostet.
+    */
     const user = setup();
-    await analyze(user);
-
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
+    await analyzeAndRecommend(user);
     await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
 
-    await user.click(screen.getByLabelText('Details für crowded öffnen'));
-    expect(screen.getByDisplayValue('The neighbourhood is crowded.')).toBeInTheDocument();
+    // In den ersten Schritt und wieder zurück.
+    await user.click(screen.getByRole('button', { name: 'Schritt 1: Text analysieren' }));
+    expect(screen.getByLabelText('Englischer Text')).toHaveValue(TEXT);
+    await user.click(screen.getByRole('button', { name: /Schritt 2: Empfehlungen generieren/ }));
+
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
   });
 
-  it('lässt eine Zeile ohne deutsche Antwort sichtbar, aber nicht speicherbar', async () => {
+  it('übernimmt den Originalsatz als Beispielsatz', async () => {
     const user = setup();
-    await analyze(user);
+    await analyzeAndRecommend(user);
+    await toReview(user, 'crowded', 'überfüllt');
 
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
-
-    expect(screen.getByLabelText('Englisch, Zeile 1')).toHaveValue('crowded');
-    expect(screen.getByText(/Deutsche Übersetzung fehlt/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Weiter zu den Metadaten' })).toBeDisabled();
+    await user.click(screen.getByLabelText(/Beispielsatz für crowded bearbeiten/));
+    expect(screen.getByDisplayValue('The neighbourhood is crowded.')).toBeInTheDocument();
   });
 
   it('lehnt zu lange Texte verständlich ab, statt still zu kürzen', async () => {
@@ -125,143 +151,103 @@ describe('Textwerkstatt im Import-Assistenten', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/keine geeigneten Vokabelkandidaten/);
   });
 
-  it('reicht einen übernommenen Vorschlag als text-ai in die Vorschau', async () => {
+  it('reicht einen übernommenen Vorschlag als text-ai weiter', async () => {
     const { provider } = createFakeTranslationProvider();
     const user = setup(provider);
-    // Seit Sprint 3B.1a genügt der eine Klick auf die Hauptaktion: Die
-    // Vorschläge laufen nach der Vorbereitung von selbst an.
-    await analyze(user);
+    await analyzeAndRecommend(user);
 
     await screen.findByText('crowded-de');
     await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
-
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
     expect(screen.getByLabelText('Deutsch, Zeile 1')).toHaveValue('crowded-de');
   });
 });
 
-describe('Lernkontext in der Vorschau', () => {
-  it('teilt sich den Zustand mit dem Metadaten-Schritt', async () => {
-    const user = setup();
-    await analyze(user);
-
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
-    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
-
-    // Lernkontext in der Vorschau ausfüllen …
-    expect(screen.getByRole('heading', { name: 'Lernkontext' })).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText('Jahrgang'), '9');
-    await user.type(screen.getByLabelText(/^Thema/), 'City life');
-
-    // … steht im nächsten Schritt bereits so da.
-    await user.click(screen.getByRole('button', { name: 'Weiter zu den Metadaten' }));
-    expect(screen.getByLabelText('Jahrgang')).toHaveValue('9');
-    expect(screen.getByLabelText('Thema')).toHaveValue('City life');
-    // Das GeR-Niveau folgt dem Jahrgang wie gewohnt.
-    expect(screen.getByLabelText('GeR-Niveau')).toHaveValue('B1');
+describe('Der Datenschutzhinweis steht bereit, ohne im Weg zu stehen', () => {
+  it('ist zunächst zugeklappt', () => {
+    setup();
+    const knopf = screen.getByRole('button', { name: 'Was passiert mit meinem Text?' });
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/Der Text wird auf diesem Gerät verarbeitet/)).not.toBeInTheDocument();
   });
 
-  it('erklärt, wofür der Lernkontext gebraucht wird', async () => {
+  it('sagt aufgeklappt genau, was gespeichert wird und was nicht', async () => {
     const user = setup();
-    await analyze(user);
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+    await user.click(screen.getByRole('button', { name: 'Was passiert mit meinem Text?' }));
+    const panel = screen.getByRole('group', { name: 'Verarbeitung auf diesem Gerät' });
 
+    // Der Gesamttext bleibt außen vor …
+    expect(panel).toHaveTextContent(
+      /vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert/,
+    );
+    // … die Originalsätze der übernommenen Vokabeln aber nicht.
+    expect(panel).toHaveTextContent(
+      /Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze Teil des Pakets und beim Export mitgegeben/,
+    );
+    expect(panel).toHaveTextContent(/Prüfen & Speichern/);
+  });
+
+  it('nennt denselben Umfang auch im Feldhinweis', () => {
+    setup();
     expect(
-      screen.getByText(/helfen dabei, Schwierigkeit und Themen-Tags passend vorzuschlagen/),
+      screen.getByText(
+        /Gespeichert wird nur, was du übernimmst: die Vokabeln und ihre Originalsätze/,
+      ),
     ).toBeInTheDocument();
   });
 });
 
-describe('Gewünschte Anzahl Vokabelvorschläge', () => {
-  /** Ein Text mit deutlich mehr Kandidaten, als angefordert werden. */
-  const LONG =
-    'The crowded bus was late today. Litter is a problem in the neighbourhood. ' +
-    'A quiet pavement helps everyone here. The crowded street was very noisy. ' +
-    'Traffic makes the journey slow. A busy crossing needs patience.';
-
-  it('lässt sich vor der Analyse festlegen', () => {
+describe('Die Schalter vor der Analyse sind weg', () => {
+  it('fragt nicht mehr nach Funktionswörtern, Eigennamen und Anzahl', () => {
+    /*
+      Alle drei verlangten eine Entscheidung über einen Text, den noch niemand
+      gesehen hatte. Die Anzahl steht jetzt im Empfehlungsschritt – dort lässt
+      sie sich ändern, ohne neu zu analysieren.
+    */
     setup();
-    const select = screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge');
-
-    for (const value of ['5', '10', '15', '20', '30']) {
-      expect(within(select).getByRole('option', { name: `${value} Vokabelvorschläge` })).toBeInTheDocument();
-    }
-    expect(within(select).getByRole('option', { name: 'Andere Anzahl …' })).toBeInTheDocument();
-    // Vorbelegt ist die gebräuchlichste Größe.
-    expect(select).toHaveValue('20');
-  });
-
-  it('begrenzt die angezeigten Kandidaten auf die gewählte Anzahl', async () => {
-    const user = setup();
-    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), '5');
-    await analyze(user, LONG);
-
-    expect(await screen.findByRole('heading', { name: 'Gefundene Vokabelkandidaten (5)' }))
-      .toBeInTheDocument();
-    expect(screen.getByText('5 von 5 geeigneten Vokabeln gefunden.')).toBeInTheDocument();
-  });
-
-  it('erfindet nichts, wenn der Text weniger hergibt', async () => {
-    const user = setup();
-    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), '30');
-    await analyze(user, TEXT);
-
-    const found = screen.getAllByRole('checkbox', { name: /übernehmen$/ }).length;
-    expect(found).toBeLessThan(30);
+    expect(screen.queryByText(/Funktionswörter einblenden/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Eigennamen einblenden/)).not.toBeInTheDocument();
     expect(
-      screen.getByText(new RegExp(`${found} von 30 geeigneten Vokabeln gefunden\\.`)),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/erfunden wird nichts/)).toBeInTheDocument();
+      screen.queryByLabelText('Gewünschte Anzahl Vokabelvorschläge'),
+    ).not.toBeInTheDocument();
   });
 
-  it('erlaubt eine eigene Zahl zwischen 1 und 50', async () => {
+  it('bietet die Anzahl stattdessen im Empfehlungsschritt an', async () => {
     const user = setup();
-    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), 'custom');
+    await analyze(user);
+    expect(await screen.findByLabelText('Anzahl')).toBeInTheDocument();
+  });
+});
 
-    const field = screen.getByLabelText('Eigene Anzahl');
-    expect(field).toHaveAttribute('min', '1');
-    expect(field).toHaveAttribute('max', '50');
+describe('Der Lernkontext wird nur einmal gesetzt', () => {
+  it('steht im letzten Schritt kompakt und unveränderlich da', async () => {
+    const user = setup();
+    await analyzeAndRecommend(user);
 
-    await user.clear(field);
-    await user.type(field, '3');
-    await analyze(user, LONG);
+    await user.selectOptions(screen.getByLabelText('Jahrgang'), '9');
+    await toReview(user, 'crowded', 'überfüllt');
 
-    expect(await screen.findByRole('heading', { name: 'Gefundene Vokabelkandidaten (3)' }))
-      .toBeInTheDocument();
-    expect(screen.getByText('3 von 3 geeigneten Vokabeln gefunden.')).toBeInTheDocument();
+    // Kein zweites Auswahlfeld für dieselbe Entscheidung. Der Empfehlungsschritt
+    // bleibt eingehängt, ist aber `hidden` – und damit aus dem Baum der
+    // Hilfstechnik heraus.
+    expect(screen.queryByRole('combobox', { name: 'Jahrgang' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Lernkontext:/)).toHaveTextContent(/Klasse 9/);
+    expect(screen.getByText(/Lernkontext:/)).toHaveTextContent(/B1/);
+    expect(screen.getByText(/Lernkontext:/)).toHaveTextContent(
+      /im Schritt „Empfehlungen generieren“ änderbar/,
+    );
   });
 
-  it('hält eine unsinnige Eingabe im erlaubten Bereich', async () => {
+  it('behält die optionale Beschreibung bis ins Paket', async () => {
     const user = setup();
-    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), 'custom');
+    await analyzeAndRecommend(user);
+    await toReview(user, 'crowded', 'überfüllt');
 
-    const field = screen.getByLabelText('Eigene Anzahl');
-    await user.clear(field);
-    await user.type(field, '99');
-    await user.tab();
-    expect(field).toHaveValue(50);
-
-    await user.clear(field);
-    await user.type(field, '0');
-    await user.tab();
-    expect(field).toHaveValue(1);
-  });
-
-  it('funktioniert ohne jedes Sprachmodell', async () => {
-    // Kein KI-Anbieter in der Registry – die Begrenzung ist rein lokal.
-    const user = setup();
-    await user.selectOptions(screen.getByLabelText('Gewünschte Anzahl Vokabelvorschläge'), '5');
-    await analyze(user, LONG);
-
-    expect(screen.getAllByRole('checkbox', { name: /übernehmen$/ })).toHaveLength(5);
-    expect(
-      await screen.findByText(/Dieser Browser bietet kein lokales Sprachmodell/),
-    ).toBeInTheDocument();
+    const feld = screen.getByLabelText('Beschreibung (optional)');
+    expect(feld).toHaveValue('');
+    await user.type(feld, 'Achte auf die Adjektive.');
+    expect(feld).toHaveValue('Achte auf die Adjektive.');
   });
 });
 
@@ -276,20 +262,23 @@ const BAY_TEXT = [
 ].join(' ');
 
 describe('Übersetzung im Hauptweg', () => {
-  it('verspricht Übersetzungen nur, wenn es sie geben kann', async () => {
-    // Ohne Anbieter bleibt es beim ehrlichen, rein lokalen Versprechen.
+  it('heißt überall gleich und verspricht nichts, was der Browser nicht kann', async () => {
+    /*
+      Die Beschriftung hieß früher je nach Browserlage anders. Der Schritt
+      heißt aber „Text analysieren“, und genau das tut die Schaltfläche
+      überall. Was das Sprachmodell zusätzlich kostet, steht als Satz darunter
+      – nicht als Versprechen im Knopf.
+    */
     setup();
-    expect(
-      await screen.findByRole('button', { name: 'Text lokal analysieren' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Text analysieren' })).toBeInTheDocument();
+    expect(screen.queryByText(/Sprachmodell im Hintergrund vorbereitet/)).not.toBeInTheDocument();
   });
 
-  it('bietet mit ladbarem Modell die Analyse samt Übersetzungsvorschlägen an', async () => {
+  it('sagt vorher, dass beim Analysieren ein Modell geladen wird', async () => {
     const { provider } = createFakeTranslationProvider({ availability: 'downloadable' });
     setup(provider);
-
     expect(
-      await screen.findByRole('button', { name: 'Text analysieren und Übersetzungen vorschlagen' }),
+      await screen.findByText(/Sprachmodell im Hintergrund vorbereitet/),
     ).toBeInTheDocument();
   });
 
@@ -298,33 +287,31 @@ describe('Übersetzung im Hauptweg', () => {
     // werden – sie ist rein lokal und hat mit dem Modell nichts zu tun.
     const { provider, prepareCount } = createFakeTranslationProvider({ gatePrepare: true });
     const user = setup(provider);
-    await screen.findByRole('button', { name: 'Text analysieren und Übersetzungen vorschlagen' });
+    await screen.findByText(/Sprachmodell im Hintergrund vorbereitet/);
 
     await analyze(user);
 
     expect(prepareCount()).toBe(1);
-    expect(await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ }))
-      .toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Empfehlungen generieren' }),
+    ).toBeInTheDocument();
   });
 
   it('bleibt ohne Anbieter vollständig benutzbar und sagt warum', async () => {
     const user = setup();
-    await analyze(user);
+    await analyzeAndRecommend(user);
 
-    expect(await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ }))
-      .toBeInTheDocument();
     expect(screen.getByText(/keine lokale Übersetzung/i)).toBeInTheDocument();
     // Die deutsche Antwort lässt sich weiterhin von Hand eintragen.
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toBeEnabled();
   });
 });
 
-describe('Wortformen und Abkürzungen in der Prüfung', () => {
+describe('Wortformen und Abkürzungen im Empfehlungsschritt', () => {
   it('zeigt die beobachteten Formen und ihre gemeinsame Häufigkeit', async () => {
     const user = setup();
-    await analyze(user, BAY_TEXT);
+    await analyzeAndRecommend(user, BAY_TEXT);
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     expect(screen.getByText(/Im Text: islands, island · insgesamt 3-mal/)).toBeInTheDocument();
     expect(screen.getByText(/Plural: islands/)).toBeInTheDocument();
     // Und keine zweite Zeile für die Pluralform.
@@ -333,11 +320,9 @@ describe('Wortformen und Abkürzungen in der Prüfung', () => {
 
   it('macht aus „600 sq mi“ einen Vorschlag mit bearbeitbarer Langform', async () => {
     const user = setup();
-    await analyze(user, BAY_TEXT);
+    await analyzeAndRecommend(user, BAY_TEXT);
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
-    const longForm = screen.getByLabelText('Langform für „sq mi“');
-    expect(longForm).toHaveValue('square mile (sq mi)');
+    expect(screen.getByLabelText('Langform für „sq mi“')).toHaveValue('square mile (sq mi)');
 
     // Bruchstücke gibt es nicht mehr.
     expect(screen.queryByLabelText('Deutsche Antwort für „sq“')).not.toBeInTheDocument();
@@ -346,39 +331,54 @@ describe('Wortformen und Abkürzungen in der Prüfung', () => {
 
   it('kennzeichnet eine unbekannte Abkürzung, statt sie zu erfinden', async () => {
     const user = setup();
-    await analyze(user, 'The engine delivers 400 bhp on the long test track.');
+    await analyzeAndRecommend(user, 'The engine delivers 400 bhp on the long test track.');
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     expect(screen.getByLabelText('Langform für „bhp“')).toHaveValue('bhp');
     expect(screen.getByText('Abkürzung – Langform prüfen')).toBeInTheDocument();
   });
 });
 
 // ---------------------------------------------------------------------------
-// Sprint 3B.1a: Die Hauptaktion hält ihr Versprechen
+// Sprint 3B.1a: Die Hauptaktion hält ihr Versprechen – jetzt eine Stufe später
 // ---------------------------------------------------------------------------
 
 describe('Ein Klick, ein Ablauf', () => {
-  it('ruft prepare genau einmal auf und zeigt die Analyse sofort', async () => {
-    // `gatePrepare` hält die Vorbereitung offen: Die Analyse darf trotzdem
-    // nicht auf sie warten.
+  it('bereitet beim Analysieren vor und löst das Versprechen beim Empfehlen ein', async () => {
+    /*
+      Die Reihenfolge hat sich verschoben, das Versprechen nicht: Der
+      Modelldownload beginnt beim Analysieren, aber Vorschläge kann es erst
+      geben, wenn es Empfehlungen gibt. Ein früherer Entwurf übersetzte sofort
+      nach der Vorbereitung – über eine Zeilenliste, die zu diesem Zeitpunkt
+      noch leer war, und lieferte deshalb gar nichts.
+    */
     const { provider, prepareCount, releasePrepare } = createFakeTranslationProvider({
       gatePrepare: true,
     });
     const user = setup(provider);
-    await screen.findByRole('button', { name: 'Text analysieren und Übersetzungen vorschlagen' });
-
     await analyze(user);
 
-    expect(await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ }))
-      .toBeInTheDocument();
     expect(prepareCount()).toBe(1);
+    releasePrepare();
+    await screen.findByText(/Sprachmodell ist bereit/);
+
+    await recommend(user);
+
+    // Kein zweiter Klick auf das Modell: Die Vorschläge laufen von selbst an.
+    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(prepareCount()).toBe(1);
+  });
+
+  it('übersetzt nach dem Empfehlen, wenn die Vorbereitung länger dauert', async () => {
+    const { provider, prepareCount, releasePrepare } = createFakeTranslationProvider({
+      gatePrepare: true,
+    });
+    const user = setup(provider);
+    await analyzeAndRecommend(user);
+
     // Solange die Vorbereitung läuft, gibt es noch keinen Vorschlag.
     expect(screen.queryByText('crowded-de')).not.toBeInTheDocument();
 
     releasePrepare();
-
-    // Kein zweiter Klick: Die Vorschläge laufen von selbst an.
     expect(await screen.findByText('crowded-de')).toBeInTheDocument();
     expect(prepareCount()).toBe(1);
   });
@@ -386,7 +386,7 @@ describe('Ein Klick, ein Ablauf', () => {
   it('lässt die deutschen Felder leer, bis ein Vorschlag übernommen wird', async () => {
     const { provider } = createFakeTranslationProvider();
     const user = setup(provider);
-    await analyze(user);
+    await analyzeAndRecommend(user);
 
     await screen.findByText('crowded-de');
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('');
@@ -398,7 +398,7 @@ describe('Ein Klick, ein Ablauf', () => {
   it('meldet eine gescheiterte Vorbereitung und wiederholt sie erfolgreich', async () => {
     const { provider, prepareCount } = createFakeTranslationProvider({ prepareFailures: 1 });
     const user = setup(provider);
-    await analyze(user);
+    await analyzeAndRecommend(user);
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/konnte nicht geladen werden/);
@@ -414,9 +414,8 @@ describe('Ein Klick, ein Ablauf', () => {
 
   it('erzeugt ohne Anbieter gar keine Vorbereitung', async () => {
     const user = setup();
-    await analyze(user);
+    await analyzeAndRecommend(user);
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     expect(screen.getByText(/keine lokale Übersetzung/i)).toBeInTheDocument();
     expect(screen.queryByText(/wird vorbereitet/)).not.toBeInTheDocument();
   });
@@ -427,9 +426,8 @@ describe('Lokale Abkürzungsvorschläge', () => {
 
   it('zeigt die bekannte deutsche Entsprechung auch ohne Übersetzungsmodell', async () => {
     const user = setup();
-    await analyze(user, UNIT_TEXT);
+    await analyzeAndRecommend(user, UNIT_TEXT);
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     expect(screen.getByLabelText('Langform für „sq mi“')).toHaveValue('square mile (sq mi)');
     expect(screen.getByText('lokaler Vorschlag')).toBeInTheDocument();
     expect(screen.getByText('die Quadratmeile')).toBeInTheDocument();
@@ -437,9 +435,9 @@ describe('Lokale Abkürzungsvorschläge', () => {
 
   it('trägt den Vorschlag erst nach ausdrücklicher Übernahme ein', async () => {
     const user = setup();
-    await analyze(user, UNIT_TEXT);
+    await analyzeAndRecommend(user, UNIT_TEXT);
 
-    const field = await screen.findByLabelText('Deutsche Antwort für „square mile (sq mi)“');
+    const field = screen.getByLabelText('Deutsche Antwort für „square mile (sq mi)“');
     expect(field).toHaveValue('');
 
     await user.click(
@@ -450,37 +448,25 @@ describe('Lokale Abkürzungsvorschläge', () => {
 
   it('erfindet für eine unbekannte Abkürzung keine Übersetzung', async () => {
     const user = setup();
-    await analyze(user, 'The heavy engine delivers 400 bhp on the long test track.');
+    await analyzeAndRecommend(user, 'The heavy engine delivers 400 bhp on the long test track.');
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     expect(screen.getByLabelText('Deutsche Antwort für „bhp“')).toHaveValue('');
     expect(screen.getByText('Abkürzung – Langform prüfen')).toBeInTheDocument();
     expect(screen.queryByText('lokaler Vorschlag')).not.toBeInTheDocument();
   });
 
-  it('wählt eine ungeklärte Abkürzung nicht von selbst aus', async () => {
+  it('nimmt eine ungeklärte Abkürzung nicht ins Paket, solange sie offen ist', async () => {
+    /*
+      Früher blieb hier ein Häkchen aus. Jetzt entscheidet die Antwort: Ohne
+      deutsche Antwort geht die Zeile nicht mit – und das steht in der
+      Zählung, statt in einem stillen Kästchen.
+    */
     const user = setup();
-    await analyze(user, 'The heavy engine delivers 400 bhp on the long test track.');
+    await analyzeAndRecommend(user, 'The heavy engine delivers 400 bhp on the long test track.');
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
-    expect(screen.getByLabelText('bhp übernehmen')).not.toBeChecked();
-    expect(screen.getByLabelText('engine übernehmen')).toBeChecked();
-  });
-
-  it('zählt ungeklärte Abkürzungen getrennt', async () => {
-    const user = setup();
-    await analyze(user, 'The heavy engine delivers 400 bhp on the long test track.');
-
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
-    // Der Satz steht sichtbar **und** in der Vorlesehilfe – hier zählt der
-    // sichtbare, deshalb die genaue Fassung.
-    expect(
-      screen.getByText(
-        '6 von 20 geeigneten Vokabeln gefunden · 1 Abkürzung muss geprüft werden. ' +
-          'Der Text enthält nicht mehr geeignete Kandidaten – erfunden wird nichts.',
-        { exact: true },
-      ),
-    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Deutsche Antwort für „engine“'), 'der Motor');
+    expect(screen.getByLabelText('Deutsche Antwort für „bhp“')).toHaveValue('');
+    expect(screen.getByRole('button', { name: '1 Vokabel prüfen & speichern' })).toBeEnabled();
   });
 });
 
@@ -489,9 +475,9 @@ describe('Lokale Abkürzungsvorschläge', () => {
 // ---------------------------------------------------------------------------
 
 describe('Fortschritt und Abbruch der Vorbereitung', () => {
-  it('zeigt Fortschritt, der schon vor dem Öffnen der Prüfung gemeldet wurde', async () => {
+  it('zeigt Fortschritt, der schon vor dem Öffnen des Schritts gemeldet wurde', async () => {
     // Der Fake meldet 0.25 und 0.75 noch innerhalb von `prepare()` – also
-    // bevor die Kandidatenansicht überhaupt steht.
+    // bevor der Empfehlungsschritt überhaupt steht.
     const { provider, releasePrepare } = createFakeTranslationProvider({
       gatePrepare: true,
       progress: [0.25, 0.75],
@@ -499,13 +485,12 @@ describe('Fortschritt und Abbruch der Vorbereitung', () => {
     const user = setup(provider);
     await analyze(user);
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     // Der zuletzt gemeldete Wert steht sofort da, nichts ist verloren gegangen.
-    // (Der Text steht im Fortschrittsbalken und daneben – hier zählt der Wert.)
     await waitFor(() => expect(screen.getByRole('progressbar')).toHaveValue(0.75));
     expect(screen.getAllByText('75 %').length).toBeGreaterThan(0);
 
     releasePrepare();
+    await recommend(user);
     expect(await screen.findByText('crowded-de')).toBeInTheDocument();
   });
 
@@ -514,7 +499,6 @@ describe('Fortschritt und Abbruch der Vorbereitung', () => {
     const user = setup(provider);
     await analyze(user);
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     await user.click(await screen.findByRole('button', { name: 'Abbrechen' }));
 
     // Verständlich benannt – ein Abbruch ist kein Modellfehler.
@@ -522,7 +506,6 @@ describe('Fortschritt und Abbruch der Vorbereitung', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     // Und es wurde nichts übersetzt.
     expect(translated).toEqual([]);
-    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('');
   });
 
   it('erlaubt nach dem Abbruch einen erfolgreichen neuen Versuch', async () => {
@@ -538,6 +521,7 @@ describe('Fortschritt und Abbruch der Vorbereitung', () => {
 
     // Der Neuversuch bekommt einen eigenen AbortController.
     releasePrepare();
+    await recommend(user);
     await user.click(
       screen.getByRole('button', { name: /Vorschläge erzeugen|Sprachmodell laden/ }),
     );
@@ -564,71 +548,15 @@ describe('Fortschritt und Abbruch der Vorbereitung', () => {
     expect(prepareCount()).toBe(0);
   });
 
-  it('bricht die Vorbereitung ab, wenn die Prüfung verlassen wird', async () => {
+  it('bricht die Vorbereitung ab, wenn der Schritt verlassen wird', async () => {
     const { provider } = createFakeTranslationProvider({ gatePrepare: true });
     const user = setup(provider);
-    await analyze(user);
+    await analyzeAndRecommend(user);
 
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
     await user.click(screen.getByRole('button', { name: 'Zurück zum Text' }));
 
     // Zurück in der Textquelle – und keine späten Zustandsänderungen.
     expect(await screen.findByLabelText('Englischer Text')).toBeInTheDocument();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Sprint 3B.1b: Die Fundzahl beschreibt den Text, nicht die Bearbeitung
-// ---------------------------------------------------------------------------
-
-describe('Stabile Mengenanzeige', () => {
-  const ABBREVIATION_TEXT =
-    'The heavy engine delivers 400 bhp on the long test track near the quiet river.';
-
-  /** Der sichtbare Satz mit der Fundzahl (nicht die Vorlesehilfe). */
-  function foundSentence(): string {
-    return document.querySelector('.candidates-summary strong')?.textContent ?? '';
-  }
-
-  it('bleibt beim Vervollständigen einer Abkürzung bei der ursprünglichen Zahl', async () => {
-    const user = setup();
-    await analyze(user, ABBREVIATION_TEXT);
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
-
-    const before = foundSentence();
-    expect(before).toContain('1 Abkürzung muss geprüft werden');
-
-    await user.clear(screen.getByLabelText('Langform für „bhp“'));
-    await user.type(screen.getByLabelText('Langform für „bhp“'), 'brake horsepower');
-    await user.type(screen.getByLabelText('Deutsche Antwort für „bhp“'), 'die Bremsleistung');
-
-    // Die Fundzahl ist dieselbe geblieben – kein „7 von 20“.
-    expect(foundSentence()).toBe(before);
-    // Der Bearbeitungsstand steht getrennt daneben.
-    expect(screen.getByText('1 Abkürzung vervollständigt.')).toBeInTheDocument();
-    // Und die vervollständigte Zeile lässt sich auswählen.
-    const checkbox = screen.getByLabelText('bhp übernehmen');
-    await user.click(checkbox);
-    expect(checkbox).toBeChecked();
-  });
-
-  it('ändert die Fundzahl auch beim Entfernen einer Zeile nicht', async () => {
-    const user = setup();
-    await analyze(user, ABBREVIATION_TEXT);
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
-
-    const before = foundSentence();
-    await user.click(screen.getByRole('button', { name: 'engine entfernen' }));
-
-    expect(foundSentence()).toBe(before);
-  });
-
-  it('benennt offene und vervollständigte Abkürzungen getrennt', async () => {
-    const user = setup();
-    await analyze(user, ABBREVIATION_TEXT);
-    await screen.findByRole('heading', { name: /Gefundene Vokabelkandidaten/ });
-
-    expect(screen.getByText('1 Abkürzung weiterhin offen.')).toBeInTheDocument();
   });
 });
 
@@ -646,8 +574,9 @@ describe('Rennen zwischen Verfügbarkeit und Vorbereitung', () => {
       answerAvailability = resolve;
     });
 
-    // Die Werkstatt fragt zuerst und bekommt sofort Antwort; die Prüfansicht
-    // fragt danach – und ihre Antwort kommt erst nach der Vorbereitung.
+    // Die Werkstatt fragt zuerst und bekommt sofort Antwort; der
+    // Empfehlungsschritt fragt danach – und seine Antwort kommt erst nach der
+    // Vorbereitung.
     let asked = 0;
     const provider: TranslationProvider = {
       ...base.provider,
@@ -658,7 +587,7 @@ describe('Rennen zwischen Verfügbarkeit und Vorbereitung', () => {
     };
 
     const user = setup(provider);
-    await analyze(user);
+    await analyzeAndRecommend(user);
 
     // Die Vorbereitung ist durch, die Vorschläge sind da.
     expect(await screen.findByText('crowded-de')).toBeInTheDocument();
@@ -672,7 +601,7 @@ describe('Rennen zwischen Verfügbarkeit und Vorbereitung', () => {
       screen.queryByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }),
+      screen.getByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
     ).toBeInTheDocument();
     expect(base.prepareCount()).toBe(1);
   });

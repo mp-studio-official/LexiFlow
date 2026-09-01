@@ -1,5 +1,6 @@
 import type { DictionaryEntry, DictionaryProvider } from '../dictionary/DictionaryProvider';
 import { isQuestionable } from '../dictionary/ranking';
+import type { PartOfSpeech } from '../domain/schema';
 
 /**
  * Wörterbuchtreffer für die Kandidatenprüfung aufbereiten.
@@ -160,6 +161,54 @@ export async function enrichWithDictionary<Row extends EnrichableRow>(
   }
 
   return { rows: result, filled, unambiguous, skipped };
+}
+
+/* ------------------------------------------------------------------ Wortart */
+
+/**
+ * Die Wortartbezeichnungen der Quelle auf die sieben von LexiFlow.
+ *
+ * Wiktionary kennt weit mehr Kategorien, als ein Vokabelpaket braucht.
+ * Zusammengefasst wird nur, was sich zusammenfassen lässt; alles Übrige landet
+ * bei `other` und nicht bei einer erfundenen Nachbarschaft.
+ */
+const PART_OF_SPEECH_BY_SOURCE: Readonly<Record<string, PartOfSpeech>> = {
+  noun: 'noun',
+  name: 'noun',
+  verb: 'verb',
+  adj: 'adjective',
+  adv: 'adverb',
+  phrase: 'phrase',
+  proverb: 'phrase',
+  prep_phrase: 'phrase',
+  prep: 'preposition',
+  postp: 'preposition',
+  intj: 'other',
+  num: 'other',
+  pron: 'other',
+  det: 'other',
+  conj: 'other',
+  particle: 'other',
+  contraction: 'other',
+};
+
+/**
+ * Die Wortart, die sich vorausfüllen lässt – oder gar keine.
+ *
+ * Vorausgefüllt wird nur, wenn die Auskunft **eindeutig** ist. `book` ist
+ * Substantiv und Verb; eines davon einzutragen hieße, eine Münze zu werfen und
+ * das Ergebnis wie eine Auskunft aussehen zu lassen. Ein leeres Feld ist an
+ * dieser Stelle ehrlicher – und die Lehrkraft füllt es in einem Klick.
+ */
+export function partOfSpeechOf(
+  summary: DictionarySuggestionSummary | undefined,
+): PartOfSpeech | '' {
+  const sources = new Set(
+    (summary?.entries ?? []).flatMap((entry) => (entry.partOfSpeech ? [entry.partOfSpeech] : [])),
+  );
+  if (sources.size !== 1) return '';
+  const [only] = [...sources];
+  return (only && PART_OF_SPEECH_BY_SOURCE[only]) ?? '';
 }
 
 /* ------------------------------------------------- Sichere Sammelübernahme */

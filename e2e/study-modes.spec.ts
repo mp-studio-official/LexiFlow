@@ -69,7 +69,6 @@ async function seedPack(
   await page.goto('/#/material/import');
   await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-  await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('7');
   await page.getByLabel('Lernrichtung').selectOption(direction);

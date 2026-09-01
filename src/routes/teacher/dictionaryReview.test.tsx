@@ -9,12 +9,12 @@ import type { LearningContext } from '../../import/enrichment';
 import type { DictionaryEntry, DictionaryProvider } from '../../dictionary/DictionaryProvider';
 
 /**
- * Die Kandidatenprüfung mit Offline-Wörterbuch – im Zustand „Safari“:
+ * Der Empfehlungsschritt mit Offline-Wörterbuch – im Zustand „Safari“:
  * kein Übersetzungs-Anbieter, kein Sprachmodell, keine Netzverbindung.
  *
  * Der `ProviderRegistry` bekommt **keinen** Übersetzer; damit meldet die
  * Verfügbarkeitsprüfung `unavailable`, und genau das ist der Fall, den dieser
- * Sprint verlässlich machen soll.
+ * Weg verlässlich machen soll.
  */
 
 const TEXT = 'The neighbourhood is crowded. Litter covers the quiet street near the old station.';
@@ -82,7 +82,7 @@ function fakeDictionary(overrides: Partial<DictionaryProvider> = {}): Dictionary
   };
 }
 
-function setup(dictionary: DictionaryProvider = fakeDictionary()) {
+function mount(dictionary: DictionaryProvider = fakeDictionary()) {
   const onApply = vi.fn();
   render(
     <ProviderRegistry>
@@ -90,7 +90,6 @@ function setup(dictionary: DictionaryProvider = fakeDictionary()) {
         candidates={extractTextCandidates(TEXT)}
         context={CONTEXT}
         onContextChange={vi.fn()}
-        requestedCount={20}
         dictionary={dictionary}
         onApply={onApply}
         onBack={vi.fn()}
@@ -100,204 +99,199 @@ function setup(dictionary: DictionaryProvider = fakeDictionary()) {
   return { onApply, user: userEvent.setup() };
 }
 
-/** Die Zeile eines Kandidaten – über die Checkbox, die seinen Namen trägt. */
+/**
+ * Der ganze Schritt in einem Aufruf: warten, bis das Wörterbuch fertig ist,
+ * die Anzahl hochsetzen und einmal empfehlen lassen.
+ *
+ * Die Anzahl steht bewusst auf 20: Diese Tests prüfen die Wörterbuchanzeige,
+ * nicht die Rangfolge – jeder Kandidat des Textes soll dabei sein.
+ */
+async function setup(dictionary?: DictionaryProvider) {
+  const mounted = mount(dictionary ?? fakeDictionary());
+  const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+  await waitFor(() => expect(knopf).toBeEnabled());
+  await mounted.user.selectOptions(screen.getByLabelText('Anzahl'), '20');
+  await mounted.user.click(knopf);
+  return mounted;
+}
+
+/** Die Zeile eines Kandidaten – über das Antwortfeld, das seinen Namen trägt. */
 function rowOf(word: string): HTMLElement {
-  const box = screen.getByRole('checkbox', { name: `${word} übernehmen` });
-  const item = box.closest('li');
+  const field = screen.getByLabelText(`Deutsche Antwort für „${word}“`);
+  const item = field.closest('li');
   if (!item) throw new Error(`Keine Zeile für ${word}`);
   return item;
 }
 
 function answerField(word: string): HTMLInputElement {
-  return within(rowOf(word)).getByLabelText(`Deutsche Antwort für „${word}“`) as HTMLInputElement;
+  return screen.getByLabelText(`Deutsche Antwort für „${word}“`) as HTMLInputElement;
 }
 
-describe('Wörterbuchvorschläge in der Kandidatenprüfung', () => {
+describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   it('erscheinen ohne Zutun, auch ohne Sprachmodell', async () => {
-    setup();
-    await waitFor(() => expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument());
+    await setup();
+    expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument();
     expect(within(rowOf('Litter')).getByText('Offline-Wörterbuch')).toBeInTheDocument();
   });
 
   it('tragen nichts von selbst ein', async () => {
-    setup();
-    await waitFor(() => expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument());
+    await setup();
     // Der Vorschlag steht daneben – das Antwortfeld bleibt leer.
     expect(answerField('Litter').value).toBe('');
   });
 
   it('nennen Wortart und Genus', async () => {
-    setup();
-    await waitFor(() => expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument());
+    await setup();
     const row = rowOf('Litter');
     expect(within(row).getByText('noun')).toBeInTheDocument();
     expect(within(row).getByText('(der)')).toBeInTheDocument();
   });
 
-  it('übernehmen eine einzelne Bedeutung auf Klick', async () => {
-    const { user } = setup();
-    await waitFor(() => expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument());
+  it('füllen die Wortart der Zeile vor, wenn sie eindeutig ist', async () => {
+    await setup();
+    expect(screen.getByLabelText('Wortart für „Litter“')).toHaveValue('noun');
+    expect(screen.getByLabelText('Wortart für „quiet“')).toHaveValue('adjective');
+    // Ohne Treffer bleibt sie leer statt geraten.
+    expect(screen.getByLabelText('Wortart für „crowded“')).toHaveValue('');
+  });
 
-    await user.click(screen.getByRole('button', { name: '„Müll“ als Antwort für Litter einsetzen' }));
+  it('übernehmen eine einzelne Bedeutung auf Klick', async () => {
+    const { user } = await setup();
+    await user.click(
+      screen.getByRole('button', { name: '„Müll“ als Antwort für Litter einsetzen' }),
+    );
     expect(answerField('Litter').value).toBe('Müll');
   });
 
   it('übernehmen auf Wunsch mehrere Bedeutungen einer Gruppe', async () => {
-    const { user } = setup();
-    await waitFor(() => expect(within(rowOf('station')).getByText('Bahnhof')).toBeInTheDocument());
-
+    const { user } = await setup();
     await user.click(
-      screen.getByRole('button', { name: /Alle 2 Bedeutungen dieser Gruppe als Antwort für station/ }),
+      screen.getByRole('button', {
+        name: /Alle 2 Bedeutungen dieser Gruppe als Antwort für station/,
+      }),
     );
     expect(answerField('station').value).toBe('Bahnhof, Station');
   });
 
   it('lassen eine getippte Antwort unangetastet', async () => {
-    const { user } = setup();
-    await waitFor(() => expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument());
+    const { user } = await setup();
 
-    await user.clear(answerField('Litter'));
     await user.type(answerField('Litter'), 'Abfall');
-    await user.click(
-      screen.getByRole('button', { name: /Eindeutige Wörterbuchvorschläge übernehmen/ }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
 
     expect(answerField('Litter').value).toBe('Abfall');
   });
 
   it('kennzeichnen eine markierte Übersetzung sichtbar', async () => {
-    setup();
-    await waitFor(() =>
-      expect(within(rowOf('quiet')).getByText('stillschweigend')).toBeInTheDocument(),
-    );
+    await setup();
     const row = rowOf('quiet');
+    expect(within(row).getByText('stillschweigend')).toBeInTheDocument();
     expect(within(row).getByText('dated')).toBeInTheDocument();
     expect(within(row).getByText(/vor der Übernahme prüfen/)).toBeInTheDocument();
   });
 });
 
-describe('Sammelübernahme', () => {
-  it('nimmt nur eindeutige Ergebnisse und nennt die Zahl vorher', async () => {
-    const { user } = setup();
-    const knopf = await screen.findByRole('button', {
-      name: /Eindeutige Wörterbuchvorschläge übernehmen \(1\)/,
-    });
+describe('Übersetzungsvorschläge eintragen', () => {
+  it('trägt ein, was ohne Rückfrage geht, und lässt den Rest offen', async () => {
+    const { user } = await setup();
+    await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
 
-    await user.click(knopf);
-
-    // `litter` ist eindeutig – eine Bedeutung, eine Übersetzung, unmarkiert.
+    // `litter`: eine Bedeutung, eine unmarkierte Übersetzung.
     expect(answerField('Litter').value).toBe('Müll');
-    // `neighbourhood` hat zwei Bedeutungen und bleibt offen.
-    expect(answerField('neighbourhood').value).toBe('');
-    // `station` hat zwei Übersetzungen in einer Bedeutung – auch das ist eine Wahl.
-    expect(answerField('station').value).toBe('');
-    // `quiet` trägt einen Registermarker und bleibt ebenfalls offen.
+    // `station`: zwei Entsprechungen **einer** Bedeutung – Alternativen.
+    expect(answerField('station').value).toBe('Bahnhof, Station');
+    // `neighbourhood`: zwei Bedeutungen. Über Bedeutungen hinweg wird nie
+    // verbunden, deshalb steht hier die erste – und nur die.
+    expect(answerField('neighbourhood').value).toBe('Nachbarschaft');
+    // `quiet`: nur ein veralteter Treffer. Bleibt leer.
     expect(answerField('quiet').value).toBe('');
   });
 
-  it('erscheint gar nicht, wenn es nichts Eindeutiges gibt', async () => {
-    const leer = fakeDictionary({ async lookup() { return []; } });
-    setup(leer);
-    await waitFor(() =>
-      expect(screen.getByText(/Das integrierte Offline-Wörterbuch/)).toBeInTheDocument(),
-    );
-    expect(
-      screen.queryByRole('button', { name: /Eindeutige Wörterbuchvorschläge/ }),
-    ).not.toBeInTheDocument();
+  it('sagt hinterher, was liegen geblieben ist', async () => {
+    const { user } = await setup();
+    await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
+    const meldung = screen
+      .getAllByRole('status')
+      .map((element) => element.textContent ?? '')
+      .join(' ');
+    expect(meldung).toMatch(/3 Übersetzungen eingetragen/);
+    expect(meldung).toMatch(/mehrdeutig oder markiert/);
   });
 });
 
 describe('Browserhinweis', () => {
   it('sagt, dass das Wörterbuch auch in Safari funktioniert – und was Chrome zusätzlich kann', async () => {
-    setup();
-    const hinweis = await screen.findByText(/Das integrierte Offline-Wörterbuch funktioniert auch in Safari/);
+    mount();
+    const hinweis = await screen.findByText(
+      /Das integrierte Offline-Wörterbuch funktioniert auch in Safari/,
+    );
     expect(hinweis).toBeInTheDocument();
     expect(screen.getByText(/Google Chrome/)).toBeInTheDocument();
     // Keine Behauptung, Chrome könne das überall.
-    expect(screen.getByText(/sofern Chrome und das Gerät die lokalen Modelle unterstützen/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/sofern Chrome und das Gerät die lokalen Modelle unterstützen/),
+    ).toBeInTheDocument();
   });
 
   it('steht einmal in der Ansicht, nicht an jeder Zeile', async () => {
-    setup();
-    await screen.findByText(/Das integrierte Offline-Wörterbuch funktioniert auch in Safari/);
+    await setup();
     expect(screen.getAllByText(/funktioniert auch in Safari/)).toHaveLength(1);
   });
 
   it('bleibt sachlich, wenn das Wörterbuch selbst fehlt', async () => {
-    const fehlt = fakeDictionary({ async isAvailable() { return false; } });
-    setup(fehlt);
-    expect(
-      await screen.findByText(/steht hier gerade nicht zur Verfügung/),
-    ).toBeInTheDocument();
-  });
-});
-
-describe('Eingaben während der Suche', () => {
-  it('gehen nicht verloren, wenn die Suche erst danach zurückkommt', async () => {
-    /*
-      Die Suche über alle Kandidaten braucht einen Moment. Wer in diesem Moment
-      schon tippt oder anhakt, darf das nicht wieder verlieren – ein früherer
-      Entwurf ersetzte am Ende die gesamte Zeilenliste und tat genau das.
-    */
-    let freigeben: (() => void) | undefined;
-    const langsam = fakeDictionary({
-      async lookup(word) {
-        await new Promise<void>((resolve) => {
-          if (freigeben) resolve();
-          else freigeben = resolve;
-        });
-        return BESTAND[word.toLowerCase()] ?? [];
+    const fehlt = fakeDictionary({
+      async isAvailable() {
+        return false;
       },
     });
+    mount(fehlt);
+    expect(await screen.findByText(/steht hier gerade nicht zur Verfügung/)).toBeInTheDocument();
+  });
 
-    const { user } = setup(langsam);
-
-    // Vor dem Ergebnis: anhaken und tippen.
-    const box = screen.getByRole('checkbox', { name: 'crowded übernehmen' });
-    await user.click(box);
-    await user.type(answerField('Litter'), 'Abfall');
-
-    freigeben?.();
-
-    await waitFor(() =>
-      expect(within(rowOf('station')).getByText('Bahnhof')).toBeInTheDocument(),
-    );
-
-    // Beides steht noch da.
-    expect((screen.getByRole('checkbox', { name: 'crowded übernehmen' }) as HTMLInputElement).checked)
-      .toBe(false);
-    expect(answerField('Litter').value).toBe('Abfall');
-    // Und die getippte Zeile bekommt gar keinen Vorschlag mehr.
-    expect(within(rowOf('Litter')).queryByText('Müll')).not.toBeInTheDocument();
+  it('sperrt die Hauptaktion nicht, wenn das Wörterbuch gar nicht antwortet', async () => {
+    /*
+      Ohne Wörterbuch sind die Empfehlungen schlechter – aber es gibt sie. Ein
+      Anbieter, der beim Prüfen wirft, darf den Schritt nicht verriegeln.
+    */
+    const kaputt = fakeDictionary({
+      isAvailable() {
+        return Promise.reject(new Error('Datei beschädigt'));
+      },
+    });
+    mount(kaputt);
+    const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+    await waitFor(() => expect(knopf).toBeEnabled());
   });
 });
 
 describe('Fehler führen zur Handeingabe, nicht zum Abbruch', () => {
-  it('lässt die Analyse stehen, wenn eine Suche wirft', async () => {
+  it('lässt die Empfehlungen stehen, wenn eine Suche wirft', async () => {
     const kaputt = fakeDictionary({
       async lookup(word) {
         if (word.toLowerCase() === 'litter') throw new Error('Fach beschädigt');
         return BESTAND[word.toLowerCase()] ?? [];
       },
     });
-    const { user } = setup(kaputt);
+    const { user } = await setup(kaputt);
 
     // Die anderen Zeilen bekommen ihren Vorschlag.
-    await waitFor(() => expect(within(rowOf('station')).getByText('Bahnhof')).toBeInTheDocument());
+    expect(within(rowOf('station')).getByText('Bahnhof')).toBeInTheDocument();
     // Die kaputte Zeile bleibt leer und tippbar.
     await user.type(answerField('Litter'), 'Müll');
     expect(answerField('Litter').value).toBe('Müll');
   });
 
   it('gibt die Auswahl unverändert weiter – Vorschläge sind keine Antworten', async () => {
-    const { onApply, user } = setup();
-    await waitFor(() => expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument());
+    const { onApply, user } = await setup();
 
     await user.type(answerField('Litter'), 'Müll');
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
     const selections = onApply.mock.calls.at(-1)?.[0] as CandidateSelection[];
-    const litter = selections.find((selection) => selection.candidate.english === 'Litter');
+    // Nur die beantwortete Zeile geht weiter.
+    expect(selections).toHaveLength(1);
+    const litter = selections[0];
+    expect(litter?.candidate.english).toBe('Litter');
     expect(litter?.german).toBe('Müll');
     // Weder Schwierigkeitsgrad noch Thementags kommen aus dem Wörterbuch.
     expect(litter).not.toHaveProperty('difficulty');

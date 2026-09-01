@@ -1,8 +1,10 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card, Field } from '../../ui/components';
+import { Stepper, type StepperItem } from '../../ui/Stepper';
+import { InfoDisclosure } from '../../ui/InfoDisclosure';
 import { DraftTable } from './DraftTable';
-import { MetadataForm, emptyMetaDraft, type MetaDraft } from './MetadataForm';
+import { emptyMetaDraft, type MetaDraft } from './MetadataForm';
 import { useTranslationProvider } from '../../providers/ProviderContext';
 import type { ProviderState } from '../../providers/state';
 import {
@@ -43,15 +45,9 @@ import type { LearningContext } from '../../import/enrichment';
 import { CEFR_LEVELS, GRADES, GRADE_LABELS, suggestCefrLevel } from '../../domain/cefr';
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
-import {
-  CANDIDATE_COUNT_OPTIONS,
-  DEFAULT_CANDIDATE_COUNT,
-  MAX_CANDIDATE_COUNT,
-  MIN_CANDIDATE_COUNT,
-  clampCandidateCount,
-  countCandidates,
-  limitCandidates,
-} from '../../import/candidateLimit';
+import { countCandidates } from '../../import/candidateLimit';
+import { suggestTopic } from '../../import/topicSuggestion';
+import { DIRECTION_LABELS, LEARNING_DIRECTIONS, type LearningDirection } from '../../domain/schema';
 import {
   MAX_TEXT_LENGTH,
   TextTooLongError,
@@ -78,7 +74,17 @@ const EnrichmentPanel = lazy(() => import('./EnrichmentPanel'));
 const TopicStudio = lazy(() => import('./TopicStudio'));
 
 type SourceKind = 'paste' | 'text' | 'topic' | 'csv' | 'xlsx' | 'json';
-type Step = 'source' | 'candidates' | 'preview' | 'meta';
+
+/**
+ * Drei Schritte statt vier.
+ *
+ * „Vorschau prüfen“ und „Metadaten & speichern“ waren zwei Seiten für eine
+ * Handlung: nachsehen, ob es stimmt, und speichern. Wer im vierten Schritt den
+ * Titel eintippt, hat die Tabelle nicht mehr vor Augen, und wer in der Vorschau
+ * etwas ändert, muss noch einmal weiterklicken, um es zu sichern. Jetzt steht
+ * beides zusammen.
+ */
+type Step = 'source' | 'candidates' | 'review';
 
 const SOURCE_LABELS: Readonly<Record<SourceKind, string>> = {
   paste: 'Einfügen',
@@ -137,9 +143,9 @@ export function ImportWizardPage() {
   /** Dieselbe Zusage als Ref – zum Abbrechen, ohne von `preparation` abzuhängen. */
   const preparationRef = useRef<TranslationPreparation | null>(null);
   const [englishText, setEnglishText] = useState('');
-  const [includeStopwords, setIncludeStopwords] = useState(false);
-  const [includeProperNouns, setIncludeProperNouns] = useState(false);
   const [analysis, setAnalysis] = useState<TextAnalysis | null>(null);
+  /** Der Themenvorschlag aus dem Text – leer, wenn nichts heraussticht. */
+  const [topicHint, setTopicHint] = useState('');
   /**
    * „Bereit oder ladbar“ – nur dann verspricht die Schaltfläche Übersetzungen.
    * Ein nicht gestarteter Anbieter gilt nie als vorbereitet.
@@ -148,15 +154,21 @@ export function ImportWizardPage() {
     translationState === 'available' ||
     translationState === 'downloadable' ||
     translationState === 'downloading';
-  const analyzeLabel = translatorReady
-    ? 'Text analysieren und Übersetzungen vorschlagen'
-    : 'Text lokal analysieren';
-  /** Vor der Analyse gewählte Obergrenze für die angezeigten Kandidaten. */
-  const [candidateCount, setCandidateCount] = useState<number>(DEFAULT_CANDIDATE_COUNT);
-  const [customCount, setCustomCount] = useState(false);
-  /** Die Kandidaten dieser Analyse – schon auf die gewünschte Anzahl begrenzt. */
+  /**
+   * Eine Hauptaktion, eine Beschriftung.
+   *
+   * Vorher hieß sie je nach Browserlage anders und versprach im günstigen Fall
+   * gleich Übersetzungen mit. Der Schritt heißt aber „Text analysieren“ – und
+   * genau das tut sie überall gleich. Was das Sprachmodell zusätzlich kann,
+   * steht dort, wo es angeboten wird: im nächsten Schritt.
+   */
+  const analyzeLabel = 'Text analysieren';
+  /**
+   * **Alle** Kandidaten der Analyse. Die Auswahl trifft der Empfehlungsschritt,
+   * nicht mehr ein Zahlenfeld vor der Analyse: Wer vorher „10“ einstellt, weiß
+   * ja noch nicht, was der Text hergibt.
+   */
   const [candidates, setCandidates] = useState<TextCandidate[]>([]);
-  const [requestedCount, setRequestedCount] = useState<number>(DEFAULT_CANDIDATE_COUNT);
 
   const [error, setError] = useState<string>('');
   const [announcement, setAnnouncement] = useState<string>('');
@@ -218,7 +230,7 @@ export function ImportWizardPage() {
     const built = buildDrafts(rows, detected, { splitMultipleMeanings: splitMeaningsOption });
     setDrafts(built);
     setError('');
-    setStep('preview');
+    setStep('review');
     setAnnouncement(`${built.length} Zeilen erkannt. Vorschau geöffnet.`);
   }
 
@@ -253,21 +265,20 @@ export function ImportWizardPage() {
     stopPreparation();
 
     try {
-      const result = analyzeText(englishText, { includeStopwords, includeProperNouns });
+      const result = analyzeText(englishText);
       if (result.candidates.length === 0) {
         setAnalysis(null);
         setCandidates([]);
         setError(
-          'In diesem Text wurden keine geeigneten Vokabelkandidaten gefunden. Blende gegebenenfalls Funktionswörter oder Eigennamen ein.',
+          'In diesem Text wurden keine geeigneten Vokabelkandidaten gefunden. Er ist möglicherweise zu kurz oder besteht überwiegend aus Funktionswörtern und Eigennamen.',
         );
         return;
       }
-      // Die gewünschte Anzahl ist eine Obergrenze: Es wird begrenzt, nie ergänzt.
-      const wanted = clampCandidateCount(candidateCount);
-      const limited = limitCandidates(result.candidates, wanted);
       setAnalysis(result);
-      setCandidates(limited);
-      setRequestedCount(wanted);
+      setCandidates(result.candidates);
+      // Ein Themenvorschlag – oder keiner. Erfunden wird nichts.
+      const topic = suggestTopic(englishText);
+      setTopicHint(topic.topic);
       setError('');
 
       // Jetzt – und nur jetzt – lohnt sich das Modell. Immer noch synchron:
@@ -283,9 +294,9 @@ export function ImportWizardPage() {
       }
 
       setStep('candidates');
-      const counts = countCandidates(limited);
+      const counts = countCandidates(result.candidates);
       setAnnouncement(
-        `${counts.usable} von ${wanted} geeigneten Vokabeln aus ${result.sentenceCount} Sätzen gefunden.` +
+        `${counts.usable} geeignete Wörter aus ${result.sentenceCount} Sätzen gefunden.` +
           (counts.unresolved > 0
             ? ` ${counts.unresolved === 1 ? '1 Abkürzung muss' : `${counts.unresolved} Abkürzungen müssen`} geprüft werden.`
             : ''),
@@ -349,7 +360,7 @@ export function ImportWizardPage() {
     setRawRows([]);
     setMapping(null);
     setError('');
-    setStep('preview');
+    setStep('review');
     setAnnouncement(
       info
         ? `${summarizeTopicResult(info).headline} Vorschau geöffnet.`
@@ -367,7 +378,7 @@ export function ImportWizardPage() {
     setRawRows([]);
     setMapping(null);
     setError('');
-    setStep('preview');
+    setStep('review');
     setAnnouncement(`${built.length} Vokabeln in die Vorschau übernommen.`);
   }
 
@@ -406,7 +417,7 @@ export function ImportWizardPage() {
           direction: result.pack.meta.direction,
           description: result.pack.meta.description ?? '',
         });
-        setStep('preview');
+        setStep('review');
         setAnnouncement(`${result.pack.entries.length} Vokabeln aus der Paketdatei gelesen.`);
       }
     } catch (caught: unknown) {
@@ -502,18 +513,44 @@ export function ImportWizardPage() {
     setPending({ pack, existingTitle: existing.title, summary: summarizeDiff(diff) });
   }
 
+  /**
+   * Die Schritte, wie sie für diese Quelle tatsächlich gelten.
+   *
+   * Nur der Weg über einen englischen Text hat einen Empfehlungsschritt: Aus
+   * einer CSV-Datei gibt es nichts zu empfehlen, dort stehen die Vokabeln
+   * schon. Der Assistent zeigt deshalb zwei oder drei Schritte – aber nie
+   * einen, den es für diese Quelle gar nicht gibt.
+   */
+  const steps: StepperItem<Step>[] =
+    source === 'text'
+      ? [
+          { id: 'source', label: 'Text analysieren', reachable: true },
+          {
+            id: 'candidates',
+            label: 'Empfehlungen generieren',
+            reachable: analysis !== null,
+          },
+          { id: 'review', label: 'Prüfen & Speichern', reachable: drafts.length > 0 },
+        ]
+      : [
+          { id: 'source', label: 'Quelle wählen', reachable: true },
+          { id: 'review', label: 'Prüfen & Speichern', reachable: drafts.length > 0 },
+        ];
+
   return (
     <div className="stack">
       <div>
         <h1>Vokabelpaket erstellen</h1>
-        <ol className="steps">
-          <li aria-current={step === 'source' ? 'step' : undefined}>Quelle wählen</li>
-          {source === 'text' ? (
-            <li aria-current={step === 'candidates' ? 'step' : undefined}>Kandidaten prüfen</li>
-          ) : null}
-          <li aria-current={step === 'preview' ? 'step' : undefined}>Vorschau prüfen</li>
-          <li aria-current={step === 'meta' ? 'step' : undefined}>Metadaten &amp; speichern</li>
-        </ol>
+        <Stepper
+          steps={steps}
+          current={step}
+          onNavigate={(next) => {
+            // Zurück in den ersten Schritt heißt nicht: von vorn anfangen. Der
+            // Text steht noch da, die Empfehlungen bleiben, wie sie waren.
+            setError('');
+            setStep(next);
+          }}
+        />
       </div>
 
       <Announcer message={announcement} />
@@ -583,14 +620,32 @@ export function ImportWizardPage() {
             </Suspense>
           ) : source === 'text' ? (
             <div className="stack">
-              <Alert tone="info">
-                Der Text wird auf diesem Gerät verarbeitet und nicht übertragen. Der
-                vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert.
-                Die Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze
-                Teil des Pakets und beim Export mitgegeben; du kannst sie in der Vorschau
-                bearbeiten oder entfernen. Verwende nur Texte, die du verwenden darfst, und
-                füge keine personenbezogenen Daten von Schülerinnen und Schülern ein.
-              </Alert>
+              {/*
+                Der Datenschutzhinweis, aufgeklappt statt ausgebreitet.
+
+                Er ist wichtig genug, um dazustehen, und lang genug, um beim
+                dritten Mal nicht mehr gelesen zu werden. Offen schob er das
+                Textfeld unter die Falz – die eigentliche Aufgabe dieses
+                Schritts war dann nicht mehr das Erste, was man sieht.
+              */}
+              <InfoDisclosure
+                label="Was passiert mit meinem Text?"
+                title="Verarbeitung auf diesem Gerät"
+              >
+                <p>
+                  Der Text wird auf diesem Gerät verarbeitet und nicht übertragen. Der
+                  vollständige eingefügte Text wird nicht als eigener Datensatz gespeichert.
+                </p>
+                <p>
+                  Die Originalsätze der übernommenen Vokabeln werden dagegen als Beispielsätze
+                  Teil des Pakets und beim Export mitgegeben; du kannst sie in „Prüfen &amp;
+                  Speichern“ bearbeiten oder entfernen.
+                </p>
+                <p>
+                  Verwende nur Texte, die du verwenden darfst, und füge keine personenbezogenen
+                  Daten von Schülerinnen und Schülern ein.
+                </p>
+              </InfoDisclosure>
               <Field
                 label="Englischer Text"
                 hint={`Bis zu ${MAX_TEXT_LENGTH.toLocaleString('de-DE')} Zeichen. LexiFlow zerlegt den Text lokal in Sätze und Wörter. Gespeichert wird nur, was du übernimmst: die Vokabeln und ihre Originalsätze.`}
@@ -608,78 +663,18 @@ export function ImportWizardPage() {
                 {englishText.length.toLocaleString('de-DE')} von{' '}
                 {MAX_TEXT_LENGTH.toLocaleString('de-DE')} Zeichen
               </p>
-              <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-                <legend className="visually-hidden">Analyseoptionen</legend>
-                <div className="row">
-                  <label className="checkbox">
-                    <input
-                      type="checkbox"
-                      checked={includeStopwords}
-                      onChange={(event) => setIncludeStopwords(event.target.checked)}
-                    />
-                    <span>Funktionswörter einblenden (the, and, is …)</span>
-                  </label>
-                  <label className="checkbox">
-                    <input
-                      type="checkbox"
-                      checked={includeProperNouns}
-                      onChange={(event) => setIncludeProperNouns(event.target.checked)}
-                    />
-                    <span>Wahrscheinliche Eigennamen einblenden</span>
-                  </label>
-                </div>
-              </fieldset>
+              {/*
+                Die drei Schalter „Funktionswörter“, „Eigennamen“ und
+                „Gewünschte Anzahl“ sind weg.
 
-              <div className="field-grid">
-                <Field
-                  label="Gewünschte Anzahl Vokabelvorschläge"
-                  hint="Obergrenze für die angezeigten Kandidaten. Enthält der Text weniger geeignete Wörter, werden keine erfunden."
-                >
-                  {(props) => (
-                    <select
-                      {...props}
-                      value={customCount ? 'custom' : String(candidateCount)}
-                      onChange={(event) => {
-                        if (event.target.value === 'custom') {
-                          setCustomCount(true);
-                          return;
-                        }
-                        setCustomCount(false);
-                        setCandidateCount(Number(event.target.value));
-                      }}
-                    >
-                      {CANDIDATE_COUNT_OPTIONS.map((value) => (
-                        <option key={value} value={value}>
-                          {value} Vokabelvorschläge
-                        </option>
-                      ))}
-                      <option value="custom">Andere Anzahl …</option>
-                    </select>
-                  )}
-                </Field>
-
-                {customCount ? (
-                  <Field
-                    label="Eigene Anzahl"
-                    hint={`Zwischen ${MIN_CANDIDATE_COUNT} und ${MAX_CANDIDATE_COUNT}.`}
-                  >
-                    {(props) => (
-                      <input
-                        {...props}
-                        type="number"
-                        min={MIN_CANDIDATE_COUNT}
-                        max={MAX_CANDIDATE_COUNT}
-                        step={1}
-                        value={candidateCount}
-                        onChange={(event) => setCandidateCount(Number(event.target.value))}
-                        onBlur={(event) =>
-                          setCandidateCount(clampCandidateCount(Number(event.target.value)))
-                        }
-                      />
-                    )}
-                  </Field>
-                ) : null}
-              </div>
+                Sie standen vor der Analyse und verlangten damit Entscheidungen
+                über einen Text, den noch niemand gesehen hatte. Wie viele
+                Vokabeln herauskommen sollen, gehört in den Empfehlungsschritt –
+                dort ist die Zahl änderbar, ohne den Text neu zu analysieren.
+                Funktionswörter und Eigennamen bleiben schlicht draußen: Sie
+                waren als Notausgang gedacht und sind in keinem Durchgang
+                gebraucht worden.
+              */}
 
               <div className="row">
                 <Button
@@ -687,14 +682,24 @@ export function ImportWizardPage() {
                   onClick={handleAnalyze}
                   disabled={englishText.trim().length === 0}
                 >
-                  {analyzeLabel}
+                  {analysis ? 'Text erneut analysieren' : analyzeLabel}
                 </Button>
-                {analysis ? (
-                  <Button variant="quiet" onClick={() => setStep('candidates')}>
-                    Zurück zu den Kandidaten
-                  </Button>
-                ) : null}
+                {/* Der Weg zurück zu den Empfehlungen steht oben im Stepper –
+                    eine zweite Schaltfläche dafür wäre eine zweite Wahrheit. */}
               </div>
+              {/*
+                Die Schaltfläche heißt nur noch „Text analysieren“ – dann darf
+                sie im Hintergrund auch nichts Ungesagtes tun. Ein
+                Modelldownload kann Hunderte von Megabyte kosten; wer ihn
+                auslöst, soll das vorher gelesen haben.
+              */}
+              {translatorReady ? (
+                <p className="small muted" style={{ margin: 0 }}>
+                  Dieser Browser bietet lokale Übersetzung an. Beim Analysieren wird das
+                  Sprachmodell im Hintergrund vorbereitet – der Download kann groß sein und lässt
+                  sich im nächsten Schritt abbrechen. Die Analyse selbst läuft ohne Modell.
+                </p>
+              ) : null}
             </div>
           ) : source === 'paste' ? (
             <div className="stack">
@@ -757,28 +762,43 @@ export function ImportWizardPage() {
         </Card>
       ) : null}
 
-      {step === 'candidates' && analysis ? (
-        <TextCandidateReview
-          candidates={candidates}
-          context={learningContext}
-          requestedCount={requestedCount}
-          preparation={preparation}
-          onContextChange={(next) => {
-            // Derselbe Meta-Zustand wie im übrigen Assistenten – das MetadataForm
-            // findet die Angaben im nächsten Schritt schon vor.
-            if (next.grade !== meta.grade) setGrade(next.grade);
-            if (next.cefrLevel !== meta.cefrLevel) setCefrLevel(next.cefrLevel);
-            if (next.topic !== meta.topic) setMeta((current) => ({ ...current, topic: next.topic }));
-          }}
-          onApply={handleCandidates}
-          onBack={() => {
-            stopPreparation();
-            setStep('source');
-          }}
-        />
+      {/*
+        Der Empfehlungsschritt bleibt **eingehängt**, sobald es ihn gibt – auch
+        wenn gerade ein anderer Schritt zu sehen ist.
+
+        Sonst wäre der Stepper ein Versprechen, das er nicht hält: Wer im dritten
+        Schritt merkt, dass eine Vokabel fehlt, klickt auf den zweiten und fände
+        ihn leer vor, weil React die Komponente beim Ausblenden abgebaut und
+        beim Zurückkommen neu aufgebaut hätte. Getippte Antworten, ersetzte
+        Empfehlungen, frühere Empfehlungen – alles weg. `hidden` nimmt den
+        Bereich aus dem Bild **und** aus dem Baum der Hilfstechnik, lässt den
+        Zustand aber stehen.
+      */}
+      {analysis ? (
+        <div hidden={step !== 'candidates'}>
+          <TextCandidateReview
+            candidates={candidates}
+            context={learningContext}
+            suggestedTopic={topicHint}
+            preparation={preparation}
+            onContextChange={(next) => {
+              // Derselbe Meta-Zustand wie im übrigen Assistenten – der letzte
+              // Schritt findet die Angaben schon vor.
+              if (next.grade !== meta.grade) setGrade(next.grade);
+              if (next.cefrLevel !== meta.cefrLevel) setCefrLevel(next.cefrLevel);
+              if (next.topic !== meta.topic)
+                setMeta((current) => ({ ...current, topic: next.topic }));
+            }}
+            onApply={handleCandidates}
+            onBack={() => {
+              stopPreparation();
+              setStep('source');
+            }}
+          />
+        </div>
       ) : null}
 
-      {step === 'preview' ? (
+      {step === 'review' ? (
         <div className="stack">
           {sheets.length > 1 ? (
             <Card quiet>
@@ -856,54 +876,145 @@ export function ImportWizardPage() {
             </Alert>
           ) : null}
 
-          <Card quiet>
-            <h2 style={{ fontSize: '1.05rem' }}>Lernkontext</h2>
-            <p className="muted small">
-              Jahrgang, Sprachniveau und Thema helfen dabei, Schwierigkeit und Themen-Tags passend
-              vorzuschlagen. Deine Eingaben stehen im nächsten Schritt schon bereit.
-            </p>
+          {/*
+            Das Paket, in einer Karte.
+
+            Vorher stand hier nur die Tabelle und der Titel kam eine Seite
+            später. Wer speichern will, muss aber beides zugleich sehen: was
+            drin ist und wie es heißt.
+          */}
+          <Card>
+            <h2 style={{ fontSize: '1.05rem' }}>Das Paket</h2>
             <div className="field-grid">
-              <Field label="Jahrgang">
-                {(props) => (
-                  <select
-                    {...props}
-                    value={meta.grade}
-                    onChange={(event) => setGrade(event.target.value as Grade)}
-                  >
-                    {GRADES.map((grade) => (
-                      <option key={grade} value={grade}>
-                        {GRADE_LABELS[grade]}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-              <Field label="GeR-Niveau">
-                {(props) => (
-                  <select
-                    {...props}
-                    value={meta.cefrLevel}
-                    onChange={(event) => setCefrLevel(event.target.value as CefrLevel)}
-                  >
-                    {CEFR_LEVELS.map((level) => (
-                      <option key={level} value={level}>
-                        {level}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-              <Field label="Thema" hint="Wird als Themen-Tag vorgeschlagen, z. B. „City life“.">
+              <Field
+                label="Titel"
+                hint="Erscheint in der Paketliste, z. B. „Unit 3 – Sports“."
+                {...(error && !meta.title.trim() ? { error: 'Bitte einen Titel angeben.' } : {})}
+              >
                 {(props) => (
                   <input
                     {...props}
                     type="text"
-                    value={meta.topic}
-                    onChange={(event) => setMeta({ ...meta, topic: event.target.value })}
+                    value={meta.title}
+                    required
+                    onChange={(event) => setMeta({ ...meta, title: event.target.value })}
                   />
                 )}
               </Field>
+              <Field
+                label="Lernrichtung"
+                hint="Lückensätze und produktives Abfragen brauchen „Deutsch → Englisch“ oder beide Richtungen."
+              >
+                {(props) => (
+                  <select
+                    {...props}
+                    value={meta.direction}
+                    onChange={(event) =>
+                      setMeta({ ...meta, direction: event.target.value as LearningDirection })
+                    }
+                  >
+                    {LEARNING_DIRECTIONS.map((direction) => (
+                      <option key={direction} value={direction}>
+                        {DIRECTION_LABELS[direction]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
             </div>
+
+            <Field
+              label="Beschreibung (optional)"
+              hint="Kurzer Hinweis für Lernende, z. B. worauf zu achten ist. Kann leer bleiben."
+            >
+              {(props) => (
+                <textarea
+                  {...props}
+                  rows={2}
+                  value={meta.description}
+                  onChange={(event) => setMeta({ ...meta, description: event.target.value })}
+                />
+              )}
+            </Field>
+
+            {/*
+              Der Lernkontext, kompakt.
+
+              Auf dem Textweg ist er im Empfehlungsschritt gesetzt worden und
+              hat dort die Auswahl bestimmt – ihn hier noch einmal als drei
+              Auswahlfelder anzubieten hieße, dieselbe Entscheidung zweimal
+              treffen zu lassen und die Empfehlungen stillschweigend veralten
+              zu lassen. Auf den anderen Wegen gibt es diesen Schritt nicht;
+              dort steht der Kontext hier und ist änderbar.
+            */}
+            {source === 'text' ? (
+              <p className="small muted" style={{ margin: '0.5rem 0 0' }}>
+                Lernkontext: <strong>{GRADE_LABELS[meta.grade]}</strong> ·{' '}
+                <strong>{meta.cefrLevel}</strong>
+                {meta.topic ? (
+                  <>
+                    {' '}
+                    · Thema <strong>{meta.topic}</strong>
+                  </>
+                ) : null}{' '}
+                — im Schritt „Empfehlungen generieren“ änderbar.
+              </p>
+            ) : (
+              <div className="field-grid">
+                <Field label="Jahrgang">
+                  {(props) => (
+                    <select
+                      {...props}
+                      value={meta.grade}
+                      onChange={(event) => setGrade(event.target.value as Grade)}
+                    >
+                      {GRADES.map((grade) => (
+                        <option key={grade} value={grade}>
+                          {GRADE_LABELS[grade]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+                <Field
+                  label="GeR-Niveau"
+                  hint={
+                    meta.cefrLevelOverridden
+                      ? `Abweichend vom Vorschlag (${suggestCefrLevel(meta.grade)}) gesetzt.`
+                      : `Automatisch vorgeschlagen: ${suggestCefrLevel(meta.grade)}.`
+                  }
+                >
+                  {(props) => (
+                    <select
+                      {...props}
+                      value={meta.cefrLevel}
+                      onChange={(event) => setCefrLevel(event.target.value as CefrLevel)}
+                    >
+                      {CEFR_LEVELS.map((level) => (
+                        <option key={level} value={level}>
+                          {level}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+                <Field label="Thema" hint="Wird als Themen-Tag vorgeschlagen, z. B. „City life“.">
+                  {(props) => (
+                    <input
+                      {...props}
+                      type="text"
+                      value={meta.topic}
+                      onChange={(event) => setMeta({ ...meta, topic: event.target.value })}
+                    />
+                  )}
+                </Field>
+              </div>
+            )}
+
+            <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
+              Die GeR-Zuordnung folgt der üblichen Orientierung für Gymnasien in NRW und ist ein
+              Vorschlag – schulinterne Lehrpläne können abweichen.
+            </p>
           </Card>
 
           <Suspense
@@ -935,23 +1046,14 @@ export function ImportWizardPage() {
           <DraftTable drafts={drafts} onChange={updateDrafts} sentenceContext={learningContext} />
 
           <div className="row">
-            <Button onClick={() => setStep('source')}>Zurück</Button>
-            <Button variant="primary" onClick={() => setStep('meta')} disabled={summary.selected === 0}>
-              Weiter zu den Metadaten
+            <Button onClick={() => setStep(source === 'text' ? 'candidates' : 'source')}>
+              Zurück
             </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {step === 'meta' ? (
-        <div className="stack">
-          <Card>
-            <h2>Metadaten</h2>
-            <MetadataForm value={meta} onChange={setMeta} />
-          </Card>
-          <div className="row">
-            <Button onClick={() => setStep('preview')}>Zurück zur Vorschau</Button>
-            <Button variant="primary" onClick={() => void handleSave()}>
+            <Button
+              variant="primary"
+              onClick={() => void handleSave()}
+              disabled={summary.selected === 0}
+            >
               Paket speichern ({summary.selected} Vokabeln)
             </Button>
           </div>

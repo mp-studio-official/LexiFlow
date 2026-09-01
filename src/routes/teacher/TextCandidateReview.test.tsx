@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TextCandidateReview } from './TextCandidateReview';
+import { TextCandidateReview, describeProgress } from './TextCandidateReview';
 import { ProviderRegistry } from '../../providers/ProviderContext';
 import { extractTextCandidates } from '../../domain/textExtraction';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
 import { createFakeTranslationProvider } from '../../test/fakeTranslator';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
 import type { LearningContext } from '../../import/enrichment';
+import type { DictionaryProvider } from '../../dictionary/DictionaryProvider';
 
 const TEXT = 'The neighbourhood is crowded. Litter is a problem in the neighbourhood.';
 
@@ -17,7 +18,28 @@ function candidates() {
 
 const CONTEXT: LearningContext = { grade: '7', cefrLevel: 'A2', topic: '' };
 
-function setup(provider?: TranslationProvider) {
+/**
+ * Ein Wörterbuch, das nichts weiß.
+ *
+ * Diese Datei prüft den Ablauf des Empfehlungsschritts und die Anbindung des
+ * Sprachmodells – nicht die Wörterbuchanzeige. Ein leerer Bestand hält beides
+ * auseinander und macht die Tests schnell.
+ */
+const LEERES_WOERTERBUCH: DictionaryProvider = {
+  id: 'leer',
+  label: 'leer',
+  async isAvailable() {
+    return true;
+  },
+  async meta() {
+    return undefined;
+  },
+  async lookup() {
+    return [];
+  },
+};
+
+function mount(provider?: TranslationProvider) {
   const onApply = vi.fn();
   const onBack = vi.fn();
   const onContextChange = vi.fn();
@@ -27,7 +49,7 @@ function setup(provider?: TranslationProvider) {
         candidates={candidates()}
         context={CONTEXT}
         onContextChange={onContextChange}
-        requestedCount={20}
+        dictionary={LEERES_WOERTERBUCH}
         onApply={onApply}
         onBack={onBack}
       />
@@ -36,40 +58,81 @@ function setup(provider?: TranslationProvider) {
   return { onApply, onBack, onContextChange, user: userEvent.setup() };
 }
 
+/** Aufbauen und einmal empfehlen lassen – der Normalfall dieser Datei. */
+async function setup(provider?: TranslationProvider) {
+  const mounted = mount(provider);
+  const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+  await waitFor(() => expect(knopf).toBeEnabled());
+  await mounted.user.selectOptions(screen.getByLabelText('Anzahl'), '20');
+  await mounted.user.click(knopf);
+  return mounted;
+}
+
 function applied(onApply: ReturnType<typeof vi.fn>): CandidateSelection[] {
   return onApply.mock.calls.at(-1)?.[0] as CandidateSelection[];
 }
 
-describe('Textwerkstatt ohne Übersetzungs-Anbieter', () => {
-  it('bleibt vollständig benutzbar', async () => {
-    setup();
-    expect(
-      screen.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ }),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText(/Dieser Browser bietet keine lokale Übersetzung/),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Vorschläge/ }),
-    ).not.toBeInTheDocument();
+describe('Der Schritt beginnt mit einer Entscheidung, nicht mit einer Liste', () => {
+  it('zeigt zuerst die Einstellungen und noch keine Vokabeln', async () => {
+    mount();
+    expect(screen.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Jahrgang')).toBeInTheDocument();
+    expect(screen.getByLabelText('GeR-Niveau')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sortierung')).toBeInTheDocument();
+    expect(screen.getByLabelText('Anzahl')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).not.toBeInTheDocument();
   });
 
-  it('zeigt zu jedem Kandidaten den unveränderten Originalsatz', () => {
-    setup();
-    const sentences = [...document.querySelectorAll('.candidate__sentence')].map((element) =>
-      (element.textContent ?? '').replace('Originalsatz: ', '').replace(/^„|“$/g, ''),
-    );
-    expect(sentences).toHaveLength(candidates().length);
-    for (const sentence of sentences) expect(TEXT).toContain(sentence);
+  it('wartet mit der Hauptaktion, bis das Wörterbuch nachgeschlagen hat', async () => {
+    /*
+      Ob das Wörterbuch ein Wort kennt, ist eines der Merkmale, aus denen die
+      Empfehlung entsteht. Vorher zu empfehlen hieße, mit halber Auskunft zu
+      entscheiden – deshalb ist die Schaltfläche so lange gesperrt und sagt
+      auch, worauf sie wartet.
+    */
+    mount();
+    const knopf = screen.getByRole('button', { name: 'Empfehlungen generieren' });
+    expect(knopf).toBeDisabled();
+    expect(screen.getByText(/Das Offline-Wörterbuch schlägt gerade nach/)).toBeInTheDocument();
+    await waitFor(() => expect(knopf).toBeEnabled());
   });
 
-  it('führt den kompletten Weg mit selbst eingetragenen Antworten zu Ende', async () => {
-    const { onApply, user } = setup();
+  it('reicht eine geänderte Einstellung nach oben weiter', async () => {
+    const { onContextChange, user } = await setup();
+    await user.selectOptions(screen.getByLabelText('Jahrgang'), '9');
+    expect(onContextChange).toHaveBeenCalledWith(expect.objectContaining({ grade: '9' }));
+  });
+});
 
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
+describe('Empfehlungen statt Häkchen', () => {
+  it('kommt ohne Auswahlkästchen aus', async () => {
+    await setup();
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+  });
+
+  it('zählt ehrlich, was übernommen wird und was offen ist', async () => {
+    const { user } = await setup();
+    const total = candidates().length;
+
+    expect(screen.getByText(describeProgress(0, total))).toBeInTheDocument();
+
     await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+    expect(screen.getByText(describeProgress(1, total - 1))).toBeInTheDocument();
+  });
+
+  it('formuliert die Zählung im Singular richtig', () => {
+    expect(describeProgress(1, 1)).toBe('1 Vokabel wird übernommen · 1 Empfehlung ist noch offen.');
+    expect(describeProgress(7, 3)).toBe(
+      '7 Vokabeln werden übernommen · 3 Empfehlungen sind noch offen.',
+    );
+    expect(describeProgress(4, 0)).toBe('4 Vokabeln werden übernommen. Keine Empfehlung ist mehr offen.');
+  });
+
+  it('gibt nur die beantworteten Zeilen weiter', async () => {
+    const { onApply, user } = await setup();
+
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
     const selections = applied(onApply);
     expect(selections).toHaveLength(1);
@@ -77,68 +140,98 @@ describe('Textwerkstatt ohne Übersetzungs-Anbieter', () => {
     expect(selections[0]?.translationAccepted).toBe(false);
   });
 
-  it('macht Zeilen ohne deutsche Antwort sichtbar, ohne sie zu verstecken', async () => {
-    const { user } = setup();
-    const total = candidates().length;
-
-    expect(screen.getAllByText(/Ohne deutsche Antwort/)).toHaveLength(total);
-    expect(screen.getByText(new RegExp(`${total} ohne deutsche Antwort`))).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'x');
-
-    // Die Zeile bleibt sichtbar, nur ihr Fehler verschwindet.
-    expect(screen.getAllByText(/Ohne deutsche Antwort/)).toHaveLength(total - 1);
-    expect(screen.getByLabelText('crowded übernehmen')).toBeInTheDocument();
+  it('lässt ohne eine einzige Antwort nicht weitergehen', async () => {
+    await setup();
+    expect(screen.getByRole('button', { name: /prüfen & speichern/ })).toBeDisabled();
   });
 
-  it('verbindet den Hinweis programmatisch mit dem Eingabefeld', async () => {
-    const { user } = setup();
-    const field = screen.getByLabelText('Deutsche Antwort für „crowded“');
-
-    expect(field).toHaveAccessibleDescription(
-      'Ohne deutsche Antwort lässt sich diese Vokabel nicht speichern.',
+  it('zeigt zu jedem Vorschlag den unveränderten Originalsatz', async () => {
+    await setup();
+    const sentences = [...document.querySelectorAll('.candidate__sentence')].map((element) =>
+      (element.textContent ?? '').replace('Originalsatz: ', '').replace(/^„|“$/g, ''),
     );
-    expect(field).toHaveAttribute('aria-invalid', 'true');
-
-    await user.type(field, 'überfüllt');
-    expect(field).not.toHaveAttribute('aria-invalid');
-    expect(field).toHaveAccessibleDescription('');
+    expect(sentences.length).toBeGreaterThan(0);
+    for (const sentence of sentences) expect(TEXT).toContain(sentence);
   });
 
-  it('meldet eine abgewählte leere Zeile nicht als fehlerhaft', async () => {
-    const { user } = setup();
-    await user.click(screen.getByLabelText('crowded übernehmen'));
+  it('gibt die im Schritt gewählte Wortart mit weiter', async () => {
+    const { onApply, user } = await setup();
 
-    const field = screen.getByLabelText('Deutsche Antwort für „crowded“');
-    expect(field).not.toHaveAttribute('aria-invalid');
-  });
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+    await user.selectOptions(screen.getByLabelText('Wortart für „crowded“'), 'adjective');
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
-  it('erlaubt Alle/Keine auswählen, Sortieren und Entfernen', async () => {
-    const { user } = setup();
-    const count = candidates().length;
-
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    expect(screen.getByText(`0 von ${count} ausgewählt`)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Alle auswählen' }));
-    expect(screen.getByText(new RegExp(`${count} von ${count} ausgewählt`))).toBeInTheDocument();
-
-    await user.selectOptions(screen.getByLabelText('Sortierung der Kandidaten'), 'frequency');
-    const first = screen.getAllByRole('checkbox')[0] as HTMLInputElement;
-    expect(first).toHaveAccessibleName('neighbourhood übernehmen');
-
-    await user.click(screen.getByLabelText('crowded entfernen'));
-    expect(screen.queryByLabelText('crowded übernehmen')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(new RegExp(`${count - 1} von ${count - 1} ausgewählt`)),
-    ).toBeInTheDocument();
+    expect(applied(onApply)[0]?.partOfSpeech).toBe('adjective');
+    expect(candidatesToDrafts(applied(onApply))[0]?.partOfSpeech).toBe('adjective');
   });
 });
 
-describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
+describe('Nachlegen, ohne Arbeit zu verlieren', () => {
+  it('ersetzt die offenen Empfehlungen und hebt sie auf', async () => {
+    const { user } = await setup();
+
+    await user.selectOptions(screen.getByLabelText('Anzahl'), '5');
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+
+    const vorher = screen.getAllByText(/× im Text/).length;
+    await user.click(screen.getByRole('button', { name: /Offene Empfehlungen ersetzen/ }));
+
+    // Die beantwortete Zeile steht noch da …
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
+    // … und die ersetzten sind auffindbar, nicht weg.
+    const frueher = screen.getByRole('button', { name: /Frühere Empfehlungen/ });
+    expect(frueher).toHaveTextContent(String(vorher - 1));
+  });
+
+  it('holt eine frühere Empfehlung auf Klick zurück', async () => {
+    const { user } = await setup();
+
+    await user.click(screen.getByRole('button', { name: 'Litter entfernen' }));
+    expect(screen.queryByLabelText('Deutsche Antwort für „Litter“')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Frühere Empfehlungen/ }));
+    await user.click(screen.getByRole('button', { name: 'Litter wieder aufnehmen' }));
+
+    expect(screen.getByLabelText('Deutsche Antwort für „Litter“')).toBeInTheDocument();
+  });
+
+  it('hält die früheren Empfehlungen eingeklappt, bis jemand sie sehen will', async () => {
+    const { user } = await setup();
+    await user.click(screen.getByRole('button', { name: 'Litter entfernen' }));
+
+    const knopf = screen.getByRole('button', { name: /Frühere Empfehlungen/ });
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'Litter wieder aufnehmen' })).not.toBeInTheDocument();
+
+    await user.click(knopf);
+    expect(knopf).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('lässt beantwortete Zeilen beim Neuberechnen stehen', async () => {
+    const { user } = await setup();
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+
+    await user.selectOptions(screen.getByLabelText('Sortierung'), 'frequency');
+    await user.click(screen.getByRole('button', { name: 'Empfehlungen neu berechnen' }));
+
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
+  });
+});
+
+describe('Empfehlungsschritt ohne Übersetzungs-Anbieter', () => {
+  it('bleibt vollständig benutzbar', async () => {
+    await setup();
+    expect(
+      await screen.findByText(/Dieser Browser bietet keine lokale Übersetzung/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Vorschläge für offene/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('Empfehlungsschritt mit Übersetzungs-Anbieter', () => {
   it('lädt das Modell erst nach einem ausdrücklichen Klick', async () => {
     const { provider, prepareCount } = createFakeTranslationProvider();
-    const { user } = setup(provider);
+    const { user } = await setup(provider);
 
     const button = await screen.findByRole('button', {
       name: 'Sprachmodell laden und Vorschläge erzeugen',
@@ -151,14 +244,14 @@ describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
 
   it('nennt vor der Nutzung ehrlich, wohin die Daten gehen', async () => {
     const { provider } = createFakeTranslationProvider();
-    setup(provider);
+    await setup(provider);
     expect(await screen.findByText(provider.info.dataNotice)).toBeInTheDocument();
-    expect(screen.getByText(/ungeprüft/)).toBeInTheDocument();
+    expect(screen.getAllByText(/ungeprüft/).length).toBeGreaterThan(0);
   });
 
   it('übernimmt einen Vorschlag nie von selbst', async () => {
     const { provider } = createFakeTranslationProvider();
-    const { onApply, user } = setup(provider);
+    const { onApply, user } = await setup(provider);
 
     await user.click(
       await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
@@ -171,18 +264,17 @@ describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
     await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('crowded-de');
 
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
     const selections = applied(onApply);
-    expect(selections[0]?.translationAccepted).toBe(true);
-    expect(candidatesToDrafts(selections)[0]?.sourceType).toBe('text-ai');
+    const crowded = selections.find((item) => item.candidate.english === 'crowded');
+    expect(crowded?.translationAccepted).toBe(true);
+    expect(candidatesToDrafts([crowded!])[0]?.sourceType).toBe('text-ai');
   });
 
   it('zeigt den Ladefortschritt an', async () => {
     const { provider } = createFakeTranslationProvider({ progress: [0.5] });
-    const { user } = setup(provider);
+    const { user } = await setup(provider);
     await user.click(
       await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
     );
@@ -192,7 +284,7 @@ describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
 
   it('hält einen Fehler bei der einzelnen Vokabel und bietet Wiederholung an', async () => {
     const { provider } = createFakeTranslationProvider({ failFor: ['crowded'] });
-    const { user } = setup(provider);
+    const { user } = await setup(provider);
 
     await user.click(
       await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
@@ -208,12 +300,16 @@ describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
     expect(await screen.findByText('crowded-de')).toBeInTheDocument();
   });
 
-  it('übersetzt nur die ausgewählten Kandidaten', async () => {
+  it('übersetzt nur die offenen Empfehlungen', async () => {
+    /*
+      Eine Zeile, die schon eine Antwort trägt, braucht keinen Vorschlag. Sie
+      trotzdem zu übersetzen kostet Rechenzeit und stellt einen maschinellen
+      Vorschlag neben eine bereits getroffene Entscheidung.
+    */
     const { provider, translated } = createFakeTranslationProvider();
-    const { user } = setup(provider);
+    const { user } = await setup(provider);
 
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
+    await user.type(screen.getByLabelText('Deutsche Antwort für „neighbourhood“'), 'Viertel');
     await user.click(
       await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
     );
@@ -224,7 +320,7 @@ describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
 
   it('macht eine bearbeitete Übernahme wieder zu einer eigenen Antwort', async () => {
     const { provider } = createFakeTranslationProvider();
-    const { onApply, user } = setup(provider);
+    const { onApply, user } = await setup(provider);
 
     await user.click(
       await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
@@ -233,27 +329,27 @@ describe('Textwerkstatt mit Übersetzungs-Anbieter', () => {
     await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
     await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), '!');
 
-    await user.click(screen.getByRole('button', { name: 'Keine auswählen' }));
-    await user.click(screen.getByLabelText('crowded übernehmen'));
-    await user.click(screen.getByRole('button', { name: /in die Vorschau übernehmen/ }));
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
-    expect(applied(onApply)[0]?.translationAccepted).toBe(false);
+    const crowded = applied(onApply).find((item) => item.candidate.english === 'crowded');
+    expect(crowded?.translationAccepted).toBe(false);
   });
 });
 
 describe('Verfügbarkeit ist nicht Initialisierung', () => {
   it('bereitet auch bei „available“ genau einmal vor und übersetzt dann', async () => {
     const { provider, prepareCount } = createFakeTranslationProvider({ availability: 'available' });
-    const { user } = setup(provider);
+    const { user } = await setup(provider);
 
-    const button = await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' });
+    const button = await screen.findByRole('button', {
+      name: 'Vorschläge für offene Empfehlungen erzeugen',
+    });
     expect(prepareCount()).toBe(0);
 
     await user.click(button);
 
     expect(await screen.findByText('crowded-de')).toBeInTheDocument();
     expect(prepareCount()).toBe(1);
-    expect(screen.queryByText(/Sprachmodell ist noch nicht geladen/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -261,15 +357,13 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
     const { provider, prepareCount } = createFakeTranslationProvider({
       availability: 'downloading',
     });
-    const { user } = setup(provider);
+    const { user } = await setup(provider);
 
     const button = await screen.findByRole('button', {
       name: 'Laden abwarten und Vorschläge erzeugen',
     });
     expect(button).toBeEnabled();
-    expect(
-      screen.getByText(/Der Browser lädt das Sprachmodell gerade herunter/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Der Browser lädt das Sprachmodell gerade herunter/)).toBeInTheDocument();
 
     await user.click(button);
 
@@ -279,14 +373,16 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
 
   it('bereitet für denselben Anbieter kein zweites Mal vor', async () => {
     const { provider, prepareCount } = createFakeTranslationProvider({ availability: 'available' });
-    const { user } = setup(provider);
+    const { user } = await setup(provider);
 
     await user.click(
-      await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }),
+      await screen.findByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
     );
     await screen.findByText('crowded-de');
 
-    await user.click(screen.getByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
+    );
     await waitFor(() => expect(screen.getAllByText(/-de$/).length).toBeGreaterThan(0));
 
     expect(prepareCount()).toBe(1);
@@ -303,16 +399,16 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
         return provider.prepare(source, target, onProgress, signal);
       },
     };
-    const { user } = setup(failing);
+    const { user } = await setup(failing);
 
     await user.click(
-      await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' }),
+      await screen.findByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(/Download unterbrochen/);
 
     // Die Schaltfläche bleibt benutzbar und der zweite Versuch bereitet erneut vor.
     await user.click(
-      screen.getByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
+      within(screen.getByRole('alert')).getByRole('button', { name: 'Erneut versuchen' }),
     );
     expect(await screen.findByText('crowded-de')).toBeInTheDocument();
     expect(attempts).toBe(2);
@@ -320,8 +416,8 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
 
   it('ruft ohne Klick niemals prepare auf', async () => {
     const { provider, prepareCount } = createFakeTranslationProvider({ availability: 'available' });
-    setup(provider);
-    await screen.findByRole('button', { name: 'Vorschläge für Auswahl erzeugen' });
+    await setup(provider);
+    await screen.findByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' });
     expect(prepareCount()).toBe(0);
   });
 });

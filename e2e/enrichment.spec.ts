@@ -146,11 +146,14 @@ test.describe('Vorschläge beim Import', () => {
 
     await page.getByRole('button', { name: /Alle Schwierigkeit übernehmen/ }).click();
     await page.getByRole('button', { name: /Alle Themen-Tags übernehmen/ }).click();
-    await expect(page.getByLabel('Schwierigkeit, Zeile 1')).toHaveValue('3');
-    await expect(page.getByLabel('Themen-Tags, Zeile 1')).toHaveValue('City life, city');
+    // Beide stehen seit Sprint 4B.1 im aufgeklappten Bereich der Zeile, nicht
+    // mehr als eigene Tabellenspalten.
+    await page.getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' }).click();
+    await expect(page.getByLabel('Schwierigkeit', { exact: true })).toHaveValue('3');
+    await expect(page.getByLabel('Themen-Tags', { exact: true })).toHaveValue('City life, city');
+    await page.getByRole('button', { name: 'Beispielsatz für to apologise schließen' }).click();
 
-    // Speichern – der Lernkontext steht in den Metadaten schon bereit.
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
+    // Speichern – der Lernkontext steht in demselben Schritt schon bereit.
     await expect(page.getByLabel('Jahrgang')).toHaveValue('7');
     await expect(page.getByLabel('Thema')).toHaveValue('City life');
     await page.getByLabel('Titel', { exact: true }).fill('Unit 3 – City life');
@@ -200,8 +203,11 @@ test.describe('Vorschläge beim Import', () => {
     await receiver.getByRole('link', { name: 'Bearbeiten' }).click();
     await expect(receiver.getByLabel('Deutsch, Zeile 1')).toHaveValue('sich entschuldigen');
     await expect(receiver.getByLabel('Wortart, Zeile 1')).toHaveValue('verb');
-    await expect(receiver.getByLabel('Schwierigkeit, Zeile 1')).toHaveValue('3');
-    await expect(receiver.getByLabel('Themen-Tags, Zeile 1')).toHaveValue('City life, city');
+    await receiver
+      .getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' })
+      .click();
+    await expect(receiver.getByLabel('Schwierigkeit', { exact: true })).toHaveValue('3');
+    await expect(receiver.getByLabel('Themen-Tags', { exact: true })).toHaveValue('City life, city');
 
     // Und es lässt sich sofort üben.
     await receiver.goto('/#/lernen');

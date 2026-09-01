@@ -59,12 +59,22 @@ describe('DraftTable – Grundzeile', () => {
     expect(lastCall(onChange)[0]?.include).toBe(false);
   });
 
-  it('setzt den Schwierigkeitsgrad', async () => {
+  it('setzt den Schwierigkeitsgrad im aufgeklappten Bereich', async () => {
+    /*
+      Die Schwierigkeit ist keine Tabellenspalte mehr. Als eine stand sie
+      neben Englisch und Deutsch und sah aus wie eine Angabe, die fehlt –
+      dabei kennt sie für eine aus dem Text übernommene Vokabel niemand.
+      Verloren ist sie nicht, nur eine Ebene tiefer.
+    */
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<DraftTable drafts={drafts()} onChange={onChange} />);
 
-    await user.selectOptions(screen.getByLabelText('Schwierigkeit, Zeile 1'), '4');
+    expect(screen.queryByLabelText('Schwierigkeit, Zeile 1')).not.toBeInTheDocument();
+    await user.click(
+      screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]!,
+    );
+    await user.selectOptions(screen.getByLabelText('Schwierigkeit'), '4');
     expect(lastCall(onChange)[0]?.difficulty).toBe(4);
   });
 
@@ -83,14 +93,14 @@ describe('DraftTable – Detailbereich', () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<DraftTable drafts={drafts()} onChange={onChange} />);
-    await user.click(screen.getAllByRole('button', { name: /Details für crowded öffnen/ })[0]!);
+    await user.click(screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]!);
     return { onChange, user };
   }
 
   it('ist zunächst eingeklappt', () => {
     render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
     expect(screen.queryByLabelText(/Beispielsatz 1 Englisch/)).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Details für crowded öffnen/ })[0]).toHaveAttribute(
+    expect(screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]).toHaveAttribute(
       'aria-expanded',
       'false',
     );
@@ -147,7 +157,7 @@ describe('DraftTable – Detailbereich', () => {
         : draft,
     );
     render(<DraftTable drafts={withTwo} onChange={onChange} />);
-    await user.click(screen.getAllByRole('button', { name: /Details für crowded öffnen/ })[0]!);
+    await user.click(screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]!);
     await user.click(screen.getByRole('button', { name: /Beispielsatz 2 nach oben, crowded/ }));
 
     expect(lastCall(onChange)[0]?.sentences.map((sentence) => sentence.english)).toEqual([

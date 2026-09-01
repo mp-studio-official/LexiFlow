@@ -4,6 +4,7 @@ import {
   enrichWithDictionary,
   familyKeyOf,
   mayReceiveDictionarySuggestion,
+  partOfSpeechOf,
   safeAutoAnswer,
   summarizeLookup,
 } from './dictionarySuggestions';
@@ -239,6 +240,35 @@ describe('Alle Zeilen anreichern', () => {
   it('bildet den Familienschlüssel aus dem Stichwort', () => {
     expect(familyKeyOf(summarizeLookup([insel]))).toBe('island');
     expect(familyKeyOf(undefined)).toBeUndefined();
+  });
+});
+
+describe('Wortart vorausfüllen', () => {
+  it('übersetzt die Bezeichnungen der Quelle', () => {
+    const adj = entry({ headword: 'crowded', partOfSpeech: 'adj', senses: insel.senses });
+    expect(partOfSpeechOf(summarizeLookup([adj]))).toBe('adjective');
+    expect(partOfSpeechOf(summarizeLookup([insel]))).toBe('noun');
+  });
+
+  it('fasst zusammen, was sich zusammenfassen lässt', () => {
+    const spruch = entry({ headword: 'in the long run', partOfSpeech: 'prep_phrase', senses: insel.senses });
+    expect(partOfSpeechOf(summarizeLookup([spruch]))).toBe('phrase');
+  });
+
+  it('nennt Unbekanntes „sonstige“ statt einer erfundenen Nachbarschaft', () => {
+    const partikel = entry({ headword: 'up', partOfSpeech: 'particle', senses: insel.senses });
+    expect(partOfSpeechOf(summarizeLookup([partikel]))).toBe('other');
+  });
+
+  it('füllt nichts vor, wenn das Wort mehrere Wortarten hat', () => {
+    // `book` ist Substantiv **und** Verb – eine Münze zu werfen wäre keine Auskunft.
+    const substantiv = entry({ headword: 'book', partOfSpeech: 'noun', senses: insel.senses });
+    const verb = entry({ headword: 'book', partOfSpeech: 'verb', senses: insel.senses });
+    expect(partOfSpeechOf(summarizeLookup([substantiv, verb]))).toBe('');
+  });
+
+  it('füllt ohne Treffer nichts vor', () => {
+    expect(partOfSpeechOf(undefined)).toBe('');
   });
 });
 

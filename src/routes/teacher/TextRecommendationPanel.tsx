@@ -13,6 +13,22 @@ import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
 
 /**
+ * **Außer Dienst seit Sprint 4B.1.** Kein Aufrufer rendert diese Ansicht mehr.
+ *
+ * Sie beantwortete dieselbe Frage wie der neue Empfehlungsschritt – welche
+ * Wörter lohnen sich für diese Lerngruppe? – nur mit einem Sprachmodell statt
+ * mit einer nachrechenbaren Heuristik. Zwei Antworten auf eine Frage sind eine
+ * zu viel, und die schlechtere ist die, die je nach Browser ausfällt und bei
+ * zweimaligem Fragen zweimal anders antwortet.
+ *
+ * Der Code bleibt stehen, weil `resolveRecommendations` und
+ * `buildCandidateContext` die Sorgfalt enthalten, die ein solcher Aufruf
+ * braucht – neutrale Schlüssel statt interner IDs, Obergrenze, nie der
+ * vollständige Text. Wer je wieder ein Modell an dieser Stelle einsetzt, soll
+ * damit anfangen und nicht bei null.
+ *
+ * ---
+ *
  * „Für Lerngruppe priorisieren“ – Empfehlungen innerhalb der gefundenen
  * Kandidaten.
  *

@@ -50,7 +50,6 @@ async function seedPack(page: Page, title: string): Promise<void> {
   await page.goto('/#/material/import');
   await page.getByLabel('Vokabelliste einfügen').fill('crowded\tüberfüllt\nlitter\tMüll');
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-  await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Thema').fill('City');
   await page.getByRole('button', { name: /Paket speichern/ }).click();

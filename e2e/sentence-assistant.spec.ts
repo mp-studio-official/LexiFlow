@@ -90,7 +90,7 @@ async function openDetails(page: Page): Promise<void> {
   await page.getByLabel('Vokabelliste einfügen').fill(LISTE);
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
   await expect(page.getByText('2 Zeilen ·')).toBeVisible();
-  await page.getByRole('button', { name: 'Details für to apologise öffnen' }).click();
+  await page.getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' }).click();
 }
 
 test.describe('Satzassistent', () => {
@@ -134,7 +134,6 @@ test.describe('Satzassistent', () => {
     );
 
     // Speichern und exportieren.
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('Höflichkeit');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Höflichkeit' })).toBeVisible();
@@ -184,14 +183,13 @@ test.describe('Satzassistent', () => {
     await page.goto('/#/material/import');
     await page.getByLabel('Vokabelliste einfügen').fill(LISTE);
     await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('Höflichkeit');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
 
     // Nach dem Speichern steht der Paketeditor offen – dieselbe DraftTable,
     // dieselbe Hilfe, anderer Bereich.
     await expect(page.getByRole('heading', { level: 2, name: 'Metadaten' })).toBeVisible();
-    await page.getByRole('button', { name: 'Details für to apologise öffnen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' }).click();
 
     await page.getByRole('button', { name: /Beispielsatz vorschlagen, to apologise/ }).click();
     await expect(page.getByText('They apologise after every game.')).toBeVisible();

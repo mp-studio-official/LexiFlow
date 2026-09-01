@@ -50,7 +50,6 @@ async function openPreview(page: Page): Promise<void> {
 /** Legt ein Paket an und liefert dessen Detailseite im Schülerbereich. */
 async function seedPack(page: Page, title: string, direction: 'en-de' | 'both'): Promise<void> {
   await openPreview(page);
-  await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('7');
   if (direction === 'both') await page.getByLabel('Lernrichtung').selectOption('both');
@@ -74,9 +73,9 @@ test.describe('Barrierefreiheit – Axe', () => {
     await expectNoSeriousViolations(page, 'Startseite');
   });
 
-  test('@a11y Importvorschau inklusive Detailbereich', async ({ page }) => {
+  test('@a11y Prüfen & Speichern inklusive aufgeklappter Zeile', async ({ page }) => {
     await openPreview(page);
-    await page.getByRole('button', { name: 'Details für crowded öffnen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
     await expect(page.getByLabel(/Akzeptierte englische Alternativantworten/)).toBeVisible();
     await expectNoSeriousViolations(page, 'Importvorschau');
   });
@@ -107,21 +106,40 @@ test.describe('Barrierefreiheit – Axe', () => {
     (Der Kartenmodus wird bereits in `study-modes.spec.ts` geprüft, auf dem
     Desktop wie auf 390 px – hier wäre er eine Dopplung.)
   */
-  test('@a11y Kandidatenprüfung der Textwerkstatt', async ({ page }) => {
+  test('@a11y Empfehlungsschritt der Textwerkstatt', async ({ page }) => {
     await page.goto('/#/material/import?quelle=text');
     await page
       .getByLabel('Englischer Text')
       .fill(
         'The neighbourhood was crowded and noisy. Litter covered the quiet street near the old station.',
       );
-    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
-    await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
 
-    await expectNoSeriousViolations(page, 'Kandidatenprüfung');
+    await expectNoSeriousViolations(page, 'Einstellungen vor der Empfehlung');
 
-    // Der zweite Zustand ist der interessante: gemischte Auswahl.
-    await page.getByRole('checkbox', { name: /übernehmen$/ }).first().uncheck();
-    await expectNoSeriousViolations(page, 'Kandidatenprüfung – gemischte Auswahl');
+    const knopf = page.getByRole('button', { name: 'Empfehlungen generieren', exact: true });
+    await expect(knopf).toBeEnabled({ timeout: 30_000 });
+    await knopf.click();
+    await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
+
+    // Der zweite Zustand ist der interessante: teils beantwortet, teils offen.
+    const erste = (
+      await page.locator('.candidate__head strong').evaluateAll((nodes) =>
+        nodes.map((node) => node.textContent ?? ''),
+      )
+    )[0]!;
+    await page.getByLabel(`Deutsche Antwort für „${erste}“`).fill('eine Antwort');
+    await expectNoSeriousViolations(page, 'Empfehlungen – teils beantwortet');
+  });
+
+  test('@a11y aufgeklappter Datenschutzhinweis', async ({ page }) => {
+    await page.goto('/#/material/import?quelle=text');
+    await page.getByRole('button', { name: 'Was passiert mit meinem Text?' }).click();
+    await expect(
+      page.getByRole('group', { name: 'Verarbeitung auf diesem Gerät' }),
+    ).toBeVisible();
+    await expectNoSeriousViolations(page, 'Datenschutzhinweis offen');
   });
 
   test('@a11y Auswertung des Selbsttests', async ({ page }) => {

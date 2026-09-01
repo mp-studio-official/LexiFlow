@@ -1,20 +1,11 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Announcer, Badge, Button, Card } from '../../ui/components';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Announcer, Badge, Button, Card, Field } from '../../ui/components';
 import { useTranslationProvider } from '../../providers/ProviderContext';
 import {
   describeCandidateForms,
   describeCandidateInflections,
-  isUsableCandidate,
-  sortCandidates,
-  type CandidateSort,
   type TextCandidate,
 } from '../../domain/textExtraction';
-import { orderByRecommendation } from '../../import/textRecommendation';
-import {
-  countCandidates,
-  describeAbbreviationProgress,
-  describeCandidateCount,
-} from '../../import/candidateLimit';
 import type { CandidateSelection } from '../../import/textDraft';
 import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
@@ -23,39 +14,48 @@ import { describePrepareError, type TranslationPreparation } from '../../transla
 import type { DictionaryProvider } from '../../dictionary/DictionaryProvider';
 import { createOfflineDictionary } from '../../dictionary/offlineDictionary';
 import {
-  enrichWithDictionary,
+  partOfSpeechOf,
+  safeAutoAnswer,
+  summarizeLookup,
   type DictionarySuggestionSummary,
 } from '../../import/dictionarySuggestions';
+import {
+  DEFAULT_RECOMMENDATION_COUNT,
+  RECOMMENDATION_COUNTS,
+  RECOMMENDATION_SORT_LABELS,
+  familyKey,
+  recommend,
+  type RecommendationInput,
+  type RecommendationSort,
+} from '../../import/recommendation';
+import { CEFR_LEVELS, GRADES, GRADE_LABELS } from '../../domain/cefr';
+import type { CefrLevel, Grade } from '../../domain/cefr';
+import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
 import { DictionarySuggestionList } from './DictionarySuggestionList';
 
 /**
- * Die Priorisierung lädt erst, wenn die Kandidatenansicht offen ist – der
- * Schülerbereich bekommt davon nichts ab.
- */
-const TextRecommendationPanel = lazy(() => import('./TextRecommendationPanel'));
-
-/** Sortierung dieser Ansicht: die beiden bekannten plus „Empfehlungen zuerst“. */
-type ReviewSort = CandidateSort | 'recommended';
-
-/**
- * Prüfansicht der Textwerkstatt.
+ * Schritt 2 des Import-Assistenten: **Empfehlungen generieren**.
  *
- * Ein maschineller Übersetzungsvorschlag gilt hier **nie** als geprüft: Er
- * steht getrennt neben dem Eingabefeld und muss ausdrücklich übernommen oder
- * abgetippt werden. Ohne Übersetzungs-Anbieter bleibt die Ansicht vollständig
- * benutzbar – dann wird eben alles von Hand eingetragen.
+ * Vorher stand hier eine Liste aller gefundenen Wörter mit Häkchen davor. Das
+ * sah nach Kontrolle aus und war in Wahrheit eine Zumutung: fünfzig Zeilen in
+ * Textreihenfolge, davon die Hälfte Wörter, die eine neunte Klasse längst kann,
+ * und die Aufgabe, daraus die richtigen zehn anzuhaken.
  *
- * Wichtig ist die Trennung zweier Dinge:
+ * Jetzt macht LexiFlow den ersten Vorschlag und die Lehrkraft korrigiert ihn.
+ * Drei Dinge folgen daraus:
  *
- * - **Verfügbarkeit** (`providerState`) beantwortet nur die Frage, ob sich ein
- *   Modell überhaupt nutzbar machen lässt. Auch `available` heißt lediglich
- *   „liegt auf dem Gerät“ – eine Translator-Instanz gibt es damit noch nicht.
- * - **Vorbereitung** (`preparedRef`) hält fest, für welchen Anbieter `prepare()`
- *   tatsächlich erfolgreich durchgelaufen ist. Nur dann darf übersetzt werden.
+ * - **Keine Häkchen.** Was hier steht, ist der Vorschlag; was eine deutsche
+ *   Antwort hat, wird übernommen. Eine Zeile ohne Antwort ist keine abgewählte
+ *   Vokabel, sondern eine offene Frage – und die Zählung sagt das auch so.
+ * - **Nachlegen statt Durchklicken.** „Offene Empfehlungen ersetzen“ holt neue
+ *   Wörter, ohne die schon beantworteten anzurühren. Was dabei weicht, ist
+ *   nicht weg, sondern steht unter „Frühere Empfehlungen“.
+ * - **Das Wörterbuch arbeitet vorher.** Es läuft einmal über alle Kandidaten,
+ *   noch bevor die erste Empfehlung entsteht – seine Auskunft ist eines der
+ *   Merkmale, aus denen die Empfehlung sich ergibt.
  *
- * `prepare()` läuft ausschließlich nach einem ausdrücklichen Klick und wird im
- * Klickpfad ohne vorherige Warteschritte aufgerufen, damit die User-Activation
- * des Browsers erhalten bleibt (der Modelldownload verlangt sie).
+ * Ein maschineller Übersetzungsvorschlag gilt weiterhin **nie** als geprüft.
+ * Er steht neben dem Eingabefeld und muss übernommen oder abgetippt werden.
  */
 
 const SOURCE_LANGUAGE = 'en';
@@ -78,8 +78,12 @@ type RowTranslation = 'idle' | 'pending' | 'suggested' | 'accepted' | 'error';
 
 interface CandidateRow {
   candidate: TextCandidate;
-  selected: boolean;
+  /** Die Antwort. Nicht leer heißt: Diese Vokabel geht ins Paket. */
   german: string;
+  /** Der Lexemschlüssel – über ihn werden Wortfamilien auseinandergehalten. */
+  family: string;
+  /** Vorausgefüllt aus dem Wörterbuch, jederzeit änderbar. */
+  partOfSpeech: PartOfSpeech | '';
   /**
    * Nur für Abkürzungen: die von der Lehrkraft bearbeitete Langform.
    * Leer heißt „unverändert“ – der Vorschlag der Analyse gilt weiter.
@@ -94,49 +98,29 @@ interface CandidateRow {
   suggestionSource?: 'local' | 'model' | 'dictionary' | undefined;
   /** Alle Wörterbuchtreffer zu dieser Zeile – Vorschläge, nie Antworten. */
   dictionary?: DictionarySuggestionSummary | undefined;
-  /** Gesetzt, wenn ein Wort derselben Familie schon eine Zeile weiter oben steht. */
-  family?: string | undefined;
   suggestedSentence?: string | undefined;
   translation: RowTranslation;
   error?: string | undefined;
 }
 
-function toRow(candidate: TextCandidate): CandidateRow {
-  // Eine ungeklärte Abkürzung ist noch keine Vokabel: Sie bleibt sichtbar,
-  // startet aber nicht ausgewählt – sonst wanderte eine offene Frage
-  // unbemerkt ins Paket.
-  const selected = isUsableCandidate(candidate);
+function toRow(input: RecommendationInput): CandidateRow {
+  const { candidate, dictionary } = input;
   const local = candidate.abbreviation?.german.trim() ?? '';
+  const base: CandidateRow = {
+    candidate,
+    german: '',
+    family: familyKey(candidate.english, dictionary),
+    partOfSpeech: partOfSpeechOf(dictionary),
+    dictionary,
+    translation: 'idle',
+  };
 
   // Für bekannte Abkürzungen kennt das Lexikon die deutsche Entsprechung. Sie
   // ist ein Vorschlag wie jeder andere – ungeprüft, aber ohne Modell.
   if (local.length > 0) {
-    return {
-      candidate,
-      selected,
-      german: '',
-      suggestion: local,
-      suggestionSource: 'local',
-      translation: 'suggested',
-    };
+    return { ...base, suggestion: local, suggestionSource: 'local', translation: 'suggested' };
   }
-  return { candidate, selected, german: '', translation: 'idle' };
-}
-
-/**
- * Zählt diese Zeile als geeignete Vokabel?
- *
- * Eine ungeklärte Abkürzung zählt erst, wenn die Lehrkraft ihr eine Langform
- * und eine deutsche Antwort gegeben hat. Vorher wäre sie eine offene Frage,
- * die als erledigt gezählt wird.
- */
-function rowIsUsable(row: CandidateRow): boolean {
-  if (isUsableCandidate(row.candidate)) return true;
-
-  const english = (row.english ?? row.candidate.english).trim();
-  const bare = row.candidate.abbreviation?.abbreviation.trim().toLowerCase() ?? '';
-  const completed = english.length > 0 && english.toLowerCase() !== bare;
-  return completed && row.german.trim().length > 0;
+  return base;
 }
 
 /**
@@ -151,20 +135,34 @@ function headwordOf(row: CandidateRow): TextCandidate {
   return { ...row.candidate, english: edited };
 }
 
+function hasAnswer(row: CandidateRow): boolean {
+  return row.german.trim().length > 0;
+}
+
+/** „7 Vokabeln werden übernommen · 3 Empfehlungen sind noch offen.“ */
+export function describeProgress(taken: number, open: number): string {
+  const links =
+    taken === 1 ? '1 Vokabel wird übernommen' : `${taken} Vokabeln werden übernommen`;
+  if (open === 0) return `${links}. Keine Empfehlung ist mehr offen.`;
+  const rechts =
+    open === 1 ? '1 Empfehlung ist noch offen' : `${open} Empfehlungen sind noch offen`;
+  return `${links} · ${rechts}.`;
+}
+
 export interface TextCandidateReviewProps {
+  /** **Alle** Kandidaten der Analyse – die Auswahl trifft dieser Schritt. */
   candidates: readonly TextCandidate[];
   /** Derselbe Lernkontext wie im übrigen Assistenten – Änderungen wandern nach oben. */
   context: LearningContext;
   onContextChange: (context: LearningContext) => void;
-  /** Die vor der Analyse gewählte Obergrenze – für die ehrliche Anzeige. */
-  requestedCount: number;
+  /** Ein Themenvorschlag aus dem Text, sofern etwas herausstach. */
+  suggestedTopic?: string;
   /**
    * Die im Klickpfad der Analyse gestartete Vorbereitung.
    *
-   * Ist sie da, wartet diese Ansicht auf **dieselbe** Zusage und erzeugt die
-   * Vorschläge danach von selbst – die Hauptaktion hat sie schließlich
-   * versprochen. Ein zweiter Klick ist dafür nicht nötig, ein zweiter
-   * `prepare()`-Aufruf findet nicht statt.
+   * Ist sie da, wartet diese Ansicht auf **dieselbe** Zusage – die Hauptaktion
+   * hat sie schließlich versprochen. Ein zweiter `prepare()`-Aufruf findet
+   * nicht statt.
    */
   preparation?: TranslationPreparation | null;
   /**
@@ -180,7 +178,7 @@ export function TextCandidateReview({
   candidates,
   context,
   onContextChange,
-  requestedCount,
+  suggestedTopic,
   preparation,
   dictionary,
   onApply,
@@ -188,16 +186,37 @@ export function TextCandidateReview({
 }: TextCandidateReviewProps) {
   const provider = useTranslationProvider();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const resultRef = useRef<HTMLHeadingElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   /** Anbieter, für den `prepare('en','de')` erfolgreich war – sonst `null`. */
   const preparedRef = useRef<TranslationProvider | null>(null);
 
-  const [rows, setRows] = useState<CandidateRow[]>(() => candidates.map(toRow));
-  /**
-   * Zwei Spiegel für den automatischen Ablauf: Wenn die Vorbereitung erfüllt
-   * ist, braucht der Effekt die *dann* aktuellen Zeilen und die aktuelle
-   * Übersetzungsfunktion – nicht die von seinem Anlauf.
-   */
+  /* ------------------------------------------------------------ Einstellungen */
+  const [sort, setSort] = useState<RecommendationSort>('recommended');
+  const [count, setCount] = useState<number>(DEFAULT_RECOMMENDATION_COUNT);
+
+  /* ------------------------------------------------------------- Wörterbuch */
+  /** Was das Wörterbuch zu jedem Kandidaten weiß. Einmal berechnet, dann fest. */
+  const [lookups, setLookups] = useState<ReadonlyMap<string, DictionarySuggestionSummary>>(
+    new Map(),
+  );
+  const [dictionaryState, setDictionaryState] = useState<'prueft' | 'laeuft' | 'fertig' | 'fehlt'>(
+    'prueft',
+  );
+
+  /* --------------------------------------------------------- Die Empfehlungen */
+  const [rows, setRows] = useState<CandidateRow[]>([]);
+  /** Ersetzte und entfernte Empfehlungen – aufhebbar, nicht verloren. */
+  const [earlier, setEarlier] = useState<CandidateRow[]>([]);
+  const [earlierOpen, setEarlierOpen] = useState(false);
+  const [generated, setGenerated] = useState(false);
+
+  const [providerState, setProviderState] = useState<ProviderState | 'checking'>('checking');
+  const [progress, setProgress] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [providerError, setProviderError] = useState('');
+
   /**
    * Was „Abbrechen“ gerade bedeutet: während der Vorbereitung den
    * Modelldownload, während der Übersetzungen die laufende Schleife.
@@ -207,18 +226,17 @@ export function TextCandidateReview({
   const runTranslationRef = useRef<(targets: readonly CandidateRow[]) => Promise<void>>(
     () => Promise.resolve(),
   );
-  const [sort, setSort] = useState<ReviewSort>('text-order');
-  /** Empfehlungen des Sprachmodells – reine Markierung, nie eine Auswahl. */
-  const [recommendedIds, setRecommendedIds] = useState<readonly string[]>([]);
-  const [providerState, setProviderState] = useState<ProviderState | 'checking'>('checking');
-  const [progress, setProgress] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('');
-  const [providerError, setProviderError] = useState('');
-  const [dictionaryState, setDictionaryState] = useState<'prueft' | 'laeuft' | 'fertig' | 'fehlt'>(
-    'prueft',
-  );
-  const [dictionaryUnambiguous, setDictionaryUnambiguous] = useState(0);
+  /**
+   * Die Vorbereitung ist durch, aber es gibt noch keine Empfehlungen.
+   *
+   * Das ist der Normalfall geworden: Das Sprachmodell wird beim „Text
+   * analysieren“ angestoßen und ist oft eher fertig als die Lehrkraft mit
+   * Jahrgang und Niveau. Früher lief die Übersetzung sofort nach der
+   * Vorbereitung an – über eine Zeilenliste, die es zu diesem Zeitpunkt gar
+   * nicht mehr gibt. Deshalb wird das Versprechen hier gemerkt und beim ersten
+   * Empfehlungslauf eingelöst.
+   */
+  const awaitingAutoTranslation = useRef(false);
 
   // Fokus nach der Analyse auf die Ergebnisüberschrift.
   useEffect(() => {
@@ -226,74 +244,62 @@ export function TextCandidateReview({
   }, []);
 
   /*
-    Das Offline-Wörterbuch läuft **von selbst**, gleich nach der Analyse.
+    Das Offline-Wörterbuch läuft **von selbst**, gleich nach der Analyse – und
+    zwar über alle Kandidaten, nicht nur über die späteren Empfehlungen.
+
+    Der Grund ist die Reihenfolge: Ob das Wörterbuch ein Wort kennt, ist eines
+    der Merkmale, aus denen sich die Empfehlung ergibt. Erst empfehlen und dann
+    nachschlagen hieße, mit halber Auskunft zu entscheiden.
 
     Kein Knopf, keine Erlaubnis, kein Modell: Es ist der verlässliche Grundweg
-    und funktioniert in Safari wie in Chrome. Was es liefert, sind Vorschläge –
-    eingetragen wird nichts, überschrieben schon gar nichts.
+    und funktioniert in Safari wie in Chrome.
   */
   useEffect(() => {
     let active = true;
-    const provider = dictionary ?? defaultDictionary();
+    const source = dictionary ?? defaultDictionary();
 
     void (async () => {
-      if (!(await provider.isAvailable())) {
+      // Ein Wörterbuch, das nicht antwortet, darf die Hauptaktion nicht
+      // dauerhaft sperren: Ohne Wörterbuch sind die Empfehlungen schlechter,
+      // aber sie gibt es.
+      let available = false;
+      try {
+        available = await source.isAvailable();
+      } catch {
+        available = false;
+      }
+      if (!available) {
         if (active) setDictionaryState('fehlt');
         return;
       }
       if (!active) return;
       setDictionaryState('laeuft');
 
-      /*
-        Gesammelt wird in einer eigenen Ablage, **nicht** in den Zeilen selbst.
-
-        Die Suche über alle Kandidaten dauert einen Moment, und in diesem Moment
-        tippt die Lehrkraft womöglich schon. Ein früherer Entwurf schrieb am
-        Ende `setRows(result.rows)` – und warf damit jede Eingabe weg, die
-        während der Suche entstanden war. Ein E2E-Test hat das aufgedeckt:
-        Angehakte Zeilen verschwanden mitten im Ablauf wieder.
-
-        Deshalb wird am Schluss **zusammengeführt**, nicht ersetzt: Jede Zeile
-        wird über ihre Id wiedergefunden, und wer inzwischen eine Antwort trägt,
-        bekommt gar keinen Vorschlag mehr.
-      */
-      const found = new Map<string, { summary: DictionarySuggestionSummary; family?: string }>();
-      const result = await enrichWithDictionary(
-        rowsRef.current,
-        (row) => headwordOf(row).english,
-        provider,
-        (row, summary, family) => {
-          found.set(row.candidate.id, { summary, ...(family ? { family } : {}) });
-          return row;
-        },
-      );
+      const found = new Map<string, DictionarySuggestionSummary>();
+      for (const candidate of candidates) {
+        try {
+          const summary = summarizeLookup(await source.lookup(candidate.english));
+          if (summary) found.set(candidate.id, summary);
+        } catch {
+          // Ein kaputtes Fach kostet dieses eine Wort, nicht den ganzen Lauf.
+        }
+      }
 
       if (!active) return;
-      setRows((current) =>
-        current.map((row) => {
-          const hit = found.get(row.candidate.id);
-          if (!hit) return row;
-          // Zweite Prüfung, jetzt gegen den *aktuellen* Stand der Zeile.
-          if (row.german.trim().length > 0) return row;
-          return { ...row, dictionary: hit.summary, family: hit.family };
-        }),
-      );
+      setLookups(found);
       setDictionaryState('fertig');
-      setDictionaryUnambiguous(result.unambiguous);
       setStatus(
-        result.filled === 0
+        found.size === 0
           ? 'Das Offline-Wörterbuch hat zu diesen Wörtern nichts gefunden.'
-          : `Offline-Wörterbuch: ${result.filled} von ${rowsRef.current.length} Wörtern gefunden, ` +
-            `${result.unambiguous} davon eindeutig.`,
+          : `Offline-Wörterbuch: ${found.size} von ${candidates.length} Wörtern gefunden.`,
       );
     })();
 
     return () => {
       active = false;
     };
-    // Absichtlich nur beim ersten Aufbau: Die Kandidatenliste ist zu diesem
-    // Zeitpunkt vollständig, und ein erneuter Lauf würde bereits übernommene
-    // Antworten wieder mit Vorschlägen überziehen.
+    // Absichtlich nur beim ersten Aufbau: Die Kandidatenliste steht zu diesem
+    // Zeitpunkt fest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -306,8 +312,7 @@ export function TextCandidateReview({
       .then((state) => {
         if (!active) return;
         // Ein verspätetes `getAvailability` darf eine bereits gelungene
-        // Vorbereitung nicht zurückstufen: „available“ ist dann die
-        // maßgebliche Auskunft, nicht der ältere Zustandsbericht.
+        // Vorbereitung nicht zurückstufen.
         if (preparedRef.current === provider) return;
         setProviderState(state);
       })
@@ -321,49 +326,12 @@ export function TextCandidateReview({
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const recommended = useMemo(() => new Set(recommendedIds), [recommendedIds]);
+  /* --------------------------------------------------------- Empfehlen */
 
-  const ordered = useMemo(() => {
-    const base: CandidateSort = sort === 'recommended' ? 'text-order' : sort;
-    const bySort = sortCandidates(
-      rows.map((row) => row.candidate),
-      base,
-    );
-    const index = new Map(rows.map((row) => [row.candidate.id, row]));
-    const inOrder = bySort.flatMap((candidate) => {
-      const row = index.get(candidate.id);
-      return row ? [row] : [];
-    });
-
-    if (sort !== 'recommended') return inOrder;
-    // Empfohlene nach vorn – entfernte Kandidaten kommen dadurch nicht zurück.
-    return orderByRecommendation(
-      inOrder.map((row) => ({ id: row.candidate.id, row })),
-      recommendedIds,
-    ).map((item) => item.row);
-  }, [rows, sort, recommendedIds]);
-
-  /**
-   * Zwei verschiedene Zahlen, bewusst getrennt gehalten:
-   *
-   * - **Was der Text hergab** – das Analyseergebnis. Es steht fest, sobald die
-   *   Analyse gelaufen ist, und ändert sich weder durch Bearbeiten noch durch
-   *   Entfernen. Sonst stünde nach zwei vervollständigten Abkürzungen
-   *   „12 von 10 gefunden“ da, und die Anzeige wäre wertlos.
-   * - **Was die Lehrkraft daraus gemacht hat** – der Bearbeitungsstand.
-   */
-  const analysed = useMemo(() => countCandidates(candidates), [candidates]);
-
-  const abbreviationRows = rows.filter((row) => !isUsableCandidate(row.candidate));
-  const completedAbbreviations = abbreviationRows.filter(rowIsUsable).length;
-  const openAbbreviations = abbreviationRows.length - completedAbbreviations;
-  const abbreviationProgress =
-    analysed.unresolved > 0
-      ? describeAbbreviationProgress(completedAbbreviations, openAbbreviations)
-      : '';
-
-  const selectedRows = rows.filter((row) => row.selected);
-  const missingGerman = selectedRows.filter((row) => row.german.trim().length === 0).length;
+  const inputs = useMemo<RecommendationInput[]>(
+    () => candidates.map((candidate) => ({ candidate, dictionary: lookups.get(candidate.id) })),
+    [candidates, lookups],
+  );
 
   const update = useCallback((id: string, changes: Partial<CandidateRow>): void => {
     setRows((current) =>
@@ -371,59 +339,140 @@ export function TextCandidateReview({
     );
   }, []);
 
-  function setAllSelected(selected: boolean): void {
-    setRows((current) => current.map((row) => ({ ...row, selected })));
+  /**
+   * Der einzige Weg, auf dem Empfehlungen entstehen – für den ersten Lauf wie
+   * für jede Wiederholung.
+   *
+   * Beantwortete Zeilen bleiben **immer** stehen. Das ist der ganze Unterschied
+   * zu einem „neu berechnen“, das alles wegwirft: Wer schon zehn Minuten
+   * Antworten getippt hat, darf eine Einstellung ändern dürfen, ohne dafür zu
+   * bezahlen. Nachgelegt wird nur bis zur gewünschten Anzahl.
+   *
+   * `excludeShown` unterscheidet die beiden Anlässe: Beim Ersetzen sollen
+   * ausdrücklich **andere** Wörter kommen, bei geänderten Einstellungen darf
+   * ein Wort auch wieder auftauchen, wenn es zum neuen Niveau nun passt.
+   */
+  const refill = useCallback(
+    (options: { excludeShown: boolean; announce: (fresh: number) => string }): void => {
+      const kept = rowsRef.current.filter(hasAnswer);
+      const open = rowsRef.current.filter((row) => !hasAnswer(row));
+      const nextEarlier = [...open, ...earlier];
+
+      const excluded = new Set(kept.map((row) => row.family));
+      if (options.excludeShown) for (const row of nextEarlier) excluded.add(row.family);
+
+      const wanted = Math.max(0, count - kept.length);
+      const fresh = recommend(inputs, {
+        context: { grade: context.grade, cefrLevel: context.cefrLevel },
+        sort,
+        count: wanted,
+        excludedFamilies: excluded,
+      });
+
+      const freshRows = fresh.map(toRow);
+      setRows([...kept, ...freshRows]);
+      setEarlier(nextEarlier);
+      setGenerated(true);
+      setStatus(options.announce(fresh.length));
+
+      // Ein bereits eingelöstes Modellversprechen gilt für die neuen Zeilen.
+      if (awaitingAutoTranslation.current && freshRows.length > 0) {
+        awaitingAutoTranslation.current = false;
+        void runTranslationRef.current(freshRows);
+      }
+      // Der Fokus wandert ans Ergebnis; sonst steht man nach dem Klick weiter
+      // oben und weiß nicht, dass sich unten etwas geändert hat.
+      window.requestAnimationFrame(() => resultRef.current?.focus());
+    },
+    [count, sort, inputs, context.grade, context.cefrLevel, earlier],
+  );
+
+  function generate(): void {
+    refill({
+      excludeShown: false,
+      announce: (fresh) =>
+        fresh === 0
+          ? 'Der Text gibt keine weiteren geeigneten Vokabeln her.'
+          : `${fresh} Empfehlungen erzeugt. Bitte durchsehen und ergänzen.`,
+    });
+  }
+
+  function replaceOpen(): void {
+    refill({
+      excludeShown: true,
+      announce: (fresh) =>
+        fresh === 0
+          ? 'Der Text gibt keine weiteren Vokabeln her. Die bisherigen stehen unter „Frühere Empfehlungen“.'
+          : `${fresh} neue Empfehlungen. Die ersetzten stehen unter „Frühere Empfehlungen“.`,
+    });
+  }
+
+  /**
+   * Eine Zeile zurücklegen – nicht wegwerfen.
+   *
+   * Gesucht wird außerhalb der Aktualisierungsfunktion: Diese läuft beim
+   * Rendern und im StrictMode zweimal; ein `setEarlier` darin legte die Zeile
+   * doppelt ab.
+   */
+  function setAside(id: string): void {
+    const row = rowsRef.current.find((item) => item.candidate.id === id);
+    if (!row) return;
+    setRows((current) => current.filter((item) => item.candidate.id !== id));
+    setEarlier((current) => [row, ...current]);
+    setStatus(`„${row.candidate.english}“ steht jetzt unter „Frühere Empfehlungen“.`);
+  }
+
+  function restore(id: string): void {
+    const row = earlier.find((item) => item.candidate.id === id);
+    if (!row) return;
+    setEarlier((current) => current.filter((item) => item.candidate.id !== id));
+    setRows((current) => [...current, row]);
+    setStatus(`„${row.candidate.english}“ wieder aufgenommen.`);
   }
 
   /**
    * Die Sammelaktion – und ihre Grenze.
    *
-   * Übernommen wird nur, was das Wörterbuch **eindeutig** hergibt: eine
-   * Wortart, eine Bedeutung, eine unmarkierte Entsprechung. Alles Mehrdeutige
-   * bleibt liegen, und alles, was die Lehrkraft schon geschrieben hat, wird
-   * nicht angefasst. Die Zahl steht vorher auf dem Knopf, damit niemand
-   * überrascht wird.
+   * Was `safeAutoAnswer` durchlässt, sind unmarkierte Entsprechungen einer
+   * einzigen Bedeutungsgruppe. Alles andere bleibt liegen: mehrdeutige Wörter,
+   * veraltete Angaben, Klammerbedingungen und erschlossene Querverweise. Die
+   * bleiben als Ein-Klick-Vorschlag daneben stehen – sichtbar, aber nicht
+   * eingetragen.
    */
-  function acceptUnambiguousDictionarySuggestions(): void {
-    let taken = 0;
+  function fillSafeTranslations(): void {
+    /*
+      Gezählt wird **vor** dem Setzen, nicht in der Aktualisierungsfunktion.
+
+      Ein früherer Entwurf zählte in `setRows(current => …)` hoch und meldete
+      danach das Ergebnis – nur läuft diese Funktion erst beim nächsten Rendern,
+      und im StrictMode zweimal. Die Meldung sagte deshalb verlässlich „Es gab
+      nichts einzutragen“, während die Felder sich sichtbar füllten.
+    */
+    const filled = rowsRef.current
+      .filter((row) => !hasAnswer(row))
+      .map((row) => ({ row, answer: safeAutoAnswer(row.dictionary) }));
+    const taken = filled.filter((item) => item.answer).length;
+    const left = filled.filter((item) => !item.answer && item.row.dictionary).length;
+
     setRows((current) =>
       current.map((row) => {
-        if (!row.dictionary?.unambiguous) return row;
-        if (row.german.trim().length > 0) return row;
-        taken += 1;
-        return { ...row, german: row.dictionary.primary, translation: 'accepted' };
+        if (hasAnswer(row)) return row;
+        const answer = safeAutoAnswer(row.dictionary);
+        if (!answer) return row;
+        return { ...row, german: answer, suggestionSource: 'dictionary', translation: 'accepted' };
       }),
     );
     setStatus(
       taken === 0
-        ? 'Es gab nichts zu übernehmen – alle eindeutigen Zeilen haben schon eine Antwort.'
-        : `${taken} eindeutige Wörterbuchvorschläge übernommen. Bitte trotzdem durchsehen.`,
+        ? 'Es gab nichts, was sich ohne Rückfrage eintragen ließe.'
+        : `${taken} Übersetzungen eingetragen. Bitte trotzdem durchsehen.` +
+          (left > 0
+            ? ` ${left} Wörter blieben leer, weil sie mehrdeutig oder markiert sind – die Vorschläge stehen jeweils darunter.`
+            : ''),
     );
   }
 
-  /**
-   * Der **einzige** Weg, auf dem eine Empfehlung die Auswahl verändert – und
-   * er verlangt einen ausdrücklichen Klick.
-   */
-  function selectOnlyRecommended(): void {
-    setRows((current) =>
-      current.map((row) => ({ ...row, selected: recommended.has(row.candidate.id) })),
-    );
-    setStatus('Nur die empfohlenen Kandidaten sind jetzt ausgewählt.');
-  }
-
-  /**
-   * Nimmt die Empfehlungen entgegen. Bewusst ohne jede Änderung an `selected`:
-   * markiert wird, ausgewählt nicht.
-   */
-  function applyRecommendations(ids: string[]): void {
-    setRecommendedIds(ids);
-    setSort('recommended');
-  }
-
-  function remove(id: string): void {
-    setRows((current) => current.filter((row) => row.candidate.id !== id));
-  }
+  /* ------------------------------------------------------------ Übersetzen */
 
   /** Übersetzt eine einzelne Zeile; Fehler bleiben auf diese Zeile beschränkt. */
   const translateRow = useCallback(
@@ -461,7 +510,7 @@ export function TextCandidateReview({
 
   async function runTranslation(targets: readonly CandidateRow[]): Promise<void> {
     if (targets.length === 0) {
-      setStatus('Es sind keine Kandidaten ausgewählt.');
+      setStatus('Es sind keine offenen Empfehlungen da, für die sich ein Vorschlag lohnte.');
       return;
     }
     const controller = new AbortController();
@@ -531,9 +580,7 @@ export function TextCandidateReview({
    * Der automatische Teil der Hauptaktion.
    *
    * Die Analyse ist längst sichtbar; hier wird nur noch abgewartet, was der
-   * Klick auf „Text analysieren und Übersetzungen vorschlagen“ angestoßen hat.
-   * Geht es gut, laufen die Vorschläge für die ausgewählten Zeilen von selbst
-   * an – die Beschriftung hat sie versprochen. Geht es schief, steht der Grund
+   * Klick im ersten Schritt angestoßen hat. Geht es schief, steht der Grund
    * hier, mit „Erneut versuchen“ und der Handeingabe daneben.
    */
   useEffect(() => {
@@ -544,16 +591,12 @@ export function TextCandidateReview({
     setProviderState('downloading');
     setStatus('Das Sprachmodell wird vorbereitet.');
 
-    // Fortschritt, der schon vor dem Öffnen dieser Ansicht gemeldet wurde,
-    // kommt beim Anmelden sofort mit.
     const unsubscribe = preparation.onProgress((value) => {
       if (active) setProgress(value);
     });
     cancelRef.current = () => preparation.cancel();
 
     void preparation.outcome.then((outcome) => {
-      // Nach dem Verlassen der Ansicht wird nichts mehr gesetzt und nichts
-      // mehr übersetzt.
       if (!active) return;
       setBusy(false);
       setProgress(null);
@@ -574,31 +617,42 @@ export function TextCandidateReview({
 
       preparedRef.current = provider;
       setProviderState('available');
-      void runTranslationRef.current(rowsRef.current.filter((row) => row.selected));
+      // Übersetzt wird, was offen ist – nicht, was ohnehin schon eine Antwort
+      // hat. Der Rest der Empfehlungen soll nicht überschrieben werden.
+      const open = rowsRef.current.filter((row) => !hasAnswer(row));
+      if (open.length === 0) {
+        // Noch keine Empfehlungen: Das Versprechen wird beim Empfehlen eingelöst.
+        awaitingAutoTranslation.current = true;
+        setStatus('Das Sprachmodell ist bereit. Die Vorschläge kommen mit den Empfehlungen.');
+        return;
+      }
+      void runTranslationRef.current(open);
     });
 
     return () => {
       active = false;
       unsubscribe();
       // Bewusst **kein** `cancel()` hier: React ruft diese Aufräumfunktion im
-      // StrictMode auch beim reinen Neuaufbau. Der Abbruch beim echten
-      // Verlassen der Werkstatt gehört deshalb dorthin, wo er eindeutig ist –
-      // in den Import-Assistenten, der die Vorbereitung auch gestartet hat.
+      // StrictMode auch beim reinen Neuaufbau.
     };
   }, [preparation, provider]);
 
+  /* ----------------------------------------------------------- Übergeben */
+
+  const taken = rows.filter(hasAnswer);
+  const open = rows.length - taken.length;
+
   function apply(): void {
-    const selections: CandidateSelection[] = rows
-      .filter((row) => row.selected)
-      .map((row) => ({
-        candidate: headwordOf(row),
-        german: row.german,
-        translationAccepted: row.translation === 'accepted',
-        includeSentence: true,
-        ...(row.suggestedSentence && row.translation === 'accepted'
-          ? { germanSentence: row.suggestedSentence }
-          : {}),
-      }));
+    const selections: CandidateSelection[] = taken.map((row) => ({
+      candidate: headwordOf(row),
+      german: row.german,
+      partOfSpeech: row.partOfSpeech,
+      translationAccepted: row.translation === 'accepted' && row.suggestionSource === 'model',
+      includeSentence: true,
+      ...(row.suggestedSentence && row.translation === 'accepted'
+        ? { germanSentence: row.suggestedSentence }
+        : {}),
+    }));
     onApply(selections);
   }
 
@@ -614,103 +668,146 @@ export function TextCandidateReview({
       ? 'Sprachmodell laden und Vorschläge erzeugen'
       : providerState === 'downloading'
         ? 'Laden abwarten und Vorschläge erzeugen'
-        : 'Vorschläge für Auswahl erzeugen';
+        : 'Vorschläge für offene Empfehlungen erzeugen';
 
   return (
     <div className="stack">
       <div>
-        <h2 id="kandidaten-heading" ref={headingRef} tabIndex={-1}>
-          Gefundene Vokabelkandidaten ({rows.length})
+        <h2 id="empfehlungen-heading" ref={headingRef} tabIndex={-1}>
+          Empfehlungen generieren
         </h2>
-        <p className="muted small candidates-summary">
-          <strong>
-            {describeCandidateCount(analysed.usable, requestedCount, analysed.unresolved)}
-          </strong>{' '}
-          {abbreviationProgress ? <em>{abbreviationProgress}</em> : null} Alles wurde
-          auf diesem Gerät berechnet und ist deterministisch. Beispielsätze stammen unverändert aus
-          deinem Text; Übersetzungen erfindet LexiFlow nicht. Der vollständige Text wird weder
-          gespeichert noch an ein Sprachmodell übergeben.
+        <p className="muted small">
+          Aus {candidates.length} gefundenen Wörtern schlägt LexiFlow die vor, die zum Jahrgang und
+          Niveau passen. Das ist eine <strong>Schätzung aus messbaren Merkmalen</strong> – Länge,
+          Wortbildung, Häufigkeit und Stellung im Text sowie die Auskunft des Offline-Wörterbuchs –,
+          keine geprüfte Wortliste. Alles wurde auf diesem Gerät berechnet. Beispielsätze stammen
+          unverändert aus deinem Text; Übersetzungen erfindet LexiFlow nicht.
         </p>
       </div>
 
       <Announcer message={status} />
 
-      <Card quiet>
-        <div className="row">
-          <Button small onClick={() => setAllSelected(true)}>
-            Alle auswählen
-          </Button>
-          <Button small onClick={() => setAllSelected(false)}>
-            Keine auswählen
-          </Button>
-          {dictionaryUnambiguous > 0 ? (
-            <Button
-              small
-              onClick={acceptUnambiguousDictionarySuggestions}
-              title="Nur Wörter mit genau einer unmarkierten Bedeutung"
-            >
-              Eindeutige Wörterbuchvorschläge übernehmen ({dictionaryUnambiguous})
-            </Button>
-          ) : null}
-          <span className="spacer" />
-          <label className="checkbox">
-            <span>Sortierung:</span>
-            <select
-              aria-label="Sortierung der Kandidaten"
-              value={sort}
-              onChange={(event) => setSort(event.target.value as ReviewSort)}
-            >
-              <option value="text-order">Reihenfolge im Text</option>
-              <option value="frequency">Häufigkeit</option>
-              <option value="recommended" disabled={recommendedIds.length === 0}>
-                Empfehlungen zuerst
-              </option>
-            </select>
-          </label>
+      {/* ---------------------------------------------------- Einstellungen */}
+      <Card>
+        <h3 style={{ fontSize: '1rem' }}>Wofür sind die Vokabeln?</h3>
+        <p className="muted small">
+          Jahrgang und Niveau bestimmen die Auswahl. Sie stehen im letzten Schritt schon bereit.
+        </p>
+        <div className="field-grid">
+          <Field
+            label="Thema"
+            {...(suggestedTopic && !context.topic
+              ? { hint: `Aus dem Text vorgeschlagen: „${suggestedTopic}“` }
+              : {})}
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="text"
+                value={context.topic}
+                placeholder={suggestedTopic ?? 'z. B. Coastal erosion'}
+                onChange={(event) => onContextChange({ ...context, topic: event.target.value })}
+              />
+            )}
+          </Field>
+          <Field label="Jahrgang">
+            {(props) => (
+              <select
+                {...props}
+                value={context.grade}
+                onChange={(event) =>
+                  onContextChange({ ...context, grade: event.target.value as Grade })
+                }
+              >
+                {GRADES.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {GRADE_LABELS[grade]}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          <Field label="GeR-Niveau" hint="Folgt dem Jahrgang, bis du widersprichst.">
+            {(props) => (
+              <select
+                {...props}
+                value={context.cefrLevel}
+                onChange={(event) =>
+                  onContextChange({ ...context, cefrLevel: event.target.value as CefrLevel })
+                }
+              >
+                {CEFR_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          <Field label="Sortierung">
+            {(props) => (
+              <select
+                {...props}
+                value={sort}
+                onChange={(event) => setSort(event.target.value as RecommendationSort)}
+              >
+                {(Object.keys(RECOMMENDATION_SORT_LABELS) as RecommendationSort[]).map((value) => (
+                  <option key={value} value={value}>
+                    {RECOMMENDATION_SORT_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          <Field
+            label="Anzahl"
+            hint="Obergrenze. Gibt der Text weniger her, werden keine erfunden."
+          >
+            {(props) => (
+              <select
+                {...props}
+                value={count}
+                onChange={(event) => setCount(Number(event.target.value))}
+              >
+                {RECOMMENDATION_COUNTS.map((value) => (
+                  <option key={value} value={value}>
+                    {value} Vokabeln
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
         </div>
 
-        {recommendedIds.length > 0 ? (
-          <div className="row" style={{ marginTop: '0.5rem' }}>
-            <Button small onClick={selectOnlyRecommended}>
-              Nur Empfehlungen auswählen
-            </Button>
-            <Button small onClick={() => setAllSelected(true)}>
-              Alle wieder auswählen
-            </Button>
-            <span className="small muted">
-              {recommendedIds.length} Kandidaten sind für diese Lerngruppe empfohlen.
+        <div className="row" style={{ marginTop: '0.75rem' }}>
+          <Button
+            variant="primary"
+            onClick={generate}
+            disabled={dictionaryState === 'prueft' || dictionaryState === 'laeuft'}
+          >
+            {generated ? 'Empfehlungen neu berechnen' : 'Empfehlungen generieren'}
+          </Button>
+          {dictionaryState === 'laeuft' || dictionaryState === 'prueft' ? (
+            <span className="small muted" role="status">
+              Das Offline-Wörterbuch schlägt gerade nach …
             </span>
-          </div>
-        ) : null}
-
-        <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
-          {selectedRows.length} von {rows.length} ausgewählt
-          {missingGerman > 0 ? ` · ${missingGerman} ohne deutsche Antwort` : ''}
-        </p>
-      </Card>
-
-      <Suspense
-        fallback={
-          <p className="small muted" role="status">
-            Priorisierung wird geladen …
+          ) : null}
+        </div>
+        {generated ? (
+          <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
+            Neu berechnet wird nur, was noch keine Antwort hat. Beantwortete Vokabeln bleiben
+            stehen.
           </p>
-        }
-      >
-        <TextRecommendationPanel
-          candidates={rows.map((row) => row.candidate)}
-          context={context}
-          onContextChange={onContextChange}
-          onRecommend={applyRecommendations}
-        />
-      </Suspense>
+        ) : null}
+      </Card>
 
       {/*
         Der Browserhinweis – einmal je Ansicht, nicht bei jeder Suche.
 
         Erkannt wird über Feature Detection (`getAvailability`), nicht über den
         User-Agent: Was ein Browser kann, sagt der Browser, nicht sein Name.
-        Und der Hinweis behauptet nicht, Chrome könne das überall – er nennt
-        die Bedingung mit.
+        Und der Hinweis behauptet nicht, Chrome könne das überall – er nennt die
+        Bedingung mit.
       */}
       {dictionaryState === 'fertig' || dictionaryState === 'fehlt' ? (
         <Alert tone="info" title="Lokale Grundvorschläge">
@@ -721,9 +818,9 @@ export function TextCandidateReview({
             </>
           ) : (
             <>
-              Das integrierte Offline-Wörterbuch steht hier gerade nicht zur Verfügung. Wortform-
-              und Abkürzungserkennung funktionieren unverändert; deutsche Antworten trägst du
-              selbst ein.
+              Das integrierte Offline-Wörterbuch steht hier gerade nicht zur Verfügung. Empfehlungen
+              sowie Wortform- und Abkürzungserkennung funktionieren unverändert; deutsche Antworten
+              trägst du selbst ein.
             </>
           )}{' '}
           {providerState === 'unavailable' ? (
@@ -733,22 +830,25 @@ export function TextCandidateReview({
               das Gerät die lokalen Modelle unterstützen.
             </>
           ) : (
-            <>In diesem Browser kann zusätzlich ein lokales Sprachmodell kontextbezogene Vorschläge
-              erzeugen.</>
+            <>
+              In diesem Browser kann zusätzlich ein lokales Sprachmodell kontextbezogene Vorschläge
+              erzeugen.
+            </>
           )}
         </Alert>
       ) : null}
 
+      {/* ------------------------------------------- Optionale Modellhilfe */}
       <Card quiet>
-        <h3 style={{ fontSize: '1rem' }}>Übersetzungsvorschläge (optional)</h3>
+        <h3 style={{ fontSize: '1rem' }}>Übersetzungsvorschläge aus dem Sprachmodell (optional)</h3>
         {providerState === 'checking' ? (
           <p className="small muted" role="status">
             Verfügbarkeit wird geprüft …
           </p>
         ) : providerState === 'unavailable' ? (
           <p className="small muted">
-            Dieser Browser bietet keine lokale Übersetzung. Trage die deutschen Antworten
-            selbst ein – alles andere funktioniert unverändert.
+            Dieser Browser bietet keine lokale Übersetzung. Das Offline-Wörterbuch und die
+            Handeingabe funktionieren unverändert.
           </p>
         ) : (
           <>
@@ -759,31 +859,42 @@ export function TextCandidateReview({
             </p>
             {!busy && providerState === 'downloading' ? (
               <p className="small muted" role="status">
-                Der Browser lädt das Sprachmodell gerade herunter. Du kannst die
-                Vorschläge jetzt anstoßen; sie beginnen, sobald das Modell bereit ist.
+                Der Browser lädt das Sprachmodell gerade herunter. Du kannst die Vorschläge
+                jetzt anstoßen; sie beginnen, sobald das Modell bereit ist.
               </p>
             ) : null}
             {!busy && providerState === 'downloadable' ? (
               <p className="small muted">
-                Das Sprachmodell ist noch nicht auf diesem Gerät. Es wird erst nach
-                deinem Klick geladen.
+                Das Sprachmodell ist noch nicht auf diesem Gerät. Es wird erst nach deinem
+                Klick geladen.
               </p>
             ) : null}
             <div className="row">
               <Button
-                variant="primary"
                 small
-                disabled={busy || !canTranslate}
-                onClick={() => void runTranslation(selectedRows)}
+                disabled={busy || !canTranslate || !generated}
+                onClick={() => void runTranslation(rows.filter((row) => !hasAnswer(row)))}
               >
                 {translateLabel}
               </Button>
+              {/*
+                „Abbrechen“ steht hier, nicht im Ergebnisbereich: Der
+                Modelldownload läuft schon, während oben noch das Niveau
+                eingestellt wird. Ein Abbruch, den man erst nach dem Empfehlen
+                erreicht, kommt für einen Gigabyte zu spät.
+              */}
               {busy ? (
                 <Button small onClick={() => cancelRef.current?.()}>
                   Abbrechen
                 </Button>
               ) : null}
             </div>
+            {!generated ? (
+              <p className="small muted" style={{ margin: '0.4rem 0 0' }}>
+                Vorschläge gibt es, sobald Empfehlungen da sind. Läuft das Modell schon, kommen sie
+                mit dem ersten Empfehlungslauf von selbst.
+              </p>
+            ) : null}
             {progress !== null ? (
               <p style={{ margin: '0.6rem 0 0' }}>
                 <label htmlFor="model-progress" className="small muted">
@@ -804,7 +915,7 @@ export function TextCandidateReview({
             <Button
               small
               disabled={busy || !canTranslate}
-              onClick={() => void runTranslation(selectedRows)}
+              onClick={() => void runTranslation(rows.filter((row) => !hasAnswer(row)))}
             >
               Erneut versuchen
             </Button>
@@ -812,179 +923,262 @@ export function TextCandidateReview({
         ) : null}
       </Card>
 
-      {rows.length === 0 ? (
-        <Alert tone="info">
-          Es sind keine Kandidaten mehr übrig. Gehe zurück und passe den Text oder die Optionen
-          an.
-        </Alert>
-      ) : null}
+      {/* ---------------------------------------------------------- Ergebnis */}
+      {generated ? (
+        <>
+          <div>
+            <h3 id="ergebnis-heading" ref={resultRef} tabIndex={-1} style={{ fontSize: '1.05rem' }}>
+              Vorgeschlagene Vokabeln ({rows.length})
+            </h3>
+            <p className="small" style={{ margin: 0 }}>
+              <strong>{describeProgress(taken.length, open)}</strong>
+            </p>
+            <p className="small muted" style={{ margin: '0.2rem 0 0' }}>
+              Es gibt hier keine Häkchen: Was eine deutsche Antwort hat, wird übernommen. Eine
+              Zeile ohne Antwort ist eine offene Frage, keine abgewählte Vokabel.
+            </p>
+          </div>
 
-      <ul className="candidates">
-        {ordered.map((row) => {
-          const { candidate } = row;
-          const label = candidate.english;
-          const inflections = describeCandidateInflections(candidate);
-          const hasGerman = row.german.trim().length > 0;
-          /** Nur ausgewählte Zeilen ohne Antwort sind wirklich fehlerhaft. */
-          const missing = row.selected && !hasGerman;
-
-          return (
-            <li key={candidate.id} className="candidate">
-              <div className="candidate__head">
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={row.selected}
-                    aria-label={`${label} übernehmen`}
-                    onChange={(event) => update(candidate.id, { selected: event.target.checked })}
-                  />
-                  <strong>{label}</strong>
-                </label>
-                <span className="spacer" />
-                <Badge>
-                  {candidate.occurrences}× im Text
-                </Badge>
-                <Badge>aus Text</Badge>
-                {candidate.abbreviation ? (
-                  <Badge tone={candidate.abbreviation.resolved ? 'success' : 'warning'}>
-                    {candidate.abbreviation.resolved
-                      ? 'Abkürzung erkannt'
-                      : 'Abkürzung – muss geprüft werden'}
-                  </Badge>
-                ) : null}
-                {recommended.has(candidate.id) ? (
-                  <Badge tone="success">Für Lerngruppe empfohlen</Badge>
-                ) : null}
-                {candidate.isLikelyProperNoun ? <Badge tone="warning">Eigenname?</Badge> : null}
+          <Card quiet>
+            <div className="row">
+              <Button
+                small
+                onClick={fillSafeTranslations}
+                title="Nur unmarkierte Entsprechungen einer einzigen Bedeutung"
+              >
+                Übersetzungsvorschläge eintragen
+              </Button>
+              <Button small onClick={replaceOpen} disabled={open === 0}>
+                <span aria-hidden="true">↻</span> Offene Empfehlungen ersetzen
+              </Button>
+              <span className="spacer" />
+              {earlier.length > 0 ? (
                 <Button
                   small
                   variant="quiet"
-                  aria-label={`${label} entfernen`}
-                  onClick={() => remove(candidate.id)}
+                  aria-expanded={earlierOpen}
+                  aria-controls="fruehere-empfehlungen"
+                  onClick={() => setEarlierOpen((value) => !value)}
                 >
-                  Entfernen
+                  Frühere Empfehlungen ({earlier.length})
                 </Button>
-              </div>
-
-              {/* Was im Text tatsächlich stand – ehrlicher als eine bloße Zahl. */}
-              <p className="small muted" style={{ margin: '0 0 0.35rem' }}>
-                {describeCandidateForms(candidate)}
-                {inflections.length > 0 ? ` · ${inflections.join(' · ')}` : ''}
-              </p>
-
-              <p className="candidate__sentence">
-                <span className="visually-hidden">Originalsatz: </span>
-                „{candidate.sourceSentence}“
-              </p>
-
-              {candidate.abbreviation ? (
-                <div className="field">
-                  <label htmlFor={`en-${candidate.id}`}>
-                    Langform für „{candidate.abbreviation.abbreviation}“
-                  </label>
-                  <input
-                    id={`en-${candidate.id}`}
-                    type="text"
-                    value={row.english ?? candidate.english}
-                    onChange={(event) => update(candidate.id, { english: event.target.value })}
-                  />
-                  <span className="small muted">{candidate.abbreviation.hint}</span>
-                </div>
               ) : null}
+            </div>
+            <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
+              „Übersetzungsvorschläge eintragen“ füllt nur, was das Wörterbuch ohne Rückfrage
+              hergibt. Mehrdeutiges, Veraltetes und über einen Querverweis Erschlossenes bleibt
+              leer und steht als Vorschlag darunter.
+            </p>
+          </Card>
 
-              <div className="field">
-                <label htmlFor={`de-${candidate.id}`}>Deutsche Antwort für „{label}“</label>
-                <input
-                  id={`de-${candidate.id}`}
-                  type="text"
-                  value={row.german}
-                  aria-invalid={missing ? true : undefined}
-                  aria-describedby={missing ? `de-${candidate.id}-fehler` : undefined}
-                  onChange={(event) =>
-                    update(candidate.id, {
-                      german: event.target.value,
-                      translation: row.translation === 'accepted' ? 'suggested' : row.translation,
-                    })
-                  }
-                />
-                {missing ? (
-                  <span id={`de-${candidate.id}-fehler`} className="field__error">
-                    Ohne deutsche Antwort lässt sich diese Vokabel nicht speichern.
-                  </span>
-                ) : null}
-              </div>
-
-              {row.translation === 'pending' ? (
-                <p className="small muted" role="status">
-                  Vorschlag wird erzeugt …
+          {earlier.length > 0 ? (
+            <div id="fruehere-empfehlungen" hidden={!earlierOpen}>
+              <Card quiet>
+                <h4 style={{ fontSize: '0.95rem', margin: '0 0 0.5rem' }}>
+                  Frühere Empfehlungen ({earlier.length})
+                </h4>
+                <p className="small muted">
+                  Ersetzt oder entfernt – aber nicht verloren. Jede lässt sich zurückholen.
                 </p>
-              ) : null}
+                <ul className="earlier">
+                  {earlier.map((row) => (
+                    <li key={row.candidate.id}>
+                      <span>{row.candidate.english}</span>{' '}
+                      <Button
+                        small
+                        variant="quiet"
+                        aria-label={`${row.candidate.english} wieder aufnehmen`}
+                        onClick={() => restore(row.candidate.id)}
+                      >
+                        Wieder aufnehmen
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </div>
+          ) : null}
 
-              {row.translation === 'error' ? (
-                <Alert tone="error">
-                  {row.error ?? 'Übersetzung fehlgeschlagen.'}{' '}
-                  <Button
-                    small
-                    aria-label={`Übersetzung für ${label} erneut versuchen`}
-                    disabled={busy}
-                    onClick={() => void runTranslation([row])}
-                  >
-                    Erneut versuchen
-                  </Button>
-                </Alert>
-              ) : null}
+          {rows.length === 0 ? (
+            <Alert tone="info">
+              Es sind keine Empfehlungen übrig. Hole frühere zurück, ändere die Einstellungen oder
+              gehe zurück zum Text.
+            </Alert>
+          ) : null}
 
-              {row.suggestion && row.translation !== 'pending' ? (
-                <div className="candidate__suggestion">
-                  <p className="small" style={{ margin: 0 }}>
-                    {row.suggestionSource === 'local' ? (
-                      <Badge>lokaler Vorschlag</Badge>
+          <ul className="candidates">
+            {rows.map((row) => {
+              const { candidate } = row;
+              const label = candidate.english;
+              const inflections = describeCandidateInflections(candidate);
+              const answered = hasAnswer(row);
+
+              return (
+                <li key={candidate.id} className="candidate" data-answered={answered ? '' : undefined}>
+                  <div className="candidate__head">
+                    <strong>{label}</strong>
+                    <span className="spacer" />
+                    <Badge>{candidate.occurrences}× im Text</Badge>
+                    {answered ? (
+                      <Badge tone="success">wird übernommen</Badge>
                     ) : (
-                      <Badge tone="warning">maschineller Vorschlag</Badge>
-                    )}{' '}
-                    <strong>{row.suggestion}</strong>
+                      <Badge tone="warning">noch offen</Badge>
+                    )}
+                    {candidate.abbreviation ? (
+                      <Badge tone={candidate.abbreviation.resolved ? 'success' : 'warning'}>
+                        {candidate.abbreviation.resolved
+                          ? 'Abkürzung erkannt'
+                          : 'Abkürzung – muss geprüft werden'}
+                      </Badge>
+                    ) : null}
+                    {candidate.isLikelyProperNoun ? <Badge tone="warning">Eigenname?</Badge> : null}
+                    <Button
+                      small
+                      variant="quiet"
+                      aria-label={`${label} entfernen`}
+                      onClick={() => setAside(candidate.id)}
+                    >
+                      Entfernen
+                    </Button>
+                  </div>
+
+                  {/* Was im Text tatsächlich stand – ehrlicher als eine bloße Zahl. */}
+                  <p className="small muted" style={{ margin: '0 0 0.35rem' }}>
+                    {describeCandidateForms(candidate)}
+                    {inflections.length > 0 ? ` · ${inflections.join(' · ')}` : ''}
                   </p>
-                  {row.suggestedSentence ? (
-                    <p className="small muted" style={{ margin: '0.2rem 0 0' }}>
-                      Kontext (Hilfestellung, nicht geprüft): „{row.suggestedSentence}“
+
+                  <p className="candidate__sentence">
+                    <span className="visually-hidden">Originalsatz: </span>„{candidate.sourceSentence}“
+                  </p>
+
+                  {candidate.abbreviation ? (
+                    <div className="field">
+                      <label htmlFor={`en-${candidate.id}`}>
+                        Langform für „{candidate.abbreviation.abbreviation}“
+                      </label>
+                      <input
+                        id={`en-${candidate.id}`}
+                        type="text"
+                        value={row.english ?? candidate.english}
+                        onChange={(event) => update(candidate.id, { english: event.target.value })}
+                      />
+                      <span className="small muted">{candidate.abbreviation.hint}</span>
+                    </div>
+                  ) : null}
+
+                  <div className="field-grid">
+                    <div className="field">
+                      <label htmlFor={`de-${candidate.id}`}>Deutsche Antwort für „{label}“</label>
+                      <input
+                        id={`de-${candidate.id}`}
+                        type="text"
+                        value={row.german}
+                        onChange={(event) =>
+                          update(candidate.id, {
+                            german: event.target.value,
+                            translation:
+                              row.translation === 'accepted' ? 'suggested' : row.translation,
+                          })
+                        }
+                      />
+                      <span className="field__hint">
+                        Leer heißt: Diese Vokabel geht nicht ins Paket.
+                      </span>
+                    </div>
+                    <div className="field">
+                      <label htmlFor={`pos-${candidate.id}`}>Wortart für „{label}“</label>
+                      <select
+                        id={`pos-${candidate.id}`}
+                        value={row.partOfSpeech}
+                        onChange={(event) =>
+                          update(candidate.id, {
+                            partOfSpeech: event.target.value as PartOfSpeech | '',
+                          })
+                        }
+                      >
+                        <option value="">–</option>
+                        {PART_OF_SPEECH.map((pos) => (
+                          <option key={pos} value={pos}>
+                            {PART_OF_SPEECH_LABELS[pos]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {row.translation === 'pending' ? (
+                    <p className="small muted" role="status">
+                      Vorschlag wird erzeugt …
                     </p>
                   ) : null}
-                  <Button
-                    small
-                    aria-label={`Vorschlag für ${label} übernehmen`}
-                    disabled={row.translation === 'accepted' && row.german === row.suggestion}
-                    onClick={() =>
-                      update(candidate.id, {
-                        german: row.suggestion ?? '',
-                        translation: 'accepted',
-                      })
-                    }
-                  >
-                    Vorschlag übernehmen
-                  </Button>
-                </div>
-              ) : null}
 
-              {row.dictionary ? (
-                <DictionarySuggestionList
-                  label={label}
-                  summary={row.dictionary}
-                  current={row.german}
-                  family={row.family}
-                  onAccept={(german) =>
-                    update(candidate.id, { german, translation: 'accepted' })
-                  }
-                />
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+                  {row.translation === 'error' ? (
+                    <Alert tone="error">
+                      {row.error ?? 'Übersetzung fehlgeschlagen.'}{' '}
+                      <Button
+                        small
+                        aria-label={`Übersetzung für ${label} erneut versuchen`}
+                        disabled={busy}
+                        onClick={() => void runTranslation([row])}
+                      >
+                        Erneut versuchen
+                      </Button>
+                    </Alert>
+                  ) : null}
+
+                  {row.suggestion && row.translation !== 'pending' ? (
+                    <div className="candidate__suggestion">
+                      <p className="small" style={{ margin: 0 }}>
+                        {row.suggestionSource === 'local' ? (
+                          <Badge>lokaler Vorschlag</Badge>
+                        ) : (
+                          <Badge tone="warning">maschineller Vorschlag</Badge>
+                        )}{' '}
+                        <strong>{row.suggestion}</strong>
+                      </p>
+                      {row.suggestedSentence ? (
+                        <p className="small muted" style={{ margin: '0.2rem 0 0' }}>
+                          Kontext (Hilfestellung, nicht geprüft): „{row.suggestedSentence}“
+                        </p>
+                      ) : null}
+                      <Button
+                        small
+                        aria-label={`Vorschlag für ${label} übernehmen`}
+                        disabled={row.translation === 'accepted' && row.german === row.suggestion}
+                        onClick={() =>
+                          update(candidate.id, {
+                            german: row.suggestion ?? '',
+                            translation: 'accepted',
+                          })
+                        }
+                      >
+                        Vorschlag übernehmen
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {row.dictionary ? (
+                    <DictionarySuggestionList
+                      label={label}
+                      summary={row.dictionary}
+                      current={row.german}
+                      onAccept={(german) => update(candidate.id, { german, translation: 'accepted' })}
+                    />
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : null}
 
       <div className="row">
         <Button onClick={onBack}>Zurück zum Text</Button>
-        <Button variant="primary" disabled={selectedRows.length === 0} onClick={apply}>
-          {selectedRows.length} Vokabeln in die Vorschau übernehmen
+        <Button variant="primary" disabled={taken.length === 0} onClick={apply}>
+          {taken.length === 1
+            ? '1 Vokabel prüfen & speichern'
+            : `${taken.length} Vokabeln prüfen & speichern`}
         </Button>
       </div>
     </div>

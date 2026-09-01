@@ -2,11 +2,17 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Sprint 2B.2b: Empfehlungen aus einem Text – und die gewünschte Anzahl
- * Vokabelvorschläge.
+ * Sprint 4B.1: der Empfehlungsschritt im Import-Assistenten.
  *
- * Das injizierte Sprachmodell empfiehlt ausschließlich über die neutralen
- * Schlüssel, die es selbst bekommen hat. Der eingefügte Text erreicht es nie.
+ * Der Weg heißt jetzt **Text analysieren → Empfehlungen generieren → Prüfen &
+ * Speichern**. Was hier geprüft wird, ist nicht die Rangfolge im Einzelnen –
+ * dafür gibt es `recommendation.test.ts` –, sondern dass der Ablauf hält, was
+ * er verspricht: dass Empfehlungen entstehen, dass die Zählung stimmt, dass
+ * Ersetztes wiederfindbar bleibt und dass ein Sprung im Stepper keine Arbeit
+ * kostet.
+ *
+ * Der Test läuft **ohne** Browsermodelle. Das Offline-Wörterbuch ist das echte
+ * – es ist Teil des Pakets und braucht kein Netz.
  */
 
 const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
@@ -30,84 +36,52 @@ async function expectNoSeriousViolations(page: Page, label: string): Promise<voi
   ).toEqual([]);
 }
 
-const TEXT =
-  'The crowded bus was late again. Litter is a problem in the neighbourhood. ' +
-  'A quiet pavement helps everyone here. The crowded street was noisy at night. ' +
-  'Traffic makes the journey slow. A busy crossing needs patience.';
-
 /**
- * Ein `LanguageModel`, das die ersten beiden Schlüssel empfiehlt – und einen
- * erfundenen dazu, den die lokale Prüfung wegwerfen muss.
+ * Ein Sachtext, dessen Anfang aus Alltagswörtern besteht und dessen lohnende
+ * Vokabeln hinten stehen. Genau darum geht es: Die Standardsortierung darf
+ * nicht die ersten Wörter des Textes liefern.
  */
-async function installFakeLanguageModel(page: Page): Promise<void> {
+const TEXT = [
+  'The old house on the street was small and the people there were good.',
+  'The day was long and the man went to work in the city.',
+  'Coastal erosion threatens the settlement, and the evacuation of residents',
+  'demonstrates the resilience of the local infrastructure.',
+  'Erosion and evacuation were discussed at length by the council.',
+].join(' ');
+
+async function withoutBrowserModels(page: Page): Promise<void> {
   await page.addInitScript(() => {
     Object.defineProperty(globalThis, 'Translator', { configurable: true, value: undefined });
-
-    class FakeLanguageModel {
-      static availability(): Promise<string> {
-        return Promise.resolve('downloadable');
-      }
-
-      static create(options?: {
-        monitor?: (monitor: {
-          addEventListener: (type: string, listener: (event: unknown) => void) => void;
-        }) => void;
-      }): Promise<{ prompt: (input: string) => Promise<string>; destroy: () => void }> {
-        options?.monitor?.({
-          addEventListener: (type, listener) => {
-            if (type === 'downloadprogress') listener({ loaded: 1, total: 1 });
-          },
-        });
-        return Promise.resolve({
-          prompt: (input: string) => {
-            if (input.includes('Kandidaten (Schlüssel')) {
-              // Was dem Modell vorlag, merken wir uns für die Prüfung im Test.
-              (globalThis as { __lastTextPrompt?: string }).__lastTextPrompt = input;
-              return Promise.resolve(
-                JSON.stringify({ recommendedKeys: ['c2', 'c1', 'c999', 'skyline'] }),
-              );
-            }
-            return Promise.resolve('{}');
-          },
-          destroy: () => undefined,
-        });
-      }
-    }
-
-    Object.defineProperty(globalThis, 'LanguageModel', {
-      configurable: true,
-      value: FakeLanguageModel,
-    });
+    Object.defineProperty(globalThis, 'LanguageModel', { configurable: true, value: undefined });
   });
 }
 
-async function analyze(page: Page, count?: string): Promise<void> {
+async function analyze(page: Page): Promise<void> {
+  await withoutBrowserModels(page);
   await page.goto('/#/material/import?quelle=text');
   await page.getByLabel('Englischer Text').fill(TEXT);
-  if (count) {
-    await page.getByLabel('Gewünschte Anzahl Vokabelvorschläge').selectOption(count);
-  }
-  await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
+  await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
 }
 
-/** Die Namen aller angezeigten Kandidaten, in Anzeigereihenfolge. */
+/** Der zweite Schritt: warten, bis das Wörterbuch durch ist, dann empfehlen. */
+async function recommend(page: Page, count = '5'): Promise<void> {
+  const knopf = page.getByRole('button', { name: /^Empfehlungen (generieren|neu berechnen)$/ });
+  await expect(knopf).toBeEnabled({ timeout: 30_000 });
+  await page.getByLabel('Anzahl').selectOption(count);
+  await knopf.click();
+  await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
+}
+
+/** Die englischen Stichwörter der aktuellen Empfehlungen, in Anzeigereihenfolge. */
 async function listedWords(page: Page): Promise<string[]> {
-  const labels = await page.getByRole('checkbox', { name: /übernehmen$/ }).evaluateAll((boxes) =>
-    boxes.map((box) => box.getAttribute('aria-label')?.replace(' übernehmen', '') ?? ''),
-  );
-  return labels;
-}
-
-async function selectedWords(page: Page): Promise<string[]> {
-  return page.getByRole('checkbox', { name: /übernehmen$/ }).evaluateAll((boxes) =>
-    boxes
-      .filter((box) => (box as HTMLInputElement).checked)
-      .map((box) => box.getAttribute('aria-label')?.replace(' übernehmen', '') ?? ''),
-  );
+  return page
+    .locator('.candidate__head strong')
+    .evaluateAll((nodes) => nodes.map((node) => node.textContent ?? ''));
 }
 
 test.describe('Empfehlungen aus einem Text', () => {
-  test('@smoke empfehlen, auswählen, exportieren und ohne Modelle üben', async ({ page }) => {
+  test('@smoke empfehlen, eintragen, ersetzen, speichern und üben', async ({ page }) => {
     const externalRequests: string[] = [];
     page.on('request', (request) => {
       const url = new URL(request.url());
@@ -115,54 +89,52 @@ test.describe('Empfehlungen aus einem Text', () => {
         externalRequests.push(request.url());
     });
 
-    await installFakeLanguageModel(page);
-    await analyze(page, '10');
+    await analyze(page);
 
-    await expect(page.getByRole('heading', { name: /Gefundene Vokabelkandidaten/ })).toBeVisible();
-    const before = await selectedWords(page);
-    expect(before.length).toBeGreaterThan(2);
+    // 1. Vor dem Klick gibt es Einstellungen und noch keine Liste.
+    await expect(page.getByLabel('Jahrgang')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toHaveCount(0);
 
-    await page
-      .getByRole('button', { name: 'Lokales Sprachmodell laden und Empfehlungen erzeugen' })
-      .click();
+    await page.getByLabel('Jahrgang').selectOption('9');
+    await expect(page.getByLabel('GeR-Niveau')).toHaveValue('B1');
+    await recommend(page, '5');
 
-    // Zwei Empfehlungen – die erfundenen Schlüssel sind gefallen.
-    await expect(page.getByText('Für Lerngruppe empfohlen')).toHaveCount(2);
-    await expect(page.getByText(/2 von \d+ geprüften Kandidaten empfohlen\./).first()).toBeVisible();
-
-    // **Die Auswahl ist unverändert.** Nur die Anzeigereihenfolge ändert sich.
-    expect([...(await selectedWords(page))].sort()).toEqual([...before].sort());
-
-    // Der Text hat das Modell nie erreicht.
-    const prompt = await page.evaluate(
-      () => (globalThis as { __lastTextPrompt?: string }).__lastTextPrompt ?? '',
-    );
-    expect(prompt).toContain('c1 | ');
-    expect(prompt).not.toContain(TEXT);
-    expect(prompt).not.toContain('A busy crossing needs patience. ');
-
-    // Erst der ausdrückliche Klick verändert sie.
-    await page.getByRole('button', { name: 'Nur Empfehlungen auswählen' }).click();
-    const recommended = await selectedWords(page);
-    expect(recommended).toHaveLength(2);
-
-    // Empfehlungen stehen vorn.
-    expect((await listedWords(page)).slice(0, 2)).toEqual(recommended);
-
-    // Übersetzungen ergänzen und übernehmen.
-    for (const word of recommended) {
-      await page.getByLabel(`Deutsche Antwort für „${word}“`).fill(`Bedeutung von ${word}`);
+    // 2. Fünf Empfehlungen – und der Bodensatz ist nicht dabei.
+    const words = (await listedWords(page)).map((word) => word.toLowerCase());
+    expect(words).toHaveLength(5);
+    for (const alltag of ['old', 'street', 'people', 'day', 'house']) {
+      expect(words).not.toContain(alltag);
     }
-    await page.getByRole('button', { name: /2 Vokabeln in die Vorschau übernehmen/ }).click();
 
-    await expect(page.getByText('2 Zeilen ·')).toBeVisible();
-    await page.getByRole('button', { name: 'Weiter zu den Metadaten' }).click();
-    await page.getByLabel('Titel', { exact: true }).fill('City life – Empfehlungen');
+    // 3. Keine Häkchen: Die Zählung sagt, was passiert.
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
+    await expect(page.getByText('0 Vokabeln werden übernommen · 5 Empfehlungen sind noch offen.'))
+      .toBeVisible();
+
+    // 4. Die sichere Sammelübernahme trägt nur Unstrittiges ein.
+    await page.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }).click();
+    await expect(page.getByText(/Vokabeln werden übernommen/)).toBeVisible();
+
+    // 5. Der Rest wird von Hand ergänzt, bis nichts mehr offen ist.
+    for (const word of await listedWords(page)) {
+      const field = page.getByLabel(`Deutsche Antwort für „${word}“`);
+      if ((await field.inputValue()).trim() === '') await field.fill(`Bedeutung von ${word}`);
+    }
+    await expect(page.getByText(/Keine Empfehlung ist mehr offen\./)).toBeVisible();
+
+    // 6. Prüfen & Speichern – Tabelle, Titel und Speichern in einem Schritt.
+    await page.getByRole('button', { name: '5 Vokabeln prüfen & speichern' }).click();
+    await expect(page.getByText('5 Zeilen ·')).toBeVisible();
+    await expect(page.getByText(/Lernkontext:/)).toContainText('Klasse 9');
+
+    await page.getByLabel('Titel', { exact: true }).fill('Coastal erosion – Empfehlungen');
+    await page.getByLabel('Beschreibung (optional)').fill('Achte auf die Nomenendungen.');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(
-      page.getByRole('heading', { level: 1, name: 'City life – Empfehlungen' }),
+      page.getByRole('heading', { level: 1, name: 'Coastal erosion – Empfehlungen' }),
     ).toBeVisible();
 
+    // 7. Die optionale Beschreibung übersteht den Weg in die Datei.
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Als .vocabpack.json exportieren' }).click();
     const download = await downloadPromise;
@@ -171,120 +143,118 @@ test.describe('Empfehlungen aus einem Text', () => {
     const content = await fs.readFile(filePath, 'utf8');
 
     expect(JSON.parse(content).formatVersion).toBe(1);
-    for (const forbidden of [
-      'recommendedKeys',
-      'recommended',
-      'LanguageModel',
-      'responseConstraint',
-      'provider',
-    ]) {
-      expect(content).not.toContain(forbidden);
-    }
-    // Auch die neutralen Schlüssel selbst stehen nirgends in der Datei.
-    expect(content).not.toMatch(/"c\d+"/);
+    expect(JSON.parse(content).meta.description).toBe('Achte auf die Nomenendungen.');
+    // Der Quelltext bleibt draußen; nur die Originalsätze der Vokabeln gehen mit.
+    expect(content).not.toContain('The old house on the street was small');
     expect(externalRequests).toEqual([]);
 
-    // ---- Zweiter Kontext: ganz ohne Modelle ----
+    // 8. Und das Paket lässt sich auf einem Gerät ganz ohne Modelle öffnen.
     const receiver = await page.context().newPage();
     await receiver.addInitScript(() => {
       Object.defineProperty(globalThis, 'Translator', { configurable: true, value: undefined });
       Object.defineProperty(globalThis, 'LanguageModel', { configurable: true, value: undefined });
     });
-    const receiverRequests: string[] = [];
-    receiver.on('request', (request) => {
-      const url = new URL(request.url());
-      if (url.hostname !== '127.0.0.1' && url.hostname !== 'localhost')
-        receiverRequests.push(request.url());
-    });
-
     await receiver.goto('/#/lernen');
     await receiver.getByLabel('Vokabelpaket auswählen').setInputFiles(filePath);
-    await expect(receiver.getByRole('heading', { name: 'City life – Empfehlungen' })).toBeVisible();
+    await expect(
+      receiver.getByRole('heading', { name: 'Coastal erosion – Empfehlungen' }),
+    ).toBeVisible();
     await receiver.getByRole('link', { name: 'Öffnen' }).click();
     await receiver.getByRole('button', { name: 'Lernrunde starten' }).click();
-    await expect(receiver.getByText('Aufgabe 1 von 2')).toBeVisible();
-
-    expect(receiverRequests).toEqual([]);
+    await expect(receiver.getByText('Aufgabe 1 von 5')).toBeVisible();
     await receiver.close();
   });
 
-  test('@smoke die gewünschte Anzahl begrenzt die Kandidaten – auch ohne Modell', async ({
-    page,
-  }) => {
-    await page.addInitScript(() => {
-      Object.defineProperty(globalThis, 'Translator', { configurable: true, value: undefined });
-      Object.defineProperty(globalThis, 'LanguageModel', { configurable: true, value: undefined });
-    });
+  test('@smoke offene Empfehlungen ersetzen, ohne Arbeit zu verlieren', async ({ page }) => {
+    await analyze(page);
+    await recommend(page, '5');
 
-    await analyze(page, '5');
-    await expect(page.getByRole('heading', { name: 'Gefundene Vokabelkandidaten (5)' })).toBeVisible();
-    await expect(page.getByText('5 von 5 geeigneten Vokabeln gefunden.')).toBeVisible();
-    expect(await listedWords(page)).toHaveLength(5);
+    const erste = (await listedWords(page))[0]!;
+    await page.getByLabel(`Deutsche Antwort für „${erste}“`).fill('meine Antwort');
 
-    // Ohne Sprachmodell bleibt alles benutzbar – nur eben ohne Priorisierung.
-    await expect(page.getByText(/Dieser Browser bietet kein lokales Sprachmodell/)).toBeVisible();
-    await expect(page.getByRole('button', { name: /Empfehlungen erzeugen/ })).toHaveCount(0);
+    const vorher = await listedWords(page);
+    await page.getByRole('button', { name: /Offene Empfehlungen ersetzen/ }).click();
+
+    // Die beantwortete Zeile steht noch da …
+    await expect(page.getByLabel(`Deutsche Antwort für „${erste}“`)).toHaveValue('meine Antwort');
+    // … die übrigen sind andere geworden …
+    const nachher = await listedWords(page);
+    expect(nachher).not.toEqual(vorher);
+    // … und die alten sind wiederfindbar, nicht weg.
+    const frueher = page.getByRole('button', { name: /Frühere Empfehlungen/ });
+    await expect(frueher).toHaveAttribute('aria-expanded', 'false');
+    await frueher.click();
+    const zurueck = vorher.find((word) => word !== erste)!;
+    await page.getByRole('button', { name: `${zurueck} wieder aufnehmen` }).click();
+    await expect(page.getByLabel(`Deutsche Antwort für „${zurueck}“`)).toBeVisible();
   });
 
-  test('@smoke mehr gewünscht als im Text: ehrliche Zahl statt erfundener Vokabeln', async ({
-    page,
-  }) => {
+  test('@smoke der Stepper führt zurück, ohne die Arbeit zu verlieren', async ({ page }) => {
+    await analyze(page);
+    await recommend(page, '5');
+
+    const erste = (await listedWords(page))[0]!;
+    await page.getByLabel(`Deutsche Antwort für „${erste}“`).fill('meine Antwort');
+    await page.getByRole('button', { name: '1 Vokabel prüfen & speichern' }).click();
+    await expect(page.getByLabel('Titel', { exact: true })).toBeVisible();
+
+    // Zurück in den zweiten Schritt – alles steht noch so da.
+    await page.getByRole('button', { name: 'Schritt 2: Empfehlungen generieren' }).click();
+    await expect(page.getByLabel(`Deutsche Antwort für „${erste}“`)).toHaveValue('meine Antwort');
+
+    // Und in den ersten: der Text ist noch da.
+    await page.getByRole('button', { name: 'Schritt 1: Text analysieren' }).click();
+    await expect(page.getByLabel('Englischer Text')).toHaveValue(TEXT);
+  });
+
+  test('@smoke erfindet nichts, wenn der Text weniger hergibt', async ({ page }) => {
+    await withoutBrowserModels(page);
     await page.goto('/#/material/import?quelle=text');
-    await page.getByLabel('Englischer Text').fill('The bus was crowded. Litter is a problem.');
-    await page.getByLabel('Gewünschte Anzahl Vokabelvorschläge').selectOption('30');
-    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
+    await page.getByLabel('Englischer Text').fill('Coastal erosion threatens the settlement.');
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await recommend(page, '20');
 
-    const found = (await listedWords(page)).length;
-    expect(found).toBeGreaterThan(0);
-    expect(found).toBeLessThan(30);
-    await expect(
-      page.getByText(`${found} von 30 geeigneten Vokabeln gefunden.`),
-    ).toBeVisible();
-    await expect(page.getByText(/erfunden wird nichts/)).toBeVisible();
+    const words = await listedWords(page);
+    expect(words.length).toBeGreaterThan(0);
+    expect(words.length).toBeLessThan(20);
   });
 
-  test('@smoke eine eigene Anzahl zwischen 1 und 50', async ({ page }) => {
-    await page.goto('/#/material/import?quelle=text');
-    await page.getByLabel('Englischer Text').fill(TEXT);
-    await page.getByLabel('Gewünschte Anzahl Vokabelvorschläge').selectOption('custom');
-
-    const field = page.getByLabel('Eigene Anzahl');
-    await field.fill('3');
-    await page.getByRole('button', { name: /^Text (lokal )?analysieren/ }).click();
-
-    await expect(page.getByRole('heading', { name: 'Gefundene Vokabelkandidaten (3)' })).toBeVisible();
-    await expect(page.getByText('3 von 3 geeigneten Vokabeln gefunden.')).toBeVisible();
-  });
-
-  test('@a11y Priorisierung ohne schwerwiegende Befunde und mit der Tastatur bedienbar', async ({
+  test('@a11y Empfehlungsschritt ohne schwerwiegende Befunde und mit der Tastatur bedienbar', async ({
     page,
   }) => {
-    await installFakeLanguageModel(page);
-    await analyze(page, '10');
-    await expectNoSeriousViolations(page, 'Kandidaten mit Priorisierung');
+    await analyze(page);
+    await expectNoSeriousViolations(page, 'Einstellungen vor der Empfehlung');
 
-    const button = page.getByRole('button', { name: /Empfehlungen erzeugen/ });
-    await button.focus();
-    await expect(button).toBeFocused();
+    const knopf = page.getByRole('button', { name: 'Empfehlungen generieren', exact: true });
+    await expect(knopf).toBeEnabled({ timeout: 30_000 });
+    await knopf.focus();
+    await expect(knopf).toBeFocused();
     await page.keyboard.press('Enter');
 
-    await expect(page.getByText('Für Lerngruppe empfohlen')).toHaveCount(2);
-    await expectNoSeriousViolations(page, 'Kandidaten nach der Empfehlung');
+    await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
+    await expectNoSeriousViolations(page, 'Empfehlungen');
 
-    const only = page.getByRole('button', { name: 'Nur Empfehlungen auswählen' });
-    await only.focus();
+    // Der Fokus wandert ans Ergebnis, statt oben stehen zu bleiben.
+    await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeFocused();
+  });
+
+  test('@a11y der Stepper ist mit der Tastatur bedienbar', async ({ page }) => {
+    await analyze(page);
+    await recommend(page, '5');
+
+    const erster = page.getByRole('button', { name: 'Schritt 1: Text analysieren' });
+    await erster.focus();
     await page.keyboard.press('Enter');
-    expect(await selectedWords(page)).toHaveLength(2);
+    await expect(page.getByLabel('Englischer Text')).toBeVisible();
+    await expect(erster).toHaveAttribute('aria-current', 'step');
   });
 
   test.describe('Smartphone-Breite', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test('@a11y Priorisierung ohne horizontalen Überlauf', async ({ page }) => {
-      await installFakeLanguageModel(page);
-      await analyze(page, '10');
-      await page.getByRole('button', { name: /Empfehlungen erzeugen/ }).click();
-      await expect(page.getByText('Für Lerngruppe empfohlen')).toHaveCount(2);
+    test('@a11y Empfehlungen ohne horizontalen Überlauf', async ({ page }) => {
+      await analyze(page);
+      await recommend(page, '5');
 
       const overflow = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
