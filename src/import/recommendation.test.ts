@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BASE_FORM_HINT,
   baseFormOf,
   countSyllables,
   displayNameOf,
@@ -9,6 +10,7 @@ import {
   levelFit,
   levelForGrade,
   recommend,
+  resolveBaseForm,
   scoreCandidates,
   type RecommendationInput,
 } from './recommendation';
@@ -326,6 +328,186 @@ describe('Gebeugte Form oder eigenes Wort', () => {
 
   it('lässt einen Mehrwortbegriff unverändert', () => {
     expect(displayNameOf('attritional combat')).toBe('attritional combat');
+  });
+
+  /**
+   * Die Fälle, in denen dieselbe Schreibung zu **zwei Wörtern** gehört.
+   *
+   * Hier darf nicht die Rangfolge entscheiden, sondern nur der Satz. Die
+   * Einträge sind den echten nachgebaut; dieselben Fälle laufen im
+   * Akzeptanztest noch einmal gegen das ausgelieferte Wörterbuch.
+   */
+  describe('Mehrdeutige Formen entscheidet der Satz', () => {
+    /** `rose`: die Blume (Nomen) – und die Vergangenheit von `rise`. */
+    const rose = lookup(
+      entry('rose', 'exact', 'noun'),
+      entry('rose', 'exact', 'adj'),
+      entry('rise', 'lemma', 'verb', ['past']),
+      entry('rise', 'lemma', 'noun', ['past']),
+    );
+
+    /** `lives`: der Plural von `life` – und die 3. Person von `live`. */
+    const lives = lookup(
+      entry('live', 'lemma', 'verb', ['indicative', 'present', 'singular', 'third-person']),
+      entry('life', 'lemma', 'noun', ['plural']),
+    );
+
+    /** `written`: das Adjektiv – und das Partizip von `write`. */
+    const written = lookup(
+      entry('written', 'exact', 'adj'),
+      entry('write', 'lemma', 'verb', ['participle', 'past']),
+    );
+
+    it('lässt „the rose bloomed“ eine Blume sein', () => {
+      expect(resolveBaseForm('rose', rose, 'The rose bloomed in the garden.')).toEqual({
+        kind: 'keep',
+      });
+    });
+
+    it('macht aus „prices rose sharply“ ein rise', () => {
+      // Das folgende `-ly`-Adverb ist der Beleg: Es bezieht sich auf ein Verb.
+      expect(resolveBaseForm('rose', rose, 'Prices rose sharply last year.')).toEqual({
+        kind: 'base',
+        lemma: 'rise',
+      });
+    });
+
+    it('lässt „she lives in London“ zu live werden', () => {
+      expect(resolveBaseForm('lives', lives, 'She lives in London.')).toEqual({
+        kind: 'base',
+        lemma: 'live',
+      });
+    });
+
+    it('lässt „their lives changed“ zu life werden', () => {
+      expect(resolveBaseForm('lives', lives, 'Their lives changed forever.')).toEqual({
+        kind: 'base',
+        lemma: 'life',
+      });
+    });
+
+    it('macht aus „he has written a letter“ ein write', () => {
+      // Ein Perfekt-Hilfsverb vor einem Partizip ist eindeutig.
+      expect(resolveBaseForm('written', written, 'He has written a letter.')).toEqual({
+        kind: 'base',
+        lemma: 'write',
+      });
+    });
+
+    it('lässt „a written agreement“ das Adjektiv sein', () => {
+      expect(resolveBaseForm('written', written, 'A written agreement followed.')).toEqual({
+        kind: 'keep',
+      });
+    });
+
+    it('macht aus „is crowded“ kein Verb', () => {
+      /*
+        `is` steht bewusst nicht bei den Hilfsverben: „is crowded“ ist genauso
+        gut das Adjektiv wie ein Passiv. Hier schützt zusätzlich die Wortart –
+        `crowded` ist Adjektiv, `crowd` Substantiv.
+      */
+      const crowded = lookup(
+        entry('crowded', 'exact', 'adj'),
+        entry('crowd', 'lemma', 'noun', ['participle', 'past']),
+      );
+      expect(resolveBaseForm('crowded', crowded, 'The neighbourhood is crowded.')).toEqual({
+        kind: 'keep',
+      });
+    });
+
+    it('behält die Textform, wenn der Satz nichts hergibt', () => {
+      /*
+        Der Kern des Auftrags: **nicht raten.** „Casualties rose.“ hat weder
+        Artikel noch Pronomen noch Adverb – also bleibt `rose` stehen, und die
+        Zeile trägt den Hinweis.
+      */
+      expect(resolveBaseForm('rose', rose, 'Casualties rose.')).toEqual({
+        kind: 'unresolved',
+        options: ['rise'],
+      });
+      expect(resolveBaseForm('lives', lives, 'Lives changed.')).toEqual({
+        kind: 'unresolved',
+        options: ['live', 'life'],
+      });
+      expect(displayNameOf('rose', rose, 'Casualties rose.')).toBe('rose');
+    });
+
+    it('behält die Textform auch ohne jeden Satz', () => {
+      expect(resolveBaseForm('rose', rose)).toMatchObject({ kind: 'unresolved' });
+    });
+
+    it('nimmt einen widersprüchlichen Beleg nicht für eine Entscheidung', () => {
+      /*
+        Steht vor der Form ein Artikel **und** folgt ein `-ly`-Adverb, heben
+        sich die Belege auf. Zwei Hinweise, die in verschiedene Richtungen
+        zeigen, sind kein Hinweis.
+      */
+      expect(resolveBaseForm('rose', rose, 'The rose slowly opened.')).toMatchObject({
+        kind: 'unresolved',
+      });
+    });
+  });
+});
+
+describe('Eine ungeklärte Form beansprucht alle denkbaren Familien', () => {
+  it('lässt die Grundform nicht als zweite Zeile daneben stehen', () => {
+    /*
+      Bleibt `lives` als Textform stehen, darf `life` nicht gleich darunter
+      erscheinen: zwei Zeilen für eine Vokabel, und die Lehrkraft räumt
+      hinterher auf. Die Anzeige bleibt trotzdem die ehrliche Textform.
+    */
+    const lives: DictionarySuggestionSummary = {
+      primary: 'x',
+      entries: [
+        {
+          headword: 'live',
+          lemma: 'live',
+          partOfSpeech: 'verb',
+          senses: [{ sense: 'x', suggestions: [{ german: 'leben' }] }],
+          quality: 'lemma',
+          formTags: ['third-person'],
+          source: 'wiktionary',
+        },
+        {
+          headword: 'life',
+          lemma: 'life',
+          partOfSpeech: 'noun',
+          senses: [{ sense: 'x', suggestions: [{ german: 'Leben' }] }],
+          quality: 'lemma',
+          formTags: ['plural'],
+          source: 'wiktionary',
+        },
+      ],
+      senseCount: 2,
+      unambiguous: false,
+      questionable: false,
+    };
+
+    const text = 'Lives changed after the war. Lives changed again in the winter.';
+    const scored = scoreCandidates(
+      analyzeText(text).candidates.map((candidate) => ({
+        candidate,
+        ...(candidate.normalizedEnglish === 'lives' ? { dictionary: lives } : {}),
+      })),
+      { context: CONTEXT, sort: 'recommended', count: 10 },
+    );
+
+    const form = scored.find((item) => item.candidate.english.toLowerCase() === 'lives');
+    expect(form?.candidate.english.toLowerCase()).toBe('lives');
+    expect(form?.baseFormHint).toBe(BASE_FORM_HINT);
+    expect(form?.families).toContain(familyKey('life'));
+    expect(form?.families).toContain(familyKey('live'));
+
+    // Und in der Auswahl steht die Familie damit nur einmal.
+    const chosen = recommend(
+      analyzeText(text).candidates.map((candidate) => ({
+        candidate,
+        ...(candidate.normalizedEnglish === 'lives' ? { dictionary: lives } : {}),
+      })),
+      { context: CONTEXT, sort: 'recommended', count: 10 },
+    ).map((item) => item.candidate.english.toLowerCase());
+    expect(chosen).toContain('lives');
+    expect(chosen).not.toContain('life');
   });
 });
 

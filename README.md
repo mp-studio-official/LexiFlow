@@ -2126,17 +2126,45 @@ Verbindung als **Beugung** ausweist (`formTags`: `plural`, `past`,
 `participle` …). Zwei Gegenproben, beide aus echten Fehlläufen:
 
 * `story` ist im Datensatz eine **Schreibvariante** von `storey`. Ersetzen hieße:
-  aus der Geschichte ein Stockwerk machen.
+  aus der Geschichte ein Stockwerk machen. Solche Merkmale (`alternative`,
+  `misspelling` …) zählen gar nicht erst als Beugung.
 * `crowded` ist Adjektiv (*überfüllt*) **und** Partizip von `crowd`; `litter`
   ist Substantiv (*Abfall*) **und** im Datensatz Komparativ von `lit`. Ein
-  eigener Eintrag schützt das Wort – aber nur, wenn er in einer **anderen
-  Wortart** steht als die Grundform. `men` und `man` sind beide Substantive;
-  dort ist `men` nichts als der Plural.
+  eigener Eintrag schützt das Wort, wenn er in einer **anderen Wortart** steht
+  als die Grundform.
+* `men` dagegen hat einen eigenen Substantiveintrag (*Menschen*), trägt das
+  Nomenmerkmal `plural` und zeigt auf das Substantiv `man`: dieselbe Wortklasse
+  durch und durch. Ein Plural ist keine eigene Vokabel.
 
-Der Preis dieser Regel steht im Code, damit ihn jemand kennt: In einem Text über
-Blumen wird aus `rose` ein `rise`. Das englische Stichwort ist im letzten
-Schritt änderbar – eine falsche Grundform kostet einen Handgriff, eine gebeugte
-Form im Paket kostet eine falsch gelernte Vokabel.
+#### Mehrdeutige Formen entscheidet der Satz
+
+Bleibt danach mehr als eine Lesart übrig, wird **nicht** gerechnet, sondern
+gelesen. `rose` ist die Blume oder die Vergangenheit von `rise`; `lives` gehört
+zu `life` oder zu `live`; `written` ist das Adjektiv oder das Partizip von
+`write`. Den Ausschlag gibt die vorhandene Wortartlogik aus `wordForms.ts` –
+Artikel, Possessiv und Zahlwort sprechen für ein Nomen, „to“ und Subjektpronomen
+für ein Verb, ein Perfekt-Hilfsverb für ein Partizip, ein folgendes
+`-ly`-Adverb für ein Verb:
+
+| Satz | Ergebnis |
+| --- | --- |
+| „the rose bloomed“ | `rose` – der Artikel zeigt auf eine Nominalphrase |
+| „prices rose sharply“ | `rise` – das Adverb bezieht sich auf ein Verb |
+| „she lives in London“ | `live` – das Subjektpronomen |
+| „their lives changed“ | `life` – das Possessiv |
+| „he has written a letter“ | `write` – das Perfekt-Hilfsverb |
+| „a written agreement“ | `written` – der Artikel |
+| „casualties rose.“ | `rose` **und** der Hinweis „Grundform prüfen“ |
+
+`is` steht bewusst **nicht** bei den Hilfsverben: „is crowded“ ist genauso gut
+das Adjektiv wie ein Passiv. Und widersprechen sich zwei Belege, heben sie sich
+auf – zwei Hinweise in verschiedene Richtungen sind kein Hinweis.
+
+Bleibt die Frage offen, steht in der Liste die **Textform** mit dem Hinweis
+„Grundform prüfen“ und einem Satz darunter, was daran offen ist. Für die
+Dublettenprüfung beansprucht eine solche Zeile trotzdem **alle** denkbaren
+Familien: `lives` verhindert damit, dass `life` gleich darunter noch einmal
+erscheint. Angezeigt wird weiterhin, was im Text stand.
 
 ### Was gar nicht erst angeboten wird
 

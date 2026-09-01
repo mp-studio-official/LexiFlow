@@ -3,9 +3,12 @@ import {
   RELATION_LABELS,
   analyzeForm,
   buildFamilies,
+  evidenceForFollowing,
   evidenceForPreceding,
+  followingWord,
   isFormOf,
   precedingWord,
+  sentenceEvidence,
   describeForms,
   describeInflections,
   type FormObservation,
@@ -95,6 +98,45 @@ describe('analyzeForm', () => {
     expect(analyzeForm('visits', { verb: true }).relation).toBe('third-person');
     // Widersprüchliche Belege sind kein Beleg.
     expect(analyzeForm('visits', { noun: true, verb: true }).relation).toBe('s-form');
+  });
+
+  it('nimmt ein Perfekt-Hilfsverb als eigenen Beleg – nicht als Verbbeleg', () => {
+    /*
+      „has“ vor einem Partizip ist eindeutig („has written“), vor einer
+      `-s`-Form dagegen nichtssagend („he has books“). Deshalb ein eigenes
+      Merkmal: `analyzeForm` sieht es gar nicht.
+    */
+    expect(evidenceForPreceding('has')).toEqual({ perfect: true });
+    expect(evidenceForPreceding('had')).toEqual({ perfect: true });
+    expect(analyzeForm('books', evidenceForPreceding('has')).relation).toBe('s-form');
+    // `is` fehlt mit Absicht: „is crowded“ ist genauso gut das Adjektiv.
+    expect(evidenceForPreceding('is')).toEqual({});
+  });
+
+  it('nimmt ein folgendes -ly-Adverb als Verbbeleg', () => {
+    expect(evidenceForFollowing('sharply')).toEqual({ adverbFollows: true });
+    // Die Ausnahmeliste der Wortartregeln gilt auch hier.
+    expect(evidenceForFollowing('family')).toEqual({});
+    expect(evidenceForFollowing('bloomed')).toEqual({});
+    expect(evidenceForFollowing(undefined)).toEqual({});
+  });
+
+  it('liest beide Nachbarn eines Wortes im Satz', () => {
+    expect(sentenceEvidence('The rose bloomed in the garden.', 'rose')).toEqual({ noun: true });
+    expect(sentenceEvidence('Prices rose sharply last year.', 'rose')).toEqual({
+      adverbFollows: true,
+    });
+    expect(sentenceEvidence('He has written a letter.', 'written')).toEqual({ perfect: true });
+    // Steht das Wort nicht in diesem Satz, gibt es auch keinen Beleg.
+    expect(sentenceEvidence('Nothing to see here.', 'rose')).toEqual({});
+    // Und ein Wortteil zählt nicht: `rose` steckt in `roses`, ist aber nicht da.
+    expect(sentenceEvidence('The roses bloomed.', 'rose')).toEqual({});
+  });
+
+  it('findet das Wort auch am Satzanfang und am Satzende', () => {
+    expect(followingWord('Lives changed after the war.', 5)).toBe('changed');
+    expect(precedingWord('Lives changed.', 0)).toBeUndefined();
+    expect(sentenceEvidence('Lives changed.', 'lives')).toEqual({});
   });
 
   it('ordnet mehrdeutige -ves-Formen nur mit Beleg zu', () => {

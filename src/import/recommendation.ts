@@ -1,5 +1,7 @@
 import type { TextCandidate } from '../domain/textExtraction';
 import { type CefrLevel, type Grade, suggestCefrLevel } from '../domain/cefr';
+import { sentenceEvidence } from '../domain/wordForms';
+import type { DictionaryEntry } from '../dictionary/DictionaryProvider';
 import type { DictionarySuggestionSummary } from './dictionarySuggestions';
 
 /**
@@ -56,7 +58,16 @@ export interface ScoredCandidate extends RecommendationInput {
   family: string;
   /** Alle beanspruchten Familien – bei Mehrwortbegriffen auch die der Teile. */
   families: readonly string[];
+  /**
+   * Gesetzt, wenn die Form zu mehreren Grundformen gehören könnte und der Satz
+   * die Frage nicht beantwortet hat. Das Stichwort ist dann die **Textform**,
+   * und die Oberfläche sagt es dazu.
+   */
+  baseFormHint?: string;
 }
+
+/** Was an einer ungeklärten Grundform dransteht – ein Satz, keine Warnung. */
+export const BASE_FORM_HINT = 'Grundform prüfen';
 
 /* -------------------------------------------------------------- Schwierigkeit */
 
@@ -427,71 +438,190 @@ const INFLECTION_TAGS = new Set([
  */
 const VARIANT_TAGS = new Set(['alternative', 'misspelling', 'obsolete', 'archaic', 'informal']);
 
-/**
- * Die Grundform, falls das Wort eine gebeugte Form ist – sonst nichts.
- *
- * `quality: 'lemma'` allein reicht nicht. Der Datensatz führt unter derselben
- * Kennzeichnung zwei grundverschiedene Fälle:
- *
- * - `wrote → write`, `men → man`, `kept → keep`: eine **Beugung**. Wer `wrote`
- *   ins Paket nimmt, lernt eine Vokabel in einer Form, die so niemand lernt.
- * - `story → storey`: eine **Schreibvariante**. `story` ist selbst ein
- *   vollwertiges Wort; es durch `storey` zu ersetzen hieße, aus der
- *   *Geschichte* ein *Stockwerk* zu machen.
- *
- * Unterschieden wird an den Formmerkmalen (`formTags`). Ohne Merkmale bleibt
- * das Wort stehen: Im Zweifel ist das, was im Text steht, richtiger als eine
- * Vermutung.
- *
- * Die zweite Hürde ist der **eigene Eintrag**. `crowded` steht im Wörterbuch
- * als Adjektiv mit eigener Übersetzung (*überfüllt*) – und gleichzeitig als
- * Partizip von `crowd`. `litter` ist Substantiv (*Abfall*, *Streu*) – und
- * gleichzeitig als Komparativ von `lit` geführt. Wer hier ersetzt, tauscht die
- * Vokabel aus.
- *
- * Ein eigener Eintrag schützt aber nur, wenn er in einer **anderen Wortart**
- * steht als die Grundform. `men` hat einen eigenen Substantiveintrag
- * (*Menschen*), und `man` ist ebenfalls Substantiv – dann ist `men` dort nichts
- * anderes als der Plural, und der Plural ist keine eigene Vokabel. `crowded`
- * dagegen ist Adjektiv, `crowd` Substantiv: zwei Vokabeln, die man getrennt
- * lernt.
- *
- * Der Preis der Regel steht hier, damit ihn jemand kennt: In einem Text über
- * Blumen wird aus `rose` ein `rise` – beide sind Substantive, und diese
- * Funktion maßt sich nicht an, die gemeinte Lesart zu wählen. Der Beispielsatz
- * steht daneben und das englische Stichwort ist im letzten Schritt änderbar –
- * eine falsche Grundform kostet einen Handgriff, eine gebeugte Form im Paket
- * kostet eine falsch gelernte Vokabel.
- */
-export function baseFormOf(
-  word: string,
-  dictionary?: DictionarySuggestionSummary,
-): string | undefined {
-  const entries = dictionary?.entries ?? [];
-  /*
-    Nur Einträge mit deutscher Entsprechung zählen als „eigener Eintrag“;
-    `dictionary.entries` enthält ohnehin nur solche. Eine unbekannte Wortart
-    passt zu keiner – dann bleibt das Wort stehen.
-  */
-  const ownParts = entries
-    .filter((entry) => entry.quality !== 'lemma')
-    .map((entry) => entry.partOfSpeech);
+/** Die drei Wortklassen, die für die Grundformfrage etwas ändern. */
+type WordClass = 'noun' | 'verb' | 'adjective' | 'other';
 
+/** Die Wortart des Datensatzes auf die Klasse, die hier zählt. */
+function classOfPart(part: string | undefined): WordClass {
+  if (part === 'noun' || part === 'name') return 'noun';
+  if (part === 'verb') return 'verb';
+  if (part === 'adj') return 'adjective';
+  return 'other';
+}
+
+/**
+ * Die Klasse, auf die ein Formmerkmal zeigt.
+ *
+ * `plural` ist eine Nomenbeugung, `past` und `participle` sind Verbbeugungen,
+ * `comparative` ist eine Adjektivbeugung. `singular` steht bewusst **nicht**
+ * hier: Im Datensatz markiert es die Verbkongruenz (`lives`: *indicative,
+ * present, singular, third-person*) und nicht den Numerus eines Nomens.
+ */
+const TAG_CLASS: Readonly<Record<string, WordClass>> = {
+  plural: 'noun',
+  past: 'verb',
+  participle: 'verb',
+  present: 'verb',
+  gerund: 'verb',
+  'third-person': 'verb',
+  comparative: 'adjective',
+  superlative: 'adjective',
+};
+
+/** Eine Grundform, die das Wörterbuch für diese Form anbietet. */
+interface FormOption {
+  lemma: string;
+  /** Wortklasse des Eintrags der Grundform. */
+  wordClass: WordClass;
+  /** Wortklasse, auf die die Formmerkmale zeigen. */
+  tagClass: WordClass;
+}
+
+function formOptionsFor(
+  word: string,
+  entries: readonly DictionaryEntry[],
+): FormOption[] {
+  const options: FormOption[] = [];
   for (const entry of entries) {
     if (entry.quality !== 'lemma') continue;
     const tags = entry.formTags ?? [];
     if (!tags.some((tag) => INFLECTION_TAGS.has(tag))) continue;
     if (tags.some((tag) => VARIANT_TAGS.has(tag))) continue;
-    if (
-      ownParts.length > 0 &&
-      !ownParts.some((part) => part !== undefined && part === entry.partOfSpeech)
-    ) {
-      continue;
-    }
-    const base = entry.lemma.trim();
-    if (base && base.toLowerCase() !== word.trim().toLowerCase()) return base;
+    const lemma = entry.lemma.trim();
+    if (!lemma || lemma.toLowerCase() === word.trim().toLowerCase()) continue;
+    const classes = tags.flatMap((tag) => (TAG_CLASS[tag] ? [TAG_CLASS[tag]] : []));
+    const [first = 'other'] = classes;
+    options.push({
+      lemma,
+      wordClass: classOfPart(entry.partOfSpeech),
+      // Widersprechen sich die Merkmale, zählt keines.
+      tagClass: classes.every((kind) => kind === first) ? first : 'other',
+    });
   }
-  return undefined;
+  return options;
+}
+
+/**
+ * Was mit dem sichtbaren Stichwort geschehen soll.
+ *
+ * `unresolved` ist der Fall, für den es diese Unterscheidung gibt: Die Form
+ * *könnte* zu einer anderen Grundform gehören, aber der Satz gibt es nicht her.
+ * Dann bleibt die Textform stehen – und die Lehrkraft sieht, dass hier eine
+ * Entscheidung offen ist.
+ */
+export type BaseFormDecision =
+  | { readonly kind: 'keep' }
+  | { readonly kind: 'base'; readonly lemma: string }
+  | { readonly kind: 'unresolved'; readonly options: readonly string[] };
+
+/**
+ * Grundform oder Textform – und wann der Satz gefragt wird.
+ *
+ * `quality: 'lemma'` allein reicht nicht. Der Datensatz führt unter derselben
+ * Kennzeichnung mehrere grundverschiedene Fälle:
+ *
+ * - `wrote → write`, `kept → keep`: eine **Beugung** ohne Gegenkandidaten. Wer
+ *   `wrote` ins Paket nimmt, lernt eine Vokabel in einer Form, die so niemand
+ *   lernt.
+ * - `story → storey`: eine **Schreibvariante**. `story` ist selbst ein
+ *   vollwertiges Wort; es zu ersetzen hieße, aus der *Geschichte* ein
+ *   *Stockwerk* zu machen. Solche Merkmale (`alternative`, `misspelling` …)
+ *   zählen gar nicht erst als Beugung.
+ * - `men → man`: eine **reine Beugung**, auch wenn `men` einen eigenen Eintrag
+ *   hat. Das Merkmal `plural` ist eine Nomenbeugung, `men` ist ein Nomen und
+ *   `man` ist eines – dieselbe Wortklasse durch und durch. Ein Plural ist keine
+ *   eigene Vokabel.
+ * - `rose`, `lives`, `written`: **mehrdeutig**. `rose` ist die Blume oder die
+ *   Vergangenheit von `rise`; `lives` gehört zu `life` oder zu `live`;
+ *   `written` ist das Adjektiv oder das Partizip von `write`. Hier entscheidet
+ *   der Satz – und nur er.
+ *
+ * Der Satzbeleg kommt aus der vorhandenen Wortartlogik (`sentenceEvidence`):
+ * Artikel, Possessiv und Zahlwort sprechen für ein Nomen, „to“ und
+ * Subjektpronomen für ein Verb, ein Perfekt-Hilfsverb für ein Partizip, ein
+ * folgendes `-ly`-Adverb für ein Verb. Gibt der Satz nichts her, wird **nicht**
+ * geraten: Dann bleibt die Textform stehen.
+ */
+export function resolveBaseForm(
+  word: string,
+  dictionary?: DictionarySuggestionSummary,
+  sentence?: string,
+): BaseFormDecision {
+  const entries = dictionary?.entries ?? [];
+  const options = formOptionsFor(word, entries);
+  if (options.length === 0) return { kind: 'keep' };
+
+  /*
+    Nur Einträge mit deutscher Entsprechung zählen als „eigener Eintrag“;
+    `dictionary.entries` enthält ohnehin nur solche.
+  */
+  const own = entries.filter((entry) => entry.quality !== 'lemma');
+  const ownClasses = new Set(own.map((entry) => classOfPart(entry.partOfSpeech)));
+  const lemmas = [...new Set(options.map((option) => option.lemma))];
+
+  // 1. Kein eigener Eintrag, nur eine denkbare Grundform: eindeutig.
+  if (own.length === 0 && lemmas.length === 1 && lemmas[0]) {
+    return { kind: 'base', lemma: lemmas[0] };
+  }
+
+  /*
+    2. Reine Beugung: Merkmal, Grundform und eigener Eintrag stehen alle in
+    derselben Wortklasse – `men` (Nomen) ist der Plural von `man` (Nomen).
+    Bei `rose` trägt der Eintrag `rise` das Merkmal `past`, also eine
+    Verbbeugung, während `rose` selbst als Nomen geführt wird: keine reine
+    Beugung, sondern zwei Wörter mit derselben Schreibung.
+  */
+  const mere = options.filter(
+    (option) => option.tagClass === option.wordClass && ownClasses.has(option.wordClass),
+  );
+  const mereLemmas = [...new Set(mere.map((option) => option.lemma))];
+  if (own.length > 0 && mereLemmas.length === 1 && mereLemmas[0]) {
+    return { kind: 'base', lemma: mereLemmas[0] };
+  }
+
+  // 3. Mehrdeutig – jetzt zählt der Satz.
+  const evidence = sentence ? sentenceEvidence(sentence, word) : {};
+  const verbEvidence =
+    evidence.verb === true || evidence.perfect === true || evidence.adverbFollows === true;
+  const nounEvidence = evidence.noun === true;
+
+  if (verbEvidence && !nounEvidence) {
+    const verb = options.find((option) => option.tagClass === 'verb' || option.wordClass === 'verb');
+    if (verb) return { kind: 'base', lemma: verb.lemma };
+  }
+
+  if (nounEvidence && !verbEvidence) {
+    /*
+      Ein Artikel oder Possessiv sagt: Hier steht eine Nominalphrase. Hat das
+      Wort einen eigenen Eintrag, ist es genau dieses Wort – „the rose“, „a
+      written agreement“. Hat es keinen, ist die Nomen-Grundform gemeint –
+      „their lives“ führt zu `life`, nicht zu `live`.
+    */
+    if (own.length > 0) return { kind: 'keep' };
+    const noun = options.find((option) => option.tagClass === 'noun' || option.wordClass === 'noun');
+    if (noun) return { kind: 'base', lemma: noun.lemma };
+  }
+
+  /*
+    Der Satz gibt nichts her. Steht das Wort in einer Wortart da, die keine der
+    Grundformen hat, ist es trotzdem eindeutig sein eigenes Wort: `crowded` ist
+    Adjektiv, `crowd` Substantiv; `litter` ist Substantiv und Verb, `lit`
+    Adjektiv. Sonst bleibt die Frage offen.
+  */
+  if (own.length > 0 && !options.some((option) => ownClasses.has(option.wordClass))) {
+    return { kind: 'keep' };
+  }
+  return { kind: 'unresolved', options: lemmas };
+}
+
+/** Die Grundform, wenn sie sicher ist – sonst nichts. */
+export function baseFormOf(
+  word: string,
+  dictionary?: DictionarySuggestionSummary,
+  sentence?: string,
+): string | undefined {
+  const decision = resolveBaseForm(word, dictionary, sentence);
+  return decision.kind === 'base' ? decision.lemma : undefined;
 }
 
 /**
@@ -509,10 +639,11 @@ export function baseFormOf(
 export function displayNameOf(
   word: string,
   dictionary?: DictionarySuggestionSummary,
+  sentence?: string,
 ): string {
   if (word.includes(' ')) return word;
 
-  const base = baseFormOf(word, dictionary);
+  const base = baseFormOf(word, dictionary, sentence);
   if (base) return base;
 
   // Danach die Schreibweise: Großschreibung nur vom Satzanfang zurücknehmen.
@@ -599,9 +730,25 @@ export function scoreCandidates(
       ins Paket. Ein `Military`, das nur deshalb groß ist, weil es einen Satz
       begann, wäre eine falsch gelernte Vokabel – und niemand sähe ihr das an.
     */
-    const display = displayNameOf(word, input.dictionary);
+    const sentence = input.candidate.sourceSentence;
+    const decision = resolveBaseForm(word, input.dictionary, sentence);
+    const display = displayNameOf(word, input.dictionary, sentence);
     const candidate =
       display === word ? input.candidate : { ...input.candidate, english: display };
+
+    /*
+      Bleibt die Grundform offen, beansprucht die Form **alle** denkbaren
+      Familien. Sonst stünde `lives` in der Liste und `life` gleich darunter –
+      zwei Zeilen für eine Vokabel, und die Lehrkraft räumt hinterher auf.
+      Angezeigt wird trotzdem die ehrliche Textform.
+    */
+    const claimed =
+      decision.kind === 'unresolved'
+        ? [
+            ...familyKeys(display, input.dictionary),
+            ...decision.options.map((option) => familyKey(option)),
+          ]
+        : familyKeys(display, input.dictionary);
 
     return {
       ...input,
@@ -609,7 +756,8 @@ export function scoreCandidates(
       score,
       difficulty,
       family: familyKey(display, input.dictionary),
-      families: familyKeys(display, input.dictionary),
+      families: [...new Set(claimed)],
+      ...(decision.kind === 'unresolved' ? { baseFormHint: BASE_FORM_HINT } : {}),
     };
   });
 }

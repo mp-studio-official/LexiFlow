@@ -1,3 +1,5 @@
+import { guessPartOfSpeech } from './wordRules';
+
 /**
  * Lexikalische Familien: aus beobachteten Wortformen ein Vokabelwort machen.
  *
@@ -335,6 +337,24 @@ function restoreStem(stem: string): { lemma: string; alternate: string } {
 export interface FormEvidence {
   noun?: boolean;
   verb?: boolean;
+  /**
+   * Ein **Perfekt-Hilfsverb** geht voraus: `has written`, `had kept`.
+   *
+   * Bewusst getrennt von `verb`: Für eine `-s`-Form sagt „has“ gar nichts
+   * („he has books“), für ein Partizip dagegen alles. Nur die Formen von
+   * *have* stehen hier. `is` fehlt mit Absicht – „is crowded“ ist genauso gut
+   * das Adjektiv wie das Passiv, und wer daraus ein Verb macht, tauscht die
+   * Vokabel aus.
+   */
+  perfect?: boolean;
+  /**
+   * Ein Adverb auf `-ly` folgt: „prices rose **sharply**“.
+   *
+   * Ein `-ly`-Adverb bezieht sich im Englischen fast immer auf ein Verb. Das
+   * ist der eine Beleg, der ohne Artikel und ohne Pronomen auskommt – und
+   * genau der Fall, in dem sonst nichts im Satz steht.
+   */
+  adverbFollows?: boolean;
 }
 
 /** Artikel, Zahlwörter und Possessive – alles, was ein Nomen ankündigt. */
@@ -350,6 +370,9 @@ const VERB_MARKERS = new Set([
   'to', 'he', 'she', 'it', 'they', 'we', 'i', 'you', 'who', 'nobody', 'everyone',
   'someone', 'somebody', 'everybody',
 ]);
+
+/** Die Formen von *have* – vor einem Partizip bilden sie das Perfekt. */
+const PERFECT_AUXILIARIES = new Set(['have', 'has', 'had', 'having']);
 
 /**
  * Das Wort unmittelbar vor einer Stelle im Satz.
@@ -372,7 +395,47 @@ export function evidenceForPreceding(preceding: string | undefined): FormEvidenc
   if (/^\d/.test(word)) return { noun: true };
   if (NOUN_MARKERS.has(word)) return { noun: true };
   if (VERB_MARKERS.has(word)) return { verb: true };
+  if (PERFECT_AUXILIARIES.has(word)) return { perfect: true };
   return {};
+}
+
+/**
+ * Das Wort unmittelbar **nach** einer Stelle im Satz – das Gegenstück zu
+ * `precedingWord`. Auch hier bleibt es bei genau einem Wort.
+ */
+export function followingWord(sentence: string, offset: number): string | undefined {
+  return /^[^\p{L}\p{N}]*([\p{L}\p{N}][\p{L}\p{N}'’-]*)/u.exec(sentence.slice(offset))?.[1];
+}
+
+/**
+ * Beurteilt das Wort **nach** der Form. Ausgewertet wird nur ein `-ly`-Adverb –
+ * geprüft mit derselben Regel, die auch die Wortartvorschläge benutzt, samt
+ * ihrer Ausnahmeliste (`family`, `early`, `supply` … sind keine Adverbien).
+ */
+export function evidenceForFollowing(following: string | undefined): FormEvidence {
+  const word = (following ?? '').trim().replace(/[^\p{L}\p{N}]+$/u, '');
+  if (word.length === 0) return {};
+  return guessPartOfSpeech(word).partOfSpeech === 'adverb' ? { adverbFollows: true } : {};
+}
+
+/**
+ * Was der Satz über **dieses** Wort verrät – Nachbar links, Nachbar rechts.
+ *
+ * Gesucht wird die erste Fundstelle als ganzes Wort. Steht die Form gar nicht
+ * in diesem Satz, gibt es auch keinen Beleg.
+ */
+export function sentenceEvidence(sentence: string, word: string): FormEvidence {
+  const needle = word.trim();
+  if (!sentence || !needle) return {};
+  const at = new RegExp(
+    `(?<![\\p{L}\\p{N}])${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
+    'iu',
+  ).exec(sentence);
+  if (!at) return {};
+  return {
+    ...evidenceForPreceding(precedingWord(sentence, at.index)),
+    ...evidenceForFollowing(followingWord(sentence, at.index + at[0].length)),
+  };
 }
 
 /** Eine denkbare Grundform mit der Beziehung, die dann gilt. */

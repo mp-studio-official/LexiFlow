@@ -6,10 +6,13 @@ import {
   familyKeys,
   looksLikePublication,
   recommend,
+  resolveBaseForm,
+  type BaseFormDecision,
   type RecommendationInput,
 } from './recommendation';
 import { ATTRITIONAL_COMBAT_TEXT } from './fixtures/attritionalCombat';
 import type { CefrLevel, Grade } from '../domain/cefr';
+import type { DictionaryProvider } from '../dictionary/DictionaryProvider';
 
 /**
  * Der Akzeptanzfall: ein Fachartikel über psychische Ausfälle im
@@ -289,6 +292,74 @@ describe('Empfehlungsqualität – was nach der Korrektur nicht mehr dastehen da
     const grossGeschrieben = alle.filter((word) => /^[A-Z]/.test(word));
     // Erlaubt bleiben nur durchgehende Großschreibungen – Akronyme.
     for (const word of grossGeschrieben) expect(word).toBe(word.toUpperCase());
+  });
+});
+
+/**
+ * Dieselben Fälle wie in `recommendation.test.ts` – hier aber gegen den
+ * **ausgelieferten** Datensatz.
+ *
+ * Die Unit-Tests dort prüfen die Regel an nachgebauten Einträgen; sie bleiben
+ * grün, auch wenn das echte Wörterbuch etwas anderes sagt. Was hier grün ist,
+ * ist grün für die Lehrkraft.
+ */
+describe('Mehrdeutige Wortformen am echten Wörterbuch', () => {
+  let dictionary: DictionaryProvider;
+
+  beforeAll(() => {
+    dictionary = createOfflineDictionary();
+  });
+
+  async function decide(word: string, sentence: string): Promise<BaseFormDecision> {
+    return resolveBaseForm(word, summarizeLookup(await dictionary.lookup(word)), sentence);
+  }
+
+  it('unterscheidet die Blume von der Vergangenheit', async () => {
+    expect(await decide('rose', 'The rose bloomed in the garden.')).toEqual({ kind: 'keep' });
+    expect(await decide('rose', 'Prices rose sharply last year.')).toEqual({
+      kind: 'base',
+      lemma: 'rise',
+    });
+  });
+
+  it('unterscheidet das Leben vom Wohnen', async () => {
+    expect(await decide('lives', 'She lives in London.')).toEqual({ kind: 'base', lemma: 'live' });
+    expect(await decide('lives', 'Their lives changed forever.')).toEqual({
+      kind: 'base',
+      lemma: 'life',
+    });
+  });
+
+  it('unterscheidet das Partizip vom Adjektiv', async () => {
+    expect(await decide('written', 'He has written a letter.')).toEqual({
+      kind: 'base',
+      lemma: 'write',
+    });
+    expect(await decide('written', 'A written agreement followed.')).toEqual({ kind: 'keep' });
+  });
+
+  it('hält die Gegenproben aus 4B.1b', async () => {
+    expect(await decide('story', 'Behind those letters lies a harder story.')).toEqual({
+      kind: 'keep',
+    });
+    expect(await decide('crowded', 'The neighbourhood is crowded.')).toEqual({ kind: 'keep' });
+    expect(await decide('litter', 'Litter covers the quiet street.')).toEqual({ kind: 'keep' });
+  });
+
+  it('führt eindeutige Beugungen weiterhin zusammen', async () => {
+    expect(await decide('kept', 'His mother kept them in a box.')).toMatchObject({ lemma: 'keep' });
+    expect(await decide('wrote', 'The soldier wrote home every week.')).toMatchObject({
+      lemma: 'write',
+    });
+    expect(await decide('letters', 'His letters were short.')).toMatchObject({ lemma: 'letter' });
+    expect(await decide('men', 'Bombardment left men unable to endure.')).toMatchObject({
+      lemma: 'man',
+    });
+  });
+
+  it('bleibt bei der Textform, wenn der Satz nichts hergibt', async () => {
+    expect(await decide('rose', 'Casualties rose.')).toMatchObject({ kind: 'unresolved' });
+    expect(await decide('lives', 'Lives changed.')).toMatchObject({ kind: 'unresolved' });
   });
 });
 

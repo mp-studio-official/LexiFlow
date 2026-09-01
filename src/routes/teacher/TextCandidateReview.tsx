@@ -29,6 +29,7 @@ import {
   replaceOpenRecommendations,
   type RecommendationInput,
   type RecommendationSort,
+  type ScoredCandidate,
 } from '../../import/recommendation';
 import type { TopicSuggestion } from '../../import/topicSuggestion';
 import { CEFR_LEVELS, GRADES, GRADE_LABELS } from '../../domain/cefr';
@@ -106,19 +107,29 @@ interface CandidateRow {
   suggestedSentence?: string | undefined;
   translation: RowTranslation;
   error?: string | undefined;
+  /**
+   * Gesetzt, wenn die Form zu mehreren Grundformen gehören könnte und der Satz
+   * die Frage nicht beantwortet hat – „lives“ ohne Artikel und ohne Pronomen.
+   * Das Stichwort ist dann die Textform, und die Zeile sagt es dazu.
+   */
+  baseFormHint?: string | undefined;
 }
 
-function toRow(input: RecommendationInput): CandidateRow {
+function toRow(input: RecommendationInput | ScoredCandidate): CandidateRow {
   const { candidate, dictionary } = input;
   const local = candidate.abbreviation?.german.trim() ?? '';
+  const scored = 'families' in input ? input : undefined;
   const base: CandidateRow = {
     candidate,
     german: '',
-    family: familyKey(candidate.english, dictionary),
-    families: familyKeys(candidate.english, dictionary),
+    family: scored?.family ?? familyKey(candidate.english, dictionary),
+    // Eine ungeklärte Form beansprucht alle denkbaren Familien – siehe
+    // `scoreCandidates`. Neu berechnen würde genau diesen Schutz verlieren.
+    families: scored?.families ?? familyKeys(candidate.english, dictionary),
     partOfSpeech: partOfSpeechOf(dictionary),
     dictionary,
     translation: 'idle',
+    ...(scored?.baseFormHint ? { baseFormHint: scored.baseFormHint } : {}),
   };
 
   // Für bekannte Abkürzungen kennt das Lexikon die deutsche Entsprechung. Sie
@@ -1073,6 +1084,7 @@ export function TextCandidateReview({
                       </Badge>
                     ) : null}
                     {candidate.isLikelyProperNoun ? <Badge tone="warning">Eigenname?</Badge> : null}
+                    {row.baseFormHint ? <Badge tone="warning">{row.baseFormHint}</Badge> : null}
                     <Button
                       small
                       variant="quiet"
@@ -1092,6 +1104,19 @@ export function TextCandidateReview({
                   <p className="candidate__sentence">
                     <span className="visually-hidden">Originalsatz: </span>„{candidate.sourceSentence}“
                   </p>
+
+                  {/*
+                    Die Form könnte zu mehreren Grundformen gehören, und der
+                    Satz verrät nicht welche. Statt zu raten steht hier, was im
+                    Text stand – mit dem Hinweis, dass eine Entscheidung offen
+                    ist. Das Stichwort ist im letzten Schritt änderbar.
+                  */}
+                  {row.baseFormHint ? (
+                    <p className="small muted" style={{ margin: '0 0 0.35rem' }}>
+                      „{label}“ könnte auch eine gebeugte Form sein. Der Satz gibt nicht her,
+                      welche Grundform gemeint ist – deshalb steht hier die Form aus dem Text.
+                    </p>
+                  ) : null}
 
                   {candidate.abbreviation ? (
                     <div className="field">
