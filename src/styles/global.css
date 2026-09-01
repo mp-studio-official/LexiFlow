@@ -1434,32 +1434,113 @@ progress {
 .steps {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
+  gap: var(--space-2) var(--space-4);
   padding: 0;
   margin: 0 0 var(--space-5);
   list-style: none;
   font-size: var(--text-base);
-  color: var(--ink-secondary);
 }
+
+/*
+  Jeder Schritt ist eine echte Schaltfläche – aber keine, die wie eine aussieht.
+  Ein Stepper aus fünf Knöpfen sähe aus wie fünf gleichrangige Aktionen; hier
+  geht es um einen Weg mit einer aktuellen Position.
+*/
+.steps__step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  position: relative;
+  min-height: var(--tap-target);
+}
+.steps__step:hover:not(:disabled) {
+  color: var(--ink);
+}
+.steps__step:disabled {
+  cursor: default;
+  color: var(--ink-muted);
+}
+
+/* Die Nummer ist ein Ort, kein Zierrat: Sie bleibt auch dann lesbar, wenn die
+   Schritte umbrechen und die Reihenfolge im Layout nicht mehr sichtbar ist. */
+.steps__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.6rem;
+  block-size: 1.6rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
 /* Der aktuelle Schritt trägt Farbe, Gewicht **und** einen Marker – Farbe
    allein würde niemandem etwas sagen, der sie nicht unterscheidet. */
+.steps__step[aria-current='step'] {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+.steps__step[aria-current='step'] .steps__number {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+}
+.steps__step[aria-current='step']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+
+/* Übergangsweise: Der Assistent trägt noch die alte Listenauszeichnung. Beide
+   Regelsätze stehen nebeneinander, bis die Auszeichnung umgestellt ist. */
 .steps li[aria-current='step'] {
   color: var(--ink);
   font-weight: var(--weight-semibold);
   position: relative;
 }
-.steps li[aria-current='step']::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.35rem;
-  height: 2px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-}
-.steps li::before {
+.steps li:not(:has(.steps__step))::before {
   content: counter(list-item) '. ';
+}
+
+/*
+  Aufklappbarer Hinweis. Er liegt **im Fluss**, nicht schwebend über dem
+  Inhalt: Ein echtes Overlay müsste sich um Bildschirmränder, Scrollposition
+  und Tastaturfallen kümmern, und der Gewinn wäre ein Stück Layout.
+*/
+.disclosure {
+  position: relative;
+}
+
+.disclosure__panel {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--info);
+  border-radius: var(--radius-surface);
+  background: var(--info-soft);
+  font-size: var(--text-sm);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.disclosure__title {
+  display: block;
+}
+
+.disclosure__panel p {
+  margin: 0;
 }
 
 /* Wahl der Übungsart: zwei gut trennbare, große Klickflächen. */
