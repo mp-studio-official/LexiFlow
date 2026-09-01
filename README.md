@@ -117,6 +117,10 @@ Weitere Befehle:
 | `npx playwright test e2e/sentence-assistant.spec.ts` | Nur der E2E-Ablauf des Satzassistenten |
 | `npx playwright test e2e/text-recommendation.spec.ts` | Nur der E2E-Ablauf der Textempfehlungen |
 | `npx vitest run src/ui/AppShell.test.tsx` | Nur Navigation und aktuelle Route |
+| `npx vitest run src/ui/logoAssets.test.ts` | Nur Form, Ausschnitt und Farben der beiden Logo-Assets |
+| `npx vitest run src/ui/brand.test.tsx` | Nur Wortmarke, Varianten und PWA-Identität |
+| `npx vitest run src/styles/contrast.test.ts` | Nur die gerechneten Kontraste der Tokens |
+| `npx playwright test e2e/brand.spec.ts` | Nur Marke, Logo-Zuordnung und Palette im Build |
 | `npx vitest run src/routes/editorialSurfaces.test.tsx` | Nur die vier überarbeiteten Oberflächen |
 | `npx playwright test e2e/editorial-shell.spec.ts` | Nur Shell, mobile Leiste und lokale Schriften |
 | `npm run build` | Typecheck + Produktions-Build nach `dist/` |
@@ -393,6 +397,8 @@ src/
     global.css       Zusammensetzungen – keine Einzelwerte
   ui/            Bausteine, Importlogik (usePackImport), Bestätigungsdialog
     AppShell.tsx     Seitenspalte (Desktop) und Bodenleiste (mobil)
+    logoPaths.ts     die gelieferte Form: Pfade, viewBox, die beiden Varianten
+    Logo.tsx         Signet, Wortmarke und App-Icon aus dieser einen Quelle
     PackCard.tsx     gemeinsames Kartenmuster für alle Paketlisten
   routes/        Seiten (Start, Lehrkraft, Schülerbereich, Datenschutz)
 e2e/             Playwright: Smoke-Test und Barrierefreiheitstests
@@ -2234,17 +2240,35 @@ zwölf Quelldateien – Code, Styles, Einstiegsdateien und diese Datei – und p
 dass er auch nicht über einen Kommentar hereinkommt. Deshalb steht er hier
 nicht: Diese Datei ist eine der geprüften.
 
-### Die vier Markenfarben
+### Die drei Markenfarben (seit Sprint 4B.1c)
 
 | Ton | Wert | Rolle |
 | --- | --- | --- |
-| Aubergine | `#3B0F3F` | Tiefe, Navigation, primäre Aktion |
-| Tomato | `#E63946` | Akzent, Marker, große Displaymomente |
-| Orange | `#FF8A3D` | Wärme, Auswahlkanten, Verlaufsakzente |
+| Aubergine | `#2F092D` | Tinte, Tiefe, Navigation, primäre Aktion, ruhiger Hinweis |
+| Tomato | `#FF2E2D` | Akzent, Marker in der dunklen Navigation |
 | Parchment | `#F8EFE3` | warmes Papier als Grundfläche |
 
 Rund 90 % der Fläche bleibt Papier und Tinte. Farbe ist ein Ereignis, kein
 Grundrauschen.
+
+**Orange `#FF8A3D` ist vollständig entfallen.** Es war die vierte Farbe und trug
+zwei Aufgaben: den Marker in der dunklen Navigation und die
+„hier-steht-etwas-Zusätzliches“-Kante auf hellen Flächen (ausgewählte Zeile,
+Wörterbuchvorschlag). Die erste hat Tomato übernommen, die zweite Aubergine.
+
+Die zweite Zuordnung ist die interessantere. Tomato wäre die naheliegende
+Nachfolgerin gewesen – und genau das wäre der Fehler, den `global.css` an dieser
+Stelle seit 4A.1c dokumentiert: Tomato ist Rot, und eine rote Kante an jeder
+ausgewählten Zeile las die ganze Seite als Schadensbericht. Aubergine trägt
+dieselbe Aussage ohne Alarm; sie ist ohnehin schon die Farbe des ruhigen
+Hinweises.
+
+Abgelegt sind damit `#3B0F3F` (die vorige Aubergine), `#E63946` (die vorige
+Tomato), `#FF8A3D` (Orange) sowie die beiden Parchment-Abweichungen `#FAEFE2`
+und `#F6ECE1` aus den gelieferten Logodateien. Sie stehen zusammen mit den
+Farben der beiden Vorgängersysteme in `RETIRED_BRAND_COLORS`, und ein Test
+schließt sie in `index.html`, `favicon.svg`, `tokens.css`, `global.css` und
+`Logo.tsx` aus.
 
 ### Kontrast vor Markenreinheit
 
@@ -2252,28 +2276,30 @@ Gemessen, nicht geschätzt:
 
 | Kombination | Verhältnis | Konsequenz |
 | --- | --- | --- |
-| Weiß auf Tomato | 4,17 : 1 | **reicht nicht** für Text |
-| Weiß auf Orange | 2,35 : 1 | nur Fläche unter dunkler Tinte |
-| Aubergine auf Tomato | 3,80 : 1 | nur Grafik, nie Text |
-| Parchment auf Aubergine | 13,91 : 1 | der primäre Knopf |
-| Aubergine auf Orange | 7,56 : 1 | Orange trägt dunkle Tinte |
-| `--accent-ink` auf Parchment | 5,81 : 1 | der Akzentknopf |
+| Parchment auf Aubergine | 15,40 : 1 | der primäre Knopf, die Navigation |
+| Aubergine auf Parchment | 15,40 : 1 | Fließtext |
+| Weiß auf Tomato | 3,70 : 1 | **reicht nicht** für Text |
+| Tomato auf Parchment | 3,25 : 1 | Kanten und Grafik, **nie** Text |
+| Tomato auf Aubergine | 4,74 : 1 | trägt auch normalen Navigationstext |
+| `--accent-ink` auf Parchment | 5,87 : 1 | der Akzentknopf |
 
 Daraus die drei Regeln, die das System durchhält:
 
 1. **Die primäre Aktion ist Aubergine, nicht Tomato.** Helle Schrift auf Tomato
    wäre eine hübsche Lüge. Der Akzentknopf trägt deshalb `--accent-ink`, den
    dunklen Tomato-Ton, nicht die volle Sättigung.
-2. **Tomato und Orange sind Flächen- und Grafikfarben.** Als Text erscheinen nur
-   ihre dunklen Ableitungen (`--accent-ink`, `--warm-ink`).
+2. **Tomato ist auf Papier eine Flächen- und Grafikfarbe.** Als Text erscheint
+   dort nur `--accent-ink`. Auf Aubergine darf Tomato dagegen auch normaler
+   Text sein – dort reicht es.
 3. **Farbe trägt nie allein eine Information.** Jeder Zustand hat ein Wort, ein
-   Symbol oder eine Form neben sich.
+   Symbol oder eine Form neben sich; der aktive Navigationseintrag zum Beispiel
+   eine eigene Fläche, einen Marker **und** `aria-current`.
 
 `src/styles/contrast.test.ts` liest `tokens.css`, löst `var(--…)`-Verweise auf
-und rechnet die Verhältnisse bei **jedem** Testlauf nach: 41 Prüfungen, davon
-23 auf 4,5 : 1 für Text, sechs auf 3 : 1 für Bedienelemente und Grafik. Zwei
-Prüfungen sind bewusst umgekehrt formuliert – sie schlagen an, wenn jemand Weiß
-auf Tomato oder Weiß auf Orange doch wieder lesbar rechnen will.
+und rechnet die Verhältnisse bei **jedem** Testlauf nach. Zwei Prüfungen sind
+bewusst umgekehrt formuliert – sie schlagen an, wenn jemand Weiß auf Tomato
+oder Tomato als Papierschrift doch wieder lesbar rechnen will. Eine dritte
+prüft, dass es keine vierte `--brand-…`-Farbe gibt.
 
 ### Die semantischen Tokens
 
@@ -2284,15 +2310,25 @@ nur Zusammensetzungen. Wer einen neuen Wert braucht, legt ihn als Token an.
 | --- | --- | --- |
 | `--canvas` | Parchment | Grundfläche |
 | `--surface` / `--surface-elevated` / `--surface-sunken` | `#fffcf7` / `#ffffff` / `#f0e4d4` | Karte, Hervorhebung, Rücktritt |
-| `--ink` / `--ink-secondary` / `--ink-muted` | `#2a0b2d` / `#5a4a5c` / `#6e5f70` | Tinte, kein Schwarz |
-| `--nav` / `--nav-ink` / `--nav-marker` | Aubergine / Parchment / Orange | Navigation |
+| `--ink` / `--ink-secondary` / `--ink-muted` | Aubergine / `#674960` / `#715569` | Tinte, kein Schwarz |
+| `--nav` / `--nav-ink` / `--nav-marker` | Aubergine / Parchment / Tomato | Navigation |
 | `--primary` / `--primary-ink` | Aubergine / Parchment | primäre Aktion |
-| `--accent` / `--accent-ink` / `--accent-soft` | Tomato / `#ad2b35` / `#fbe4e5` | Akzent |
-| `--warm` / `--warm-ink` / `--warm-soft` | Orange / `#8c4c22` / `#ffeedf` | Wärme, Auswahl |
-| `--info` / `--info-soft` | `#3b0f3f` / `#f2e8f2` | ruhiger Hinweis |
+| `--accent` / `--accent-ink` / `--accent-soft` | Tomato / `#b3201f` / `#f9dcd1` | Akzent |
+| `--info` / `--info-soft` | Aubergine / `#e4d8d1` | ruhiger Hinweis, Auswahlkante |
 | `--success` / `--warning` / `--danger` | `#17624a` / `#8c4c22` / `#a3202c` | Semantik |
 | `--border` / `--border-strong` | `#d8c4ae` / `#8a7563` | Trennung, Bedienrand (≥ 3 : 1) |
-| `--focus-ring` / `--focus-ring-on-dark` | Aubergine / Orange | Fokus |
+| `--focus-ring` / `--focus-ring-on-dark` | Aubergine / Tomato | Fokus |
+
+Jeder abgeleitete Ton trägt seine Mischung im Kommentar: `--ink-secondary` ist
+„Aubergine 72 % über Parchment“, `--accent-soft` ist „Tomato 10 % über
+Parchment“, die Schatten sind `rgb(47 9 45 / …)` – Aubergine, transparent. Wer
+einen Wert nachrechnen will, kann es.
+
+**Semantik ist keine Marke.** `--success`, `--warning` und `--danger` bleiben
+unverändert, auch wenn `--warning` ein orangebrauner Ton ist: Grün heißt gut und
+Rot heißt kaputt, unabhängig davon, welche Töne das Logo trägt. Ein globales
+Suchen-und-Ersetzen über alle warmen Werte hätte genau diese Bedeutungen
+zerstört.
 
 **Hinweis und Fehler sind zwei Farbfamilien.** `--info` liegt auf Aubergine,
 nicht auf Tomato. Solange die Hinweisfläche `--accent-soft` trug, war sie mit
@@ -2309,38 +2345,98 @@ Pillen nur für Marker.
 Ein automatischer Dunkelmodus würde auch die noch nicht überarbeiteten
 Werkstätten betreffen; geprüft ist bisher nur die helle Fassung.
 
-### Wortmarke und Signet
+### Wortmarke und Signet (Zeichen seit Sprint 4B.1c)
 
-Das Zeichen ist **Code, keine Bitmap**: `src/ui/Logo.tsx` zeichnet vier Flächen
-in einer 64 × 64-`viewBox`.
+Das Zeichen ist **Code, keine Bitmap**. Seit 4B.1c ist es das gelieferte
+Original: drei Pfade aus den Entwurfsdateien, unverändert übernommen und in
+`src/ui/logoPaths.ts` abgelegt. Vorher stand dort ein selbstgezeichneter
+Platzhalter aus Rechtecken.
 
-Die Bildidee sind **zwei geöffnete Flächen, die sich überlagern**: hinten eine
-ruhige Aubergine-Fläche, davor eine leicht gekippte Tomato-Fläche, die sich wie
-eine umschlagende Karte öffnet; die helle Innenfläche ist der Durchblick. Zwei
-Dinge halten es von einem generischen Dokumentsymbol fern – die vordere Fläche
-ist ein **Trapez**, kein Rechteck, sie steht also schräg im Raum, und die
-Innenfläche sitzt **außermittig**, wodurch die Form eine Richtung bekommt statt
-symmetrisch zu ruhen. Keine Ähnlichkeit zu Office-Kacheln, kein Buch, keine
-Karteikarte, kein Schulsymbol.
+Die Bildidee sind **zwei geöffnete Flächen, die sich überlagern**: hinten ein
+ruhiges, aufrechtes Element, davor eine große gekippte Fläche, die sich wie eine
+umschlagende Karte öffnet, und darin ein Durchblick in der Form eines „F“.
+
+#### Was an den Entwurfsdateien bereinigt wurde
+
+Die Originale liegen lokal unter `Logo/` und sind über `.git/info/exclude` von
+Git ausgenommen; **an ihnen wird nichts geändert**. Die Projektfassung ist eine
+Kopie, und daran wurde genau das entfernt, was im Browser nichts tut:
+XML-Deklaration, `DOCTYPE`, `xmlns:xlink`, `xmlns:serif`, `xml:space` sowie
+`stroke-linejoin` und `stroke-miterlimit` (es gibt keine Kontur). `fill-rule`
+und `clip-rule` bleiben, jetzt am Pfad statt am Wurzelelement. Die drei
+`matrix(1,0,0,1,x,y)` stehen **wörtlich** wie geliefert – sie in `translate(…)`
+umzuschreiben wäre dasselbe Bild, aber ein Diff, das aussieht wie eine Änderung
+an der Form.
+
+Die Parchment-Werte sind auf `#F8EFE3` normalisiert. In den zuletzt gelieferten
+Dateien standen bereits die richtigen Werte; die früheren Abweichungen `#FAEFE2`
+und `#F6ECE1` stehen trotzdem in `RETIRED_BRAND_COLORS`, damit sie nicht über
+eine spätere Fassung zurückkommen.
+
+#### Der beschnittene Ausschnitt
+
+Die Entwurfsdateien tragen `viewBox="0 0 492 602"`; die Form belegt darin nur
+x 89,5 … 427,75 und y 128,5 … 537,75. In einer 28 px hohen Kopfzeile war damit
+ein Drittel der Höhe Luft, und das Zeichen wirkte unnötig klein. Die
+Projektfassung trägt `viewBox="81 120 356 426"` – rund 8,5 Einheiten Rand um
+die Form, die damit 95 % der Fläche einnimmt statt 68 %.
+
+Gemessen wurde die Fläche **gerendert und an der Alphakante ausgelesen**, nicht
+aus den Stützpunkten gerechnet: Kurven wölben sich über ihre Stützpunkte hinaus,
+und eine Box aus den Pfaddaten allein hätte die Form angeschnitten. An Pfaden,
+Verhältnissen und Skalierung hat sich nichts geändert – nur das Fenster, durch
+das man sie sieht. Weil das Zeichen hochkant ist, gibt `LogoMark` die **Höhe**
+vor und lässt die Breite folgen; ein erzwungenes Quadrat würde verzerren oder
+beschneiden.
 
 | Baustein | Einsatz |
 | --- | --- |
+| `logoPaths.ts` | die Pfade, die `viewBox` und die beiden Varianten – eine Quelle |
 | `LogoMark` | Signet allein – Navigation, kompakte Köpfe |
 | `Logo` | waagerechte Wortmarke: Signet plus **echter Text** |
 | `LogoAppIcon` | Quadrat mit Fläche – Startbildschirm, Favicon |
 
-Drei Fassungen: `brand` (auf Papier), `on-dark` (auf Aubergine), `mono`
-(einfarbig über `currentColor`, für Druck und `forced-colors`). Die
-monochrome Fassung trennt die beiden Flächen über die Deckkraft, nicht über die
-Farbe – sie bleibt damit auch schwarz-weiß verständlich.
+#### Zwei Varianten, drei Farben
+
+`brand` ist die Fassung **für Parchment-Hintergrund** (Aubergine hinten,
+Parchment als Durchblick), `on-dark` die Fassung **für Aubergine-Hintergrund**
+(Parchment hinten, Aubergine als Durchblick). Es sind dieselben drei Farben in
+getauschten Rollen, nicht zwei Zeichen. Beide Hüllen – Lehrkraft und Schüler –
+haben eine Aubergine-Kopfzeile und nehmen deshalb `on-dark`; die helle Variante
+hätte dort ihre tragende Fläche in Aubergine auf Aubergine, das Zeichen
+verschwände zur Hälfte, und **kein Kontrasttest würde das melden**, weil es kein
+Text ist. Ein eigener Test prüft das Farbtripel in beiden Hüllen.
+
+`mono` ist die einfarbige Fassung über `currentColor` für Druck und
+`forced-colors`. Sie trennt die drei Flächen über die Deckkraft. Der Durchblick
+kann dort **nicht** transparent sein: Er liegt innerhalb der vorderen Fläche,
+ein Loch wäre also nur ein heller Fleck auf ihr.
+
+#### Die beiden Assetdateien
+
+| Datei | Einsatz |
+| --- | --- |
+| `public/lexiflow-mark-on-aubergine.svg` | dunkle Flächen, Downloadziel |
+| `public/lexiflow-mark-on-parchment.svg` | helle Flächen, Downloadziel |
+
+Beide werden aus `logoPaths.ts` **erzeugt**, nicht gepflegt: `buildLogoAsset()`
+baut sie, und `src/ui/logoAssets.test.ts` vergleicht Datei und Erzeugnis Zeichen
+für Zeichen. Wer eine davon von Hand anfasst, sieht es beim nächsten Testlauf.
+
+**In der App wird keine dieser Dateien geladen.** Das Zeichen steht als Pfad im
+Dokument – ein `<img src="…svg">` wäre in den portablen Einzeldateien unter
+`file://` ein leerer Kasten. Ein E2E-Test in der exportierten Schülerdatei prüft
+beides: kein `img`, keine Anfrage nach außen, ein `path` in der Kopfzeile.
 
 Der Schriftzug ist **Text, kein Pfad**: markierbar, vorlesbar, übersetzbar. Das
-Signet daneben trägt `aria-hidden`; nur wenn es allein steht, bekommt es
-`role="img"` und einen Namen.
+Signet daneben trägt `aria-hidden`; nur wenn es allein steht – als Datei oder
+ohne Beschriftung –, bekommt es `role="img"` und den Namen „LexiFlow“.
 
 | Datei | Zweck |
 | --- | --- |
-| `public/favicon.svg` | Browser-Tab, dieselbe Geometrie als vier `rect` und ein `path` |
+| `public/favicon.svg` | Browser-Tab – dieselbe Form als drei `path` auf einer Aubergine-Kachel |
+| `public/lexiflow-mark-on-aubergine.svg` | Zeichen für dunkle Flächen |
+| `public/lexiflow-mark-on-parchment.svg` | Zeichen für helle Flächen |
 | `public/icons/icon-192.png` | Startbildschirm |
 | `public/icons/icon-512.png` | Startbildschirm, hohe Auflösung |
 | `public/icons/icon-512-maskable.png` | maskierbar – Zeichen auf 56 %, randlos |
@@ -2349,13 +2445,14 @@ Die maskierbare Fassung ist bewusst eine eigene Datei: Dieselbe Grafik für `any
 und `maskable` hätte das Zeichen beim Ausstanzen beschnitten.
 
 Produktname, Theme-Farbe und Manifest liegen in `src/pwa/manifest.ts` – Build
-und Tests lesen dasselbe Objekt. Theme-Farbe ist Aubergine (`#3b0f3f`, die
+und Tests lesen dasselbe Objekt. Theme-Farbe ist Aubergine (`#2f092d`, die
 Navigationsfarbe, die auf dem Telefon unter der Statusleiste liegt),
 Hintergrundfarbe das Papier (`#f8efe3`). Der Titel lautet überall
-„LexiFlow – Vokabeln lernen“. Die abgelegten Farben der beiden Vorgängersysteme
-(`#1f4d6b`, `#1c4f6e`, `#8fc4e2`, `#f6f7f9`, `#14120f`, `#e2542a`, `#c3d63a`)
-stehen als `RETIRED_BRAND_COLORS` im Manifest-Modul, damit ein Test sie überall
-ausschließen kann.
+„LexiFlow – Vokabeln lernen“. Die drei gültigen Töne stehen dort als
+`BRAND_COLORS`, die abgelegten als `RETIRED_BRAND_COLORS` – die beiden
+Vorgängersysteme (`#1f4d6b`, `#1c4f6e`, `#8fc4e2`, `#f6f7f9`, `#14120f`,
+`#e2542a`, `#c3d63a`) und seit 4B.1c auch `#3b0f3f`, `#e63946`, `#ff8a3d`,
+`#2b0c2b`, `#faefe2` und `#f6ece1`. Ein Test schließt sie überall aus.
 
 ### Typografie – und die Satoshi-Lizenzfrage
 
@@ -2417,7 +2514,8 @@ dass keine Satoshi-Datei angefragt wird oder in der Auslieferung liegt.
 
 * **Desktop (ab 62 rem):** eine Aubergine-Seitenspalte mit Wortmarke im Kopf und
   den drei Kernbereichen **Lernen**, **Erstellen**, **Daten**. Der aktive
-  Eintrag ist heller hinterlegt **und** trägt einen Orange-Marker.
+  Eintrag ist heller hinterlegt, trägt einen Tomato-Marker **und**
+  `aria-current` – drei Zeichen, von denen nur eines Farbe ist.
 * **Mobil:** ein Aubergine-Kopf oben und eine sticky Leiste am unteren Rand mit
   denselben drei Bereichen, mindestens 44 × 44 px je Ziel und
   `safe-area-inset-bottom` berücksichtigt.
@@ -2435,8 +2533,10 @@ Kommentar an Ort und Stelle abgesichert:
 * **Kandidatenprüfung.** Ausgewählte Zeilen trugen die weiche Akzentfläche;
   weil eine frisch analysierte Vokabel noch keine deutsche Antwort hat, stand
   darunter jedes Mal eine rote Fehlermeldung. Heute: Auswahl = normales Papier
-  mit **Orange-Kante**, nicht ausgewählt = abgesenkte Fläche mit gedämpftem
-  Titel. Rot bleibt dem vorbehalten, was wirklich ein Fehler ist.
+  mit **Aubergine-Kante**, nicht ausgewählt = abgesenkte Fläche mit gedämpftem
+  Titel. Rot bleibt dem vorbehalten, was wirklich ein Fehler ist. (Bis 4B.1b war
+  diese Kante Orange; beim Wegfall der vierten Farbe wäre Tomato die
+  naheliegende Nachfolgerin gewesen – und genau der hier beschriebene Fehler.)
 * **Leitner-Fächer.** Leere Fächer mit Akzentrand sahen aus wie ein roter Strich
   quer durch den Lernstand. Ein leeres Fach ist kein Fehler – der Rand ist
   wieder ruhig.

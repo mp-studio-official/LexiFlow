@@ -1,13 +1,25 @@
 /* ===========================================================================
-   LexiFlow Designsystem (Sprint 4A.1c)
+   LexiFlow Designsystem (Sprint 4A.1c, Palette seit 4B.1c)
    ===========================================================================
 
-   Vier Markenfarben, unverändert als Basistöne:
+   **Drei** Markenfarben. Mehr gibt es nicht:
 
-     Aubergine   #3B0F3F   Tiefe, Navigation, primäre Aktion
-     Tomato      #E63946   Energie, Akzent, große Displaymomente
-     Orange      #FF8A3D   Wärme, Marker, Verlaufsakzente
+     Aubergine   #2F092D   Tinte, Tiefe, Navigation, primäre Aktion
+     Tomato      #FF2E2D   Energie, Akzent, Marker
      Parchment   #F8EFE3   warmes Papier als Grundfläche
+
+   Orange ist mit Sprint 4B.1c **vollständig entfallen**. Es war die vierte
+   Farbe und trug zwei Aufgaben: den Marker in der dunklen Navigation und die
+   „hier steht etwas Zusätzliches“-Kante auf hellen Flächen. Die erste hat
+   Tomato übernommen, die zweite Aubergine – dieselbe Farbe, die schon den
+   ruhigen Hinweis trägt. Rot bleibt damit dem vorbehalten, was wirklich ein
+   Fehler ist.
+
+   Alles Weitere in dieser Datei ist entweder eine **nachvollziehbare
+   Ableitung** dieser drei (jede mit ihrer Mischung im Kommentar), eine neutrale
+   Papierfläche oder eine semantische Farbe für Erfolg, Warnung und Fehler.
+   Semantik ist keine Marke: Grün heißt gut und Rot heißt kaputt, unabhängig
+   davon, welche Töne das Logo trägt.
 
    Die Haltung dahinter: LexiFlow ist das unkomplizierte Bindeglied zwischen
    Unterricht und selbstständigem Lernen – hochwertig und aktivierend, aber
@@ -18,18 +30,19 @@
 
    Gemessen (WCAG-Kontrastverhältnis), nicht geschätzt:
 
-     Weiß auf Tomato          4,17 : 1   → **reicht nicht** für kleinen Text
-     Weiß auf Orange          2,35 : 1   → nur als Fläche unter dunkler Tinte
-     Parchment auf Aubergine 13,91 : 1   → der primäre Knopf
-     Aubergine auf Orange     7,56 : 1   → Orange trägt dunkle Tinte, nicht helle
+     Parchment auf Aubergine 15,40 : 1   → der primäre Knopf, die Navigation
+     Aubergine auf Parchment 15,40 : 1   → Fließtext
+     Weiß auf Tomato          3,70 : 1   → **reicht nicht** für kleinen Text
+     Tomato auf Parchment     3,25 : 1   → Grafik und Kanten, **kein** Text
+     Tomato auf Aubergine     4,74 : 1   → trägt auch normalen Navigationstext
 
    Daraus die Regeln, die dieses System durchhält:
 
    1. **Primäre Aktion ist Aubergine**, nicht Tomato. Helle Schrift auf Tomato
       wäre eine hübsche Lüge.
-   2. **Tomato und Orange sind Flächen- und Grafikfarben.** Als Text erscheinen
-      nur ihre dunklen Ableitungen (`--accent-ink`, `--warm-ink`), die auf
-      Papier über 5,8 : 1 liegen.
+   2. **Tomato ist auf Papier eine Flächen- und Grafikfarbe.** Als Text
+      erscheint dort nur die dunkle Ableitung `--accent-ink` (5,87 : 1). Auf
+      Aubergine darf Tomato dagegen auch normaler Text sein.
    3. Farbe trägt nie allein eine Information – jeder Zustand hat ein Wort,
       ein Symbol oder eine Form neben sich.
 
@@ -45,10 +58,9 @@
   color-scheme: light;
 
   /* ------------------------------------------------------- Markenfarben */
-  /* Diese vier bleiben unverändert. Alles Weitere leitet sich daraus ab. */
-  --brand-aubergine: #3b0f3f;
-  --brand-tomato: #e63946;
-  --brand-orange: #ff8a3d;
+  /* Diese drei sind die Marke. Alles Weitere leitet sich daraus ab. */
+  --brand-aubergine: #2f092d;
+  --brand-tomato: #ff2e2d;
   --brand-parchment: #f8efe3;
 
   /* ---------------------------------------------------------- Typografie */
@@ -101,37 +113,54 @@
   --surface-sunken: #f0e4d4;
 
   /* ---------------------------------------------------------- Tinte */
-  /* Kein Schwarz: Die Tinte ist ein sehr dunkler Aubergine-Ton – 15,6 : 1 auf
-     Papier und dadurch mit der Navigation verwandt. */
-  --ink: #2a0b2d;
-  --ink-secondary: #5a4a5c;
-  --ink-muted: #6e5f70;
+  /*
+    Kein Schwarz: Die Tinte **ist** Aubergine. Bis 4B.1b stand hier ein eigener,
+    etwas dunklerer Ton – bei der neuen, ohnehin sehr tiefen Aubergine wäre das
+    eine vierte Farbe ohne Wirkung. 15,40 : 1 auf Papier.
+  */
+  --ink: var(--brand-aubergine);
+  /* Aubergine 72 % über Parchment – 6,84 : 1 auf Papier. */
+  --ink-secondary: #674960;
+  /*
+    Aubergine 67 % über Parchment – 5,75 : 1 auf Papier, 5,23 : 1 abgesenkt und
+    4,69 : 1 auf der Hinweisfläche. Der letzte Wert gibt den Ausschlag: Seit
+    4B.1c liegt der Wörterbuchvorschlag auf `--info-soft`, und dort steht
+    gedämpfte Kleinschrift.
+  */
+  --ink-muted: #715569;
   --ink-inverse: var(--brand-parchment);
 
   /* ----------------------------------------------------- Navigation */
   --nav: var(--brand-aubergine);
   --nav-ink: var(--brand-parchment);
-  --nav-ink-muted: #cdb6cf;
-  --nav-active-surface: #55175a;
-  /* Der aktive Eintrag trägt zusätzlich einen Orange-Marker – Farbe allein
-     entscheidet nie. */
-  --nav-marker: var(--brand-orange);
+  /* Parchment 70 % über Aubergine – 7,92 : 1 auf der Navigation. */
+  --nav-ink-muted: #bcaaac;
+  /* Aubergine 88 % über Parchment – trägt Parchment mit 11,43 : 1. */
+  --nav-active-surface: #472543;
+  /*
+    Der aktive Eintrag trägt zusätzlich einen Tomato-Marker (4,74 : 1 auf
+    Aubergine, als Grafik verlangt sind 3 : 1). Er ist ein **zusätzliches**
+    Zeichen neben Fläche und `aria-current` – Farbe allein entscheidet nie.
+  */
+  --nav-marker: var(--brand-tomato);
 
   /* ------------------------------------------------- Primäre Aktion */
   --primary: var(--brand-aubergine);
-  --primary-hover: #521657;
+  /* Aubergine 86 % über Parchment – trägt Parchment mit 10,82 : 1. */
+  --primary-hover: #4b2946;
   --primary-ink: var(--brand-parchment);
 
   /* ----------------------------------------------------- Akzentfarben */
-  /* Tomato als Fläche und Grafik; `--accent-ink` ist der textsichere Ton. */
+  /*
+    Tomato als Fläche und Grafik; `--accent-ink` ist der textsichere Ton.
+    Auf Papier erreicht Tomato selbst nur 3,25 : 1 – genug für eine Kante,
+    zu wenig für Schrift.
+  */
   --accent: var(--brand-tomato);
-  --accent-hover: #cf333f;
-  --accent-ink: #ad2b35;
-  --accent-soft: #fbe4e5;
-  /* Orange wärmt und markiert; getragen wird darauf immer dunkle Tinte. */
-  --warm: var(--brand-orange);
-  --warm-ink: #8c4c22;
-  --warm-soft: #ffeedf;
+  /* Tomato 70 % über Schwarz – 5,87 : 1 auf Papier. */
+  --accent-ink: #b3201f;
+  /* Tomato 10 % über Parchment – trägt `--accent-ink` mit 5,15 : 1. */
+  --accent-soft: #f9dcd1;
 
   /* -------------------------------------------------------- Ränder */
   --divider: #f0e4d4;
@@ -148,8 +177,15 @@
     gleich aus. Ruhig informieren und alarmieren sind zwei verschiedene Dinge,
     also sind es hier auch zwei verschiedene Farbfamilien.
   */
-  --info: #3b0f3f;
-  --info-soft: #f2e8f2;
+  /*
+    Seit 4B.1c trägt Aubergine zusätzlich die Marker-Rolle, die vorher Orange
+    hatte: die Kante an einer ausgewählten Zeile und am Wörterbuchvorschlag.
+    Beides heißt „hier steht etwas Zusätzliches“ – und genau das ist ein
+    Hinweis.
+  */
+  --info: var(--brand-aubergine);
+  /* Aubergine 10 % über Parchment – trägt Aubergine mit 12,56 : 1. */
+  --info-soft: #e4d8d1;
   --success: #17624a;
   --success-soft: #e4f0ea;
   --warning: #8c4c22;
@@ -180,11 +216,12 @@
   --radius-pill: 999px;
 
   /* --------------------------------------------------------- Schatten */
-  /* Dezent und warm getönt – die Karten liegen auf Papier, nicht auf Glas. */
-  --shadow-1: 0 1px 2px rgb(59 15 63 / 5%);
-  --shadow-2: 0 2px 6px rgb(59 15 63 / 6%), 0 18px 36px -26px rgb(59 15 63 / 34%);
-  --shadow-3: 0 4px 10px rgb(59 15 63 / 7%), 0 28px 56px -32px rgb(59 15 63 / 40%);
-  --shadow-nav: 0 -1px 0 rgb(59 15 63 / 12%), 0 -10px 26px -22px rgb(59 15 63 / 55%);
+  /* Dezent und warm getönt – die Karten liegen auf Papier, nicht auf Glas.
+     `rgb(47 9 45 / …)` ist Aubergine, transparent. */
+  --shadow-1: 0 1px 2px rgb(47 9 45 / 5%);
+  --shadow-2: 0 2px 6px rgb(47 9 45 / 6%), 0 18px 36px -26px rgb(47 9 45 / 34%);
+  --shadow-3: 0 4px 10px rgb(47 9 45 / 7%), 0 28px 56px -32px rgb(47 9 45 / 40%);
+  --shadow-nav: 0 -1px 0 rgb(47 9 45 / 12%), 0 -10px 26px -22px rgb(47 9 45 / 55%);
 
   /* ---------------------------------------------------------- Layout */
   --width-content: 76rem;
@@ -199,7 +236,9 @@
 
   /* ------------------------------------------------------------ Fokus */
   --focus-ring: var(--brand-aubergine);
-  --focus-ring-on-dark: var(--brand-orange);
+  /* Auf Aubergine erreicht Tomato 4,74 : 1 – deutlich über den 3 : 1, die ein
+     Fokusring braucht, und es bleibt eine Markenfarbe. */
+  --focus-ring-on-dark: var(--brand-tomato);
   --focus-width: 2px;
   --focus-offset: 2px;
 

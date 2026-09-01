@@ -4,6 +4,13 @@ import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Logo, LogoAppIcon, LogoMark } from './Logo';
+import {
+  LOGO_ASPECT,
+  LOGO_LAYERS,
+  LOGO_SHAPES,
+  LOGO_VARIANTS,
+  LOGO_VIEWBOX,
+} from './logoPaths';
 import { AppShell } from './AppShell';
 import { StudentShell } from '../portable/StudentShell';
 import {
@@ -13,7 +20,8 @@ import {
   BRAND_ACCENT,
   BRAND_CANVAS,
   BRAND_INK,
-  BRAND_WARM,
+  BRAND_COLORS,
+  RETIRED_BRAND_COLORS,
   buildManifest,
 } from '../pwa/manifest';
 
@@ -65,7 +73,19 @@ describe('Wortmarke und Signet', () => {
     const svg = container.querySelector('svg');
 
     expect(svg).toHaveAttribute('aria-hidden', 'true');
-    expect(svg).toHaveAttribute('viewBox', '0 0 64 64');
+    expect(svg).toHaveAttribute('viewBox', LOGO_VIEWBOX);
+  });
+
+  it('nutzt die Höhe als Maß und lässt die Breite folgen', () => {
+    /*
+      Das Zeichen ist hochkant. Es in ein Quadrat zu zwingen hieße entweder
+      verzerren oder beschneiden – beides wäre eine Änderung an der Marke.
+    */
+    const { container } = render(<LogoMark size={40} />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('height', '40');
+    expect(svg).toHaveAttribute('width', String(Math.round(40 * LOGO_ASPECT)));
+    expect(Number(svg?.getAttribute('width'))).toBeLessThan(40);
   });
 
   it('bekommt einen Namen, sobald es allein steht', () => {
@@ -90,14 +110,78 @@ describe('Wortmarke und Signet', () => {
     const html = container.innerHTML;
 
     expect(html).toContain('currentColor');
-    for (const color of ['#3B0F3F', '#E63946', '#FF8A3D']) {
+    for (const color of ['#2F092D', '#FF2E2D', '#F8EFE3']) {
       expect(html).not.toContain(color);
     }
   });
 
-  it('nutzt in der hellen Fassung Parchment für die tragende Fläche', () => {
+  it('nutzt auf Aubergine die Variante für Aubergine-Hintergrund', () => {
+    /*
+      Die tragende Fläche muss dort **Parchment** sein. Nähme man die helle
+      Variante, läge Aubergine auf Aubergine und das Zeichen verschwände zur
+      Hälfte.
+    */
     const { container } = render(<LogoMark tone="on-dark" />);
-    expect(container.innerHTML).toContain('#F8EFE3');
+    const fills = [...container.innerHTML.matchAll(/fill="(#[0-9A-Fa-f]{6})"/g)].map((h) => h[1]);
+    expect(fills).toEqual([
+      LOGO_VARIANTS.onAubergine.back,
+      LOGO_VARIANTS.onAubergine.front,
+      LOGO_VARIANTS.onAubergine.inner,
+    ]);
+  });
+
+  it('nutzt auf hellen Flächen die Variante für Parchment-Hintergrund', () => {
+    const { container } = render(<LogoMark tone="brand" />);
+    const fills = [...container.innerHTML.matchAll(/fill="(#[0-9A-Fa-f]{6})"/g)].map((h) => h[1]);
+    expect(fills).toEqual([
+      LOGO_VARIANTS.onParchment.back,
+      LOGO_VARIANTS.onParchment.front,
+      LOGO_VARIANTS.onParchment.inner,
+    ]);
+  });
+
+  it('zeigt dieselbe Form wie die ausgelieferten Assets', () => {
+    // Kein zweiter Satz Pfade: Komponente und Datei lesen `logoPaths.ts`.
+    const { container } = render(<LogoMark />);
+    for (const layer of LOGO_LAYERS) {
+      expect(container.innerHTML).toContain(LOGO_SHAPES[layer].d);
+    }
+  });
+});
+
+describe('Die dunkle Hülle trägt die Aubergine-Variante', () => {
+  it.each(['lehrkraft', 'schueler'] as const)('in der %s-Hülle', (shell) => {
+    /*
+      Beide Hüllen haben eine Aubergine-Kopfzeile. Die helle Variante dort wäre
+      nicht bloß hässlich – ihre hintere Fläche ist Aubergine und läge damit
+      unsichtbar auf dem Untergrund.
+    */
+    renderShell(shell);
+    const brand = screen.getByRole('link', { name: /LexiFlow/ });
+    const fills = [...(brand.innerHTML.matchAll(/fill="(#[0-9A-Fa-f]{6})"/g))].map((h) => h[1]);
+    /*
+      Beide Varianten enthalten alle drei Farben – der Unterschied ist die
+      Reihenfolge. Geprüft wird deshalb das Tripel, nicht das Vorkommen.
+    */
+    expect(fills).toEqual([
+      LOGO_VARIANTS.onAubergine.back,
+      LOGO_VARIANTS.onAubergine.front,
+      LOGO_VARIANTS.onAubergine.inner,
+    ]);
+    expect(fills[0]).not.toBe(LOGO_VARIANTS.onParchment.back);
+  });
+
+  it('lädt das Zeichen nicht als externe Datei', () => {
+    /*
+      Entscheidend für die portablen Einzeldateien: Ein `<img src="…svg">`
+      wäre offline und unter `file://` ein leerer Kasten. Das Zeichen steht
+      deshalb als Pfad im Dokument.
+    */
+    renderShell('schueler');
+    const brand = screen.getByRole('link', { name: /LexiFlow/ });
+    expect(brand.querySelector('img')).toBeNull();
+    expect(brand.innerHTML).not.toContain('.svg');
+    expect(brand.querySelector('svg path')).not.toBeNull();
   });
 });
 
@@ -169,10 +253,11 @@ describe('PWA-Identität', () => {
   });
 
   it('nutzt die Markenfarben', () => {
-    expect(BRAND_INK).toBe('#3b0f3f');
+    expect(BRAND_INK).toBe('#2f092d');
     expect(BRAND_CANVAS).toBe('#f8efe3');
-    expect(BRAND_ACCENT).toBe('#e63946');
-    expect(BRAND_WARM).toBe('#ff8a3d');
+    expect(BRAND_ACCENT).toBe('#ff2e2d');
+    // Genau drei – eine vierte Markenfarbe gibt es seit 4B.1c nicht mehr.
+    expect(BRAND_COLORS).toEqual(['#2f092d', '#ff2e2d', '#f8efe3']);
     // Die Statusleiste trägt die Navigationsfarbe, nicht das Papier.
     expect(manifest.theme_color).toBe(BRAND_INK);
     expect(manifest.background_color).toBe(BRAND_CANVAS);
@@ -195,9 +280,13 @@ describe('PWA-Identität', () => {
   it('zeigt im Favicon dieselbe Geometrie wie das Signet', () => {
     const favicon = readFileSync(resolve(root, 'public/favicon.svg'), 'utf8');
 
-    expect(favicon).toContain('#3B0F3F');
-    expect(favicon).toContain('#E63946');
-    expect(favicon).toContain('#FF8A3D');
+    expect(favicon).toContain('#2F092D');
+    expect(favicon).toContain('#FF2E2D');
+    expect(favicon).toContain('#F8EFE3');
     expect(favicon).not.toContain('<image');
+    // Und keine abgelegte Farbe – Orange zuallererst.
+    for (const retired of RETIRED_BRAND_COLORS) {
+      expect(favicon.toLowerCase(), retired).not.toContain(retired);
+    }
   });
 });

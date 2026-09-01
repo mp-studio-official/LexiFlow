@@ -12,19 +12,34 @@
 /** Warmes Papier – identisch mit `--canvas` / Parchment. */
 export const BRAND_CANVAS = '#f8efe3';
 
-/** Aubergine – Navigation, primäre Aktion und Markenfläche. */
-export const BRAND_INK = '#3b0f3f';
+/** Aubergine – Tinte, Navigation, primäre Aktion und Markenfläche. */
+export const BRAND_INK = '#2f092d';
 
 /** Tomato – die Akzentfarbe der Marke. */
-export const BRAND_ACCENT = '#e63946';
+export const BRAND_ACCENT = '#ff2e2d';
 
-/** Orange – der warme Marker. */
-export const BRAND_WARM = '#ff8a3d';
+/**
+ * Die Marke besteht aus **diesen dreien**. Mehr gibt es nicht.
+ *
+ * Der Test in `branding.test.ts` prüft die ausgelieferten Dateien gegen genau
+ * diese Liste – eine vierte Markenfarbe müsste erst hier stehen, bevor sie
+ * irgendwo erscheinen kann.
+ */
+export const BRAND_COLORS = [BRAND_INK, BRAND_ACCENT, BRAND_CANVAS] as const;
 
 /**
  * Farben, die es in dieser App nicht mehr geben darf.
+ *
  * `#1f4d6b` und Verwandte stammen aus der Fassung vor „Editorial Signal“,
- * `#14120f`/`#e2542a` aus der Fassung davor (Sprint 3A bis 4A.1b).
+ * `#14120f`/`#e2542a` aus der Fassung davor (Sprint 3A bis 4A.1b). Mit
+ * Sprint 4B.1c kommen die Töne der zweiten Editorial-Fassung dazu: die alte
+ * Aubergine `#3b0f3f`, die alte Tomato `#e63946`, das ganz entfallene Orange
+ * `#ff8a3d` und die beiden Parchment-Abweichungen `#faefe2` und `#f6ece1` aus
+ * den gelieferten Logodateien.
+ *
+ * `#2b0c2b` stand nie in diesem Projekt; es steht hier, weil es in der
+ * Markenanweisung als überholter Wert genannt wurde und der Test dann auch
+ * beweisen kann, dass es nicht hereinkommt.
  */
 export const RETIRED_BRAND_COLORS = [
   '#1f4d6b',
@@ -34,6 +49,12 @@ export const RETIRED_BRAND_COLORS = [
   '#14120f',
   '#e2542a',
   '#c3d63a',
+  '#3b0f3f',
+  '#e63946',
+  '#ff8a3d',
+  '#2b0c2b',
+  '#faefe2',
+  '#f6ece1',
 ] as const;
 
 /**

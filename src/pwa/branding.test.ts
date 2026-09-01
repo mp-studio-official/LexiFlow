@@ -8,6 +8,7 @@ import {
   APP_SHORT_NAME,
   BRAND_ACCENT,
   BRAND_CANVAS,
+  BRAND_COLORS,
   BRAND_INK,
   PWA_ASSETS,
   RETIRED_BRAND_COLORS,
@@ -54,7 +55,23 @@ describe('Markenfarben', () => {
   });
 
   it('hat die alten Markenfarben vollständig abgelegt', () => {
-    const files = ['index.html', 'public/favicon.svg', 'src/styles/tokens.css', 'src/styles/global.css'];
+    /*
+      `student.html` stand bis 4B.1c **nicht** in dieser Liste – und trug
+      deshalb als einzige Datei noch die alte Theme-Farbe, sichtbar erst in der
+      exportierten Schülerdatei. Eine zweite Einstiegsdatei ist leicht zu
+      übersehen; die Liste ist es jetzt nicht mehr.
+    */
+    const files = [
+      'index.html',
+      'student.html',
+      'public/favicon.svg',
+      'public/lexiflow-mark-on-aubergine.svg',
+      'public/lexiflow-mark-on-parchment.svg',
+      'src/styles/tokens.css',
+      'src/styles/global.css',
+      'src/ui/Logo.tsx',
+      'src/ui/logoPaths.ts',
+    ];
 
     for (const file of files) {
       const content = readText(file).toLowerCase();
@@ -75,9 +92,18 @@ describe('Markenfarben', () => {
 describe('index.html', () => {
   const html = readText('index.html');
 
-  it('setzt die Theme-Farbe auf die Navigationsfarbe der Marke', () => {
-    // Die Statusleiste sitzt über der Kopfzeile – und die ist Aubergine.
-    expect(html).toContain(`<meta name="theme-color" content="${BRAND_INK}" />`);
+  it('setzt die Theme-Farbe auf die Navigationsfarbe – in beiden Einstiegsdateien', () => {
+    /*
+      Die Statusleiste sitzt über der Kopfzeile, und die ist Aubergine.
+      `student.html` steht hier mit, weil die Schülerlaufzeit ihre eigene
+      Einstiegsdatei hat: Bis 4B.1c prüfte dieser Test nur `index.html`, und
+      die alte Theme-Farbe überlebte genau dort.
+    */
+    for (const file of ['index.html', 'student.html']) {
+      expect(readText(file), file).toContain(
+        `<meta name="theme-color" content="${BRAND_INK}" />`,
+      );
+    }
   });
 
   it('legt sich auf das helle Schema fest', () => {
@@ -104,22 +130,24 @@ describe('index.html', () => {
 describe('Markenmarker', () => {
   const svg = readText('public/favicon.svg');
 
-  it('besteht aus Aubergine, Parchment, Tomato und einem Orange-Akzent', () => {
+  it('besteht aus genau den drei Markenfarben', () => {
     const lower = svg.toLowerCase();
     expect(lower).toContain(BRAND_INK);
     expect(lower).toContain(BRAND_CANVAS);
     expect(lower).toContain(BRAND_ACCENT);
-    expect(lower).toContain('#ff8a3d');
+    // Und aus keiner weiteren: Jeder Füllwert ist eine der drei.
+    const fills = [...svg.matchAll(/fill="(#[0-9A-Fa-f]{6})"/g)].map((hit) => hit[1]?.toLowerCase());
+    expect(new Set(fills)).toEqual(new Set(BRAND_COLORS));
   });
 
   it('bleibt reduziert – kein Buch, keine Karteikarte, kein Emoji', () => {
     /*
-      Vier Flächen plus die Kachel: hintere Liste, vordere Karte (das einzige
-      `path`, weil sie ein Trapez ist), Durchblick und Öffnungskante. Mehr
-      wäre bei 16 px ohnehin nicht mehr erkennbar.
+      Seit 4B.1c trägt das Favicon die gelieferte Form: drei Pfade – hinteres
+      Element, vordere gekippte Fläche, Durchblick – auf **einer** Kachel.
+      Mehr wäre bei 16 px ohnehin nicht mehr erkennbar.
     */
-    expect(svg.match(/<rect/g)).toHaveLength(4);
-    expect(svg.match(/<path/g)).toHaveLength(1);
+    expect(svg.match(/<rect/g)).toHaveLength(1);
+    expect(svg.match(/<path/g)).toHaveLength(3);
     expect(svg).not.toMatch(/<image|<text/);
     // Keine Emoji-Ebenen (alles außerhalb von Latin-1 wäre hier verdächtig).
     expect(svg).not.toMatch(/[\u{1F000}-\u{1FAFF}]/u);

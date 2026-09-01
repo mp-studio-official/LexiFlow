@@ -243,6 +243,31 @@ test.describe('Portable Lehrkraftdatei', () => {
 });
 
 test.describe('Exportierte Schülerdatei', () => {
+  test('@smoke trägt das Logo als Pfad, nicht als Datei', async ({ page }) => {
+    /*
+      Sprint 4B.1c: Ein `<img src="lexiflow-mark-….svg">` wäre unter `file://`
+      ein leerer Kasten – die Datei liegt nirgends neben der Einzeldatei. Das
+      Zeichen steht deshalb als Pfad im Dokument, und die Prüfung sieht beides:
+      keine Anfrage nach außen und ein `path` in der Kopfzeile.
+    */
+    const external = watchExternalRequests(page);
+    const fileUrl = await exportStudentFile(page);
+    await page.goto(fileUrl);
+
+    const marke = page.getByRole('link', { name: /LexiFlow/ }).first();
+    await expect(marke.locator('svg path').first()).toBeAttached();
+    expect(await marke.locator('img').count()).toBe(0);
+
+    const html = await page.content();
+    expect(html).not.toContain('lexiflow-mark-on-aubergine.svg');
+    expect(html).not.toContain('lexiflow-mark-on-parchment.svg');
+    expect(html).toContain('#F8EFE3');
+    for (const alt of ['#ff8a3d', '#e63946', '#3b0f3f']) {
+      expect(html.toLowerCase(), `Schülerdatei enthält noch ${alt}`).not.toContain(alt);
+    }
+    expect(external).toEqual([]);
+  });
+
   test('@smoke enthält kein Wörterbuch', async ({ page }) => {
     const fileUrl = await exportStudentFile(page);
     const html = readFileSync(fileURLToPath(fileUrl), 'utf8');

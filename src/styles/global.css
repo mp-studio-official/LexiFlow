@@ -459,19 +459,22 @@ a {
 }
 
 /*
-  Ein einzelner Signalstrich unter der Schlagzeile – der Ort, an dem Tomato
-  und Orange als reine Grafik nebeneinander stehen dürfen. Als Fläche ohne
-  Text braucht er keine Textkontraste, nur 3 : 1 gegen Papier (Tomato: 3,66).
+  Ein einzelner Signalstrich unter der Schlagzeile – der Ort, an dem die beiden
+  Signalfarben der Marke als reine Grafik ineinander laufen. Bis 4B.1b war das
+  Tomato → Orange; seit dem Wegfall von Orange ist es Tomato → Aubergine, also
+  ein Verlauf von der hellsten zur tiefsten Markenfarbe. Als Fläche ohne Text
+  braucht er keine Textkontraste, nur 3 : 1 gegen Papier (Tomato: 3,25 – und
+  Aubergine 15,40).
 */
 .rule {
   height: 4px;
   width: 4.5rem;
   border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--accent) 0%, var(--warm) 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--brand-aubergine) 100%);
   margin-bottom: var(--space-5);
 }
 .rule--signal {
-  background: var(--warm);
+  background: var(--accent);
 }
 
 /*
@@ -916,7 +919,7 @@ input[type='file'] {
 select {
   appearance: none;
   padding-right: 2.2rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%233b0f3f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%232f092d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.8rem center;
   background-size: 0.7rem auto;
@@ -1151,15 +1154,19 @@ td input[type='text'] {
   Mal eine rote Fehlermeldung. Sechzehn rosa Kästen mit roter Schrift: Die
   ganze Seite las sich wie ein Schadensbericht, obwohl nichts kaputt war.
 
-  Jetzt trägt die Auswahl eine Kante in Orange – der Markerfarbe, die in der
-  Navigation dieselbe Aufgabe hat – auf normalem Papier. Nicht ausgewählte
-  Zeilen treten auf die abgesenkte Fläche zurück. Rot bleibt damit dem
-  vorbehalten, was wirklich ein Fehler ist.
+  Jetzt trägt die Auswahl eine Kante in Aubergine – derselben Farbe wie der
+  ruhige Hinweis – auf normalem Papier. Nicht ausgewählte Zeilen treten auf die
+  abgesenkte Fläche zurück. Rot bleibt damit dem vorbehalten, was wirklich ein
+  Fehler ist.
+
+  Bis 4B.1b war diese Kante Orange. Beim Wegfall der vierten Markenfarbe war
+  Tomato die naheliegende Nachfolgerin – und wäre genau in den Fehler
+  zurückgefallen, den dieser Absatz beschreibt: Tomato ist Rot.
 */
 .candidate:has(input[type='checkbox']:checked) {
   background: var(--surface);
   border-color: var(--border);
-  border-left: 4px solid var(--warm);
+  border-left: 4px solid var(--info);
   padding-left: calc(var(--space-4) - 3px);
 }
 .candidate:not(:has(input[type='checkbox']:checked)) {
@@ -1365,10 +1372,10 @@ progress {
 }
 
 /*
-  Der Fortschrittsbalken läuft von Tomato nach Orange – die beiden warmen
-  Markentöne als eine Bewegung, nicht als zwei Farben. Gegen das Papier
-  gemessen trägt der dunklere Anfang die Sichtbarkeit; der Rand hält den
-  Balken auch dann sichtbar, wenn er noch fast leer ist.
+  Der Fortschrittsbalken läuft von Tomato nach Aubergine – eine Bewegung, nicht
+  zwei Farben. Gegen das Papier gemessen trägt das dunklere Ende die
+  Sichtbarkeit; der Rand hält den Balken auch dann sichtbar, wenn er noch fast
+  leer ist.
 */
 .meter {
   height: 0.5rem;
@@ -1379,7 +1386,7 @@ progress {
 }
 .meter__fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--warm));
+  background: linear-gradient(90deg, var(--accent), var(--brand-aubergine));
   border-radius: inherit;
   transition: width var(--duration-base) var(--ease-out);
 }
@@ -2139,12 +2146,12 @@ progress {
 /*
  * Die Wörterbuchtreffer stehen unter der Zeile, zu der sie gehören – deutlich
  * abgesetzt vom Eingabefeld, damit niemand sie für die Antwort hält. Getragen
- * wird die Abgrenzung von der Orangekante, derselben Markerfarbe wie bei der
- * Auswahl: „hier steht etwas Zusätzliches“, nicht „hier ist ein Fehler“.
+ * wird die Abgrenzung von der Aubergine-Kante, derselben Markerfarbe wie bei
+ * der Auswahl: „hier steht etwas Zusätzliches“, nicht „hier ist ein Fehler“.
  */
 .dictionary {
-  border-left: 3px solid var(--warm);
-  background: var(--warm-soft);
+  border-left: 3px solid var(--info);
+  background: var(--info-soft);
   border-radius: 0 var(--radius-control) var(--radius-control) 0;
   padding: var(--space-2) var(--space-3);
   display: grid;

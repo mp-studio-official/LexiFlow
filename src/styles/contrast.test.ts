@@ -50,11 +50,30 @@ function ratio(foreground: string, background: string): number {
 }
 
 describe('Markenfarben', () => {
-  it('behält die vier Basistöne unverändert', () => {
-    expect(token('brand-aubergine')).toBe('#3b0f3f');
-    expect(token('brand-tomato')).toBe('#e63946');
-    expect(token('brand-orange')).toBe('#ff8a3d');
+  it('kennt genau drei Basistöne', () => {
+    expect(token('brand-aubergine')).toBe('#2f092d');
+    expect(token('brand-tomato')).toBe('#ff2e2d');
     expect(token('brand-parchment')).toBe('#f8efe3');
+  });
+
+  it('führt keine vierte Markenfarbe mehr', () => {
+    /*
+      Orange war die vierte Farbe und ist mit 4B.1c entfallen. Der Test steht
+      hier, damit sie nicht als `--brand-orange` zurückkehrt, während alle
+      anderen Prüfungen grün bleiben.
+    */
+    expect(() => token('brand-orange')).toThrow();
+    // Und mit ihr die abgeleiteten Wärmetöne.
+    expect(() => token('warm')).toThrow();
+    expect(() => token('warm-ink')).toThrow();
+    expect(() => token('warm-soft')).toThrow();
+
+    // Genau drei `--brand-…`-Token, nicht vier.
+    expect(css.match(/--brand-[a-z]+:/g)).toHaveLength(3);
+
+    for (const retired of ['#3b0f3f', '#e63946', '#ff8a3d', '#2b0c2b', '#faefe2', '#f6ece1']) {
+      expect(css.toLowerCase(), retired).not.toContain(retired);
+    }
   });
 
   it('leitet Flächen und Navigation aus ihnen ab', () => {
@@ -82,10 +101,17 @@ describe('Lesbarer Text (AA, 4,5 : 1)', () => {
     ['Primärer Knopf (Hover)', 'primary-ink', 'primary-hover'],
     ['Akzent als Text auf Papier', 'accent-ink', 'canvas'],
     ['Akzent auf weicher Akzentfläche', 'accent-ink', 'accent-soft'],
-    ['Orange als Text auf Papier', 'warm-ink', 'canvas'],
-    ['Orange auf weicher Orangefläche', 'warm-ink', 'warm-soft'],
-    ['Dunkle Tinte auf Orangefläche', 'ink', 'warm'],
+    ['Tomato als Text auf Aubergine', 'accent', 'nav'],
     ['Hinweis auf Hinweisfläche', 'info', 'info-soft'],
+    /*
+      Seit 4B.1c liegt der Wörterbuchvorschlag auf der Hinweisfläche – vorher
+      auf der weichen Orangefläche. Dort steht gedämpfte Kleinschrift, eine
+      Zweitschrift und der Akzent als Hover-Farbe; alle drei stehen hier.
+    */
+    ['Gedämpfte Schrift auf Hinweisfläche', 'ink-muted', 'info-soft'],
+    ['Zweitschrift auf Hinweisfläche', 'ink-secondary', 'info-soft'],
+    ['Akzent auf Hinweisfläche', 'accent-ink', 'info-soft'],
+    ['Warnung auf Hinweisfläche', 'warning', 'info-soft'],
     ['Fließtext auf Hinweisfläche', 'ink', 'info-soft'],
     ['Erfolg auf Papier', 'success', 'canvas'],
     ['Erfolg auf Erfolgsfläche', 'success', 'success-soft'],
@@ -104,7 +130,7 @@ describe('Bedienelemente und Grafik (3 : 1)', () => {
     ['Feldrand auf Papier', 'border-strong', 'canvas'],
     ['Feldrand auf Karte', 'border-strong', 'surface'],
     ['Akzentmarker auf Papier', 'accent', 'canvas'],
-    ['Orange-Marker auf Navigation', 'nav-marker', 'nav'],
+    ['Marker auf Navigation', 'nav-marker', 'nav'],
     ['Fokusring auf Papier', 'focus-ring', 'canvas'],
     ['Fokusring auf Navigation', 'focus-ring-on-dark', 'nav'],
   ];
@@ -125,8 +151,13 @@ describe('Kombinationen, die es nicht geben darf', () => {
     expect(contrast('#ffffff', token('accent'))).toBeLessThan(4.5);
   });
 
-  it('weiße Schrift auf voller Orange-Fläche bleibt unter 4,5 : 1', () => {
-    expect(contrast('#ffffff', token('warm'))).toBeLessThan(4.5);
+  it('Tomato als Text auf Papier bleibt unter 4,5 : 1', () => {
+    /*
+      3,25 : 1 – genug für eine Kante, zu wenig für Schrift. Auf Papier trägt
+      deshalb `--accent-ink`, nicht Tomato selbst.
+    */
+    expect(ratio('accent', 'canvas')).toBeLessThan(4.5);
+    expect(ratio('accent-ink', 'canvas')).toBeGreaterThanOrEqual(4.5);
   });
 });
 

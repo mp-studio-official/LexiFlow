@@ -216,9 +216,12 @@ describe('Gebaute Schülerdatei', () => {
   it('bringt das Markenzeichen als Vektor mit', () => {
     const html = build();
 
-    // Das Signet ist Code: vier Flächen in den Markenfarben, keine Bitmap.
-    expect(html).toContain('#3B0F3F');
-    expect(html).toContain('#E63946');
+    // Das Signet ist Code: drei Flächen in den Markenfarben, keine Bitmap.
+    expect(html).toContain('#2F092D');
+    expect(html).toContain('#FF2E2D');
+    // Und kein externes Logo: Die portable Datei lädt kein SVG nach.
+    expect(html).not.toMatch(/<img[^>]+\.svg/);
+    expect(html).not.toMatch(/url\((?!["']?data:)[^)]*\.svg/);
     expect(html).not.toContain('data:image/png');
     expect(html).not.toContain('data:image/jpeg');
     // Der Name steht als Text daneben und ist damit auch vorlesbar.

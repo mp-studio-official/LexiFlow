@@ -287,7 +287,7 @@ test.describe('PWA-Marke', () => {
     // Kopfdaten des Dokuments.
     await expect(page).toHaveTitle('LexiFlow – Vokabeln lernen');
     // Die Statusleiste trägt die Navigationsfarbe, nicht das Papier.
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#3b0f3f');
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#2f092d');
     await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute('content', 'light');
     await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /favicon\.svg$/);
 
@@ -306,7 +306,7 @@ test.describe('PWA-Marke', () => {
     };
 
     expect(manifest.name).toBe('LexiFlow – Vokabeln lernen');
-    expect(manifest.theme_color).toBe('#3b0f3f');
+    expect(manifest.theme_color).toBe('#2f092d');
     expect(manifest.background_color).toBe('#f8efe3');
     expect(manifest.lang).toBe('de');
     expect(manifest.description).toContain('Einfach ins Lernen kommen.');
@@ -338,14 +338,17 @@ test.describe('PWA-Marke', () => {
       expect(response.headers()['content-type']).toContain('image/png');
     }
 
-    // Und das Favicon selbst trägt Aubergine, Parchment, Tomato und Orange.
+    // Und das Favicon selbst trägt genau die drei Markenfarben.
     const favicon = await page.request.get(new URL('favicon.svg', page.url()).toString());
     expect(favicon.status()).toBe(200);
     const svg = await favicon.text();
-    for (const colour of ['#3B0F3F', '#F8EFE3', '#E63946', '#FF8A3D']) {
+    for (const colour of ['#2F092D', '#F8EFE3', '#FF2E2D']) {
       expect(svg).toContain(colour);
     }
-    for (const retired of ['#1f4d6b', '#1c4f6e', '#8fc4e2', '#14120f', '#e2542a', '#c3d63a']) {
+    for (const retired of [
+      '#1f4d6b', '#1c4f6e', '#8fc4e2', '#14120f', '#e2542a', '#c3d63a',
+      '#3b0f3f', '#e63946', '#ff8a3d', '#2b0c2b', '#faefe2', '#f6ece1',
+    ]) {
       expect(svg.toLowerCase()).not.toContain(retired);
     }
     // Ein Vektor, keine eingebettete Rasterdatei.
