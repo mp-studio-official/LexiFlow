@@ -130,26 +130,26 @@ function answerField(word: string): HTMLInputElement {
 describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   it('erscheinen ohne Zutun, auch ohne Sprachmodell', async () => {
     await setup();
-    expect(within(rowOf('Litter')).getByText('Müll')).toBeInTheDocument();
-    expect(within(rowOf('Litter')).getByText('Offline-Wörterbuch')).toBeInTheDocument();
+    expect(within(rowOf('litter')).getByText('Müll')).toBeInTheDocument();
+    expect(within(rowOf('litter')).getByText('Offline-Wörterbuch')).toBeInTheDocument();
   });
 
   it('tragen nichts von selbst ein', async () => {
     await setup();
     // Der Vorschlag steht daneben – das Antwortfeld bleibt leer.
-    expect(answerField('Litter').value).toBe('');
+    expect(answerField('litter').value).toBe('');
   });
 
   it('nennen Wortart und Genus', async () => {
     await setup();
-    const row = rowOf('Litter');
+    const row = rowOf('litter');
     expect(within(row).getByText('noun')).toBeInTheDocument();
     expect(within(row).getByText('(der)')).toBeInTheDocument();
   });
 
   it('füllen die Wortart der Zeile vor, wenn sie eindeutig ist', async () => {
     await setup();
-    expect(screen.getByLabelText('Wortart für „Litter“')).toHaveValue('noun');
+    expect(screen.getByLabelText('Wortart für „litter“')).toHaveValue('noun');
     expect(screen.getByLabelText('Wortart für „quiet“')).toHaveValue('adjective');
     // Ohne Treffer bleibt sie leer statt geraten.
     expect(screen.getByLabelText('Wortart für „crowded“')).toHaveValue('');
@@ -158,9 +158,9 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   it('übernehmen eine einzelne Bedeutung auf Klick', async () => {
     const { user } = await setup();
     await user.click(
-      screen.getByRole('button', { name: '„Müll“ als Antwort für Litter einsetzen' }),
+      screen.getByRole('button', { name: '„Müll“ als Antwort für litter einsetzen' }),
     );
-    expect(answerField('Litter').value).toBe('Müll');
+    expect(answerField('litter').value).toBe('Müll');
   });
 
   it('übernehmen auf Wunsch mehrere Bedeutungen einer Gruppe', async () => {
@@ -176,10 +176,10 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   it('lassen eine getippte Antwort unangetastet', async () => {
     const { user } = await setup();
 
-    await user.type(answerField('Litter'), 'Abfall');
+    await user.type(answerField('litter'), 'Abfall');
     await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
 
-    expect(answerField('Litter').value).toBe('Abfall');
+    expect(answerField('litter').value).toBe('Abfall');
   });
 
   it('kennzeichnen eine markierte Übersetzung sichtbar', async () => {
@@ -197,7 +197,7 @@ describe('Übersetzungsvorschläge eintragen', () => {
     await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
 
     // `litter`: eine Bedeutung, eine unmarkierte Übersetzung.
-    expect(answerField('Litter').value).toBe('Müll');
+    expect(answerField('litter').value).toBe('Müll');
     // `station`: zwei Entsprechungen **einer** Bedeutung – Alternativen.
     expect(answerField('station').value).toBe('Bahnhof, Station');
     // `neighbourhood`: zwei Bedeutungen. Über Bedeutungen hinweg wird nie
@@ -276,7 +276,11 @@ describe('Fehler führen zur Handeingabe, nicht zum Abbruch', () => {
 
     // Die anderen Zeilen bekommen ihren Vorschlag.
     expect(within(rowOf('station')).getByText('Bahnhof')).toBeInTheDocument();
-    // Die kaputte Zeile bleibt leer und tippbar.
+    /*
+      Die kaputte Zeile bleibt leer und tippbar – und behält die Schreibung des
+      Satzanfangs: Ohne Wörterbuchauskunft gibt es keinen Beleg dafür, dass
+      `Litter` kleingeschrieben gehört. Geraten wird nicht.
+    */
     await user.type(answerField('Litter'), 'Müll');
     expect(answerField('Litter').value).toBe('Müll');
   });
@@ -284,14 +288,20 @@ describe('Fehler führen zur Handeingabe, nicht zum Abbruch', () => {
   it('gibt die Auswahl unverändert weiter – Vorschläge sind keine Antworten', async () => {
     const { onApply, user } = await setup();
 
-    await user.type(answerField('Litter'), 'Müll');
+    await user.type(answerField('litter'), 'Müll');
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
     const selections = onApply.mock.calls.at(-1)?.[0] as CandidateSelection[];
     // Nur die beantwortete Zeile geht weiter.
     expect(selections).toHaveLength(1);
     const litter = selections[0];
-    expect(litter?.candidate.english).toBe('Litter');
+    /*
+      Kleingeschrieben: `Litter` steht im Text nur am Satzanfang, und das
+      Wörterbuch führt das Wort klein. Die Empfehlung normalisiert das, bevor
+      der Kandidat weitergereicht wird – sonst lernte jemand die Vokabel in der
+      Schreibung eines Satzanfangs.
+    */
+    expect(litter?.candidate.english).toBe('litter');
     expect(litter?.german).toBe('Müll');
     // Weder Schwierigkeitsgrad noch Thementags kommen aus dem Wörterbuch.
     expect(litter).not.toHaveProperty('difficulty');

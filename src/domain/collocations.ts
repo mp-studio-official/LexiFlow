@@ -27,6 +27,13 @@ import { ENGLISH_STOPWORDS } from './stopwords';
  * 5. **Kein Wort mit sich selbst.** „gamma gamma“ ist eine Wiederholung, kein
  *    Begriff – und in einer Aufzählung („red, red apples“) sogar häufig.
  *
+ * Von Regel 3 gibt es **eine** Ausnahme: ein *schweres* Paar. `manpower
+ * shortages` und `tacit admission` sind auch beim ersten Vorkommen erkennbar
+ * Fachbegriffe – zwei lange, gewichtige Wörter nebeneinander, von denen keines
+ * Alltagswortschatz ist. `young soldier` ist es nicht, `cold winter` auch
+ * nicht. Die Schwelle steht unten und ist bewusst hoch: Sie soll das offen
+ * Fachliche durchlassen und sonst nichts.
+ *
  * Rein und deterministisch: Text hinein, Begriffe heraus. Kein Modell, keine
  * Wortliste, kein Netz.
  */
@@ -36,6 +43,38 @@ export const MIN_COLLOCATION_OCCURRENCES = 2;
 
 /** Wie lang jeder Teil mindestens sein muss. */
 export const MIN_PART_LENGTH = 4;
+
+/**
+ * Wann ein Paar schon beim ersten Vorkommen als Begriff gilt.
+ *
+ * Beide Teile müssen mindestens `HEAVY_PART_LENGTH` Zeichen haben und zusammen
+ * mindestens `HEAVY_TOTAL_LENGTH`. Länge ist ein grobes Maß und hier das
+ * einzige, das ohne Wortartenerkennung zur Verfügung steht – aber es trennt
+ * `manpower shortages` (17) verlässlich von `young soldier` (12).
+ */
+export const HEAVY_PART_LENGTH = 5;
+export const HEAVY_TOTAL_LENGTH = 14;
+
+/**
+ * Alltagswörter, die ein Paar auch dann nicht schwer machen, wenn sie lang sind.
+ *
+ * Kurz gehalten wie überall in diesem Projekt: Es geht nur darum, `winter
+ * morning` und `letters home` nicht als Fachbegriff auszugeben.
+ */
+const EVERYDAY_PARTS = new Set([
+  'young', 'small', 'large', 'great', 'little', 'every', 'other', 'first',
+  'second', 'third', 'later', 'early', 'today', 'night', 'morning', 'evening',
+  'winter', 'summer', 'spring', 'autumn', 'letter', 'letters', 'mother',
+  'father', 'friend', 'house', 'water', 'people', 'children', 'school',
+  'street', 'quiet', 'wooden', 'weeks', 'month', 'years',
+]);
+
+/** Ist dieses Paar auch als Einzelfund ein Begriff? */
+export function isHeavyPair(left: string, right: string): boolean {
+  if (left.length < HEAVY_PART_LENGTH || right.length < HEAVY_PART_LENGTH) return false;
+  if (left.length + right.length < HEAVY_TOTAL_LENGTH) return false;
+  return !EVERYDAY_PARTS.has(left) && !EVERYDAY_PARTS.has(right);
+}
 
 export interface CollocationSource {
   /** Der Satz, exakt aus dem Quelltext. */
@@ -111,6 +150,23 @@ export function contentRuns(sentence: string): Part[][] {
 interface PairAccumulator extends Collocation {
   /** Alle Fundstellen – gebraucht, um Überlappungen aufzulösen. */
   positions: number[];
+  /** Wurde das Paar je mitten im Satz gesehen? Dann stimmt seine Schreibweise. */
+  seenMidSentence: boolean;
+}
+
+/**
+ * Ein Paar, das nur am Satzanfang stand, in Kleinschreibung zurückholen.
+ *
+ * `Archival research` beginnt im Text zweimal einen Satz und ist trotzdem kein
+ * Eigenname. Wer es so ins Paket übernimmt, lernt eine Vokabel mit falscher
+ * Schreibung. Angefasst wird nur der erste Buchstabe des ersten Teils – und
+ * auch der nur, wenn der Rest klein ist: `DNA sequencing` bleibt, wie es ist.
+ */
+export function normalizeSentenceStart(display: string): string {
+  const [first = '', ...rest] = display.split(' ');
+  const tail = first.slice(1);
+  if (!first || tail !== tail.toLowerCase()) return display;
+  return [first.charAt(0).toLowerCase() + tail, ...rest].join(' ');
 }
 
 /**
@@ -133,9 +189,16 @@ export function findCollocations(sentences: readonly CollocationSource[]): Collo
         const existing = pairs.get(normalized);
         const at = sentence.start + left.offset;
 
+        const midSentence = left.offset > 0;
+
         if (existing) {
           existing.occurrences += 1;
           existing.positions.push(at);
+          // Eine Fundstelle mitten im Satz zeigt die echte Schreibweise.
+          if (midSentence && !existing.seenMidSentence) {
+            existing.display = `${left.raw} ${right.raw}`;
+            existing.seenMidSentence = true;
+          }
           continue;
         }
         pairs.set(normalized, {
@@ -146,14 +209,18 @@ export function findCollocations(sentences: readonly CollocationSource[]): Collo
           sentenceIndex: sentence.index,
           sourceSentence: sentence.text,
           positions: [at],
+          seenMidSentence: midSentence,
         });
       }
     }
   }
 
-  const frequent = [...pairs.values()].filter(
-    (pair) => pair.occurrences >= MIN_COLLOCATION_OCCURRENCES,
-  );
+  const frequent = [...pairs.values()].filter((pair) => {
+    if (pair.occurrences >= MIN_COLLOCATION_OCCURRENCES) return true;
+    // Regel 3, Ausnahme: ein schweres Paar zählt auch einmal.
+    const [left = '', right = ''] = pair.normalized.split(' ');
+    return isHeavyPair(left, right);
+  });
 
   /*
     Überlappungen auflösen. „standardized regulations“ und „regulations
@@ -173,8 +240,12 @@ export function findCollocations(sentences: readonly CollocationSource[]): Collo
     if (takenWords.has(first) || takenWords.has(second)) continue;
     takenWords.add(first);
     takenWords.add(second);
-    const { positions: _positions, ...collocation } = pair;
-    chosen.push(collocation);
+    const { positions: _positions, seenMidSentence, ...collocation } = pair;
+    chosen.push(
+      seenMidSentence
+        ? collocation
+        : { ...collocation, display: normalizeSentenceStart(collocation.display) },
+    );
   }
 
   return chosen.sort((left, right) => left.firstOccurrence - right.firstOccurrence);

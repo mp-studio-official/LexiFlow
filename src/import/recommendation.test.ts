@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  baseFormOf,
   countSyllables,
+  displayNameOf,
   estimateDifficulty,
   familyKey,
+  isTrivialWord,
   levelFit,
   levelForGrade,
   recommend,
@@ -226,6 +229,159 @@ describe('Wortfamilien', () => {
     });
     expect(wenig.length).toBeLessThan(20);
     expect(wenig.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Gebeugte Form oder eigenes Wort', () => {
+  /** Ein Treffer, der das Wort als Form eines anderen führt – mit Merkmalen. */
+  function entry(
+    headword: string,
+    quality: DictionaryEntry['quality'],
+    partOfSpeech: string,
+    formTags?: readonly string[],
+  ): DictionaryEntry {
+    return {
+      headword,
+      lemma: headword,
+      partOfSpeech,
+      senses: [{ sense: headword, suggestions: [{ german: 'x' }] }],
+      quality,
+      ...(formTags ? { formTags } : {}),
+      source: 'wiktionary',
+    };
+  }
+
+  function lookup(...entries: DictionaryEntry[]): DictionarySuggestionSummary {
+    return { primary: 'x', entries, senseCount: entries.length, unambiguous: false, questionable: false };
+  }
+
+  /** Ein Wort, das **nur** als Form eines anderen geführt wird. */
+  function asForm(lemma: string, formTags: readonly string[]): DictionarySuggestionSummary {
+    return lookup(entry(lemma, 'lemma', 'verb', formTags));
+  }
+
+  it('nimmt die Grundform, wenn die Form eine Beugung ist', () => {
+    expect(baseFormOf('wrote', asForm('write', ['past']))).toBe('write');
+    expect(baseFormOf('kept', asForm('keep', ['participle', 'past']))).toBe('keep');
+    expect(baseFormOf('men', asForm('man', ['plural']))).toBe('man');
+    expect(baseFormOf('rose', asForm('rise', ['past']))).toBe('rise');
+  });
+
+  it('lässt eine Schreibvariante in Ruhe', () => {
+    /*
+      `story` steht im Datensatz als Form von `storey` – aber als
+      **Schreibvariante**, nicht als Beugung. Wer die Grundform hier einsetzt,
+      macht aus der Geschichte ein Stockwerk. Genau das war passiert.
+    */
+    expect(baseFormOf('story', asForm('storey', ['Philippines', 'US', 'alternative']))).toBe(
+      undefined,
+    );
+  });
+
+  it('lässt das Wort stehen, wenn keine Merkmale dabeistehen', () => {
+    // Ohne Auskunft wird nicht geraten: Was im Text steht, bleibt.
+    expect(baseFormOf('rose', asForm('rise', []))).toBe(undefined);
+    expect(displayNameOf('rose', asForm('rise', []))).toBe('rose');
+  });
+
+  it('schützt ein Wort, das in einer anderen Wortart selbst eine Vokabel ist', () => {
+    /*
+      `crowded` ist Adjektiv (*überfüllt*) **und** Partizip von `crowd`
+      (Substantiv). `litter` ist Substantiv (*Abfall*) **und** im Datensatz
+      Komparativ von `lit` (Adjektiv). Beide Male hieße Ersetzen: eine andere
+      Vokabel unterschieben.
+    */
+    const crowded = lookup(
+      entry('crowded', 'exact', 'adj'),
+      entry('crowd', 'lemma', 'noun', ['participle', 'past']),
+    );
+    expect(baseFormOf('crowded', crowded)).toBe(undefined);
+
+    const litter = lookup(
+      entry('litter', 'exact', 'noun'),
+      entry('lit', 'lemma', 'adj', ['comparative']),
+    );
+    expect(baseFormOf('litter', litter)).toBe(undefined);
+  });
+
+  it('lässt einen eigenen Eintrag derselben Wortart nicht schützen', () => {
+    /*
+      `men` hat einen eigenen Substantiveintrag (*Menschen*) – und `man` ist
+      ebenfalls Substantiv. Dann ist `men` dort nichts anderes als der Plural,
+      und ein Plural ist keine eigene Vokabel.
+    */
+    const men = lookup(entry('men', 'exact', 'noun'), entry('man', 'lemma', 'noun', ['plural']));
+    expect(baseFormOf('men', men)).toBe('man');
+  });
+
+  it('schreibt einen Satzanfang klein, wenn das Wörterbuch das Wort klein führt', () => {
+    const bekannt = summary('military', [{ sense: 'x', suggestions: [{ german: 'militärisch' }] }]);
+    expect(displayNameOf('Military', bekannt)).toBe('military');
+  });
+
+  it('fasst ein Akronym nicht an', () => {
+    const nato = summary('NATO', [{ sense: 'x', suggestions: [{ german: 'NATO' }] }]);
+    expect(displayNameOf('NATO', nato)).toBe('NATO');
+  });
+
+  it('lässt einen Mehrwortbegriff unverändert', () => {
+    expect(displayNameOf('attritional combat')).toBe('attritional combat');
+  });
+});
+
+describe('Was keine Lernvokabel ist', () => {
+  it('nimmt kein Zahlwort auf', () => {
+    /*
+      `four` steht im Wörterbuch als `num` **und** als `noun` – die Vier als
+      Ziffer und die Vier als Ding. Eine Regel „nur wenn alle Wortarten trivial
+      sind“ ließ es durch; es stand auf Platz fünf für Klasse 5.
+    */
+    expect(isTrivialWord('four')).toBe(true);
+    expect(isTrivialWord('third')).toBe(true);
+    expect(isTrivialWord('frontline')).toBe(false);
+    // Ein Mehrwortbegriff ist nie trivial, auch wenn ein Teil es wäre.
+    expect(isTrivialWord('four seasons')).toBe(false);
+  });
+
+  it('hält die Kopfzeile einer Publikation aus den Empfehlungen heraus', () => {
+    /*
+      `Military History Quarterly, Vol. 12, Issue 3.` ist der Name der
+      Zeitschrift. Daraus entstand der Mehrwortkandidat `military History` –
+      zwei lange Wörter, die jede Gewichtung nach vorn trägt. Der Artikel
+      handelt nicht von Militärgeschichte; das ist der Briefkopf.
+    */
+    const text = [
+      'Military History Quarterly, Vol. 12, Issue 3.',
+      'Coastal erosion threatens the settlement, and the evacuation of residents',
+      'demonstrates the resilience of the local infrastructure.',
+      'Erosion and evacuation were discussed at length.',
+    ].join(' ');
+    const gewaehlt = recommend(inputs(text), {
+      context: CONTEXT,
+      sort: 'recommended',
+      count: 20,
+      publicationContext: true,
+    }).map((item) => item.candidate.english.toLowerCase());
+    expect(gewaehlt).not.toContain('military history');
+    expect(gewaehlt).not.toContain('military');
+    // Der Fließtext bleibt vollständig erreichbar.
+    expect(gewaehlt).toContain('evacuation');
+  });
+
+  it('greift nur, wenn der Text wirklich ein Apparat hat', () => {
+    const text = 'Military History Quarterly reported the story. Erosion threatens the settlement.';
+    const gewaehlt = recommend(inputs(text), {
+      context: CONTEXT,
+      sort: 'recommended',
+      count: 20,
+    }).map((item) => item.candidate.english.toLowerCase());
+    /*
+      Ohne Apparat ist derselbe Zeitschriftentitel gewöhnlicher Text – dann ist
+      `military` eine Vokabel wie jede andere. Ob die Empfehlung dabei das
+      Einzelwort oder das Paar nimmt, entscheidet die Gewichtung; geprüft wird
+      hier nur, dass die Kopfzeilenregel nicht ohne Anlass zuschlägt.
+    */
+    expect(gewaehlt.some((word) => word.startsWith('military'))).toBe(true);
   });
 });
 

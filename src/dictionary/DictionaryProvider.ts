@@ -74,6 +74,17 @@ export interface DictionaryEntry {
   senses: readonly DictionarySense[];
   multiword?: boolean;
   quality: LookupQuality;
+  /**
+   * Bei `quality: 'lemma'`: **wie** die gesuchte Form mit der Grundform
+   * zusammenhängt – `plural`, `past`, `participle`, `alternative` …
+   *
+   * Der Unterschied ist folgenreich. `wrote → write` ist eine Beugung: Als
+   * Vokabel gehört die Grundform ins Paket. `story → storey` ist eine
+   * Schreibvariante: Beide sind gleichrangig, und `story` durch `storey` zu
+   * ersetzen wäre eine Verschlimmbesserung. Ohne dieses Feld sehen beide Fälle
+   * gleich aus.
+   */
+  formTags?: readonly string[];
   /** Kennung der Quelle, für Anzeige und Nachvollziehbarkeit. */
   source: string;
 }

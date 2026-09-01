@@ -186,6 +186,27 @@ describe('Offline-Wörterbuch', () => {
     expect(entry?.senses[0]?.suggestions[0]?.german).toBe('Insel');
   });
 
+  it('sagt dazu, **wie** die Form mit der Grundform zusammenhängt', async () => {
+    /*
+      `quality: 'lemma'` allein trägt zwei grundverschiedene Fälle: `islands →
+      island` ist eine Beugung, `story → storey` eine Schreibvariante. Ohne
+      dieses Merkmal sehen beide gleich aus – und die Empfehlung machte aus der
+      Geschichte ein Stockwerk.
+    */
+    const [entry] = await dictionary().lookup('islands');
+    expect(entry?.formTags).toEqual(['plural']);
+  });
+
+  it('lässt das Merkmal weg, wenn die Quelle keines nennt', async () => {
+    const ohne = [
+      { word: 'lorry', pos: 'noun', senses: [{ sense: 'truck', german: [{ german: 'Lastwagen' }] }] },
+      { form: 'lorries', lemmas: [{ lemma: 'lorry', pos: 'noun' }] },
+    ];
+    const [entry] = await dictionary(ohne).lookup('lorries');
+    expect(entry?.quality).toBe('lemma');
+    expect(entry?.formTags).toBeUndefined();
+  });
+
   it('erkennt einen Mehrwortbegriff als solchen', async () => {
     const [entry] = await dictionary().lookup('shell shock');
     expect(entry?.quality).toBe('phrase');

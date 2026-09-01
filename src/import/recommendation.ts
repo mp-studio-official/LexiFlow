@@ -273,14 +273,29 @@ export function familyKey(word: string, dictionary?: DictionarySuggestionSummary
 /**
  * **Alle** Familien, die ein Kandidat beansprucht.
  *
- * Ein Mehrwortbegriff beansprucht auch seine Teile. Das ist der Unterschied
- * zwischen einer brauchbaren und einer peinlichen Liste: `Psychological
- * casualties` und `psychological` nebeneinander vorzuschlagen sieht aus, als
- * hätte niemand hingesehen – und für die Lerngruppe ist es dieselbe Vokabel
- * zweimal, einmal mit und einmal ohne ihren Sinn.
+ * Drei Quellen, und jede hat einen Anlass:
  *
- * Welcher der beiden überlebt, entscheidet die Punktzahl, nicht die
- * Reihenfolge: `recommend` dünnt **nach** dem Sortieren aus.
+ * 1. **Der eigene Stamm.** `islands` → `island`.
+ * 2. **Die Teile eines Mehrwortbegriffs.** `Psychological casualties` und
+ *    `psychological` nebeneinander vorzuschlagen sieht aus, als hätte niemand
+ *    hingesehen – für die Lerngruppe ist es dieselbe Vokabel zweimal, einmal
+ *    mit und einmal ohne ihren Sinn.
+ * 3. **Die Lemmata des Wörterbuchs.** Der Suffixstamm oben ist regelmäßig und
+ *    scheitert genau dort, wo Englisch unregelmäßig ist: `kept`, `wrote`,
+ *    `men`, `rose`. Die erste Empfehlungsliste für Klasse 5 enthielt `keep`
+ *    **und** `kept`, `rose`, `wrote` und `men` – fünf Plätze für drei Vokabeln.
+ *    Das Wörterbuch weiß es besser, und es weiß es für jedes Wort, nicht nur
+ *    für eine gepflegte Ausnahmeliste.
+ *
+ *    Genommen werden **alle** Lemmata aller Treffer, nicht nur das erste.
+ *    `rose` findet die Blume *und* die Vergangenheitsform von `rise`; welche
+ *    gemeint ist, entscheidet dieses Modul nicht. Es reicht, dass beide
+ *    Ansprüche angemeldet sind: Steht `rise` daneben, kollidieren sie und nur
+ *    eines überlebt. Steht es nicht daneben, schadet der zweite Anspruch
+ *    niemandem.
+ *
+ * Welcher Kandidat eine umkämpfte Familie behält, entscheidet die Punktzahl,
+ * nicht die Reihenfolge: `recommend` dünnt **nach** dem Sortieren aus.
  */
 export function familyKeys(
   word: string,
@@ -288,8 +303,230 @@ export function familyKeys(
 ): readonly string[] {
   const whole = familyKey(word, dictionary);
   const parts = whole.split(/\s+/);
-  if (parts.length === 1) return [whole];
-  return [whole, ...parts.map((part) => stem(part))];
+  const keys = new Set<string>([whole]);
+  if (parts.length > 1) for (const part of parts) keys.add(stem(part));
+
+  for (const entry of dictionary?.entries ?? []) {
+    const lemma = entry.lemma.trim().toLowerCase();
+    if (lemma) keys.add(stem(lemma));
+    const head = entry.headword.trim().toLowerCase();
+    if (head) keys.add(stem(head));
+  }
+  return [...keys];
+}
+
+/**
+ * Wortarten, die keine Lernvokabel ergeben.
+ *
+ * `four` stand auf Platz fünf der Empfehlungen für Klasse 5. Es ist ein
+ * Zahlwort – im Wörterbuch als `num` geführt – und niemand nimmt es aus einem
+ * Text in ein Vokabelpaket auf. Dasselbe gilt für Artikel, Pronomen und
+ * Konjunktionen, soweit die Extraktion sie überhaupt durchlässt.
+ *
+ * Ausgeschlossen wird nur, wenn **alle** Treffer so aussehen: `second` ist
+ * Zahlwort und Substantiv, und als Substantiv eine ganz normale Vokabel.
+ */
+const TRIVIAL_PARTS_OF_SPEECH = new Set(['num', 'det', 'pron', 'conj', 'particle', 'article']);
+
+/**
+ * Zahlwörter als Rückfallebene, wenn das Wörterbuch nichts sagt.
+ *
+ * Bewusst nur die Grundzahlen bis zwanzig plus die runden Stufen – das ist der
+ * Bereich, in dem ein Zahlwort in einem Sachtext auftaucht, ohne je eine
+ * Vokabel zu sein.
+ */
+const NUMBER_WORDS = new Set([
+  'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen',
+  'eighteen', 'nineteen', 'twenty', 'thirty', 'forty', 'fifty', 'sixty',
+  'seventy', 'eighty', 'ninety', 'hundred', 'thousand', 'million', 'billion',
+  'first', 'second', 'third', 'fourth', 'fifth',
+]);
+
+/** Taugt dieser Kandidat überhaupt als Vokabel? */
+export function isTrivialWord(word: string, dictionary?: DictionarySuggestionSummary): boolean {
+  const lower = word.trim().toLowerCase();
+  if (lower.includes(' ')) return false;
+
+  /*
+    Zahlwörter fallen **ohne** Rückfrage beim Wörterbuch heraus.
+
+    `four` steht dort als `num` **und** als `noun` – die Vier als Ziffer und
+    die Vier als Ding. Eine Regel „nur wenn alle Wortarten trivial sind“ ließ
+    es deshalb durch, und es stand auf Platz fünf der Empfehlungen für
+    Klasse 5. Ein Zahlwort ist in einem Sachtext nie die Vokabel, wegen der
+    jemand den Text ausgewählt hat.
+  */
+  if (NUMBER_WORDS.has(lower)) return true;
+
+  const kinds = (dictionary?.entries ?? []).flatMap((entry) =>
+    entry.partOfSpeech ? [entry.partOfSpeech] : [],
+  );
+  return kinds.length > 0 && kinds.every((kind) => TRIVIAL_PARTS_OF_SPEECH.has(kind));
+}
+
+/** Trägt dieser Kandidat Zeitschriftenapparat – auch als Teil eines Begriffs? */
+function isApparatus(word: string): boolean {
+  return word
+    .toLowerCase()
+    .split(/\s+/)
+    .some((part) => PUBLICATION_APPARATUS.has(part));
+}
+
+/**
+ * Steht dieser Kandidat **nur** in der Kopfzeile der Publikation?
+ *
+ * Der Apparat ist nicht auf einzelne Wörter beschränkt. `Military History
+ * Quarterly, Vol. 12, Issue 3.` ist der Name der Zeitschrift, und daraus
+ * entstand der Mehrwortkandidat `military History` – zwei lange Fachwörter, die
+ * jede Gewichtung nach vorn trägt und die trotzdem niemand aus diesem Artikel
+ * lernen soll. Er handelt nicht von Militärgeschichte als Fach; das ist der
+ * Briefkopf.
+ *
+ * Die Regel bleibt eng: Nur wer **einmal** vorkommt und dabei in einer Zeile
+ * mit Band-, Heft-, DOI- oder Seitenangabe steht, fällt heraus. Ein Wort, das
+ * auch im Fließtext auftaucht, ist damit sicher – der Titel gibt oft das Thema
+ * wieder, und `psychological` aus einer Überschrift bleibt eine Vokabel.
+ */
+function onlyInCitationLine(candidate: TextCandidate): boolean {
+  if (candidate.occurrences > 1) return false;
+  const sentence = candidate.sourceSentence;
+  /*
+    Geprüft wird der **Satz**, nicht der Gesamttext – und der ist hier oft
+    abgeschnitten: Die Satztrennung endet an `Vol.`, weil ein Punkt danach
+    aussieht wie ein Satzende. Aus `Military History Quarterly, Vol. 12, Issue 3.`
+    wird deshalb `Military History Quarterly, Vol.` – ohne die Zahl, an der
+    `looksLikePublication` den Apparat erkennt. Die Abkürzung selbst genügt
+    darum als Marker.
+  */
+  return looksLikePublication(sentence) || /\bvol\.|\bpp\.|\bdoi:|\bissn\b|\bisbn\b|\bno\.\s*\d/i.test(sentence);
+}
+
+/**
+ * Formmerkmale, die eine **Beugung** kennzeichnen.
+ *
+ * Der Datensatz nennt zu jeder Formzuordnung, *wie* die Form mit der Grundform
+ * zusammenhängt. Nur diese Merkmale rechtfertigen es, das Stichwort zu
+ * ersetzen.
+ */
+const INFLECTION_TAGS = new Set([
+  'plural',
+  'singular',
+  'past',
+  'participle',
+  'present',
+  'gerund',
+  'comparative',
+  'superlative',
+  'third-person',
+]);
+
+/**
+ * Merkmale, die **keine** Beugung sind, sondern eine andere Schreibung oder
+ * eine regionale Variante.
+ */
+const VARIANT_TAGS = new Set(['alternative', 'misspelling', 'obsolete', 'archaic', 'informal']);
+
+/**
+ * Die Grundform, falls das Wort eine gebeugte Form ist – sonst nichts.
+ *
+ * `quality: 'lemma'` allein reicht nicht. Der Datensatz führt unter derselben
+ * Kennzeichnung zwei grundverschiedene Fälle:
+ *
+ * - `wrote → write`, `men → man`, `kept → keep`: eine **Beugung**. Wer `wrote`
+ *   ins Paket nimmt, lernt eine Vokabel in einer Form, die so niemand lernt.
+ * - `story → storey`: eine **Schreibvariante**. `story` ist selbst ein
+ *   vollwertiges Wort; es durch `storey` zu ersetzen hieße, aus der
+ *   *Geschichte* ein *Stockwerk* zu machen.
+ *
+ * Unterschieden wird an den Formmerkmalen (`formTags`). Ohne Merkmale bleibt
+ * das Wort stehen: Im Zweifel ist das, was im Text steht, richtiger als eine
+ * Vermutung.
+ *
+ * Die zweite Hürde ist der **eigene Eintrag**. `crowded` steht im Wörterbuch
+ * als Adjektiv mit eigener Übersetzung (*überfüllt*) – und gleichzeitig als
+ * Partizip von `crowd`. `litter` ist Substantiv (*Abfall*, *Streu*) – und
+ * gleichzeitig als Komparativ von `lit` geführt. Wer hier ersetzt, tauscht die
+ * Vokabel aus.
+ *
+ * Ein eigener Eintrag schützt aber nur, wenn er in einer **anderen Wortart**
+ * steht als die Grundform. `men` hat einen eigenen Substantiveintrag
+ * (*Menschen*), und `man` ist ebenfalls Substantiv – dann ist `men` dort nichts
+ * anderes als der Plural, und der Plural ist keine eigene Vokabel. `crowded`
+ * dagegen ist Adjektiv, `crowd` Substantiv: zwei Vokabeln, die man getrennt
+ * lernt.
+ *
+ * Der Preis der Regel steht hier, damit ihn jemand kennt: In einem Text über
+ * Blumen wird aus `rose` ein `rise` – beide sind Substantive, und diese
+ * Funktion maßt sich nicht an, die gemeinte Lesart zu wählen. Der Beispielsatz
+ * steht daneben und das englische Stichwort ist im letzten Schritt änderbar –
+ * eine falsche Grundform kostet einen Handgriff, eine gebeugte Form im Paket
+ * kostet eine falsch gelernte Vokabel.
+ */
+export function baseFormOf(
+  word: string,
+  dictionary?: DictionarySuggestionSummary,
+): string | undefined {
+  const entries = dictionary?.entries ?? [];
+  /*
+    Nur Einträge mit deutscher Entsprechung zählen als „eigener Eintrag“;
+    `dictionary.entries` enthält ohnehin nur solche. Eine unbekannte Wortart
+    passt zu keiner – dann bleibt das Wort stehen.
+  */
+  const ownParts = entries
+    .filter((entry) => entry.quality !== 'lemma')
+    .map((entry) => entry.partOfSpeech);
+
+  for (const entry of entries) {
+    if (entry.quality !== 'lemma') continue;
+    const tags = entry.formTags ?? [];
+    if (!tags.some((tag) => INFLECTION_TAGS.has(tag))) continue;
+    if (tags.some((tag) => VARIANT_TAGS.has(tag))) continue;
+    if (
+      ownParts.length > 0 &&
+      !ownParts.some((part) => part !== undefined && part === entry.partOfSpeech)
+    ) {
+      continue;
+    }
+    const base = entry.lemma.trim();
+    if (base && base.toLowerCase() !== word.trim().toLowerCase()) return base;
+  }
+  return undefined;
+}
+
+/**
+ * Die Schreibweise, in der ein Kandidat ins Paket gehört.
+ *
+ * `Military` und `Small` standen groß in den Empfehlungen, weil sie im Text nur
+ * am Satzanfang vorkamen. Als Eigennamen gelten sie nicht – die Extraktion
+ * verlangt dafür eine Fundstelle mitten im Satz –, aber ihre Schreibung blieb
+ * die des Satzanfangs. Wer sie so übernimmt, lernt eine Vokabel falsch.
+ *
+ * Die Auskunft kommt wieder aus dem Wörterbuch: Führt es das Wort
+ * kleingeschrieben, ist die Kleinschreibung richtig. Führt es `Cornwall` groß,
+ * bleibt `Cornwall` groß.
+ */
+export function displayNameOf(
+  word: string,
+  dictionary?: DictionarySuggestionSummary,
+): string {
+  if (word.includes(' ')) return word;
+
+  const base = baseFormOf(word, dictionary);
+  if (base) return base;
+
+  // Danach die Schreibweise: Großschreibung nur vom Satzanfang zurücknehmen.
+  const first = word.charAt(0);
+  if (!first || first === first.toLowerCase()) return word;
+  const rest = word.slice(1);
+  // Akronyme bleiben unangetastet.
+  if (rest !== rest.toLowerCase()) return word;
+
+  const lower = word.toLowerCase();
+  const known = (dictionary?.entries ?? []).some(
+    (entry) => entry.headword.toLowerCase() === lower || entry.lemma.toLowerCase() === lower,
+  );
+  return known ? lower : word;
 }
 
 /* ------------------------------------------------------------------ Rangfolge */
@@ -355,12 +592,24 @@ export function scoreCandidates(
       WEIGHT.multiword * multiword -
       APPARATUS_PENALTY * apparatus;
 
+    /*
+      Die Schreibweise wird hier festgelegt, nicht erst in der Oberfläche.
+
+      Was `recommend` zurückgibt, geht unverändert in den Entwurf und von dort
+      ins Paket. Ein `Military`, das nur deshalb groß ist, weil es einen Satz
+      begann, wäre eine falsch gelernte Vokabel – und niemand sähe ihr das an.
+    */
+    const display = displayNameOf(word, input.dictionary);
+    const candidate =
+      display === word ? input.candidate : { ...input.candidate, english: display };
+
     return {
       ...input,
+      candidate,
       score,
       difficulty,
-      family: familyKey(word, input.dictionary),
-      families: familyKeys(word, input.dictionary),
+      family: familyKey(display, input.dictionary),
+      families: familyKeys(display, input.dictionary),
     };
   });
 }
@@ -399,13 +648,33 @@ export function recommend(
   const excluded = new Set(options.excludedFamilies ?? []);
   const chosen: ScoredCandidate[] = [];
   for (const item of ordered) {
+    const word = item.candidate.english;
+
+    /*
+      Was gar nicht erst in Frage kommt, wird **ausgeschlossen**, nicht nur
+      abgewertet – und zwar bevor gezählt wird. Der Unterschied ist wichtig:
+      Ein abgewerteter Kandidat rutscht bei einem armen Text doch wieder in die
+      Liste, ein ausgeschlossener nicht. `issue` als Heftnummer und `four` als
+      Zahlwort sind keine Vokabeln, egal wie wenig der Text sonst hergibt.
+    */
+    if (options.publicationContext === true && isApparatus(word)) continue;
+    if (options.publicationContext === true && onlyInCitationLine(item.candidate)) continue;
+    if (isTrivialWord(word, item.dictionary)) continue;
+
     // Ein Mehrwortbegriff beansprucht auch die Familien seiner Teile: Steht
-    // `Psychological casualties` schon da, ist `psychological` vergeben.
+    // `psychological casualties` schon da, ist `psychological` vergeben.
     if (item.families.some((family) => excluded.has(family))) continue;
     for (const family of item.families) excluded.add(family);
     chosen.push(item);
     if (chosen.length >= options.count) break;
   }
+
+  /*
+    Aufgefüllt wird bis zur gewünschten Anzahl, nicht bis zur ersten Lücke: Die
+    Schleife läuft über **alle** bewerteten Kandidaten weiter, auch wenn
+    zwischendurch zehn wegen ihrer Familie ausfallen. Gibt der Text am Ende
+    weniger her, ist die Liste kürzer – erfunden wird nichts.
+  */
   return chosen;
 }
 

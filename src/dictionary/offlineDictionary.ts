@@ -72,7 +72,12 @@ function toSuggestion(packed: PackedEntry['n'][number]['g'][number]): Dictionary
   };
 }
 
-function toEntry(packed: PackedEntry, lemma: string, quality: LookupQuality): DictionaryEntry {
+function toEntry(
+  packed: PackedEntry,
+  lemma: string,
+  quality: LookupQuality,
+  formTags?: readonly string[],
+): DictionaryEntry {
   const senses: DictionarySense[] = packed.n.map((sense) => ({
     sense: sense.s,
     ...(sense.v ? { via: sense.v } : {}),
@@ -85,6 +90,7 @@ function toEntry(packed: PackedEntry, lemma: string, quality: LookupQuality): Di
     senses,
     ...(packed.m ? { multiword: true } : {}),
     quality,
+    ...(formTags?.length ? { formTags } : {}),
     source: 'wiktionary',
   };
 }
@@ -201,7 +207,7 @@ export function createOfflineDictionary(
           const id = entry.w + '|' + entry.p;
           if (seen.has(id)) continue;
           seen.add(id);
-          results.push(toEntry(entry, form.l, 'lemma'));
+          results.push(toEntry(entry, form.l, 'lemma', form.t));
         }
       }
 

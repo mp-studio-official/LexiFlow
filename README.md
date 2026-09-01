@@ -110,6 +110,9 @@ Weitere Befehle:
 | `npx vitest run src/import/sentenceAssist.test.ts` | Nur die Prüfung der Satzvorschläge |
 | `npx vitest run src/import/sentencePortability.test.ts` | Nur der Portabilitätsnachweis des Satzassistenten |
 | `npx vitest run src/import/textRecommendation.test.ts` | Nur Schlüsselbildung und Empfehlungsfilter |
+| `npx vitest run src/import/recommendation.test.ts` | Nur Gewichtung, Grundformen und Ausschlüsse der Rangfolge |
+| `npx vitest run src/import/recommendationAcceptance.test.ts` | Nur der Akzeptanzfall am echten Fachartikel (mit echtem Wörterbuch) |
+| `npx vitest run src/domain/collocations.test.ts` | Nur die Erkennung von Mehrwortbegriffen |
 | `npx vitest run src/import/candidateLimit.test.ts` | Nur die gewünschte Anzahl Vokabelvorschläge |
 | `npx playwright test e2e/sentence-assistant.spec.ts` | Nur der E2E-Ablauf des Satzassistenten |
 | `npx playwright test e2e/text-recommendation.spec.ts` | Nur der E2E-Ablauf der Textempfehlungen |
@@ -353,6 +356,7 @@ src/
     dueDate.ts       verständliche Formulierung von Fälligkeitsterminen
     packDiff.ts      Fingerprint lernrelevanter Felder, Paketvergleich
     textExtraction.ts  lokale Textanalyse: Sätze, Wörter, Kandidaten
+    collocations.ts  Mehrwortbegriffe aus Läufen von Inhaltswörtern
     stopwords.ts     englische Funktionswörter (Standardausblendung)
     wordRules.ts     sichere Wortart- und Themenregeln, ganz ohne Modell
     wordMatch.ts     Wortgrenzenprüfung „enthält der Satz das Stichwort?“
@@ -373,6 +377,8 @@ src/
     topicDraft.ts    Nachbearbeitung der Themenvorschläge (Dubletten, Sätze, IDs)
     sentenceAssist.ts  Prüfung und Übernahme von Satzvorschlägen (rein)
     textRecommendation.ts  neutrale Kandidatenschlüssel, Empfehlungsfilter
+    recommendation.ts  Rangfolge ohne Modell: Gewichtung, Familien, Ausschlüsse
+    dictionarySuggestions.ts  Wörterbuchtreffer aufbereiten, sichere Sammelübernahme
     candidateLimit.ts  gewünschte Anzahl Vokabelvorschläge (rein, ohne Modell)
   translation/   lokale Übersetzung als eigene, schmale Schnittstelle
     TranslationProvider.ts    Vertrag + nullTranslationProvider (Standard)
@@ -2065,13 +2071,113 @@ Schülerin beim Installieren 6 MB für etwas, das nur der Lehrkraftbereich nutzt
   jeden Vorschlag.
 * **Die Reihenfolge der Quelle ist nicht immer die didaktisch beste.**
   `limestone` liefert *Calciumcarbonat* an zweiter Stelle, `shell shock` nur
-  *Kriegszitterer*. Markiertes wird zurückgestuft und gekennzeichnet, aber eine
-  pädagogische Rangfolge ist damit nicht gebaut – die kommt in 4B.1.
+  *Kriegszitterer*. Markiertes wird zurückgestuft und gekennzeichnet; die
+  pädagogische Rangfolge darüber steht in „Die Rangfolge der Empfehlung“.
 * **Verweise bleiben eine Rekonstruktion.** 74 302 Verweise bleiben unauflösbar,
   weil das Ziel keine deutschen Entsprechungen hat oder die Wortart nicht passt.
 * **Nur Chromium in der E2E-Stufe.** Das Format ist bewusst so gewählt, dass es
   in Safari trägt (fflate statt `DecompressionStream`, kein Worker) – geprüft
   wurde es dort aber nicht automatisiert.
+
+## Die Rangfolge der Empfehlung (seit Sprint 4B.1)
+
+Der Empfehlungsschritt im Textimport ordnet die gefundenen Kandidaten – **ohne
+Sprachmodell**, allein aus messbaren Merkmalen und dem Offline-Wörterbuch. Er
+läuft deshalb auch in Safari, offline und in der portablen Lehrkraftdatei.
+
+> Was hier „passend zum Niveau“ heißt, ist eine Schätzung aus Länge, Silben,
+> Wortbildung, Häufigkeit, Stellung im Text und Wörterbuchtreffern. Es gibt
+> keine lizenzierte GeR-Wortliste in diesem Projekt, und es wird keine
+> behauptet. Die Lehrkraft entscheidet.
+
+### Was gewichtet wird
+
+| Merkmal | Wirkung |
+| --- | --- |
+| Passung zum GeR-Niveau der Lerngruppe | am stärksten |
+| akademische Wortbildung (`-ional`, `-atric`, `-ory` …) | hebt Fachbegriffe |
+| Häufigkeit im Text | hebt Tragendes |
+| frühe Stellung im Text | leicht |
+| Wörterbuchtreffer vorhanden | leicht |
+| Mehrwortbegriff | leicht |
+| Zeitschriftenapparat im Publikationskontext | starker Abschlag |
+
+Bei Punktgleichstand entscheidet die Stellung im Text – dieselbe Eingabe ergibt
+immer dieselbe Liste.
+
+### Mehrwortbegriffe
+
+`attritional combat` und `psychological casualties` sind eigene Lerngegenstände
+und werden als solche gefunden (`src/domain/collocations.ts`): Läufe aus
+Inhaltswörtern, die an Funktionswörtern, Zahlen, kurzen Wörtern und Satzzeichen
+enden. Ein **leichtes** Paar zählt erst ab der zweiten Fundstelle; ein
+**schweres** – zwei lange, gewichtige Wörter, keines Alltagswortschatz – schon
+beim ersten. Wer `manpower shortages` erst ab dem zweiten Vorkommen anbietet,
+bietet es meistens gar nicht an.
+
+Ein Mehrwortbegriff beansprucht auch die Familien seiner Teile: Steht
+`psychological casualties` in der Liste, kommt `psychological` nicht mehr dazu.
+
+### Grundform statt gebeugter Form
+
+`kept`, `wrote`, `men` und `letters` sind keine Vokabeln, sondern Formen. Die
+Empfehlung setzt die Grundform ein – aber nur, wenn das Wörterbuch die
+Verbindung als **Beugung** ausweist (`formTags`: `plural`, `past`,
+`participle` …). Zwei Gegenproben, beide aus echten Fehlläufen:
+
+* `story` ist im Datensatz eine **Schreibvariante** von `storey`. Ersetzen hieße:
+  aus der Geschichte ein Stockwerk machen.
+* `crowded` ist Adjektiv (*überfüllt*) **und** Partizip von `crowd`; `litter`
+  ist Substantiv (*Abfall*) **und** im Datensatz Komparativ von `lit`. Ein
+  eigener Eintrag schützt das Wort – aber nur, wenn er in einer **anderen
+  Wortart** steht als die Grundform. `men` und `man` sind beide Substantive;
+  dort ist `men` nichts als der Plural.
+
+Der Preis dieser Regel steht im Code, damit ihn jemand kennt: In einem Text über
+Blumen wird aus `rose` ein `rise`. Das englische Stichwort ist im letzten
+Schritt änderbar – eine falsche Grundform kostet einen Handgriff, eine gebeugte
+Form im Paket kostet eine falsch gelernte Vokabel.
+
+### Was gar nicht erst angeboten wird
+
+Ausgeschlossen, nicht nur abgewertet – sonst rutscht es bei einem armen Text
+doch wieder in die Liste:
+
+* **Zahl- und Funktionswörter.** `four` stand für Klasse 5 auf Platz fünf. Es
+  steht im Wörterbuch als `num` **und** als `noun`, weshalb eine Regel „nur wenn
+  alle Wortarten trivial sind“ es durchließ.
+* **Publikationsapparat**, aber nur in einem Text, der einen hat (Bandangabe,
+  Heftnummer, DOI, Seitenspanne). In einem Text über einen politischen Streit
+  bleibt `issue` genau die Vokabel, um die es geht.
+* **Die Kopfzeile selbst.** Aus `Military History Quarterly, Vol. 12, Issue 3.`
+  entstand der Mehrwortbegriff `military History`. Der Artikel handelt nicht von
+  Militärgeschichte; das ist der Briefkopf. Ausgeschlossen wird nur, was
+  **einmal** vorkommt und dabei in einer Zeile mit Apparat steht.
+
+### Schreibung aus dem Satzanfang
+
+Ein Wort, das im Text nur einen Satz oder eine Überschrift beginnt, stünde sonst
+groß im Paket. Führt das Wörterbuch es klein, wird es klein übernommen; führt es
+`Cornwall` groß, bleibt `Cornwall` groß; Akronyme bleiben unangetastet. Ohne
+Wörterbuchauskunft wird **nicht** geraten – dann bleibt die Schreibung des
+Textes stehen.
+
+### Aufgefüllt wird bis zur gewünschten Anzahl
+
+Die Zusammenführung nimmt Kandidaten heraus. Die Schleife läuft trotzdem über
+alle bewerteten Kandidaten weiter, statt bei der ersten Lücke abzubrechen – sonst
+bekäme die Lehrkraft statt fünfzehn Vorschlägen neun, ohne dass irgendwo stünde,
+warum. Gibt der Text weniger her, ist die Liste kürzer; erfunden wird nichts.
+
+### Geprüft wird an einem echten Artikel
+
+`src/import/recommendationAcceptance.test.ts` läuft mit dem **echten**
+Offline-Wörterbuch gegen einen Fachartikel mit Publikationsapparat und
+alltagssprachlichem Anfang (`src/import/fixtures/attritionalCombat.ts`).
+Geprüft werden Eigenschaften, keine Wortlisten: dass die Empfehlung nicht die
+ersten Inhaltswörter nimmt, dass mehrere anspruchsvolle Begriffe weit oben
+stehen, dass Mehrwortbegriffe überleben, dass keine Wortfamilie zweimal
+erscheint und dass Klasse 5 und Q1 erkennbar verschiedene Listen ergeben.
 
 ## Markensystem (seit Sprint 4A.1c)
 

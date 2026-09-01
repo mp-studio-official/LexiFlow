@@ -281,7 +281,7 @@ describe('Der Stepper im Assistenten', () => {
     // Zurück in Schritt 2 …
     await user.click(screen.getByRole('button', { name: /Schritt 2: Empfehlungen generieren/ }));
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
-    await user.type(screen.getByLabelText('Deutsche Antwort für „Litter“'), 'Müll');
+    await user.type(screen.getByLabelText('Deutsche Antwort für „litter“'), 'Müll');
 
     // … und wieder nach vorn.
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));

@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { analyzeText } from '../domain/textExtraction';
+import { createOfflineDictionary } from '../dictionary/offlineDictionary';
+import { summarizeLookup, type DictionarySuggestionSummary } from './dictionarySuggestions';
 import {
   familyKeys,
   looksLikePublication,
@@ -35,8 +37,31 @@ import type { CefrLevel, Grade } from '../domain/cefr';
 const analysis = analyzeText(ATTRITIONAL_COMBAT_TEXT);
 const publicationContext = looksLikePublication(ATTRITIONAL_COMBAT_TEXT);
 
+/**
+ * Der Akzeptanzfall läuft mit dem **echten** Offline-Wörterbuch.
+ *
+ * Ein Fake wäre hier ein Zirkelschluss: Die Zusammenführung von `kept` und
+ * `keep` steht und fällt mit den Lemmata, die der ausgelieferte Datensatz
+ * tatsächlich liefert. Was hier grün ist, ist grün für die Lehrkraft.
+ */
+let lookups = new Map<string, DictionarySuggestionSummary>();
+
+beforeAll(async () => {
+  const dictionary = createOfflineDictionary();
+  if (!(await dictionary.isAvailable())) throw new Error('Offline-Wörterbuch fehlt.');
+  const found = new Map<string, DictionarySuggestionSummary>();
+  for (const candidate of analysis.candidates) {
+    const summary = summarizeLookup(await dictionary.lookup(candidate.english));
+    if (summary) found.set(candidate.id, summary);
+  }
+  lookups = found;
+}, 60_000);
+
 function inputs(): RecommendationInput[] {
-  return analysis.candidates.map((candidate) => ({ candidate }));
+  return analysis.candidates.map((candidate) => ({
+    candidate,
+    dictionary: lookups.get(candidate.id),
+  }));
 }
 
 function top(grade: Grade, cefrLevel: CefrLevel, count = 15): string[] {
@@ -165,6 +190,105 @@ describe('Standardsortierung für die Oberstufe', () => {
 
   it('liefert bei gleicher Eingabe dieselbe Reihenfolge', () => {
     expect(top('Q1', 'B2/C1')).toEqual(top('Q1', 'B2/C1'));
+  });
+});
+
+describe('Empfehlungsqualität – was nach der Korrektur nicht mehr dastehen darf', () => {
+  const INFLECTED = ['kept', 'wrote', 'written', 'rose', 'risen', 'men', 'letters', 'casualties'];
+
+  it('bietet keine gebeugte Form an, wo das Wörterbuch die Grundform kennt', () => {
+    /*
+      `kept`, `wrote`, `rose` und `men` standen als Vokabeln in der Liste. So
+      lernt sie niemand – und wer sie so ins Paket nimmt, bekommt sie im
+      Trainer auch so abgefragt.
+    */
+    const alle = [...top('5', 'A1+', 20), ...top('Q1', 'B2/C1', 20)].map((word) =>
+      word.toLowerCase(),
+    );
+    for (const form of INFLECTED) expect(alle).not.toContain(form);
+  });
+
+  it('führt die Grundform statt der gebeugten auf', () => {
+    const fuenf = top('5', 'A1+', 20).map((word) => word.toLowerCase());
+    // Der Text enthält `kept`, `wrote`, `rose` und `men` – und keine davon sonst.
+    expect(fuenf).toContain('keep');
+    expect(fuenf).toContain('write');
+    expect(fuenf).toContain('man');
+    expect(fuenf).toContain('rise');
+  });
+
+  it('macht aus einer Schreibvariante keine andere Vokabel', () => {
+    /*
+      `story` steht im Datensatz als Form von `storey` – als Schreibvariante,
+      nicht als Beugung. Die erste Fassung der Zusammenführung ersetzte es und
+      machte aus der Geschichte ein Stockwerk. Ebenso `letters`, das über eine
+      Variante bei `litter` landete statt bei `letter`.
+    */
+    const fuenf = top('5', 'A1+', 20).map((word) => word.toLowerCase());
+    expect(fuenf).toContain('story');
+    expect(fuenf).not.toContain('storey');
+    expect(fuenf).not.toContain('litter');
+  });
+
+  it('schlägt kein Zahlwort vor', () => {
+    /*
+      `four` stand für Klasse 5 auf Platz fünf. Es kommt aus „collects four
+      studies“ – ein Zahlwort ist in einem Sachtext nie die Vokabel, wegen der
+      jemand den Text ausgewählt hat.
+    */
+    const alle = [...top('5', 'A1+', 20), ...top('Q1', 'B2/C1', 20)].map((word) =>
+      word.toLowerCase(),
+    );
+    expect(alle).not.toContain('four');
+  });
+
+  it('nimmt den Zeitschriftentitel nicht für ein Fachgebiet', () => {
+    /*
+      Aus der Kopfzeile `Military History Quarterly, Vol. 12, Issue 3.` entstand
+      der Mehrwortbegriff `military History` und stand bei Q1 unter den ersten
+      zehn. Der Artikel handelt nicht von Militärgeschichte; das ist der
+      Briefkopf.
+    */
+    const q1 = top('Q1', 'B2/C1', 20).map((word) => word.toLowerCase());
+    expect(q1.some((word) => word.startsWith('military'))).toBe(false);
+    expect(q1).not.toContain('quarterly');
+  });
+
+  it('lässt einen einmaligen, belastbaren Mehrwortbegriff zu', () => {
+    /*
+      `tacit admission` und `archival research` kommen je zweimal vor,
+      `manpower shortages` ebenfalls – aber `divisional records` steht nur
+      einmal da. Zwei lange, gewichtige Wörter, keines Alltagswortschatz: Wer
+      solche Begriffe erst ab dem zweiten Vorkommen anbietet, bietet sie
+      meistens gar nicht an.
+    */
+    expect(top('Q1', 'B2/C1', 20).map((word) => word.toLowerCase())).toContain(
+      'divisional records',
+    );
+  });
+
+  it('füllt nach der Zusammenführung bis zur gewünschten Anzahl auf', () => {
+    /*
+      Die Zusammenführung nimmt Kandidaten heraus. Bricht die Schleife bei der
+      ersten Lücke ab, bekommt die Lehrkraft statt fünfzehn Vorschlägen neun –
+      ohne dass irgendwo stünde, warum.
+    */
+    expect(top('Q1', 'B2/C1', 15)).toHaveLength(15);
+    expect(top('5', 'A1+', 15)).toHaveLength(15);
+    // Und die Anzahl wächst mit der Anforderung, statt bei einer Lücke zu enden.
+    expect(top('Q1', 'B2/C1', 20).length).toBeGreaterThan(15);
+  });
+
+  it('schreibt ein Wort aus dem Satzanfang klein, wenn es kein Eigenname ist', () => {
+    /*
+      `Military`, `Psychological` und `Small` standen groß in den Empfehlungen,
+      weil sie im Text nur einen Satz begannen. Wer sie so übernimmt, lernt eine
+      Vokabel falsch.
+    */
+    const alle = [...top('5', 'A1+', 20), ...top('Q1', 'B2/C1', 20)];
+    const grossGeschrieben = alle.filter((word) => /^[A-Z]/.test(word));
+    // Erlaubt bleiben nur durchgehende Großschreibungen – Akronyme.
+    for (const word of grossGeschrieben) expect(word).toBe(word.toUpperCase());
   });
 });
 
