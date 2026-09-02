@@ -7,7 +7,7 @@ laufenden Design ist nichts geändert.
 | Datei | Route | Risiko |
 | --- | --- | --- |
 | `route-a-papierbogen.html` | Kästen weg, Typografie gliedert | gering |
-| `route-b-werkbank.html` | Zweispaltig, Quelle bleibt sichtbar | mittel |
+| `route-b-werkbank.html` | Zweispaltig, Quelle bleibt sichtbar (**Fassung 2**) | mittel |
 | `route-c-karteikasten.html` | Marke sichtbar, Vokabeln als Kartenstapel | höher |
 
 Jede Datei zeigt dieselben drei Bildschirme, damit sie vergleichbar sind:
@@ -17,6 +17,28 @@ Jede Datei zeigt dieselben drei Bildschirme, damit sie vergleichbar sind:
 3. **Paketseite** – die fertige Liste mit „Weitergeben an die Lerngruppe“
 
 Öffnen per Doppelklick. Kein Server, kein Netz, keine Abhängigkeit.
+
+## Route B, Fassung 2
+
+Nach der ersten Durchsicht überarbeitet:
+
+- Pakete als **Blöcke** statt Tabellenzeilen – eigene Fläche, weiche Ecke, Kante
+  in Aubergine. Herunterladen geht direkt aus der Liste, über ein Symbol
+  (Einzeldatei und LexiFlow-Paket, beide mit Namen für die Vorlesehilfe).
+- Der Kasten „Auf diesem Gerät“ ist weg; das Öffnen einer Paketdatei steht
+  jetzt am Kopf der Liste.
+- Die Textansicht ist **verstellbar**: die Spalte in der Breite (Griff
+  dazwischen, auch mit den Pfeiltasten), das Textfeld zusätzlich in der Höhe.
+  Beides funktioniert in der Datei wirklich.
+- **Keine Umrandung** um die Listen. Feine Striche trennen die Zeilen; Satz,
+  Wörterbuchangaben und der Beispielsatz-Knopf stehen unten in der Zeile und
+  beginnen ganz links.
+- Der **Beispielsatz** steht auf der Paketseite in jeder Zeile – eingeklappt,
+  benannt, mit Anzahl – und ist aufgeklappt bearbeitbar.
+
+Dafür trägt diese eine Datei rund dreißig Zeilen JavaScript: Dass sich eine
+Spalte ziehen lässt und ein Bereich wirklich auf- und zuklappt, lässt sich als
+Bild nur behaupten.
 
 ## Was in allen dreien gleich bleibt
 
