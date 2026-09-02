@@ -101,6 +101,63 @@ check(
   'Lehrkraftdatei: die Schülerlaufzeit ist nicht einkompiliert – der Export könnte nichts erzeugen.',
 );
 
+/*
+ * Sprint 4B.2: Der PDF-Import muss **in** der Datei stecken.
+ *
+ * Der Verweisprüfer oben findet `src=`/`href=` im Markup. Der Ladepfad von
+ * pdf.js steht aber nicht im Markup, sondern in einer Zeichenkette im
+ * JavaScript (`workerSrc`) – er wäre dort unbemerkt durchgerutscht, und der
+ * Fehlschlag käme erst in dem Moment, in dem jemand eine PDF auswählt.
+ */
+check(
+  teacherHtml.includes('WorkerMessageHandler'),
+  'Lehrkraftdatei: der pdf.js-Workercode fehlt – der PDF-Import würde ihn zur Laufzeit nachladen wollen.',
+);
+check(
+  teacherHtml.includes('pdfjsWorker'),
+  'Lehrkraftdatei: die Übergabestelle `globalThis.pdfjsWorker` fehlt.',
+);
+for (const [name, pattern] of [
+  ['workerSrc', /workerSrc\s*[:=]\s*["'][^"']*\.m?js["']/i],
+  ['cMapUrl', /cMapUrl\s*[:=]\s*["'][^"']+["']/i],
+  ['standardFontDataUrl', /standardFontDataUrl\s*[:=]\s*["'][^"']+["']/i],
+]) {
+  const hit = teacherHtml.match(pattern);
+  check(hit === null, `Lehrkraftdatei: ${name} zeigt nach draußen (${hit?.[0] ?? ''}).`);
+}
+check(
+  teacherHtml.includes('Apache License 2.0') && teacherHtml.includes('Mozilla Foundation'),
+  'Lehrkraftdatei: die Lizenzangabe zu pdf.js fehlt in der weitergegebenen Datei.',
+);
+
+/*
+ * … und die Schülerdatei darf davon nichts abbekommen.
+ *
+ * Der PDF-Import ist eine Funktion des Lehrkraftbereichs. Drei Megabyte
+ * Bibliothek in einer Datei, die an eine ganze Klasse geht, wären reine Last.
+ */
+for (const marker of ['WorkerMessageHandler', 'pdfjsWorker', 'InvalidPDFException']) {
+  check(!runtimeHtml.includes(marker), `Schülerlaufzeit: enthält pdf.js-Code (${marker}).`);
+}
+
+/*
+ * Größenschranken.
+ *
+ * Kein Selbstzweck: Eine Datei, die per E-Mail nicht mehr durchgeht, ist keine
+ * portable Datei mehr. Die Lehrkraftschranke stammt aus dem Sprintauftrag
+ * 4B.2, die Schülerschranke aus 4A.2 (620,7 KiB vor dem Wörterbuch).
+ */
+const teacherMiB = statSync(teacher).size / 1024 / 1024;
+check(
+  teacherMiB < 12,
+  `Lehrkraftdatei: ${teacherMiB.toFixed(2)} MiB – die Schranke liegt bei 12 MiB.`,
+);
+const runtimeKiB = statSync(runtime).size / 1024;
+check(
+  runtimeKiB < 700,
+  `Schülerlaufzeit: ${runtimeKiB.toFixed(1)} KiB – die Schranke liegt bei 700 KiB.`,
+);
+
 console.log('\nGrößen:');
 for (const entry of report) console.log(`  ${entry.label.padEnd(34)} ${kib(entry.bytes)}`);
 

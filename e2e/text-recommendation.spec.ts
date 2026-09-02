@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { VOCABPACK_FORMAT_VERSION } from '../src/domain/schema';
 
 /**
  * Sprint 4B.1: der Empfehlungsschritt im Import-Assistenten.
@@ -142,7 +143,7 @@ test.describe('Empfehlungen aus einem Text', () => {
     const fs = await import('node:fs/promises');
     const content = await fs.readFile(filePath, 'utf8');
 
-    expect(JSON.parse(content).formatVersion).toBe(1);
+    expect(JSON.parse(content).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     expect(JSON.parse(content).meta.description).toBe('Achte auf die Nomenendungen.');
     // Der Quelltext bleibt draußen; nur die Originalsätze der Vokabeln gehen mit.
     expect(content).not.toContain('The old house on the street was small');

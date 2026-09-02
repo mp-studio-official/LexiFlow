@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { VOCABPACK_FORMAT_VERSION } from '../src/domain/schema';
 
 /**
  * Sprint 2B.2b: der Satzassistent – vom Vorschlag bis zur Lernrunde.
@@ -145,7 +146,7 @@ test.describe('Satzassistent', () => {
     const fs = await import('node:fs/promises');
     const content = await fs.readFile(filePath, 'utf8');
 
-    expect(JSON.parse(content).formatVersion).toBe(1);
+    expect(JSON.parse(content).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     expect(content).toContain('You should apologise now.');
     for (const forbidden of ['LanguageModel', 'responseConstraint', 'simpler', 'provider']) {
       expect(content).not.toContain(forbidden);

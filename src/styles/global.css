@@ -2308,3 +2308,31 @@ progress {
     justify-content: center;
   }
 }
+
+/* --- PDF-Quelle ----------------------------------------------------------- */
+
+/*
+ * Die Ablagefläche für eine PDF. Sie ist bewusst zurückhaltend: gestrichelte
+ * Kante statt Kasten, keine Farbe außer beim Überfahren. Sie ist kein Zustand
+ * und kein Ergebnis, sondern eine Einladung – und sie steht neben einem
+ * echten Knopf, damit sie ohne Maus überflüssig ist.
+ */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+  text-align: center;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.dropzone--over {
+  border-color: var(--primary);
+  background: var(--info-soft);
+}

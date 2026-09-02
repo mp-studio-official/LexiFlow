@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { VOCABPACK_FORMAT_VERSION } from '../src/domain/schema';
 
 /**
  * Sprint 2B.1: Vorschläge beim Import – und der Nachweis, dass das fertige
@@ -171,7 +172,7 @@ test.describe('Vorschläge beim Import', () => {
     const content = await fs.readFile(filePath, 'utf8');
     const parsed = JSON.parse(content) as { formatVersion: number };
 
-    expect(parsed.formatVersion).toBe(1);
+    expect(parsed.formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     expect(content).toContain('sich entschuldigen');
     expect(content).toContain('"difficulty": 3');
     for (const forbidden of ['suggestion', 'provider', 'LanguageModel', 'local-rule', 'confidence']) {

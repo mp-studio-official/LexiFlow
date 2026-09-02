@@ -33,6 +33,7 @@ import {
   type DraftRow,
 } from '../../import/draft';
 import { parseCsv, parsePastedText } from '../../import/csv';
+import { looksStructured, parseStructuredList, structuredToDrafts } from '../../import/structuredList';
 import { TextCandidateReview } from './TextCandidateReview';
 import { syncManualEdits } from '../../import/suggestions';
 import {
@@ -74,7 +75,13 @@ const EnrichmentPanel = lazy(() => import('./EnrichmentPanel'));
 /** Auch die Themenwerkstatt lädt erst, wenn sie gebraucht wird. */
 const TopicStudio = lazy(() => import('./TopicStudio'));
 
-type SourceKind = 'paste' | 'text' | 'topic' | 'csv' | 'xlsx' | 'json';
+/**
+ * Der PDF-Weg lädt erst beim Anklicken – und mit ihm pdf.js. Wer nie eine PDF
+ * öffnet, lädt die Bibliothek nie.
+ */
+const PdfSourcePanel = lazy(() => import('./PdfSourcePanel'));
+
+type SourceKind = 'paste' | 'pdf' | 'text' | 'topic' | 'csv' | 'xlsx' | 'json';
 
 /**
  * Drei Schritte statt vier.
@@ -89,6 +96,7 @@ type Step = 'source' | 'candidates' | 'review';
 
 const SOURCE_LABELS: Readonly<Record<SourceKind, string>> = {
   paste: 'Einfügen',
+  pdf: 'PDF-Datei',
   text: 'Aus englischem Text',
   topic: 'Zu einem Thema',
   csv: 'CSV-Datei',
@@ -110,10 +118,13 @@ export function ImportWizardPage() {
     const requested = searchParams.get('quelle');
     if (requested === 'text') return 'text';
     if (requested === 'thema') return 'topic';
+    if (requested === 'pdf') return 'pdf';
     return 'paste';
   });
   const [pasteText, setPasteText] = useState('');
   const [splitMeaningsOption, setSplitMeaningsOption] = useState(true);
+  /** Zeilen, die der strukturierte Parser keiner Vokabel zuordnen konnte. */
+  const [unassignedLines, setUnassignedLines] = useState<string[]>([]);
 
   const [rawRows, setRawRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
@@ -406,9 +417,43 @@ export function ImportWizardPage() {
     setAnnouncement(`${built.length} Vokabeln in die Vorschau übernommen.`);
   }
 
+  /**
+   * Eingefügten Text übernehmen – strukturiert, wenn er es hergibt.
+   *
+   * Zwei Wege, und die Entscheidung trifft der Text selbst: Trägt er
+   * Aufzählungszeichen, `translation:`-Zeilen oder Wortartkürzel, liest ihn
+   * `structuredList.ts` samt Wortart, Beispielsatz und verbundenen Formen.
+   * Sonst bleibt es beim schlichten Zeilenparser, der seit Sprint 1 genügt.
+   */
+  function acceptPastedText(text: string): void {
+    if (looksStructured(text)) {
+      const parsed = parseStructuredList(text);
+      const built = structuredToDrafts(parsed);
+      if (built.length === 0) {
+        setError('Es konnten keine Vokabeln gelesen werden.');
+        return;
+      }
+      setRawRows([]);
+      setMapping(null);
+      setSourceType('import');
+      setDrafts(built);
+      setError('');
+      setStep('review');
+      const offen = parsed.unassigned.length;
+      setAnnouncement(
+        `${built.length} Vokabeln erkannt. Vorschau geöffnet.` +
+          (offen > 0 ? ` ${offen} Zeile${offen === 1 ? '' : 'n'} konnte nicht zugeordnet werden.` : ''),
+      );
+      setUnassignedLines(parsed.unassigned);
+      return;
+    }
+
+    setUnassignedLines([]);
+    applyRows(parsePastedText(text), 'import');
+  }
+
   function handlePaste(): void {
-    const rows = parsePastedText(pasteText);
-    applyRows(rows, 'import');
+    acceptPastedText(pasteText);
   }
 
   async function handleFile(file: File): Promise<void> {
@@ -728,11 +773,15 @@ export function ImportWizardPage() {
                 </p>
               ) : null}
             </div>
+          ) : source === 'pdf' ? (
+            <Suspense fallback={<p className="muted">PDF-Import wird geladen …</p>}>
+              <PdfSourcePanel onAccept={acceptPastedText} />
+            </Suspense>
           ) : source === 'paste' ? (
             <div className="stack">
               <Field
                 label="Vokabelliste einfügen"
-                hint="Eine Vokabel pro Zeile. Trennung durch Tabulator, Semikolon, „ – “ oder Komma."
+                hint="Eine Vokabel pro Zeile – Tabulator oder „ – “ trennt Englisch und Deutsch. Eine schon gegliederte Liste mit Aufzählungspunkten, „translation:“ und Wortartkürzeln wird als solche erkannt."
               >
                 {(props) => (
                   <textarea
@@ -830,6 +879,30 @@ export function ImportWizardPage() {
 
       {step === 'review' ? (
         <div className="stack">
+          {/*
+            Zeilen, die der strukturierte Parser keiner Vokabel zuordnen
+            konnte. Sie stillschweigend wegzuwerfen wäre bequem und falsch –
+            vielleicht steht dort etwas Wichtiges. Also stehen sie hier, zum
+            Nachtragen von Hand.
+          */}
+          {unassignedLines.length > 0 ? (
+            <Alert tone="info">
+              <p>
+                {unassignedLines.length}{' '}
+                {unassignedLines.length === 1 ? 'Zeile wurde' : 'Zeilen wurden'} keiner Vokabel
+                zugeordnet und deshalb nicht übernommen:
+              </p>
+              <ul className="small">
+                {unassignedLines.slice(0, 8).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              {unassignedLines.length > 8 ? (
+                <p className="small muted">… und {unassignedLines.length - 8} weitere.</p>
+              ) : null}
+            </Alert>
+          ) : null}
+
           {sheets.length > 1 ? (
             <Card quiet>
               <Field label="Tabellenblatt">

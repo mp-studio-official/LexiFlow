@@ -795,6 +795,128 @@ immer: Paket exportieren → Datei senden → beim Empfänger „Paketdatei öff
 
 ---
 
+## Eine PDF als Quelle (seit Sprint 4B.2)
+
+Vokabellisten kommen in der Praxis als PDF: der Anhang eines Lehrwerks, ein
+Arbeitsblatt aus der Fachschaft, ein Auszug aus dem Schulbuchportal. Bis
+Sprint 4B.2 war der Weg von dort in ein Paket das Markieren, Kopieren und
+Nachformatieren von Hand. Seit 4B.2 gibt es im Importassistenten die Quelle
+**„PDF-Datei“** (`/#/lehrkraft/import?quelle=pdf`).
+
+### Die Datei verlässt den Browser nicht
+
+Das ist die eigentliche Zusage, und sie ist enger gefasst als „wir laden
+nichts hoch“:
+
+| | |
+| --- | --- |
+| Netzwerkaufrufe beim Import | **keine** |
+| Nachgeladene Laufzeitdateien | **keine** – auch kein `pdf.worker.js` |
+| Externe Schriften, CMaps, Standardfonts | **keine** (`disableFontFace`, `useSystemFonts: false`) |
+| `eval` | aus (`isEvalSupported: false`) |
+| Worker-Thread | aus (`disableWorker: true`) – die Zerlegung läuft im Hauptthread |
+
+Der Verzicht auf den Worker ist kein Geschmacksurteil. pdf.js lagert die
+Arbeit normalerweise in eine zweite Datei aus und holt sie zur Laufzeit über
+eine URL. Unter `file://` gibt es diese URL nicht, und in der portablen
+Einzeldatei erst recht nicht – der Import schlüge dort mit „Setting up fake
+worker failed“ fehl, und zwar erst in dem Moment, in dem jemand eine PDF
+auswählt. pdf.js sieht einen Ausweg vor: Steht der Handler unter
+`globalThis.pdfjsWorker`, wird nichts nachgeladen. Genau so ist es gebaut
+(`src/import/pdfText.ts`).
+
+Belegt wird das nicht durch Zusage, sondern durch zwei Prüfungen:
+
+* **`src/portability/pdfOffline.test.ts`** öffnet die gebaute portable
+  Lehrkraftdatei und weist nach, dass der Workercode und die Bibliothek darin
+  enthalten sind und kein Ladepfad auf eine externe Datei zeigt.
+* **`e2e-portable/pdf-import.spec.ts`** öffnet dieselbe Datei über `file://`,
+  **blockiert im Browser jede Netzwerkanfrage**, importiert eine echte PDF und
+  prüft das Ergebnis. Was hier durchläuft, läuft ohne Netz.
+
+### Kein OCR – und keine Behauptung davon
+
+Eine gescannte Seite ist ein Bild. LexiFlow liest **auswählbaren** Text; wo
+keiner ist, steht es da:
+
+> In dieser PDF wurde kein auswählbarer Text gefunden. Füge den Text ein oder
+> verwende vorher eine OCR-Anwendung.
+
+Ein Texterkennungsmodell mitzuliefern hätte das Bündel um ein Vielfaches
+vergrößert und in der Klasse trotzdem unzuverlässig gelesen. Der ehrliche Satz
+mit dem Ausweg ist die bessere Antwort als ein halb erkannter Vokabelsatz, den
+niemand nachprüft.
+
+### Warum eine bearbeitbare Vorschau dazwischenliegt
+
+Extrahierter PDF-Text ist nie sauber: Kopfzeilen, Seitenzahlen, Fußnoten und
+Trennstriche kommen mit. Ginge er direkt in den Parser, müsste die Lehrkraft
+den Rest hinterher aus zwanzig Entwurfszeilen klauben. Deshalb erscheint er
+zuerst in einem **Textfeld**, in dem sich in zehn Sekunden aufräumen lässt,
+was nicht in die Liste gehört. Erst „Text übernehmen“ startet die Zerlegung.
+
+### Grenzen, und was sie sollen
+
+| Grenze | Wert | Grund |
+| --- | --- | --- |
+| Dateigröße | 25 MB | Darüber blockiert der Hauptthread spürbar lange |
+| Seiten | 60 | dito; ein Vokabelanhang ist deutlich kürzer |
+| Abbruch | jederzeit | „Abbrechen“ bricht per `AbortSignal` wirklich ab, nicht nur die Anzeige |
+
+Fortschritt wird je Seite gemeldet, nicht geschätzt.
+
+### Zeilen aus Textstücken
+
+pdf.js liefert Textstücke mit Position, keine Zeilen. Gruppiert wird nach der
+**Grundlinie** (dem `y`-Wert der Transformationsmatrix, auf ganze Punkte
+gerundet); innerhalb einer Zeile wird nach `x` sortiert.
+
+Ob zwischen zwei Stücke ein Leerzeichen gehört, entscheidet die **Lücke**:
+Viele PDF-Erzeuger schreiben Wortzwischenräume nicht als Leerzeichen, sondern
+setzen das nächste Stück einfach weiter rechts ab – aus „erste Zeile“ würde
+sonst „ersteZeile“. Andere schreiben das Leerzeichen mit; dort darf keines
+dazukommen. Beide Fälle trifft dieselbe Regel: Ein Leerzeichen kommt
+dazwischen, wenn zwischen `x + width` des einen Stücks und dem `x` des
+nächsten eine sichtbare Lücke liegt (Schwelle: ein Viertel der Zeilenhöhe).
+
+Eine echte Layoutanalyse mit Spalten- und Tabellenerkennung ist das
+ausdrücklich **nicht** – das wäre ein eigenes Projekt. Was der strukturierte
+Parser danach nicht sicher zuordnen kann, markiert er sichtbar als „Bitte
+prüfen“, statt es zu raten.
+
+### pdf.js: Lizenz und Bundle-Effekt
+
+| | |
+| --- | --- |
+| Paket | `pdfjs-dist` **4.10.38**, Legacy-Build |
+| Urheberin | Mozilla Foundation, Copyright 2024 |
+| Lizenz | **Apache License 2.0** |
+| Lizenztext | `third_party/pdfjs/LICENSE` |
+| Attribution und Änderungsvermerk | `third_party/pdfjs/NOTICE.md` |
+| In der Anwendung sichtbar | **Daten & Datenschutz** → „Mitgelieferte fremde Bestandteile“ |
+
+Apache-2.0 erlaubt die Weitergabe im eigenen Produkt ohne Copyleft. Das Paket
+enthält selbst **keine** `NOTICE`-Datei; die Pflichten aus 4 (a) und 4 (b) –
+Lizenztext mitgeben, Änderungen kenntlich machen – erfüllen die Kopie und der
+Änderungsabschnitt in `NOTICE.md`. Der ausgelieferte Code ist unverändert;
+geändert ist nur, *wie* er aufgerufen wird (siehe oben).
+
+**Warum 4.10.38 und nicht 6.x:** Die 6er-Reihe setzt `Promise.try` als
+vorhanden voraus. Safari kennt es erst ab 18.2, Node 22 gar nicht – und der
+Zugriff erfolgt beim Auswerten des Moduls, also *vor* jeder Stelle, an der man
+das abfangen könnte. LexiFlow ergänzt `Promise.try` deshalb selbst, synchron
+**bevor** pdf.js geladen wird, und überschreibt eine vorhandene Implementierung
+ausdrücklich nicht (`??=`). Beide Zusagen sind in `src/import/pdfText.test.ts`
+geprüft, die zweite zusätzlich durch einen Wirkungstest mit zwei
+aufeinanderfolgenden Dokumenten.
+
+**Der Bundle-Effekt trifft nur die Lehrkraftdatei.** Die Bibliothek wird
+dynamisch importiert und liegt im Lehrkraftbündel; die Schülerlaufzeit
+importiert `src/import/pdfText.ts` nirgends. Die Zahlen stehen im Abschnitt
+[Größen](#größen), die Prüfung in `scripts/verify-portable.mjs`.
+
+---
+
 ## Vorschläge beim Import
 
 Nach dem Einfügen oder Hochladen schlägt LexiFlow fehlende Angaben vor:

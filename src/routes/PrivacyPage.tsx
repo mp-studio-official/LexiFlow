@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Button, Card } from '../ui/components';
 import { clearAllLocalData } from '../data/db';
 import { DictionaryLicencePanel } from './teacher/DictionaryLicencePanel';
+import { THIRD_PARTY } from '../ui/thirdParty';
 
 export function PrivacyPage() {
   const [status, setStatus] = useState<string>('');
@@ -54,6 +55,39 @@ export function PrivacyPage() {
         Daten geschieht – und nicht in einer Fußnote, die niemand aufschlägt.
       */}
       <DictionaryLicencePanel />
+
+      {/*
+        Was mitgeliefert wird, steht dort, wo auch steht, was nicht geladen
+        wird. „Keine fremden Requests“ und „fremder Code im Bündel“ sind zwei
+        verschiedene Aussagen, und beide gehören auf dieselbe Seite – sonst
+        klingt die erste nach mehr, als sie sagt.
+      */}
+      <Card>
+        <h2>Mitgelieferte fremde Bestandteile</h2>
+        <p className="muted small">
+          Diese Bestandteile stecken <strong>in</strong> der Anwendung und werden mit ihr
+          weitergegeben. Sie werden nicht nachgeladen – auch nicht beim PDF-Import.
+        </p>
+        <dl className="promises">
+          {THIRD_PARTY.map((component) => (
+            <div key={component.name}>
+              <dt className="promises__term">
+                {component.name} {component.version}
+              </dt>
+              <dd className="promises__text">
+                {component.zweck}
+                <br />
+                <span className="muted small">
+                  {component.urheber} · {component.lizenz} ·{' '}
+                  <a href={component.url} rel="noreferrer">
+                    Projektseite
+                  </a>
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </Card>
 
       <Card>
         <h2>Lokale Daten löschen</h2>

@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { VOCABPACK_FORMAT_VERSION } from '../src/domain/schema';
 
 /**
  * Sprint 2B.2a: die Themenwerkstatt – vom Thema bis zur Lernrunde.
@@ -167,7 +168,7 @@ test.describe('Themenwerkstatt', () => {
     const fs = await import('node:fs/promises');
     const content = await fs.readFile(filePath, 'utf8');
 
-    expect(JSON.parse(content).formatVersion).toBe(1);
+    expect(JSON.parse(content).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     expect(content).toContain('Abfall');
     expect(content).toContain('"sourceType": "topic-ai"');
     for (const forbidden of ['LanguageModel', 'responseConstraint', 'provider', 'Jahrgangsstufe']) {
