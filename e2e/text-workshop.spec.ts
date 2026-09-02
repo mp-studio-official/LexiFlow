@@ -150,11 +150,11 @@ test.describe('Textwerkstatt', () => {
     for (const german of ['Nachbarschaft', 'überfüllt', 'Müll']) {
       expect(germanValues).toContain(german);
     }
-    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded anzeigen' }).click();
     await expect(page.getByLabel('Beispielsatz 1 Englisch, crowded')).toHaveValue(
       'The neighbourhood is crowded today.',
     );
-    await page.getByRole('button', { name: 'Beispielsatz für crowded schließen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded ausblenden' }).click();
 
     // Titel und Speichern stehen in **demselben** Schritt wie die Tabelle.
     await page.getByLabel('Titel', { exact: true }).fill('Aus Text – City life');
@@ -165,7 +165,7 @@ test.describe('Textwerkstatt', () => {
 
     // Der Quelltext landet nicht im Paket.
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Als .vocabpack.json exportieren' }).click();
+    await page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }).click();
     const download = await downloadPromise;
     const path = await download.path();
     const content = await (await import('node:fs/promises')).readFile(path, 'utf8');
@@ -173,7 +173,7 @@ test.describe('Textwerkstatt', () => {
     expect(content).toContain('The neighbourhood is crowded today.');
 
     // Schülerbereich funktioniert unverändert.
-    await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+    await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
     await expect(page.getByText(/0 von 3 Vokabeln sicher/)).toBeVisible();
     await page.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(page.getByText('Aufgabe 1 von 3')).toBeVisible();

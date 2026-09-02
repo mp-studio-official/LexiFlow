@@ -82,7 +82,7 @@ async function exportStudentFile(page: Page, title = 'Unit 3 – City life'): Pr
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Als Schülerdatei (.html) exportieren' }).click();
+  await page.getByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }).click();
   const download = await downloadPromise;
 
   const target = join(mkdtempSync(join(tmpdir(), 'lexiflow-')), download.suggestedFilename());
@@ -120,7 +120,7 @@ test.describe('Portable Lehrkraftdatei', () => {
     expect(fileUrl).toContain('unit-3-city-life-8-lexiflow.html');
     await expect(page.getByText(/Schülerdatei erstellt/).last()).toBeVisible();
     // Der bestehende JSON-Export steht unverändert daneben.
-    await expect(page.getByRole('button', { name: 'Als .vocabpack.json exportieren' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' })).toBeVisible();
     expect(external).toEqual([]);
   });
 
@@ -243,7 +243,7 @@ test.describe('Portable Lehrkraftdatei', () => {
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'A11y Export' })).toBeVisible();
 
-    await expect(page.getByText(/Die Datei enthält dieses Vokabelpaket/)).toBeVisible();
+    await expect(page.getByText(/Die Einzeldatei enthält dieses Vokabelpaket/)).toBeVisible();
     await expectNoSeriousViolations(page, 'Lehrkraft-Paketseite (portabel)');
   });
 });

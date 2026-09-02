@@ -53,14 +53,21 @@ interface DraftTableProps {
 const DIFFICULTIES = [1, 2, 3, 4, 5] as const;
 
 /**
- * Sieben Spalten, nicht neun.
+ * Fünf Spalten, nicht neun.
  *
- * Schwierigkeit und Themen-Tags standen bisher als eigene Spalten in der
- * Tabelle und drängten sich damit auf: zwei Pflichtfelder dem Anschein nach,
- * die in Wahrheit optional sind. Im vollen Umfang stehen sie jetzt im
- * aufgeklappten Bereich, im Textimport gar nicht.
+ * Schwierigkeit und Themen-Tags standen bis 4B.1 als eigene Spalten da und
+ * drängten sich damit auf: zwei Pflichtfelder dem Anschein nach, die in
+ * Wahrheit optional sind. Sie liegen jetzt im aufgeklappten Bereich, im
+ * Textimport gar nicht.
+ *
+ * Mit 4B.2 kommen **Englisch und Deutsch in eine Spalte** – untereinander
+ * statt nebeneinander. Vorher teilten sich zwei Textfelder, ein Auswahlfeld,
+ * ein Knopf und eine Fehlerliste dieselbe Zeilenbreite; auf einem Laptop war
+ * jedes Feld dadurch so schmal, dass „sich entschuldigen“ nicht hineinpasste.
+ * Untereinander bekommt jedes die volle Spaltenbreite, und die Zeile liest
+ * sich als das, was sie ist: **eine** Vokabel mit zwei Seiten.
  */
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 5;
 
 export function DraftTable({
   drafts,
@@ -97,7 +104,7 @@ export function DraftTable({
       <table>
         <caption className="visually-hidden">
           Vorschau der erkannten Vokabeln. Alle Felder sind bearbeitbar; Beispielsätze,
-          Schwierigkeit und Themen-Tags stehen unter „Beispielsatz bearbeiten“.
+          Schwierigkeit und Themen-Tags stehen unter „Beispielsatz anzeigen“.
         </caption>
         <thead>
           <tr>
@@ -105,14 +112,10 @@ export function DraftTable({
               <span className="visually-hidden">Übernehmen</span>
               <span aria-hidden="true">✓</span>
             </th>
-            <th scope="col">Englisch</th>
-            <th scope="col">Deutsch</th>
+            <th scope="col">Vokabel</th>
             <th scope="col">Wortart</th>
             <th scope="col">Beispielsatz</th>
             <th scope="col">Status</th>
-            <th scope="col">
-              <span className="visually-hidden">Aktionen</span>
-            </th>
           </tr>
         </thead>
         <tbody>
@@ -136,23 +139,44 @@ export function DraftTable({
                       onChange={(event) => patch(draft.id, { include: event.target.checked })}
                     />
                   </td>
-                  <td>
+                  <td className="draft__word">
+                    {/*
+                      Englisch oben, Deutsch darunter – und beide beschriftet
+                      wie bisher, damit eine Vorlesehilfe weiterhin sagt, welche
+                      Seite gerade dran ist.
+                    */}
                     <input
                       type="text"
                       value={draft.english}
                       aria-label={`Englisch, Zeile ${index + 1}`}
                       onChange={(event) => patch(draft.id, { english: event.target.value })}
                     />
-                  </td>
-                  <td>
                     <input
                       type="text"
                       value={draft.german}
                       aria-label={`Deutsch, Zeile ${index + 1}`}
                       onChange={(event) => patch(draft.id, { german: event.target.value })}
                     />
+                    {/*
+                      Der Grund steht dort, wo man ihn behebt.
+
+                      Bis 4B.1 stand in der Statusspalte eine Aufzählung aller
+                      Meldungen – bei drei Hinweisen war die Spalte höher als
+                      die ganze übrige Zeile und schob die Tabelle
+                      auseinander. Jetzt sagt der Status **ob**, und hier steht
+                      **was**, unmittelbar unter dem Feld, das es angeht.
+                    */}
+                    {draft.issues.length > 0 ? (
+                      <ul className="draft__issues">
+                        {draft.issues.map((issue, issueIndex) => (
+                          <li key={issueIndex} className="small" data-level={issue.level}>
+                            {issue.message}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </td>
-                  <td>
+                  <td className="draft__pos">
                     <select
                       value={draft.partOfSpeech}
                       aria-label={`Wortart, Zeile ${index + 1}`}
@@ -172,34 +196,33 @@ export function DraftTable({
                     {/*
                       „Details“ sagte nichts. Fast immer geht es um den
                       Beispielsatz – und wer ihn sucht, soll ihn benannt finden.
+                      Seit 4B.2 sagt die Beschriftung auch, was der Klick tut:
+                      anzeigen oder ausblenden, nicht „bearbeiten“ gegen
+                      „schließen“.
                     */}
                     <Button
                       small
                       variant="quiet"
                       aria-expanded={isOpen}
-                      aria-label={`Beispielsatz für ${rowLabel} ${isOpen ? 'schließen' : 'bearbeiten'}`}
+                      aria-label={`Beispielsatz für ${rowLabel} ${isOpen ? 'ausblenden' : 'anzeigen'}`}
                       onClick={() => toggleDetails(draft.id)}
                     >
-                      {isOpen ? 'Schließen' : 'Beispielsatz bearbeiten'} ({draft.sentences.length})
+                      {isOpen ? 'Beispielsatz ausblenden' : `Beispielsatz anzeigen (${draft.sentences.length})`}
                     </Button>
                   </td>
-                  <td>
+                  <td className="draft__status">
+                    {/*
+                      Zwei Zustände, kurz und ohne Farbe als einziges Merkmal.
+                      „Bitte prüfen“ statt „Fehler“: Eine fehlende Übersetzung
+                      ist eine offene Aufgabe, kein Schaden.
+                    */}
                     {draft.issues.length === 0 ? (
-                      <Badge tone="success">ok</Badge>
+                      <Badge tone="success">OK</Badge>
                     ) : (
-                      <ul style={{ margin: 0, paddingLeft: '1rem' }}>
-                        {draft.issues.map((issue, issueIndex) => (
-                          <li key={issueIndex} className="small">
-                            <Badge tone={issue.level === 'error' ? 'error' : 'warning'}>
-                              {issue.level === 'error' ? 'Fehler' : 'Hinweis'}
-                            </Badge>{' '}
-                            {issue.message}
-                          </li>
-                        ))}
-                      </ul>
+                      <Badge tone={hasBlockingError(draft) ? 'error' : 'warning'}>
+                        Bitte prüfen
+                      </Badge>
                     )}
-                  </td>
-                  <td>
                     <Button
                       small
                       variant="quiet"

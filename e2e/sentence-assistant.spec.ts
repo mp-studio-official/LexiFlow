@@ -91,7 +91,7 @@ async function openDetails(page: Page): Promise<void> {
   await page.getByLabel('Vokabelliste einfügen').fill(LISTE);
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
   await expect(page.getByText('2 Zeilen ·')).toBeVisible();
-  await page.getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' }).click();
+  await page.getByRole('button', { name: 'Beispielsatz für to apologise anzeigen' }).click();
 }
 
 test.describe('Satzassistent', () => {
@@ -140,7 +140,7 @@ test.describe('Satzassistent', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Höflichkeit' })).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Als .vocabpack.json exportieren' }).click();
+    await page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }).click();
     const download = await downloadPromise;
     const filePath = await download.path();
     const fs = await import('node:fs/promises');
@@ -190,7 +190,7 @@ test.describe('Satzassistent', () => {
     // Nach dem Speichern steht der Paketeditor offen – dieselbe DraftTable,
     // dieselbe Hilfe, anderer Bereich.
     await expect(page.getByRole('heading', { level: 2, name: 'Metadaten' })).toBeVisible();
-    await page.getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für to apologise anzeigen' }).click();
 
     await page.getByRole('button', { name: /Beispielsatz vorschlagen, to apologise/ }).click();
     await expect(page.getByText('They apologise after every game.')).toBeVisible();

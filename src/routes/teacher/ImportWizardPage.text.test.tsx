@@ -134,7 +134,7 @@ describe('Der Weg durch die drei Schritte', () => {
     await analyzeAndRecommend(user);
     await toReview(user, 'crowded', 'überfüllt');
 
-    await user.click(screen.getByLabelText(/Beispielsatz für crowded bearbeiten/));
+    await user.click(screen.getByLabelText(/Beispielsatz für crowded anzeigen/));
     expect(screen.getByDisplayValue('The neighbourhood is crowded.')).toBeInTheDocument();
   });
 
@@ -351,7 +351,7 @@ describe('Schritt 3 zeigt im Textimport nur, was es wirklich gibt', () => {
     expect(screen.getByLabelText('Deutsch, Zeile 1')).toBeInTheDocument();
     expect(screen.getByLabelText('Wortart, Zeile 1')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }),
+      screen.getByRole('button', { name: /Beispielsatz für crowded anzeigen/ }),
     ).toBeInTheDocument();
   });
 
@@ -369,7 +369,7 @@ describe('Schritt 3 zeigt im Textimport nur, was es wirklich gibt', () => {
     expect(screen.queryByLabelText(/Schwierigkeit/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Themen-Tags/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded anzeigen/ }));
 
     expect(screen.queryByLabelText(/Schwierigkeit/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Themen-Tags/)).not.toBeInTheDocument();
@@ -380,7 +380,7 @@ describe('Schritt 3 zeigt im Textimport nur, was es wirklich gibt', () => {
   it('lässt im aufgeklappten Bereich nur den Beispielsatz und sein Entfernen', async () => {
     const user = setup();
     await toStepThree(user);
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded anzeigen/ }));
 
     expect(screen.getByLabelText('Beispielsatz 1 Englisch, crowded')).toHaveValue(
       'The neighbourhood is crowded.',
@@ -407,7 +407,7 @@ describe('Schritt 3 zeigt im Textimport nur, was es wirklich gibt', () => {
     await screen.findByText('crowded-de');
     await user.click(screen.getByRole('button', { name: /Vorschlag .+ für crowded übernehmen/ }));
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded anzeigen/ }));
 
     expect(screen.getByLabelText('Beispielsatz 1 Deutsch, crowded')).toHaveValue(
       'The neighbourhood is crowded.-de',

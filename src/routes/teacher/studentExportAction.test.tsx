@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { clearAllLocalData } from '../../data/db';
@@ -73,18 +73,41 @@ beforeEach(async () => {
   await clearAllLocalData();
 });
 
-describe('Als Schülerdatei exportieren', () => {
+describe('Als Einzeldatei herunterladen', () => {
   it('erklärt vorab, was in der Datei steht – und was nicht', async () => {
     await seed();
     renderEditor();
 
     expect(
-      await screen.findByText(/Die Datei enthält dieses Vokabelpaket und den vollständigen/),
+      await screen.findByText(/Die Einzeldatei enthält dieses Vokabelpaket und den vollständigen/),
     ).toBeInTheDocument();
     expect(screen.getByText(/ohne Konto und ohne Internet/)).toBeInTheDocument();
     expect(screen.getByText(/Lernstände und andere Pakete wandern nicht mit/)).toBeInTheDocument();
     // Der Datenschutzhinweis benennt die einzige Quelle personenbezogener Daten.
     expect(screen.getByText(/Personenbezogene Daten stehen nur darin/)).toBeInTheDocument();
+  });
+
+  it('stellt die drei Wege der Weitergabe unter diesen Satz', async () => {
+    /*
+      Bis 4B.1 stand hier nur der Erklärtext, und die drei Aktionen lagen ganz
+      unten in einer Reihe mit „Paket löschen“. Wer gerade gespeichert hatte,
+      suchte den nächsten Schritt also neben dem gefährlichsten Knopf.
+    */
+    await seed();
+    renderEditor();
+
+    const karte = (await screen.findByRole('heading', { name: 'Weitergeben an die Lerngruppe' }))
+      .closest('div') as HTMLElement;
+
+    expect(
+      within(karte).getByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
+    ).toBeInTheDocument();
+    expect(
+      within(karte).getByRole('button', {
+        name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)',
+      }),
+    ).toBeInTheDocument();
+    expect(within(karte).getByRole('link', { name: 'Im Lernbereich ansehen' })).toBeInTheDocument();
   });
 
   it('lädt eine HTML-Datei mit genau diesem Paket herunter', async () => {
@@ -93,7 +116,7 @@ describe('Als Schülerdatei exportieren', () => {
     renderEditor();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Als Schülerdatei (.html) exportieren' }),
+      await screen.findByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
     );
 
     expect(downloads).toHaveLength(1);
@@ -111,7 +134,7 @@ describe('Als Schülerdatei exportieren', () => {
     const user = userEvent.setup();
     renderEditor();
 
-    await user.click(await screen.findByRole('button', { name: 'Als .vocabpack.json exportieren' }));
+    await user.click(await screen.findByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }));
 
     expect(downloads).toHaveLength(1);
     expect(downloads[0]?.filename).toBe('unit-3-city-life-8.vocabpack.json');
@@ -126,7 +149,7 @@ describe('Als Schülerdatei exportieren', () => {
     renderEditor();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Als Schülerdatei (.html) exportieren' }),
+      await screen.findByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
     );
 
     expect(downloads).toHaveLength(0);
@@ -142,7 +165,7 @@ describe('Als Schülerdatei exportieren', () => {
     renderEditor();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Als Schülerdatei (.html) exportieren' }),
+      await screen.findByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
     );
 
     expect(downloads).toHaveLength(0);

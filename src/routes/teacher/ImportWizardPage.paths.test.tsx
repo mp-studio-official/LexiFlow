@@ -62,7 +62,7 @@ describe('Eingefügte Liste', () => {
     await pasteList(user);
 
     await user.click(
-      screen.getByRole('button', { name: /Beispielsatz für to apologise bearbeiten/ }),
+      screen.getByRole('button', { name: /Beispielsatz für to apologise anzeigen/ }),
     );
     expect(screen.getByLabelText('Schwierigkeit')).toBeInTheDocument();
     expect(screen.getByLabelText('Themen-Tags')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('CSV', () => {
 
     expect(await screen.findByRole('table')).toBeInTheDocument();
     await user.click(
-      screen.getByRole('button', { name: /Beispielsatz für to apologise bearbeiten/ }),
+      screen.getByRole('button', { name: /Beispielsatz für to apologise anzeigen/ }),
     );
     /*
       `within` auf den aufgeklappten Bereich: Bei einer CSV-Datei heißt auch
@@ -173,7 +173,7 @@ describe('Paketimport', () => {
     expect(screen.getByLabelText('Titel')).toHaveValue('Unit 3 – City life');
     expect(screen.getByLabelText('Beschreibung (optional)')).toHaveValue('Ein vorhandener Hinweis.');
 
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded anzeigen/ }));
     expect(screen.getByLabelText('Schwierigkeit')).toHaveValue('3');
     expect(screen.getByLabelText('Themen-Tags')).toHaveValue('City life, transport');
     expect(screen.getByLabelText('Notiz')).toHaveValue('Nicht mit „crowd“ verwechseln.');
@@ -202,7 +202,7 @@ describe('Themenwerkstatt', () => {
     await user.click(screen.getByRole('button', { name: 'Leere Liste anlegen' }));
 
     await user.type(screen.getByLabelText('Englisch, Zeile 1'), 'crowded');
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded anzeigen/ }));
     expect(screen.getByLabelText('Themen-Tags')).toHaveValue('City life');
   });
 });

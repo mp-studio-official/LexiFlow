@@ -1,6 +1,7 @@
 import { Alert, Field } from '../../ui/components';
 import { CEFR_LEVELS, GRADE_LABELS, GRADES, suggestCefrLevel, type CefrLevel, type Grade } from '../../domain/cefr';
 import { DIRECTION_LABELS, LEARNING_DIRECTIONS, type LearningDirection } from '../../domain/schema';
+import { GrowingTextarea } from '../../ui/GrowingTextarea';
 
 export interface MetaDraft {
   title: string;
@@ -143,11 +144,16 @@ export function MetadataForm({ value, onChange, titleError }: MetadataFormProps)
         </Field>
       </div>
 
+      {/*
+        Bis 4B.2 war das ein einzeiliges `<input>`: Wer zwei Sätze schrieb, sah
+        immer nur einen Ausschnitt davon. Jetzt beginnt es mit einer Zeile und
+        wächst mit dem Text – kleiner als vorher, wenn nichts drinsteht, und
+        vollständig lesbar, wenn doch.
+      */}
       <Field label="Beschreibung (optional)" hint="Kurzer Hinweis für Lernende, z. B. worauf zu achten ist.">
         {(props) => (
-          <input
+          <GrowingTextarea
             {...props}
-            type="text"
             value={value.description}
             onChange={(event) => onChange({ ...value, description: event.target.value })}
           />

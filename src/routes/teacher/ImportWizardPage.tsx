@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Announcer, Button, Card, Field } from '../../ui/components';
 import { Stepper, type StepperItem } from '../../ui/Stepper';
 import { InfoDisclosure } from '../../ui/InfoDisclosure';
+import { GrowingTextarea } from '../../ui/GrowingTextarea';
 import { DraftTable } from './DraftTable';
 import { emptyMetaDraft, type MetaDraft } from './MetadataForm';
 import { useTranslationProvider } from '../../providers/ProviderContext';
@@ -1030,10 +1031,15 @@ export function ImportWizardPage() {
               label="Beschreibung (optional)"
               hint="Kurzer Hinweis für Lernende, z. B. worauf zu achten ist. Kann leer bleiben."
             >
+              {/*
+                Eine Zeile am Anfang, so viele wie nötig danach. Ein Feld, das
+                für einen meistens leeren Hinweis von vornherein zwei Zeilen
+                belegt, sieht aus wie eine Aufgabe und schiebt auf einem Telefon
+                die Hauptaktion unter den Falz.
+              */}
               {(props) => (
-                <textarea
+                <GrowingTextarea
                   {...props}
-                  rows={2}
                   value={meta.description}
                   onChange={(event) => setMeta({ ...meta, description: event.target.value })}
                 />

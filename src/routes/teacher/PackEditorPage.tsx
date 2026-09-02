@@ -183,10 +183,21 @@ export function PackEditorPage() {
       {status ? <Alert tone="success">{status}</Alert> : null}
       {error ? <Alert tone="error">{error}</Alert> : null}
 
+      {/*
+        Die Weitergabe ist der Grund, warum jemand ein Paket baut – und stand
+        bis 4B.1 als reiner Erklärtext hier oben, während die drei Aktionen
+        dazu ganz unten in einer Reihe mit „Änderungen speichern“ und „Paket
+        löschen“ lagen. Wer gerade gespeichert hatte, suchte den nächsten
+        Schritt also an der Stelle, an der auch der gefährlichste Knopf steht.
+
+        Jetzt stehen die drei Wege hier, unter dem Satz, der sie erklärt. Die
+        Beschriftungen sagen, was passiert (**herunterladen**, nicht
+        „exportieren“) und welche Datei dabei herauskommt.
+      */}
       <Card quiet>
-        <h2 style={{ fontSize: '1rem', marginTop: 0 }}>Weitergeben an die Klasse</h2>
-        <p className="small muted" style={{ marginBottom: 0 }}>
-          Die Datei enthält dieses Vokabelpaket und den vollständigen Schülertrainer. Sie
+        <h2 style={{ fontSize: '1rem', marginTop: 0 }}>Weitergeben an die Lerngruppe</h2>
+        <p className="small muted">
+          Die Einzeldatei enthält dieses Vokabelpaket und den vollständigen Lerntrainer. Sie
           funktioniert ohne Konto und ohne Internet. Lernstände und andere Pakete wandern nicht
           mit. Personenbezogene Daten stehen nur darin, wenn du selbst welche in Titel, Thema,
           Beschreibung oder Notizen geschrieben hast.
@@ -196,6 +207,21 @@ export function PackEditorPage() {
               Erzeugen lässt sie sich in der portablen Datei „LexiFlow-Lehrkraft.html“.
             </>
           )}
+        </p>
+        <div className="row">
+          <Button variant="primary" onClick={() => void handleStudentExport()}>
+            Als Einzeldatei herunterladen (.html)
+          </Button>
+          <Button onClick={handleExport}>
+            Als LexiFlow-Paket herunterladen (.vocabpack.json)
+          </Button>
+          <Link className="btn" to={`/lernen/${packId}`}>
+            Im Lernbereich ansehen
+          </Link>
+        </div>
+        <p className="small muted" style={{ marginBottom: 0 }}>
+          Das LexiFlow-Paket ist die Datei zum Weiterbearbeiten – in LexiFlow wieder zu öffnen,
+          aber ohne Trainer darin.
         </p>
       </Card>
 
@@ -229,13 +255,6 @@ export function PackEditorPage() {
         <Button variant="primary" onClick={() => void handleSave()}>
           Änderungen speichern
         </Button>
-        <Button onClick={handleExport}>Als .vocabpack.json exportieren</Button>
-        <Button onClick={() => void handleStudentExport()}>
-          Als Schülerdatei (.html) exportieren
-        </Button>
-        <Link className="btn" to={`/lernen/${packId}`}>
-          Im Schülerbereich ansehen
-        </Link>
         <span className="spacer" />
         {confirmDelete ? (
           <>

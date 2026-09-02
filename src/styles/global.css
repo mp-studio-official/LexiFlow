@@ -886,6 +886,21 @@ input[type='text']:hover:not(:disabled),
 input[type='search']:hover:not(:disabled),
 input[type='number']:hover:not(:disabled),
 select:hover:not(:disabled),
+/*
+  Ein Textfeld, das mit seinem Inhalt wächst.
+
+  Die Höhe setzt `GrowingTextarea` beim Tippen; hier steht nur, was CSS dazu
+  beitragen kann: kein eigener Rollbalken (die Höhe passt ja immer), kein
+  Ziehgriff (er würde die gemessene Höhe beim nächsten Tastendruck wieder
+  überschreiben – ein Bedienelement, das nichts bewirkt) und eine Untergrenze,
+  damit ein leeres Feld nicht zum Strich zusammenfällt.
+*/
+.growing {
+  resize: none;
+  overflow: hidden;
+  min-height: var(--tap-target);
+}
+
 textarea:hover:not(:disabled) {
   border-color: var(--ink-muted);
 }
@@ -1067,10 +1082,86 @@ td select {
   background-position: right 0.4rem center;
   background-size: 0.6rem auto;
 }
-/* Englisch und Deutsch sind die Spalten, in denen wirklich gelesen wird –
+/* Englisch und Deutsch sind die Felder, in denen wirklich gelesen wird –
    sie bekommen den Platz, den die Auswahlfelder nicht brauchen. */
 td input[type='text'] {
   min-width: 8rem;
+}
+
+/* --- Übersichtszeile einer Vokabel (seit 4B.2) --------------------------- */
+
+/*
+  Englisch oben, Deutsch darunter.
+
+  Vorher teilten sich zwei Textfelder, ein Auswahlfeld, ein Knopf und eine
+  Fehlerliste dieselbe Zeilenbreite; auf einem Laptop war jedes Feld dadurch so
+  schmal, dass „sich entschuldigen“ nicht hineinpasste. Untereinander bekommt
+  jedes die volle Spaltenbreite – und die Zeile liest sich als das, was sie ist:
+  **eine** Vokabel mit zwei Seiten.
+*/
+.draft__word {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 16rem;
+}
+.draft__word input[type='text'] {
+  width: 100%;
+}
+
+/*
+  Der Grund steht dort, wo man ihn behebt – klein, unter dem Feld.
+
+  Und **ohne** Fehlerrot für das, was bloß offen ist: Eine fehlende Übersetzung
+  ist eine Aufgabe, kein Schaden. Rot bleibt dem vorbehalten, was wirklich
+  blockiert.
+*/
+.draft__issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+.draft__issues li {
+  color: var(--ink-secondary);
+}
+.draft__issues li[data-level='error']::before {
+  content: '! ';
+  font-weight: var(--weight-semibold);
+  color: var(--danger);
+}
+.draft__issues li[data-level='warning']::before {
+  content: '· ';
+}
+
+.draft__pos select {
+  min-width: 8rem;
+}
+
+/*
+  Status und „Entfernen“ stehen zusammen: das Urteil und die Konsequenz.
+  Untereinander, damit die Spalte schmal bleibt.
+*/
+.draft__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+/*
+  Eine deutliche Trennung zwischen den Zeilen.
+
+  Bei zwanzig Vokabeln ist die Frage „gehört dieses deutsche Feld noch zu dem
+  englischen darüber?“ eine echte. Eine kräftigere Linie und etwas mehr Luft
+  beantworten sie, bevor sie entsteht.
+*/
+tbody tr:not([hidden]) > td {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 2px solid var(--border);
 }
 
 /* Detailbereich einer Entwurfszeile */

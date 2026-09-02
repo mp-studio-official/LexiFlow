@@ -149,10 +149,10 @@ test.describe('Vorschläge beim Import', () => {
     await page.getByRole('button', { name: /Alle Themen-Tags übernehmen/ }).click();
     // Beide stehen seit Sprint 4B.1 im aufgeklappten Bereich der Zeile, nicht
     // mehr als eigene Tabellenspalten.
-    await page.getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für to apologise anzeigen' }).click();
     await expect(page.getByLabel('Schwierigkeit', { exact: true })).toHaveValue('3');
     await expect(page.getByLabel('Themen-Tags', { exact: true })).toHaveValue('City life, city');
-    await page.getByRole('button', { name: 'Beispielsatz für to apologise schließen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für to apologise ausblenden' }).click();
 
     // Speichern – der Lernkontext steht in demselben Schritt schon bereit.
     await expect(page.getByLabel('Jahrgang')).toHaveValue('7');
@@ -165,7 +165,7 @@ test.describe('Vorschläge beim Import', () => {
 
     // Exportieren und die Datei prüfen.
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Als .vocabpack.json exportieren' }).click();
+    await page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }).click();
     const download = await downloadPromise;
     const filePath = await download.path();
     const fs = await import('node:fs/promises');
@@ -205,7 +205,7 @@ test.describe('Vorschläge beim Import', () => {
     await expect(receiver.getByLabel('Deutsch, Zeile 1')).toHaveValue('sich entschuldigen');
     await expect(receiver.getByLabel('Wortart, Zeile 1')).toHaveValue('verb');
     await receiver
-      .getByRole('button', { name: 'Beispielsatz für to apologise bearbeiten' })
+      .getByRole('button', { name: 'Beispielsatz für to apologise anzeigen' })
       .click();
     await expect(receiver.getByLabel('Schwierigkeit', { exact: true })).toHaveValue('3');
     await expect(receiver.getByLabel('Themen-Tags', { exact: true })).toHaveValue('City life, city');

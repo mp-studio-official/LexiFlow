@@ -27,7 +27,7 @@ Parchment `#F8EFE3`. Orange ist mit 4B.1c entfallen.
 | 1 | Strukturierte Vokabeln, eindeutige Antworttrennung | ✅ | siehe unten |
 | 2 | Strukturierte Quellen und lokaler PDF-Import | ✅ | `5a56b84` |
 | 3 | Empfehlungen kompakt und modern | ✅ | siehe unten |
-| 4 | „Prüfen & Speichern“ und direkte Weitergabe | **in Arbeit** | |
+| 4 | „Prüfen & Speichern“ und direkte Weitergabe | ✅ | siehe unten |
 | 5 | Materialverwaltung für mehrere Pakete | offen | |
 | 6 | „Zu einem Thema“ offline in Safari | offen | |
 | 7 | Inklusives und konsistentes Wording | offen | |
@@ -521,5 +521,108 @@ zurückholbar.
 
 Die Schülerlaufzeit wächst um 2,6 KiB – die Aufklapper-Komponente und ihr CSS,
 die auch die Lernansichten nutzen. Schranke 700 KiB, unverändert eingehalten.
+
+---
+## Phase 4 – „Prüfen & Speichern“ und die Weitergabe
+
+### 4.1 Das Beschreibungsfeld beginnt mit einer Zeile
+
+`src/ui/GrowingTextarea.tsx`. Die Beschreibung ist optional und meistens leer.
+Ein Feld, das dafür von vornherein zwei oder drei Zeilen belegt, sagt das
+Gegenteil: Es sieht aus wie eine Aufgabe, drängt die Felder darunter aus dem
+Bild und schiebt auf einem Telefon die Hauptaktion unter den Falz. Wer dann doch
+fünf Zeilen schreibt, bekommt beim starren Feld ein Rollbalken-Guckloch und
+sieht seinen eigenen Text nicht mehr im Zusammenhang.
+
+Im Paketeditor war es bis 4B.1 sogar ein einzeiliges `<input>` – zwei Sätze
+darin waren immer nur ausschnittweise lesbar. Beide Stellen benutzen jetzt
+dasselbe Feld.
+
+Gemessen wird mit `height: auto` → `scrollHeight` → `height`. Der erste Schritt
+ist der wichtige: Ohne ihn misst man die alte Höhe, und das Feld kann nie wieder
+schrumpfen. `useLayoutEffect` statt `useEffect`, damit die Höhe **vor** dem
+Zeichnen steht – sonst blitzt beim Öffnen kurz die einzeilige Fassung auf. Wo
+`scrollHeight` 0 ist (eine Testumgebung ohne Layout), wird nichts gesetzt; ein
+`height: 0px` wäre dort ein unsichtbares Feld.
+
+Kein Ziehgriff (`resize: none`): Er würde die gemessene Höhe beim nächsten
+Tastendruck wieder überschreiben. Ein Bedienelement, das nichts bewirkt, ist
+schlimmer als keines.
+
+Dass es im Browser wirklich wächst **und wieder schrumpft**, prüft
+`e2e/pack-handover.spec.ts` an echten Pixelhöhen – in jsdom wäre das eine Zahl
+ohne Bedeutung.
+
+### 4.2 Die Übersichtszeile
+
+Fünf Spalten statt sieben:
+
+| Spalte | Inhalt |
+| --- | --- |
+| ✓ | Übernehmen |
+| Vokabel | Englisch **oben**, Deutsch darunter, Meldungen darunter |
+| Wortart | kompaktes Auswahlfeld |
+| Beispielsatz | „Beispielsatz anzeigen (n)“ / „Beispielsatz ausblenden“ |
+| Status | „OK“ oder „Bitte prüfen“, darunter „Entfernen“ |
+
+**Warum untereinander.** Vorher teilten sich zwei Textfelder, ein Auswahlfeld,
+ein Knopf und eine Fehlerliste dieselbe Zeilenbreite; auf einem Laptop war jedes
+Feld so schmal, dass „sich entschuldigen“ nicht hineinpasste. Untereinander
+bekommt jedes die volle Spaltenbreite – und die Zeile liest sich als das, was
+sie ist: **eine** Vokabel mit zwei Seiten.
+
+**Der Status sagt „ob“, die Meldung sagt „was“.** Bis 4B.1 stand in der
+Statusspalte eine Aufzählung aller Meldungen, jede mit einem Etikett „Fehler“
+oder „Hinweis“. Bei drei Hinweisen war diese Spalte höher als die ganze übrige
+Zeile. Jetzt steht dort ein kurzes „OK“ oder „Bitte prüfen“, und der Grund steht
+klein unter dem Feld, das er angeht – dort, wo man ihn behebt.
+
+„Bitte prüfen“ statt „Fehler“ ist kein Euphemismus, sondern die genauere
+Auskunft: Eine fehlende Übersetzung ist eine offene Aufgabe, kein Schaden. Für
+das, was wirklich blockiert, bleibt das Rot – als Zeichen `!` vor der Meldung
+und als roter Badge, nicht als eingefärbte Zeile.
+
+**Der Beispielsatz** ist zugeklappt und benannt. „Details“ sagte nichts;
+„Beispielsatz anzeigen (1)“ sagt, was dahintersteckt und wie viel. Offen nimmt
+der Bereich die volle Tabellenbreite (`colSpan`), geprüft an der gemessenen
+Breite im Browser.
+
+### 4.3 Die Weitergabe steht dort, wo man nach dem Speichern hinsieht
+
+Die Karte „Weitergeben an die Lerngruppe“ trug bis 4B.1 nur Erklärtext. Die drei
+Aktionen dazu lagen ganz unten in einer Reihe mit „Änderungen speichern“ und
+„Paket löschen“ – wer gerade gespeichert hatte, suchte den nächsten Schritt also
+neben dem gefährlichsten Knopf.
+
+Jetzt stehen sie in der Karte, unter dem Satz, der sie erklärt:
+
+| Vorher | Jetzt |
+| --- | --- |
+| „Als Schülerdatei (.html) exportieren“ | **„Als Einzeldatei herunterladen (.html)“** |
+| „Als .vocabpack.json exportieren“ | **„Als LexiFlow-Paket herunterladen (.vocabpack.json)“** |
+| „Im Schülerbereich ansehen“ | **„Im Lernbereich ansehen“** |
+
+„Herunterladen“ statt „exportieren“: Das eine sagt, was passiert, das andere ist
+Fachsprache. Und ein Satz sagt jetzt, wozu das LexiFlow-Paket gut ist – die
+Datei zum Weiterbearbeiten, nicht die zum Weitergeben.
+
+Unten bleiben „Änderungen speichern“ und, davon abgesetzt, „Paket löschen“.
+
+**Bewusst noch nicht geändert:** Die Meldung nach dem Export heißt weiterhin
+„Schülerdatei erstellt“, und im Code stehen `studentExport`, `StudentShell` und
+Verwandtes. Wording ist Phase 7; hier wurde nur geändert, was der Auftrag für
+Phase 4 wörtlich benannt hat.
+
+### Verifikation Phase 4
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | grün |
+| `npm run test` | **1593** grün / 90 Dateien |
+| `npm run build` | grün |
+| `npm run build:portable` | grün, 9328,6 KiB / 632,3 KiB |
+| `npm run verify:portable` | grün, 25 Prüfungen |
+| `npm run e2e` | **121** grün (Chromium), davon 10 neu in `e2e/pack-handover.spec.ts` |
+| `npm run e2e:portable` | **19** grün (Chromium, `file://`) |
 
 ---

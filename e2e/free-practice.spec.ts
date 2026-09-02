@@ -50,7 +50,7 @@ async function seedPack(page: Page, title: string, direction = 'en-de'): Promise
   // Ausgangslage soll aber eindeutig sein – deshalb ausdrücklich gewählt.
   await page.getByLabel('Lernrichtung').selectOption(direction);
   await page.getByRole('button', { name: /Paket speichern/ }).click();
-  await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+  await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 }
 
@@ -70,17 +70,17 @@ async function seedPackWithSomeSentences(page: Page, title: string): Promise<voi
     ['crowded', 'The bus was crowded this morning.'],
     ['litter', 'There is litter on the street.'],
   ] as const) {
-    await page.getByRole('button', { name: `Beispielsatz für ${word} bearbeiten` }).click();
+    await page.getByRole('button', { name: `Beispielsatz für ${word} anzeigen` }).click();
     await page.getByRole('button', { name: `Beispielsatz hinzufügen, ${word}` }).click();
     await page.getByLabel(`Beispielsatz 1 Englisch, ${word}`).fill(sentence);
-    await page.getByRole('button', { name: `Beispielsatz für ${word} schließen` }).click();
+    await page.getByRole('button', { name: `Beispielsatz für ${word} ausblenden` }).click();
   }
 
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('7');
   await page.getByLabel('Lernrichtung').selectOption('de-en');
   await page.getByRole('button', { name: /Paket speichern/ }).click();
-  await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+  await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 }
 

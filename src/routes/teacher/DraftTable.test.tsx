@@ -72,7 +72,7 @@ describe('DraftTable – Grundzeile', () => {
 
     expect(screen.queryByLabelText('Schwierigkeit, Zeile 1')).not.toBeInTheDocument();
     await user.click(
-      screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]!,
+      screen.getAllByRole('button', { name: /Beispielsatz für crowded anzeigen/ })[0]!,
     );
     await user.selectOptions(screen.getByLabelText('Schwierigkeit'), '4');
     expect(lastCall(onChange)[0]?.difficulty).toBe(4);
@@ -93,14 +93,14 @@ describe('DraftTable – Detailbereich', () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<DraftTable drafts={drafts()} onChange={onChange} />);
-    await user.click(screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]!);
+    await user.click(screen.getAllByRole('button', { name: /Beispielsatz für crowded anzeigen/ })[0]!);
     return { onChange, user };
   }
 
   it('ist zunächst eingeklappt', () => {
     render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
     expect(screen.queryByLabelText(/Beispielsatz 1 Englisch/)).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]).toHaveAttribute(
+    expect(screen.getAllByRole('button', { name: /Beispielsatz für crowded anzeigen/ })[0]).toHaveAttribute(
       'aria-expanded',
       'false',
     );
@@ -157,12 +157,96 @@ describe('DraftTable – Detailbereich', () => {
         : draft,
     );
     render(<DraftTable drafts={withTwo} onChange={onChange} />);
-    await user.click(screen.getAllByRole('button', { name: /Beispielsatz für crowded bearbeiten/ })[0]!);
+    await user.click(screen.getAllByRole('button', { name: /Beispielsatz für crowded anzeigen/ })[0]!);
     await user.click(screen.getByRole('button', { name: /Beispielsatz 2 nach oben, crowded/ }));
 
     expect(lastCall(onChange)[0]?.sentences.map((sentence) => sentence.english)).toEqual([
       'Second.',
       'First.',
     ]);
+  });
+});
+
+/**
+ * Sprint 4B.2 Phase 4: die Übersichtszeile.
+ *
+ * Der Umbau war kein Geschmacksurteil. Zwei Textfelder, ein Auswahlfeld, ein
+ * Knopf und eine Fehlerliste teilten sich dieselbe Zeilenbreite; auf einem
+ * Laptop war jedes Feld so schmal, dass „sich entschuldigen“ nicht hineinpasste.
+ */
+describe('Die Übersichtszeile', () => {
+  it('stellt Englisch über Deutsch, in einer Spalte', () => {
+    render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
+
+    const englisch = screen.getByLabelText('Englisch, Zeile 1');
+    const deutsch = screen.getByLabelText('Deutsch, Zeile 1');
+
+    // Dieselbe Zelle – und Englisch steht darin vor Deutsch.
+    expect(englisch.closest('td')).toBe(deutsch.closest('td'));
+    expect(
+      englisch.compareDocumentPosition(deutsch) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('hat fünf Spalten statt sieben', () => {
+    render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
+    expect(screen.getAllByRole('columnheader')).toHaveLength(5);
+    expect(screen.getByRole('columnheader', { name: 'Vokabel' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
+  });
+
+  it('sagt im Status nur „OK“ oder „Bitte prüfen“', () => {
+    /*
+      Bis 4B.1 stand hier eine Aufzählung aller Meldungen. Bei drei Hinweisen
+      war die Statusspalte höher als die ganze übrige Zeile. Jetzt sagt der
+      Status **ob** – und der Grund steht unter dem Feld, das ihn angeht.
+    */
+    render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
+
+    expect(screen.getAllByText('OK').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Bitte prüfen').length).toBeGreaterThan(0);
+    // „Fehler“ und „Hinweis“ als Etikett gibt es nicht mehr.
+    expect(screen.queryByText('Fehler')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hinweis')).not.toBeInTheDocument();
+  });
+
+  it('stellt den Grund unter das Feld, das ihn angeht', () => {
+    render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
+
+    const meldung = screen.getByText(/Englisches Stichwort fehlt/);
+    const zelle = meldung.closest('td');
+    expect(zelle).not.toBeNull();
+    // Dieselbe Zelle wie die Felder der Zeile.
+    expect(zelle).toBe(screen.getByLabelText('Englisch, Zeile 3').closest('td'));
+  });
+
+  it('nennt den Beispielsatz benannt und mit Anzahl', async () => {
+    const user = userEvent.setup();
+    render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
+
+    const knopf = screen.getAllByRole('button', { name: /Beispielsatz für crowded anzeigen/ })[0]!;
+    expect(knopf).toHaveTextContent('Beispielsatz anzeigen (1)');
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(knopf);
+
+    const offen = screen.getAllByRole('button', {
+      name: /Beispielsatz für crowded ausblenden/,
+    })[0]!;
+    expect(offen).toHaveTextContent('Beispielsatz ausblenden');
+    expect(offen).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('gibt dem aufgeklappten Bereich die volle Breite', async () => {
+    const user = userEvent.setup();
+    render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
+
+    await user.click(
+      screen.getAllByRole('button', { name: /Beispielsatz für crowded anzeigen/ })[0]!,
+    );
+
+    const details = document.querySelector('.details')?.closest('td');
+    expect(details).not.toBeNull();
+    expect(details).toHaveAttribute('colspan', '5');
   });
 });

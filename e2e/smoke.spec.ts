@@ -44,7 +44,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     await expect(page.getByLabel('Deutsch, Zeile 1', { exact: true })).toHaveValue('überfüllt, voll');
 
     // 4b. Detailbereich: mehrere Beispielsätze bearbeiten
-    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded anzeigen' }).click();
     await page.getByRole('button', { name: 'Beispielsatz hinzufügen, crowded' }).click();
     await page
       .getByLabel('Beispielsatz 1 Englisch, crowded')
@@ -52,7 +52,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     await page.getByLabel('Beispielsatz 1 Deutsch, crowded').fill('Der Bus war heute voll.');
     await page.getByRole('button', { name: 'Beispielsatz hinzufügen, crowded' }).click();
     await page.getByLabel('Beispielsatz 2 Englisch, crowded').fill('It is always crowded here.');
-    await page.getByRole('button', { name: 'Beispielsatz für crowded schließen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded ausblenden' }).click();
 
     // 5. Metadaten inklusive automatischem GeR-Vorschlag
     await page.getByLabel('Titel', { exact: true }).fill('Unit 3 – City life');
@@ -66,7 +66,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Unit 3 – City life' })).toBeVisible();
 
     // 7. Schülerbereich: getrennte Lernstände, neue Vokabeln als eigene Kategorie
-    await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+    await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
     await expect(page.getByText(/0 von 4 Vokabeln sicher/)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Englisch → Deutsch (rezeptiv)' })).toBeVisible();
     await expect(page.getByText('Neu: 4 · Fach 1: 0 · Fach 2: 0 · Fach 3: 0 · Fach 4: 0 · Fach 5: 0')).toBeVisible();
@@ -106,7 +106,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     await page.getByLabel('Titel', { exact: true }).fill('Staffelung');
     await page.getByLabel('Lernrichtung').selectOption('both');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
-    await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+    await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
 
     // Ehrliche Rundenvorschau: vier bereit, keine acht.
     await expect(page.getByText(/4 Aufgaben sind jetzt bereit/)).toBeVisible();
@@ -168,7 +168,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Export-Test' })).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Als .vocabpack.json exportieren' }).click();
+    await page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe('export-test-5.vocabpack.json');
     const file = await download.path();

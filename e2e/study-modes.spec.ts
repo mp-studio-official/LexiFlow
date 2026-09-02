@@ -73,7 +73,7 @@ async function seedPack(
   await page.getByLabel('Jahrgang').selectOption('7');
   await page.getByLabel('Lernrichtung').selectOption(direction);
   await page.getByRole('button', { name: /Paket speichern/ }).click();
-  await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+  await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 }
 

@@ -166,7 +166,7 @@ test.describe('Textqualität und Lernrichtungen', () => {
     ).toBeVisible();
 
     // 8. Schülerbereich: die Richtung ist eine Wahl, keine Vorschrift.
-    await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+    await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
     await expect(page.getByRole('radio', { name: 'Gemischt' })).toBeChecked();
 
     // Gemischt: die Staffelung gilt, also zuerst Englisch → Deutsch.
@@ -244,7 +244,7 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await page.getByRole('button', { name: '4 Vokabeln prüfen & speichern' }).click();
     await page.getByLabel('Titel', { exact: true }).fill('Halong Bay – frei üben');
     await page.getByRole('button', { name: /Paket speichern/ }).click();
-    await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+    await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
 
     // Freies Üben: acht Aufgaben, vier Vokabeln in zwei Richtungen.
     await expect(page.getByText('8 Aufgaben sind verfügbar.')).toBeVisible();

@@ -137,7 +137,7 @@ test.describe('Empfehlungen aus einem Text', () => {
 
     // 7. Die optionale Beschreibung übersteht den Weg in die Datei.
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Als .vocabpack.json exportieren' }).click();
+    await page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }).click();
     const download = await downloadPromise;
     const filePath = await download.path();
     const fs = await import('node:fs/promises');

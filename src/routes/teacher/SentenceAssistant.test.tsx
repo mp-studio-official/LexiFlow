@@ -372,7 +372,7 @@ describe('In beiden Bereichen verfügbar', () => {
 
   it('erscheint im geöffneten Detailbereich, wenn ein Lernkontext vorliegt', async () => {
     const user = renderTable(CONTEXT);
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für to apologise bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für to apologise anzeigen/ }));
 
     expect(await screen.findByRole('button', { name: /Einfacheren Satz/ })).toBeInTheDocument();
     // Die manuelle Bearbeitung bleibt daneben bestehen.
@@ -381,7 +381,7 @@ describe('In beiden Bereichen verfügbar', () => {
 
   it('fehlt ohne Lernkontext vollständig – die Tabelle bleibt wie bisher', async () => {
     const user = renderTable();
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für to apologise bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für to apologise anzeigen/ }));
 
     expect(await screen.findByRole('button', { name: /Beispielsatz hinzufügen/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Einfacheren Satz/ })).not.toBeInTheDocument();
@@ -398,7 +398,7 @@ describe('In beiden Bereichen verfügbar', () => {
     expect(screen.queryByText(/nicht verfügbar/)).not.toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /Beispielsatz für to apologise bearbeiten/ }));
+    await user.click(screen.getByRole('button', { name: /Beispielsatz für to apologise anzeigen/ }));
     expect(await screen.findAllByText(/Satzvorschläge sind in diesem Browser nicht verfügbar/)).toHaveLength(1);
   });
 });

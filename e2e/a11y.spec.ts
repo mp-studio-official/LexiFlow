@@ -55,7 +55,7 @@ async function seedPack(page: Page, title: string, direction: 'en-de' | 'both'):
   if (direction === 'both') await page.getByLabel('Lernrichtung').selectOption('both');
   await page.getByRole('button', { name: /Paket speichern/ }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
-  await page.getByRole('link', { name: 'Im Schülerbereich ansehen' }).click();
+  await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 }
 
@@ -75,7 +75,7 @@ test.describe('Barrierefreiheit – Axe', () => {
 
   test('@a11y Prüfen & Speichern inklusive aufgeklappter Zeile', async ({ page }) => {
     await openPreview(page);
-    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded anzeigen' }).click();
     await expect(page.getByLabel(/Akzeptierte englische Alternativantworten/)).toBeVisible();
     await expectNoSeriousViolations(page, 'Importvorschau');
   });

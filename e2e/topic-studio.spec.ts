@@ -144,9 +144,9 @@ test.describe('Themenwerkstatt', () => {
     await expect(page.getByLabel('Wortart, Zeile 1', { exact: true })).toHaveValue('adjective');
     // Schwierigkeit ist keine Tabellenspalte mehr, sondern steht im
     // aufgeklappten Bereich der Zeile.
-    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded anzeigen' }).click();
     await expect(page.getByLabel('Schwierigkeit', { exact: true })).toHaveValue('3');
-    await page.getByRole('button', { name: 'Beispielsatz für crowded schließen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded ausblenden' }).click();
 
     await page.getByLabel('Deutsch, Zeile 2', { exact: true }).fill('Abfall');
     await page.getByLabel('quiet übernehmen').uncheck();
@@ -162,7 +162,7 @@ test.describe('Themenwerkstatt', () => {
 
     // Exportieren und die Datei prüfen.
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Als .vocabpack.json exportieren' }).click();
+    await page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }).click();
     const download = await downloadPromise;
     const filePath = await download.path();
     const fs = await import('node:fs/promises');
@@ -241,9 +241,9 @@ test.describe('Themenwerkstatt', () => {
     await page.getByLabel('Englisch, Zeile 1', { exact: true }).fill('crowded');
     await page.getByLabel('Deutsch, Zeile 1', { exact: true }).fill('überfüllt');
     // Der Themen-Tag steht jetzt im aufgeklappten Bereich der Zeile.
-    await page.getByRole('button', { name: 'Beispielsatz für crowded bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded anzeigen' }).click();
     await expect(page.getByLabel('Themen-Tags', { exact: true })).toHaveValue('City life');
-    await page.getByRole('button', { name: 'Beispielsatz für crowded schließen' }).click();
+    await page.getByRole('button', { name: 'Beispielsatz für crowded ausblenden' }).click();
     // Titel und Speichern stehen in demselben Schritt.
     await page.getByLabel('Titel', { exact: true }).fill('City life – leer');
     await expect(page.getByRole('button', { name: /Paket speichern/ })).toBeEnabled();
