@@ -800,6 +800,35 @@ a {
   border-color: var(--primary-hover);
 }
 
+/*
+  Der gesperrte Primärknopf bleibt **dunkel** – gefunden von einem Test, der
+  gelegentlich rot war und dessen Ursache echt ist.
+
+  Die allgemeine `:disabled`-Regel legt eine helle Fläche unter gedämpfte
+  Schrift; für sich genommen sind das lesbare 5,2 : 1. Der Primärknopf wechselt
+  beim Freischalten aber **beide** Werte auf einmal: Die Schrift springt sofort
+  auf Parchment, die Fläche wandert über die 150 ms der Übergangszeit erst
+  langsam nach Aubergine. In diesen Millisekunden steht hell auf hell – rund
+  1,1 : 1, für ein paar Bilder unlesbar. Axe hat genau das erwischt, und zwar
+  nur unter Last, wenn Messung und Übergang sich überschneiden. Ein
+  Zufallsbefund war es nicht.
+
+  Statt den Test zu beruhigen, ist der Zustand behoben: Der gesperrte
+  Primärknopf trägt jetzt eine dunkle, gedämpfte Fläche mit heller Schrift.
+  Die Schriftfarbe muss beim Freischalten damit gar nicht mehr wechseln, und
+  jeder Zwischenwert des Übergangs ist dunkler als der Ausgangston – der
+  Kontrast steigt unterwegs, statt einzubrechen.
+
+  Gemessen: `--surface` auf `--ink-muted` = 6,4 : 1 im gesperrten Zustand,
+  `--primary-ink` auf `--primary` = 15,4 : 1 im freien.
+*/
+.btn--primary:disabled,
+.btn--primary[aria-disabled='true'] {
+  background: var(--ink-muted);
+  border-color: var(--ink-muted);
+  color: var(--surface);
+}
+
 /* Der Akzent ist die Einladung, nicht die Norm: genau eine Aktion je Ansicht.
    Als Fläche unter Text zählt der textsichere Ton – die volle Sättigung
    erreicht auf Weiß keine 4,5:1. */

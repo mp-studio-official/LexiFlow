@@ -613,6 +613,30 @@ Unten bleiben „Änderungen speichern“ und, davon abgesetzt, „Paket lösche
 Verwandtes. Wording ist Phase 7; hier wurde nur geändert, was der Auftrag für
 Phase 4 wörtlich benannt hat.
 
+### 4.4 Ein echter Befund aus dem eigenen Test
+
+Beim abschließenden Durchlauf war `e2e/sentence-assistant.spec.ts` **manchmal**
+rot: Axe meldete `color-contrast`, Wirkung „serious“, am Element
+`.btn--primary.btn--small`. Einzeln lief der Test dreimal grün, im vollen
+Durchlauf fiel er etwa jedes zweite Mal um.
+
+Nachgemessen war der Ruhezustand einwandfrei: gesperrter Knopf 5,2 : 1, freier
+Knopf 15,4 : 1. Der Fehler steckte im **Übergang**. Der Primärknopf wechselt
+beim Freischalten beide Werte zugleich – die Schrift springt sofort auf
+Parchment, die Fläche wandert über 150 ms Übergangszeit erst nach Aubergine. In
+diesen Millisekunden steht Hell auf Hell: rund 1,1 : 1. Nur unter Last
+überschneiden sich Messung und Übergang so, dass Axe es erwischt.
+
+Behoben ist der **Zustand**, nicht der Test: Der gesperrte Primärknopf trägt
+jetzt eine dunkle, gedämpfte Fläche (`--ink-muted`) mit heller Schrift
+(`--surface`, 6,4 : 1). Die Schriftfarbe muss beim Freischalten gar nicht mehr
+wechseln, und jeder Zwischenwert des Übergangs ist dunkler als der
+Ausgangston – der Kontrast steigt unterwegs, statt einzubrechen.
+
+Danach lief `npm run e2e` **dreimal hintereinander** vollständig grün. Der Fix
+liegt als eigener kleiner Commit hinter dem Phasencommit: Bestehende Commits
+werden in diesem Projekt nicht nachträglich verändert.
+
 ### Verifikation Phase 4
 
 | Schritt | Ergebnis |
@@ -620,9 +644,9 @@ Phase 4 wörtlich benannt hat.
 | `npm run typecheck` | grün |
 | `npm run test` | **1593** grün / 90 Dateien |
 | `npm run build` | grün |
-| `npm run build:portable` | grün, 9328,6 KiB / 632,3 KiB |
+| `npm run build:portable` | grün, 9328,8 KiB / 632,4 KiB |
 | `npm run verify:portable` | grün, 25 Prüfungen |
-| `npm run e2e` | **121** grün (Chromium), davon 10 neu in `e2e/pack-handover.spec.ts` |
+| `npm run e2e` | **121** grün (Chromium), dreimal hintereinander; davon 10 neu in `e2e/pack-handover.spec.ts` |
 | `npm run e2e:portable` | **19** grün (Chromium, `file://`) |
 
 ---
