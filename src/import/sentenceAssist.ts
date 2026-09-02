@@ -1,4 +1,4 @@
-import { splitMeanings } from '../domain/normalize';
+import { splitAnswers } from '../domain/normalize';
 import { collapseWhitespace, sentenceContainsHeadword } from '../domain/wordMatch';
 import { newSentence, type DraftRow, type DraftSentence } from './draft';
 import type { AiSentenceSuggestion, AlternativeSentenceRequest, SentenceMode } from '../ai/AiProvider';
@@ -143,7 +143,7 @@ export function replaceSentenceWith(
 export function sentenceRequestFor(draft: DraftRow, mode: SentenceMode): AlternativeSentenceRequest {
   return {
     english: collapseWhitespace(draft.english),
-    germanAnswers: splitMeanings(draft.german),
+    germanAnswers: splitAnswers(draft.german),
     ...(draft.partOfSpeech ? { partOfSpeech: draft.partOfSpeech } : {}),
     existingSentences: draft.sentences
       .map((sentence) => collapseWhitespace(sentence.english))

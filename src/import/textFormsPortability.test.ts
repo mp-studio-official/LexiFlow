@@ -8,6 +8,7 @@ import { draftsToEntries, validateDrafts } from './draft';
 import { candidatesToDrafts, type CandidateSelection } from './textDraft';
 import { limitCandidates } from './candidateLimit';
 import type { VocabPack } from '../domain/schema';
+import { VOCABPACK_FORMAT_VERSION } from '../domain/schema';
 
 /**
  * **Akzeptanzkriterium der Wortformen und Abkürzungen (Sprint 3B.1).**
@@ -99,7 +100,7 @@ describe('Portabilität des Paketformats', () => {
     const { pack } = packFromText();
     const file = serializePack(pack);
 
-    expect(JSON.parse(file).formatVersion).toBe(1);
+    expect(JSON.parse(file).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     for (const forbidden of [
       'provenance',
       'formSummary',

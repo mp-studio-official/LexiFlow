@@ -1,5 +1,5 @@
 import { newId } from '../domain/ids';
-import { normalizeAnswer } from '../domain/normalize';
+import { formatAnswers, normalizeAnswer } from '../domain/normalize';
 import { collapseWhitespace, sentenceContainsHeadword } from '../domain/wordMatch';
 import { emptyDraft, newSentence, validateDrafts, type DraftRow } from './draft';
 import { MAX_CONTEXT_HEADWORDS, type AiVocabSuggestion } from '../ai/AiProvider';
@@ -172,7 +172,7 @@ export function topicSuggestionsToDrafts(
       ...emptyDraft(),
       id: newId(),
       english,
-      german: germanAnswers.join(', '),
+      german: formatAnswers(germanAnswers),
       ...(suggestion.partOfSpeech ? { partOfSpeech: suggestion.partOfSpeech } : {}),
       sentences: sentenceFits
         ? [newSentence(englishSentence, collapse(sentence?.german ?? ''))]

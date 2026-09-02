@@ -1,5 +1,5 @@
 import { guessPartOfSpeech, suggestTopicTag } from '../domain/wordRules';
-import { splitMeanings } from '../domain/normalize';
+import { splitAnswers, splitList } from '../domain/normalize';
 import type { CefrLevel, Grade } from '../domain/cefr';
 import type { AiVocabSuggestion } from '../ai/AiProvider';
 import type { DraftRow } from './draft';
@@ -42,7 +42,7 @@ export function ruleSuggestions(draft: DraftRow, context: LearningContext): Draf
     }
   }
 
-  const tag = suggestTopicTag(context.topic, splitMeanings(draft.tags));
+  const tag = suggestTopicTag(context.topic, splitList(draft.tags));
   if (tag) {
     suggestions.push({
       field: 'topicTags',
@@ -168,7 +168,7 @@ export function modelRequestFor(draft: DraftRow, context: LearningContext): Mode
   const topic = context.topic.trim();
   return {
     english: draft.english.trim(),
-    germanAnswers: splitMeanings(draft.german),
+    germanAnswers: splitAnswers(draft.german),
     ...(sentence ? { exampleSentence: sentence } : {}),
     grade: context.grade,
     cefrLevel: context.cefrLevel,

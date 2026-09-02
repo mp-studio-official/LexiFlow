@@ -4,7 +4,9 @@ import {
   levenshtein,
   lenientKey,
   normalizeAnswer,
-  splitMeanings,
+  formatAnswers,
+  splitAnswers,
+  splitList,
   typoTolerance,
 } from './normalize';
 
@@ -61,17 +63,60 @@ describe('acceptedForms', () => {
   });
 });
 
-describe('splitMeanings', () => {
-  it('trennt an Komma und Semikolon', () => {
-    expect(splitMeanings('voll, überfüllt; gedrängt')).toEqual(['voll', 'überfüllt', 'gedrängt']);
+describe('splitAnswers – nur das Semikolon trennt', () => {
+  /*
+    Der Fall, der diese Funktion verändert hat: `to coin a phrase / term` war
+    korrekt mit „einen Begriff, eine Redewendung prägen“ beantwortet. Die alte
+    Regel machte daraus zwei Antworten, und die Karte zeigte nur die erste.
+    Die zweite Hälfte des Satzes war weg, ohne einen Hinweis darauf.
+  */
+  it('lässt ein Komma in der Antwort stehen', () => {
+    expect(splitAnswers('einen Begriff, eine Redewendung prägen')).toEqual([
+      'einen Begriff, eine Redewendung prägen',
+    ]);
   });
 
-  it('lässt Schrägstriche ohne Leerzeichen unberührt', () => {
-    expect(splitMeanings('der/die Angestellte')).toEqual(['der/die Angestellte']);
+  it('trennt am Semikolon', () => {
+    expect(splitAnswers('dauerhaft; beständig; langanhaltend')).toEqual([
+      'dauerhaft',
+      'beständig',
+      'langanhaltend',
+    ]);
   });
 
-  it('trennt an Schrägstrich mit Leerzeichen', () => {
-    expect(splitMeanings('lorry / truck')).toEqual(['lorry', 'truck']);
+  it('lässt jeden Schrägstrich unberührt', () => {
+    // Beides verbindet Wortformen, statt Antworten zu trennen.
+    expect(splitAnswers('der/die Angestellte')).toEqual(['der/die Angestellte']);
+    expect(splitAnswers('a phrase / term')).toEqual(['a phrase / term']);
+  });
+
+  it('wirft Leerwerte weg, ohne den Rest anzufassen', () => {
+    expect(splitAnswers(' ; voll, überfüllt ;; ')).toEqual(['voll, überfüllt']);
+  });
+});
+
+describe('splitList – Aufzählungen wie Themen-Tags', () => {
+  it('trennt weiterhin am Komma, weil ein Tag keines enthält', () => {
+    expect(splitList('City life, transport; Alltag')).toEqual([
+      'City life',
+      'transport',
+      'Alltag',
+    ]);
+  });
+});
+
+describe('formatAnswers', () => {
+  it('schreibt mehrere Antworten mit Semikolon', () => {
+    expect(formatAnswers(['dauerhaft', 'beständig'])).toBe('dauerhaft; beständig');
+  });
+
+  it('ist die Umkehrung von splitAnswers', () => {
+    const answers = ['einen Begriff, eine Redewendung prägen', 'etwas prägen'];
+    expect(splitAnswers(formatAnswers(answers))).toEqual(answers);
+  });
+
+  it('lässt Leerwerte weg', () => {
+    expect(formatAnswers(['a', '  ', 'b'])).toBe('a; b');
   });
 });
 

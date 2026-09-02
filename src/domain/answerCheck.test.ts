@@ -13,8 +13,19 @@ describe('checkAnswer', () => {
     expect(checkAnswer('  nachbarschaft. ', MEANINGS).verdict).toBe('correct');
   });
 
-  it('akzeptiert mehrere Eingaben, wenn eine davon passt', () => {
-    expect(checkAnswer('Viertel, Gegend', MEANINGS).verdict).toBe('correct');
+  it('akzeptiert mehrere Eingaben am Semikolon, wenn eine davon passt', () => {
+    expect(checkAnswer('Viertel; Gegend', MEANINGS).verdict).toBe('correct');
+  });
+
+  it('hält ein Komma für Inhalt, nicht für ein Trennzeichen', () => {
+    /*
+      Seit Sprint 4B.2: „einen Begriff, eine Redewendung prägen“ ist **eine**
+      Antwort. Wer sie vollständig eintippt, hat recht; wer nur die erste
+      Hälfte tippt, hat es nicht.
+    */
+    const erwartet = ['einen Begriff, eine Redewendung prägen'];
+    expect(checkAnswer('einen Begriff, eine Redewendung prägen', erwartet).verdict).toBe('correct');
+    expect(checkAnswer('einen Begriff', erwartet).verdict).toBe('wrong');
   });
 
   it('toleriert fehlende Artikel und „to“', () => {

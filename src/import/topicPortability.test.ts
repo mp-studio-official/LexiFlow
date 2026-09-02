@@ -11,6 +11,7 @@ import { nullAiProvider } from '../ai/AiProvider';
 import { nullTranslationProvider } from '../translation/TranslationProvider';
 import { createFakeLanguageModelScope } from '../test/fakeTranslator';
 import type { VocabPack } from '../domain/schema';
+import { VOCABPACK_FORMAT_VERSION } from '../domain/schema';
 
 /**
  * **Das wichtigste Akzeptanzkriterium von Sprint 2B.2a.**
@@ -131,7 +132,7 @@ describe('Die Datei bleibt anbieterfrei', () => {
   it('enthält keine Provider-, Prompt- oder Modelldaten', async () => {
     const file = serializePack(buildPack(await topicDrafts()));
 
-    expect(JSON.parse(file).formatVersion).toBe(1);
+    expect(JSON.parse(file).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     for (const forbidden of [
       'provider',
       'chrome-prompt',
@@ -159,7 +160,7 @@ describe('Die Datei bleibt anbieterfrei', () => {
     // Das Dateiformat selbst bleibt unangetastet.
     const parsed = parsePackFile(file);
     expect(parsed.ok).toBe(true);
-    expect(JSON.parse(file).formatVersion).toBe(1);
+    expect(JSON.parse(file).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
   });
 });
 

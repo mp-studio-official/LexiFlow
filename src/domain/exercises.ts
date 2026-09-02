@@ -6,6 +6,7 @@ import {
   type VocabEntry,
 } from './schema';
 import { directionKey } from './ids';
+import { impliedAnswers } from './learningForm';
 import { isDirectionUnlocked, PRODUCTIVE_UNLOCK_BOX } from './leitner';
 import { normalizeAnswer } from './normalize';
 import { findHeadwordInSentence } from './wordMatch';
@@ -194,7 +195,13 @@ function promptOf(entry: VocabEntry, direction: TaskDirection): string {
 function solutionsOf(entry: VocabEntry, direction: TaskDirection): string[] {
   return direction === 'en-de'
     ? [...entry.germanAnswers]
-    : [entry.english, ...entry.acceptedEnglishAnswers];
+    /*
+      Richtung Deutsch → Englisch zählt auch die **Verkürzungen** der Lernform:
+      Wer `to accuse sb. of sth.` lernt, kann die Vokabel auch dann, wenn er
+      `to accuse` schreibt. Die Platzhalter sind eine Schreibkonvention des
+      Vokabelhefts, keine Vokabel – siehe `learningForm.ts`.
+    */
+    : [entry.english, ...entry.acceptedEnglishAnswers, ...impliedAnswers(entry)];
 }
 
 /** Ablenker aus demselben Paket, bevorzugt mit gleicher Wortart. */

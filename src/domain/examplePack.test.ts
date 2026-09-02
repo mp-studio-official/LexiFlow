@@ -40,6 +40,15 @@ describe('Beispiel-CSV', () => {
 
     const entries = draftsToEntries(drafts, 'import');
     expect(entries).toHaveLength(6);
+    // Semikolon trennt – auch in einer semikolongetrennten CSV, dort in
+    // Anführungszeichen, damit Spalten- und Antworttrennung sich nicht beißen.
     expect(entries[0]?.germanAnswers).toEqual(['überfüllt', 'voll']);
+    /*
+      Und die Gegenprobe, die seit Sprint 4B.2 in der Beispieldatei steht: Ein
+      Komma gehört zur Antwort. Wer diese Zeile in zwei Antworten zerlegt,
+      verliert die zweite Hälfte des Satzes.
+    */
+    const coin = entries.find((entry) => entry.english === 'to coin a phrase');
+    expect(coin?.germanAnswers).toEqual(['einen Begriff, eine Redewendung prägen']);
   });
 });

@@ -19,8 +19,12 @@ export interface AnswerCheckResult {
  *   abschließende Satzzeichen sind bedeutungslos.
  * - Führende Artikel bzw. „to“ sowie Klammerzusätze werden toleriert.
  * - Ein kleiner Tippfehler ergibt „fast richtig“ statt „falsch“.
- * - Mehrere durch Komma getrennte Eingaben gelten als richtig, sobald eine
- *   davon passt (eine korrekte Bedeutung genügt).
+ * - Mehrere durch **Semikolon** getrennte Eingaben gelten als richtig, sobald
+ *   eine davon passt (eine korrekte Bedeutung genügt).
+ *
+ * Geprüft wird immer gegen **jede einzelne** hinterlegte Antwort, nie gegen
+ * eine zusammengesetzte Zeichenkette: `expected` ist ein Array, und ein Komma
+ * darin ist Inhalt einer Antwort, kein Trennzeichen.
  */
 export function checkAnswer(userInput: string, expected: readonly string[]): AnswerCheckResult {
   const expectedList = expected.filter((value) => value.trim().length > 0);
@@ -90,10 +94,19 @@ export function checkChoice(chosen: string, expected: readonly string[]): Answer
   };
 }
 
+/**
+ * Mehrere Antworten in **einer** Eingabe – getrennt durch Semikolon.
+ *
+ * Bis Sprint 4B.2 zählte auch das Komma. Das war falsch herum gedacht: Eine
+ * einzelne Bedeutung wie „einen Begriff, eine Redewendung prägen“ enthält ein
+ * Komma, und wer sie vollständig eintippte, bekam sie in Bruchstücke zerlegt.
+ * Das Semikolon ist auch in der Anzeige das Trennzeichen – wer die Karte
+ * abschreibt, trifft damit automatisch das Richtige.
+ */
 function splitUserAlternatives(value: string): string[] {
-  if (!/[,;]/.test(value)) return [];
+  if (!value.includes(';')) return [];
   return value
-    .split(/[,;]/)
+    .split(';')
     .map((part) => normalizeAnswer(part))
     .filter((part) => part.length > 0);
 }

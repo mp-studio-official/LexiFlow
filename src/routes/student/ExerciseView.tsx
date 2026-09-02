@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../ui/components';
 import { checkAnswer, checkChoice, type AnswerCheckResult } from '../../domain/answerCheck';
 import type { ClozeTask, ExerciseTask, MultipleChoiceTask } from '../../domain/exercises';
+import { formatAnswers } from '../../domain/normalize';
 
 export interface ExerciseViewProps {
   task: ExerciseTask;
@@ -209,7 +210,7 @@ function Cloze({ task, result, onSubmit }: ExerciseViewProps & { task: ClozeTask
       </p>
       {task.translation ? <p className="muted small">{task.translation}</p> : null}
       <p className="muted small" style={{ marginTop: '-0.4rem' }}>
-        Bedeutung: {task.entry.germanAnswers.join(', ')}
+        Bedeutung: {formatAnswers(task.entry.germanAnswers)}
       </p>
 
       {withBank ? (

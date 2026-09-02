@@ -10,6 +10,7 @@ import { createChromePromptAiProvider } from '../ai/chromePromptAiProvider';
 import { nullAiProvider } from '../ai/AiProvider';
 import { createFakeLanguageModelScope } from '../test/fakeTranslator';
 import type { VocabPack } from '../domain/schema';
+import { VOCABPACK_FORMAT_VERSION } from '../domain/schema';
 
 /**
  * **Akzeptanzkriterium des Satzassistenten (Sprint 2B.2b).**
@@ -120,7 +121,7 @@ describe('Die Datei bleibt anbieterfrei', () => {
   it('enthält weder Modell- noch Vorschlagsdaten', async () => {
     const file = serializePack(packFrom(await draftWithSuggestedSentence()));
 
-    expect(JSON.parse(file).formatVersion).toBe(1);
+    expect(JSON.parse(file).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     for (const forbidden of [
       'provider',
       'chrome-prompt',

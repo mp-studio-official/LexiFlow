@@ -68,8 +68,28 @@ function v0ToV1(doc: Doc): Doc {
   };
 }
 
+/**
+ * Version 1 → 2 (Sprint 4B.2): strukturierte Lernformen.
+ *
+ * Die neuen Felder – `lemma`, `complementPattern`, `grammaticalNumber`,
+ * `lexicalGroupId` – sind **allesamt optional**. Eine Datei der Version 1 ist
+ * inhaltlich bereits eine gültige Datei der Version 2; diese Migration hebt
+ * deshalb nur die Versionsnummer an und rührt keinen einzigen Wert an.
+ *
+ * Das ist Absicht. Man könnte hier versucht sein, aus `to apologise` gleich
+ * ein Lemma `apologise` abzuleiten oder aus `restraints` einen Plural zu
+ * machen. Beides wäre geraten: Ein abgeleitetes Lemma ist eine Vermutung, ein
+ * gespeichertes eine Auskunft, und der Unterschied verschwände in dem Moment,
+ * in dem die Migration ihn wegschreibt. Wo ein Lemma gebraucht wird, leitet
+ * `lemmaOf()` es zur Laufzeit ab – sichtbar als das, was es ist.
+ */
+function v1ToV2(doc: Doc): Doc {
+  return { ...doc, formatVersion: 2 };
+}
+
 const MIGRATIONS: Readonly<Record<number, (doc: Doc) => Doc>> = {
   0: v0ToV1,
+  1: v1ToV2,
 };
 
 export class UnsupportedFormatVersionError extends Error {

@@ -1,8 +1,9 @@
 import { newId } from '../domain/ids';
-import { normalizeAnswer, splitMeanings } from '../domain/normalize';
+import { formatAnswers, normalizeAnswer, splitAnswers, splitList } from '../domain/normalize';
 import { sentenceContainsHeadword } from '../domain/wordMatch';
 import {
   PART_OF_SPEECH,
+  type GrammaticalNumber,
   type PartOfSpeech,
   type SourceType,
   type VocabEntry,
@@ -58,12 +59,28 @@ export interface DraftSentence {
  */
 export interface DraftRow {
   id: string;
+  /** Die Lernform, so wie sie auf der Karte stehen soll. */
   english: string;
-  /** Freitext; mehrere Bedeutungen durch Komma oder Semikolon getrennt. */
+  /**
+   * Freitext; mehrere Antworten durch **Semikolon** getrennt.
+   *
+   * Ein Komma gehört seit Sprint 4B.2 zur Antwort: „einen Begriff, eine
+   * Redewendung prägen“ ist eine Bedeutung, keine zwei.
+   */
   german: string;
   /** Zusätzlich akzeptierte englische Antworten, ebenfalls als Freitext. */
   acceptedEnglish: string;
   partOfSpeech: PartOfSpeech | '';
+  /**
+   * Die strukturierten Anteile der Lernform (Sprint 4B.2). Leer heißt
+   * „nicht bekannt“ – und nicht „gibt es nicht“: Ein leeres Valenzmuster wird
+   * nie erfunden, sondern bleibt leer.
+   */
+  lemma: string;
+  complementPattern: string;
+  grammaticalNumber: GrammaticalNumber | '';
+  /** Verbindet verwandte Lernformen; leer heißt: steht für sich. */
+  lexicalGroupId: string;
   sentences: DraftSentence[];
   tags: string;
   notes: string;
@@ -192,7 +209,7 @@ export function buildDrafts(
       return {
         ...emptyDraft(),
         english: cell(row, mapping.roles, 'english'),
-        german: options.splitMultipleMeanings ? splitMeanings(german).join(', ') : german,
+        german: options.splitMultipleMeanings ? formatAnswers(splitAnswers(german)) : german,
         partOfSpeech: parsePartOfSpeech(cell(row, mapping.roles, 'partOfSpeech')),
         sentences: example || exampleGerman ? [newSentence(example, exampleGerman)] : [],
         tags: cell(row, mapping.roles, 'tags'),
@@ -211,6 +228,10 @@ export function emptyDraft(): DraftRow {
     german: '',
     acceptedEnglish: '',
     partOfSpeech: '',
+    lemma: '',
+    complementPattern: '',
+    grammaticalNumber: '',
+    lexicalGroupId: '',
     sentences: [],
     tags: '',
     notes: '',
@@ -226,9 +247,13 @@ export function draftFromEntry(entry: VocabEntry): DraftRow {
   return {
     id: entry.id,
     english: entry.english,
-    german: entry.germanAnswers.join(', '),
-    acceptedEnglish: entry.acceptedEnglishAnswers.join(', '),
+    german: formatAnswers(entry.germanAnswers),
+    acceptedEnglish: formatAnswers(entry.acceptedEnglishAnswers),
     partOfSpeech: entry.partOfSpeech ?? '',
+    lemma: entry.lemma ?? '',
+    complementPattern: entry.complementPattern ?? '',
+    grammaticalNumber: entry.grammaticalNumber ?? '',
+    lexicalGroupId: entry.lexicalGroupId ?? '',
     sentences: entry.exampleSentences.map((sentence) =>
       newSentence(sentence.english, sentence.german ?? ''),
     ),
@@ -252,7 +277,7 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
   return drafts.map((draft) => {
     const issues: DraftIssue[] = [];
     const english = draft.english.trim();
-    const meanings = splitMeanings(draft.german);
+    const meanings = splitAnswers(draft.german);
     const sentences = draft.sentences.filter(
       (sentence) => sentence.english.trim() || sentence.german.trim(),
     );
@@ -298,7 +323,7 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
     }
 
     if (
-      splitMeanings(draft.acceptedEnglish).some(
+      splitAnswers(draft.acceptedEnglish).some(
         (value) => normalizeAnswer(value) === normalizeAnswer(english),
       )
     ) {
@@ -368,7 +393,7 @@ export function draftsToEntries(
   return drafts
     .filter((draft) => draft.include && !hasBlockingError(draft))
     .map<VocabEntry>((draft) => {
-      const tags = [...splitMeanings(draft.tags), ...extraTags]
+      const tags = [...splitList(draft.tags), ...extraTags]
         .map((tag) => tag.trim())
         .filter((tag, index, all) => tag.length > 0 && all.indexOf(tag) === index);
 
@@ -382,9 +407,16 @@ export function draftsToEntries(
       return {
         id: draft.id,
         english: draft.english.trim(),
-        germanAnswers: splitMeanings(draft.german),
-        acceptedEnglishAnswers: splitMeanings(draft.acceptedEnglish),
+        germanAnswers: splitAnswers(draft.german),
+        acceptedEnglishAnswers: splitAnswers(draft.acceptedEnglish),
         ...(draft.partOfSpeech ? { partOfSpeech: draft.partOfSpeech } : {}),
+        // Leer heißt „nicht bekannt“ – dann steht das Feld gar nicht erst da.
+        ...(draft.lemma.trim() ? { lemma: draft.lemma.trim() } : {}),
+        ...(draft.complementPattern.trim()
+          ? { complementPattern: draft.complementPattern.trim() }
+          : {}),
+        ...(draft.grammaticalNumber ? { grammaticalNumber: draft.grammaticalNumber } : {}),
+        ...(draft.lexicalGroupId.trim() ? { lexicalGroupId: draft.lexicalGroupId.trim() } : {}),
         exampleSentences,
         topicTags: tags,
         ...(draft.notes.trim() ? { notes: draft.notes.trim() } : {}),

@@ -13,6 +13,7 @@ import { createChromePromptAiProvider } from '../ai/chromePromptAiProvider';
 import { nullAiProvider } from '../ai/AiProvider';
 import type { VocabPack } from '../domain/schema';
 import { createFakeLanguageModelScope } from '../test/fakeTranslator';
+import { VOCABPACK_FORMAT_VERSION } from '../domain/schema';
 
 /**
  * **Akzeptanzkriterium der Textempfehlung (Sprint 2B.2b).**
@@ -148,7 +149,7 @@ describe('Übernahme und Export', () => {
     const { pack } = await packFromRecommendations();
     const file = serializePack(pack);
 
-    expect(JSON.parse(file).formatVersion).toBe(1);
+    expect(JSON.parse(file).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     for (const forbidden of [
       'recommendedKeys',
       'recommended',

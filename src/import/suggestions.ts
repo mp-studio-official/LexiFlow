@@ -1,4 +1,4 @@
-import { splitMeanings } from '../domain/normalize';
+import { splitList } from '../domain/normalize';
 import { PART_OF_SPEECH, type PartOfSpeech } from '../domain/schema';
 import type { DraftRow } from './draft';
 
@@ -116,7 +116,7 @@ export function countOpen(drafts: readonly DraftRow[], field: SuggestionField): 
 function mergeTags(first: string, second: string): string {
   const seen = new Set<string>();
   const tags: string[] = [];
-  for (const tag of [...splitMeanings(first), ...splitMeanings(second)]) {
+  for (const tag of [...splitList(first), ...splitList(second)]) {
     const key = tag.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -188,10 +188,10 @@ function applyValue(draft: DraftRow, field: SuggestionField, value: string): Dra
     }
     case 'topicTags': {
       // Vorhandene Tags bleiben, Dubletten entstehen nicht.
-      const existing = splitMeanings(draft.tags);
+      const existing = splitList(draft.tags);
       const known = new Set(existing.map((tag) => tag.toLowerCase()));
       const added: string[] = [];
-      for (const tag of splitMeanings(value)) {
+      for (const tag of splitList(value)) {
         const key = tag.toLowerCase();
         if (known.has(key)) continue;
         known.add(key);

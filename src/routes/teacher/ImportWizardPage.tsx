@@ -782,8 +782,9 @@ export function ImportWizardPage() {
               onChange={(event) => setSplitMeaningsOption(event.target.checked)}
             />
             <span>
-              Mehrfachbedeutungen trennen (Komma, Semikolon, „ / “) – jede Bedeutung gilt dann
-              als richtige Antwort.
+              Mehrere Antworten am Semikolon trennen – jede gilt dann als richtige Antwort. Ein
+              Komma bleibt Teil der Antwort: „einen Begriff, eine Redewendung prägen“ ist
+              <strong> eine</strong> Bedeutung.
             </span>
           </label>
         </Card>

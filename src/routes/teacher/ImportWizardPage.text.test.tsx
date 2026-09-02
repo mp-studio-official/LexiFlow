@@ -300,8 +300,14 @@ describe('Der Stepper im Assistenten', () => {
     expect(erster).toHaveFocus();
     await user.keyboard('{Enter}');
 
-    expect(screen.getByLabelText('Englischer Text')).toBeInTheDocument();
-    expect(erster).toHaveAttribute('aria-current', 'step');
+    /*
+      `findBy…` statt `getBy…`: Der Sprung zurück auf Schritt 1 hängt einen
+      Zustandswechsel an, und unter voller Testlast lief dieser Test dem
+      Rendern gelegentlich davon. Er prüfte damit nicht die Tastaturbedienung,
+      sondern die Auslastung des Rechners.
+    */
+    expect(await screen.findByLabelText('Englischer Text')).toBeInTheDocument();
+    await waitFor(() => expect(erster).toHaveAttribute('aria-current', 'step'));
   });
 
   it('zeigt für andere Quellen nur zwei Schritte', () => {

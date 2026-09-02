@@ -146,3 +146,68 @@ describe('Migration von Schema-Version 1', () => {
     db.close();
   });
 });
+
+describe('Einträge ohne die Felder aus Sprint 4B.2', () => {
+  /*
+    Die strukturierten Lernformen kamen mit 4B.2 dazu: `lemma`,
+    `complementPattern`, `grammaticalNumber`, `lexicalGroupId`. Alle sind
+    optional, und genau das muss die lokale Datenbank aushalten – ein Eintrag,
+    der vor diesem Sprint gespeichert wurde, trägt keines davon.
+
+    Wichtig ist dabei nicht nur, dass er sich lesen lässt, sondern dass sein
+    **Lernstand** weiterhin zu ihm gehört: Der Schlüssel ist
+    `packId::entryId::direction`, und an keinem der drei Teile hat sich etwas
+    geändert. Wäre das anders, verlöre jede Schülerin beim Update ihren Stand.
+  */
+  it('liest sie unverändert und behält ihren Lernstand', async () => {
+    const name = 'lexiflow-migration-4b2';
+    await seedLegacyDatabase(name, 'both');
+
+    const db = new LexiFlowDatabase(name);
+    await db.open();
+
+    const entry = await db.packEntries.get(['pack-1', 'e-1']);
+    expect(entry?.english).toBe('crowded');
+    expect(entry?.germanAnswers).toEqual(['überfüllt']);
+    expect(entry?.lemma).toBeUndefined();
+    expect(entry?.complementPattern).toBeUndefined();
+    expect(entry?.grammaticalNumber).toBeUndefined();
+    expect(entry?.lexicalGroupId).toBeUndefined();
+
+    const stand = await db.directionProgress.get('pack-1::e-1::en-de');
+    expect(stand?.entryId).toBe('e-1');
+    expect(stand?.box).toBeGreaterThanOrEqual(1);
+    db.close();
+  });
+
+  it('nimmt die neuen Felder auf, ohne die alten anzurühren', async () => {
+    const name = 'lexiflow-migration-4b2-neu';
+    await seedLegacyDatabase(name, 'both');
+
+    const db = new LexiFlowDatabase(name);
+    await db.open();
+
+    /*
+      `e-1` trägt einen migrierten Lernstand. Die Vokabel bekommt jetzt eine
+      vollständige Lernform – und der Stand muss trotzdem zu ihr gehören: Er
+      hängt an der Eintrags-ID, nicht an der Schreibweise.
+    */
+    const vorher = await db.packEntries.get(['pack-1', 'e-1']);
+    const standVorher = await db.directionProgress.get('pack-1::e-1::en-de');
+    expect(standVorher?.box).toBe(3);
+
+    await db.packEntries.put({
+      ...vorher!,
+      english: 'to accuse sb. of sth.',
+      lemma: 'accuse',
+      complementPattern: 'sb. of sth.',
+      lexicalGroupId: 'g1',
+    });
+
+    const nachher = await db.packEntries.get(['pack-1', 'e-1']);
+    expect(nachher?.lemma).toBe('accuse');
+    expect(nachher?.lexicalGroupId).toBe('g1');
+    expect(await db.directionProgress.get('pack-1::e-1::en-de')).toEqual(standVorher);
+    db.close();
+  });
+});

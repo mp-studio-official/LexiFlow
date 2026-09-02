@@ -131,7 +131,7 @@ describe('Dubletten und Leerwerte', () => {
       ],
       { maxItems: 10, topic: 'City' },
     );
-    expect(result.drafts[0]?.german).toBe('überfüllt, voll');
+    expect(result.drafts[0]?.german).toBe('überfüllt; voll');
     expect(result.drafts[0]?.tags).toBe('city, traffic');
   });
 

@@ -67,15 +67,52 @@ export function lenientKey(value: string): string {
 }
 
 /**
- * Zerlegt eine importierte Zelle in einzelne Bedeutungen.
- * `;` und `,` trennen immer, `/` nur mit umgebenden Leerzeichen –
- * so bleibt „der/die Angestellte“ ein einziger Eintrag.
+ * Zerlegt ein Antwortfeld in einzelne Antworten. **Nur das Semikolon trennt.**
+ *
+ * Bis Sprint 4B.2 trennte diese Funktion auch am Komma und am Schrägstrich.
+ * Das kostete echte Antworten: `to coin a phrase / term` war korrekt mit
+ * „einen Begriff, eine Redewendung prägen“ beantwortet – gespeichert wurden
+ * daraus zwei Antworten, und die Karte zeigte nur noch „einen Begriff“. Die
+ * zweite Hälfte des Satzes war weg, ohne dass irgendwo etwas davon stand.
+ *
+ * Ein Komma gehört im Deutschen mitten in eine Bedeutung. Ein Schrägstrich
+ * verbindet Wortformen (`der/die Angestellte`, `a phrase / term`) und trennt
+ * sie nicht. Beides ist deshalb **Inhalt**, kein Trennzeichen. Wer mehrere
+ * Antworten meint, schreibt ein Semikolon:
+ *
+ * - eine Antwort:    `einen Begriff, eine Redewendung prägen`
+ * - drei Antworten:  `dauerhaft; beständig; langanhaltend`
+ *
+ * Intern bleibt eine Antwortliste immer ein Array; das Semikolon ist nur die
+ * sichtbare Kurzschreibweise in Eingabefeldern und in der Anzeige.
  */
-export function splitMeanings(value: string): string[] {
+export function splitAnswers(value: string): string[] {
   return foldTypography(value)
-    .split(/\s*;\s*|\s*,\s*|\s+\/\s+/)
+    .split(';')
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
+}
+
+/**
+ * Zerlegt eine **Aufzählung** – Themen-Tags und Ähnliches.
+ *
+ * Hier trennt das Komma weiterhin, denn ein Tag enthält keines: „City life,
+ * transport“ sind zwei Tags. Für Antworten gilt das ausdrücklich **nicht** –
+ * dafür gibt es `splitAnswers`.
+ */
+export function splitList(value: string): string[] {
+  return foldTypography(value)
+    .split(/\s*[;,]\s*/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
+/** Die sichtbare Kurzschreibweise mehrerer Antworten: `„a; b; c“`. */
+export function formatAnswers(values: readonly string[]): string {
+  return values
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
+    .join('; ');
 }
 
 /**

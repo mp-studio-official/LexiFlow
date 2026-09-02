@@ -6,7 +6,7 @@ import { CEFR_LEVELS, GRADES } from './cefr';
  * Wird bei jeder inkompatiblen Änderung erhöht; `migrations.ts` hebt ältere
  * Dateien auf die aktuelle Version an.
  */
-export const VOCABPACK_FORMAT_VERSION = 1;
+export const VOCABPACK_FORMAT_VERSION = 2;
 export const VOCABPACK_KIND = 'lexiflow.vocabpack' as const;
 
 export const PART_OF_SPEECH = [
@@ -32,6 +32,20 @@ export const PART_OF_SPEECH_LABELS: Readonly<Record<PartOfSpeech, string>> = {
 
 export const SOURCE_TYPES = ['manual', 'import', 'text-ai', 'topic-ai'] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
+
+/**
+ * Grammatische Zahl – nur bei Substantiven und nur, wenn sie etwas aussagt.
+ *
+ * `restraints (pl.)` ist eine andere Vokabel als `restraint`; ohne diese
+ * Angabe stünde die Pluralform als vermeintlicher Singular im Paket.
+ */
+export const GRAMMATICAL_NUMBERS = ['singular', 'plural'] as const;
+export type GrammaticalNumber = (typeof GRAMMATICAL_NUMBERS)[number];
+
+export const GRAMMATICAL_NUMBER_LABELS: Readonly<Record<GrammaticalNumber, string>> = {
+  singular: 'Singular',
+  plural: 'Plural',
+};
 
 export const LEARNING_DIRECTIONS = ['en-de', 'de-en', 'both'] as const;
 export type LearningDirection = (typeof LEARNING_DIRECTIONS)[number];
@@ -78,7 +92,46 @@ export type ExampleSentence = z.infer<typeof exampleSentenceSchema>;
 
 export const vocabEntrySchema = z.object({
   id: nonEmpty,
+  /**
+   * Die **Lernform** – das, was auf der Karte steht und abgefragt wird.
+   *
+   * Seit Sprint 4B.2 darf das eine grammatisch vollständige Form sein:
+   * `to accuse sb. of sth.`, `restraints (pl.)`, `to coin a phrase / term`.
+   * Bestehende Pakete tragen hier weiterhin ein schlichtes `crowded`, und das
+   * bleibt gültig – die Lernform **ist** dieses Feld, es gibt kein zweites
+   * dekoratives daneben.
+   */
   english: nonEmpty.max(200),
+  /**
+   * Das kanonische Lemma ohne `to`, ohne Ergänzungen, ohne Klammerzusätze:
+   * zu `to accuse sb. of sth.` gehört `accuse`.
+   *
+   * Es dient dem Nachschlagen, der Dublettenprüfung und der Suche – nie der
+   * Abfrage. Fehlt es, wird es bei Bedarf aus der Lernform abgeleitet; ein
+   * gespeichertes Lemma ist eine Auskunft, ein abgeleitetes eine Vermutung.
+   */
+  lemma: trimmed.max(200).optional(),
+  /**
+   * Das Ergänzungs- oder Valenzmuster, **nur wenn belegt**: `sb. of sth.`,
+   * `sb. with sth.`, `sb. from doing sth.`
+   *
+   * Belegt heißt: aus der Quelle, aus dem Wörterbuch oder aus eindeutigem
+   * Kontext. Ein erfundenes Muster wäre schlimmer als gar keines – es sieht
+   * geprüft aus und bringt jemandem eine falsche Rektion bei.
+   */
+  complementPattern: trimmed.max(120).optional(),
+  /** Nur bei Substantiven und nur, wenn die Zahl zur Vokabel gehört. */
+  grammaticalNumber: z.enum(GRAMMATICAL_NUMBERS).optional(),
+  /**
+   * Klammert verwandte Lernformen zusammen: `attainability (n.)` und
+   * `attainable (adj.)` teilen eine Gruppe.
+   *
+   * Die Gruppe ist eine **Anzeigebeziehung**, kein gemeinsamer Lerngegenstand.
+   * Jede Form bleibt ein eigener Eintrag mit eigener Wortart, eigener
+   * Bedeutung und eigenem Lernstand; im Test muss erkennbar sein, welche
+   * konkrete Form gefragt ist. Einträge ohne Gruppe funktionieren unverändert.
+   */
+  lexicalGroupId: trimmed.max(64).optional(),
   /** Mindestens eine, gerne mehrere gleichwertige deutsche Übersetzungen. */
   germanAnswers: z.array(nonEmpty.max(200)).min(1).max(20),
   /** Zusätzlich akzeptierte englische Schreibungen/Varianten (Richtung DE → EN). */

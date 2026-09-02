@@ -27,6 +27,7 @@ import {
 import { formatDueDate } from '../../domain/dueDate';
 import { TASK_DIRECTION_LABELS, type TaskDirection } from '../../domain/schema';
 import type { AnswerCheckResult, AnswerVerdict } from '../../domain/answerCheck';
+import { formatAnswers } from '../../domain/normalize';
 
 interface Tally {
   correct: number;
@@ -268,7 +269,7 @@ export function SessionPage() {
       setOutcome(submitVerdict(session, checked.verdict));
       setTally((current) => ({ ...current, [checked.verdict]: current[checked.verdict] + 1 }));
       setAnnouncement(
-        `${FEEDBACK_TITLE[checked.verdict]}. Richtige Antwort: ${checked.expected.join(', ')}.`,
+        `${FEEDBACK_TITLE[checked.verdict]}. Richtige Antwort: ${formatAnswers(checked.expected)}.`,
       );
 
       // Freies Üben schreibt nichts: kein `recordAnswer`, kein Speicherzustand.

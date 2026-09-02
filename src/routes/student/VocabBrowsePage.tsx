@@ -11,6 +11,7 @@ import {
 } from '../../domain/studyView';
 import { GRADE_LABELS } from '../../domain/cefr';
 import { DIRECTION_LABELS, type TaskDirection, type VocabPack } from '../../domain/schema';
+import { formatAnswers } from '../../domain/normalize';
 
 /**
  * Vokabeln in Ruhe durchsehen.
@@ -196,7 +197,7 @@ export function VocabBrowsePage() {
                   <p className="browse-item__solution">{card.answer}</p>
 
                   {card.alternatives.length > 0 ? (
-                    <p className="small muted">Auch richtig: {card.alternatives.join(' · ')}</p>
+                    <p className="small muted">Auch richtig: {formatAnswers(card.alternatives)}</p>
                   ) : null}
 
                   {card.partOfSpeech ? <Badge>{card.partOfSpeech}</Badge> : null}

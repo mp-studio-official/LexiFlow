@@ -98,3 +98,132 @@ describe('countClozeReady', () => {
     expect(countClozeReady(makePack().entries)).toBe(4);
   });
 });
+
+describe('Formatversion 1 bleibt verlustfrei lesbar', () => {
+  /*
+    Sprint 4B.2 hebt das Austauschformat auf Version 2 – strukturierte
+    Lernformen, verbundene Wortarten. Alle neuen Felder sind optional, eine
+    Datei der Version 1 ist inhaltlich also bereits eine gültige Datei der
+    Version 2.
+
+    Diese Tests halten fest, dass die Migration genau das tut und **nichts
+    weiter**: keine abgeleiteten Lemmata, keine geratenen Pluralformen, keine
+    stillschweigend erzeugten Gruppen. Was in der alten Datei stand, steht
+    hinterher unverändert da.
+  */
+  const v1Datei = {
+    kind: 'lexiflow.vocabpack',
+    formatVersion: 1,
+    meta: {
+      id: 'p1',
+      title: 'Unit 3 – City life',
+      topic: 'City life',
+      grade: '7',
+      cefrLevel: 'A2+',
+      cefrLevelOverridden: false,
+      direction: 'both',
+      createdAt: '2026-01-01T10:00:00.000Z',
+      updatedAt: '2026-01-02T10:00:00.000Z',
+    },
+    entries: [
+      {
+        id: 'e1',
+        english: 'to apologise',
+        germanAnswers: ['sich entschuldigen'],
+        acceptedEnglishAnswers: ['to apologize'],
+        partOfSpeech: 'verb',
+        exampleSentences: [{ english: 'You should apologise.' }],
+        topicTags: ['school'],
+        difficulty: 3,
+        sourceType: 'import',
+      },
+      {
+        id: 'e2',
+        english: 'crowded',
+        germanAnswers: ['überfüllt, voll besetzt'],
+        acceptedEnglishAnswers: [],
+        exampleSentences: [],
+        topicTags: [],
+        sourceType: 'manual',
+      },
+    ],
+  };
+
+  it('liest eine Version-1-Datei und hebt nur die Versionsnummer an', () => {
+    const result = parsePackFile(JSON.stringify(v1Datei));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.pack.formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
+    expect(result.pack.meta).toEqual(v1Datei.meta);
+  });
+
+  it('lässt jeden Eintragswert unverändert', () => {
+    const result = parsePackFile(JSON.stringify(v1Datei));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const [erster, zweiter] = result.pack.entries;
+
+    expect(erster?.english).toBe('to apologise');
+    expect(erster?.germanAnswers).toEqual(['sich entschuldigen']);
+    expect(erster?.acceptedEnglishAnswers).toEqual(['to apologize']);
+    expect(erster?.difficulty).toBe(3);
+
+    // Und der Komma-Fall: Er war eine Antwort und bleibt eine.
+    expect(zweiter?.germanAnswers).toEqual(['überfüllt, voll besetzt']);
+  });
+
+  it('erfindet keine neuen Felder', () => {
+    const result = parsePackFile(JSON.stringify(v1Datei));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    for (const entry of result.pack.entries) {
+      expect(entry.lemma).toBeUndefined();
+      expect(entry.complementPattern).toBeUndefined();
+      expect(entry.grammaticalNumber).toBeUndefined();
+      expect(entry.lexicalGroupId).toBeUndefined();
+    }
+  });
+
+  it('überlebt einen vollständigen Rundlauf', () => {
+    const gelesen = parsePackFile(JSON.stringify(v1Datei));
+    expect(gelesen.ok).toBe(true);
+    if (!gelesen.ok) return;
+    const erneut = parsePackFile(
+      serializePack({ meta: gelesen.pack.meta, entries: gelesen.pack.entries }),
+    );
+    expect(erneut.ok).toBe(true);
+    if (!erneut.ok) return;
+    expect(erneut.pack.entries).toEqual(gelesen.pack.entries);
+  });
+});
+
+describe('Strukturierte Lernformen im Format', () => {
+  it('nimmt Lemma, Valenzmuster, Zahl und Gruppe auf und gibt sie zurück', () => {
+    const pack = makePack();
+    const angereichert = {
+      meta: pack.meta,
+      entries: [
+        {
+          ...pack.entries[0]!,
+          english: 'to accuse sb. of sth.',
+          lemma: 'accuse',
+          complementPattern: 'sb. of sth.',
+          partOfSpeech: 'verb' as const,
+          lexicalGroupId: 'g1',
+        },
+        {
+          ...pack.entries[1]!,
+          english: 'restraints (pl.)',
+          lemma: 'restraint',
+          grammaticalNumber: 'plural' as const,
+          partOfSpeech: 'noun' as const,
+          lexicalGroupId: 'g1',
+        },
+      ],
+    };
+    const result = parsePackFile(serializePack(angereichert));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.pack.entries).toEqual(angereichert.entries);
+  });
+});

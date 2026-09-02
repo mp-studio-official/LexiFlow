@@ -16,6 +16,7 @@ import {
   type Rng,
   type SessionTarget,
 } from './exercises';
+import { impliedAnswers } from './learningForm';
 import { collapseWhitespace } from './wordMatch';
 
 /**
@@ -101,7 +102,7 @@ export function answersFor(
   const values =
     direction === 'en-de'
       ? uniqueAnswers(entry.germanAnswers)
-      : uniqueAnswers([entry.english, ...entry.acceptedEnglishAnswers]);
+      : uniqueAnswers([entry.english, ...entry.acceptedEnglishAnswers, ...impliedAnswers(entry)]);
 
   const [answer = collapseWhitespace(entry.english), ...alternatives] = values;
   return { answer, alternatives };
@@ -256,6 +257,7 @@ export function matchesQuery(entry: VocabEntry, query: string): boolean {
 
   const haystack = [
     entry.english,
+    entry.lemma ?? '',
     ...entry.germanAnswers,
     ...entry.acceptedEnglishAnswers,
     ...entry.topicTags,

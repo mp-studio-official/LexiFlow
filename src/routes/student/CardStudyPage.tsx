@@ -12,6 +12,7 @@ import {
 } from '../../domain/practiceDirection';
 import { GRADE_LABELS } from '../../domain/cefr';
 import type { VocabPack } from '../../domain/schema';
+import { formatAnswers } from '../../domain/normalize';
 
 /**
  * Karten ansehen – kein Test, keine Runde, keine Bewertung.
@@ -260,7 +261,7 @@ export function CardStudyPage() {
           {hasExtras(card) ? (
             <div className="card-deck__extras">
               {card.alternatives.length > 0 ? (
-                <p className="small muted">Auch richtig: {card.alternatives.join(' · ')}</p>
+                <p className="small muted">Auch richtig: {formatAnswers(card.alternatives)}</p>
               ) : null}
               {card.partOfSpeech ? <Badge>{card.partOfSpeech}</Badge> : null}
               {card.example ? (

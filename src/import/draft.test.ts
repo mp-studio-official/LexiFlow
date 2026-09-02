@@ -19,7 +19,7 @@ import {
 
 const ROWS = [
   ['Englisch', 'Deutsch', 'Wortart', 'Beispielsatz'],
-  ['crowded', 'überfüllt, voll', 'adj', 'The bus was crowded.'],
+  ['crowded', 'überfüllt; voll', 'adj', 'The bus was crowded.'],
   ['litter', 'Müll', 'n', 'Do not drop litter here.'],
   ['crowded', 'voll', 'adj', ''],
   ['', 'ohne Stichwort', '', ''],
@@ -40,7 +40,7 @@ describe('buildDrafts', () => {
   });
 
   it('trennt Mehrfachbedeutungen auf Wunsch', () => {
-    expect(drafts()[0]?.german).toBe('überfüllt, voll');
+    expect(drafts()[0]?.german).toBe('überfüllt; voll');
   });
 
   it('legt den Beispielsatz als ersten Satz an', () => {
@@ -196,7 +196,7 @@ describe('draftsToEntries', () => {
           ...emptyDraft(),
           english: 'to apologise',
           german: 'sich entschuldigen',
-          acceptedEnglish: 'to apologize, apologise',
+          acceptedEnglish: 'to apologize; apologise',
           difficulty: 4,
           sentences: [
             newSentence('You should apologise.', 'Du solltest dich entschuldigen.'),

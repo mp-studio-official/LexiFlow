@@ -229,7 +229,33 @@ describe('buildTask', () => {
   it('nutzt in Richtung DE→EN das englische Wort als Lösung', () => {
     const task = buildTask(pack.entries[2]!, 'open-translation', 'de-en', pack.entries, rng());
     expect(task?.prompt).toBe('sich entschuldigen');
-    expect(task?.expected).toEqual(['to apologise', 'to apologize']);
+    /*
+      Seit Sprint 4B.2 zählt zusätzlich die Verkürzung der Lernform: Zu
+      `to apologise` gehört `apologise`. Wer das `to` weglässt, hat die Vokabel
+      trotzdem gekonnt – dieselbe Nachsicht, die `lenientKey` schon immer beim
+      Prüfen zeigte, jetzt auch in der Liste der gültigen Lösungen.
+    */
+    expect(task?.expected).toEqual(['to apologise', 'to apologize', 'apologise']);
+  });
+
+  it('nimmt die Platzhalter einer Valenzform aus der Lösung heraus', () => {
+    /*
+      `to accuse sb. of sth.` ist die Lernform; `sb.` und `sth.` sind eine
+      Schreibkonvention des Vokabelhefts. Wer `to accuse` schreibt, hat die
+      Vokabel gekonnt – erfunden wird dabei nichts, es ist eine Verkürzung
+      der vorhandenen Form.
+    */
+    const entry = {
+      ...pack.entries[2]!,
+      english: 'to accuse sb. of sth.',
+      lemma: 'accuse',
+      complementPattern: 'sb. of sth.',
+      acceptedEnglishAnswers: [],
+    };
+    const task = buildTask(entry, 'open-translation', 'de-en', pack.entries, rng());
+    expect(task?.expected).toContain('to accuse sb. of sth.');
+    expect(task?.expected).toContain('accuse');
+    expect(task?.expected).toContain('to accuse');
   });
 });
 

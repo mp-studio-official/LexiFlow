@@ -18,6 +18,7 @@ import { addSuggestions } from './suggestions';
 import { nullAiProvider } from '../ai/AiProvider';
 import { nullTranslationProvider } from '../translation/TranslationProvider';
 import type { VocabPack } from '../domain/schema';
+import { VOCABPACK_FORMAT_VERSION } from '../domain/schema';
 
 /**
  * **Das wichtigste Akzeptanzkriterium von Sprint 2B.1.**
@@ -134,8 +135,8 @@ describe('Vom Vorschlag zum fertigen Eintrag', () => {
 describe('Die Datei bleibt anbieterfrei', () => {
   const file = serializePack(buildPack(enrichedDrafts()));
 
-  it('bleibt bei formatVersion 1', () => {
-    expect(JSON.parse(file).formatVersion).toBe(1);
+  it('bleibt bei der aktuellen Formatversion', () => {
+    expect(JSON.parse(file).formatVersion).toBe(VOCABPACK_FORMAT_VERSION);
     expect(JSON.parse(file).kind).toBe('lexiflow.vocabpack');
   });
 
