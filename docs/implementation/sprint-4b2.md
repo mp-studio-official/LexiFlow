@@ -637,6 +637,33 @@ Danach lief `npm run e2e` **dreimal hintereinander** vollständig grün. Der Fix
 liegt als eigener kleiner Commit hinter dem Phasencommit: Bestehende Commits
 werden in diesem Projekt nicht nachträglich verändert.
 
+### 4.5 Zwei Nachbesserungen aus dem ersten Blick auf die Bilder
+
+Die Bildschirmaufnahmen für den Zwischenbericht haben zwei Dinge gezeigt, die
+kein Test gemeldet hätte:
+
+**Eine anonyme Tabellenzelle.** `display: flex` stand direkt auf den `<td>`.
+Damit nimmt der Browser die Zelle aus dem Tabellenlayout und erzeugt eine
+anonyme Zelle darum: Zeilenhöhen und Trennlinien verrutschten, und am
+Tabellenende stand ein leerer Kasten. Der Flex-Container steckt jetzt **in** der
+Zelle.
+
+**Ein Schadensbericht.** Eine Zeile mit blockierendem Befund war vollflächig rot
+eingefärbt. Bei einer frisch eingelesenen Liste ist die Hälfte der Zeilen ohne
+Übersetzung – die Seite sah aus, als wäre etwas kaputt, dabei ist eine fehlende
+Übersetzung eine Aufgabe. Jetzt trägt die Zeile eine 3 px breite Kante links;
+gesagt wird es dreifach und ohne Farbe als einziges Merkmal: Kante, Status
+(„Bitte prüfen“) und Meldung mit „!“ unter dem Feld.
+
+Ebenfalls aus den Bildern: Der Knopf am Originalsatz hieß sichtbar „Ganzen Satz
+zeigen (erosion)“ – bei zehn Karten zehnmal ein Wort in Klammern, das die Karte
+darüber schon trägt. Das Stichwort steht jetzt nur noch im zugänglichen Namen,
+wo es für eine Vorlesehilfe gebraucht wird.
+
+**Offen und bewusst nicht angefasst:** Die Zusammenfassung über der Tabelle sagt
+weiterhin „3 Zeilen · 2 werden übernommen · 1 Fehler · 0 Duplikate“, während die
+Zeile selbst „Bitte prüfen“ sagt. Das ist eine Wortwahl und gehört zu Phase 7.
+
 ### Verifikation Phase 4
 
 | Schritt | Ergebnis |
@@ -644,7 +671,7 @@ werden in diesem Projekt nicht nachträglich verändert.
 | `npm run typecheck` | grün |
 | `npm run test` | **1593** grün / 90 Dateien |
 | `npm run build` | grün |
-| `npm run build:portable` | grün, 9328,8 KiB / 632,4 KiB |
+| `npm run build:portable` | grün, 9329,0 KiB / 632,5 KiB |
 | `npm run verify:portable` | grün, 25 Prüfungen |
 | `npm run e2e` | **121** grün (Chromium), dreimal hintereinander; davon 10 neu in `e2e/pack-handover.spec.ts` |
 | `npm run e2e:portable` | **19** grün (Chromium, `file://`) |

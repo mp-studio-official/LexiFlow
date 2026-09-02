@@ -139,42 +139,52 @@ export function DraftTable({
                       onChange={(event) => patch(draft.id, { include: event.target.checked })}
                     />
                   </td>
-                  <td className="draft__word">
+                  <td>
                     {/*
-                      Englisch oben, Deutsch darunter – und beide beschriftet
-                      wie bisher, damit eine Vorlesehilfe weiterhin sagt, welche
-                      Seite gerade dran ist.
+                      Der Flex-Container steckt **in** der Zelle, nicht in ihr
+                      selbst. `display: flex` auf einem `<td>` nimmt die Zelle
+                      aus dem Tabellenlayout: Der Browser erzeugt drumherum eine
+                      anonyme Zelle, Zeilenhöhen und Trennlinien verrutschen, und
+                      am Tabellenende steht ein leerer Kasten. Genau das war im
+                      ersten Entwurf zu sehen.
                     */}
-                    <input
-                      type="text"
-                      value={draft.english}
-                      aria-label={`Englisch, Zeile ${index + 1}`}
-                      onChange={(event) => patch(draft.id, { english: event.target.value })}
-                    />
-                    <input
-                      type="text"
-                      value={draft.german}
-                      aria-label={`Deutsch, Zeile ${index + 1}`}
-                      onChange={(event) => patch(draft.id, { german: event.target.value })}
-                    />
-                    {/*
-                      Der Grund steht dort, wo man ihn behebt.
+                    <div className="draft__word">
+                      {/*
+                        Englisch oben, Deutsch darunter – und beide beschriftet
+                        wie bisher, damit eine Vorlesehilfe weiterhin sagt,
+                        welche Seite gerade dran ist.
+                      */}
+                      <input
+                        type="text"
+                        value={draft.english}
+                        aria-label={`Englisch, Zeile ${index + 1}`}
+                        onChange={(event) => patch(draft.id, { english: event.target.value })}
+                      />
+                      <input
+                        type="text"
+                        value={draft.german}
+                        aria-label={`Deutsch, Zeile ${index + 1}`}
+                        onChange={(event) => patch(draft.id, { german: event.target.value })}
+                      />
+                      {/*
+                        Der Grund steht dort, wo man ihn behebt.
 
-                      Bis 4B.1 stand in der Statusspalte eine Aufzählung aller
-                      Meldungen – bei drei Hinweisen war die Spalte höher als
-                      die ganze übrige Zeile und schob die Tabelle
-                      auseinander. Jetzt sagt der Status **ob**, und hier steht
-                      **was**, unmittelbar unter dem Feld, das es angeht.
-                    */}
-                    {draft.issues.length > 0 ? (
-                      <ul className="draft__issues">
-                        {draft.issues.map((issue, issueIndex) => (
-                          <li key={issueIndex} className="small" data-level={issue.level}>
-                            {issue.message}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
+                        Bis 4B.1 stand in der Statusspalte eine Aufzählung aller
+                        Meldungen – bei drei Hinweisen war die Spalte höher als
+                        die ganze übrige Zeile und schob die Tabelle
+                        auseinander. Jetzt sagt der Status **ob**, und hier steht
+                        **was**, unmittelbar unter dem Feld, das es angeht.
+                      */}
+                      {draft.issues.length > 0 ? (
+                        <ul className="draft__issues">
+                          {draft.issues.map((issue, issueIndex) => (
+                            <li key={issueIndex} className="small" data-level={issue.level}>
+                              {issue.message}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="draft__pos">
                     <select
@@ -210,27 +220,29 @@ export function DraftTable({
                       {isOpen ? 'Beispielsatz ausblenden' : `Beispielsatz anzeigen (${draft.sentences.length})`}
                     </Button>
                   </td>
-                  <td className="draft__status">
-                    {/*
-                      Zwei Zustände, kurz und ohne Farbe als einziges Merkmal.
-                      „Bitte prüfen“ statt „Fehler“: Eine fehlende Übersetzung
-                      ist eine offene Aufgabe, kein Schaden.
-                    */}
-                    {draft.issues.length === 0 ? (
-                      <Badge tone="success">OK</Badge>
-                    ) : (
-                      <Badge tone={hasBlockingError(draft) ? 'error' : 'warning'}>
-                        Bitte prüfen
-                      </Badge>
-                    )}
-                    <Button
-                      small
-                      variant="quiet"
-                      onClick={() => apply(drafts.filter((item) => item.id !== draft.id))}
-                      aria-label={`${rowLabel} entfernen`}
-                    >
-                      Entfernen
-                    </Button>
+                  <td>
+                    <div className="draft__status">
+                      {/*
+                        Zwei Zustände, kurz und ohne Farbe als einziges Merkmal.
+                        „Bitte prüfen“ statt „Fehler“: Eine fehlende Übersetzung
+                        ist eine offene Aufgabe, kein Schaden.
+                      */}
+                      {draft.issues.length === 0 ? (
+                        <Badge tone="success">OK</Badge>
+                      ) : (
+                        <Badge tone={hasBlockingError(draft) ? 'error' : 'warning'}>
+                          Bitte prüfen
+                        </Badge>
+                      )}
+                      <Button
+                        small
+                        variant="quiet"
+                        onClick={() => apply(drafts.filter((item) => item.id !== draft.id))}
+                        aria-label={`${rowLabel} entfernen`}
+                      >
+                        Entfernen
+                      </Button>
+                    </div>
                   </td>
                 </tr>
 

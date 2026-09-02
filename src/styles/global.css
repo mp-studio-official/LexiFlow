@@ -1093,11 +1093,21 @@ th {
 tbody tr:last-child td {
   border-bottom: none;
 }
-tr[data-state='error'] td {
-  background: var(--danger-soft);
+/*
+  Eine Zeile mit Befund bekommt eine **Kante**, keine Einfärbung.
+
+  Die volle Fläche in Rot war ein Schadensbericht: Bei einer frisch
+  eingelesenen Liste ist die Hälfte der Zeilen ohne Übersetzung, und die Seite
+  sah aus, als wäre etwas kaputt – dabei ist eine fehlende Übersetzung eine
+  Aufgabe. Gesagt wird es jetzt dreifach und ohne Farbe als einziges Merkmal:
+  von der Kante, vom Status („Bitte prüfen“) und von der Meldung unter dem Feld
+  („!“ vor dem Text).
+*/
+tr[data-state='error'] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--danger);
 }
-tr[data-state='duplicate'] td {
-  background: var(--warning-soft);
+tr[data-state='duplicate'] > td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning);
 }
 td input[type='text'],
 td select {

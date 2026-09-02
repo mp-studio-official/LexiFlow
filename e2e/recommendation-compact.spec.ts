@@ -145,7 +145,7 @@ test.describe('Der Empfehlungsschritt ist kompakt', () => {
     // Feste Position statt Filter: Der Filter wanderte nach dem Klick weiter,
     // weil der Knopf dieser Karte dann „Satz kürzen“ heißt.
     const karte = page.locator('li.candidate').nth(index);
-    const knopf = karte.getByRole('button', { name: /Ganzen Satz zeigen/ });
+    const knopf = karte.getByRole('button', { name: /Ganzen Satz für .+ zeigen/ });
     await expect(knopf).toHaveAttribute('aria-expanded', 'false');
 
     const satz = karte.locator('.candidate__sentence');
@@ -155,12 +155,12 @@ test.describe('Der Empfehlungsschritt ist kompakt', () => {
 
     await knopf.click();
     await expect(satz).not.toHaveAttribute('data-clamped', '');
-    await expect(karte.getByRole('button', { name: 'Satz kürzen' })).toHaveAttribute(
+    await expect(karte.getByRole('button', { name: /Ganzen Satz für .+ kürzen/ })).toHaveAttribute(
       'aria-expanded',
       'true',
     );
 
-    await karte.getByRole('button', { name: 'Satz kürzen' }).click();
+    await karte.getByRole('button', { name: /Ganzen Satz für .+ kürzen/ }).click();
     await expect(satz).toHaveAttribute('data-clamped', '');
   });
 

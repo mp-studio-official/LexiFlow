@@ -1139,9 +1139,18 @@ export function TextCandidateReview({
                       type="button"
                       className="candidate__more"
                       aria-expanded={sentenceOpen}
+                      /*
+                        Sichtbar steht nur „Ganzen Satz zeigen“ – das Stichwort
+                        gehört in den zugänglichen Namen, nicht in die
+                        Beschriftung. Bei zehn Karten stünde sonst zehnmal ein
+                        Wort in Klammern, das die Karte darüber schon trägt.
+                        Für eine Vorlesehilfe, die Schaltflächen aus dem
+                        Zusammenhang gerissen vorliest, ist es dagegen nötig.
+                      */
+                      aria-label={`Ganzen Satz für ${label} ${sentenceOpen ? 'kürzen' : 'zeigen'}`}
                       onClick={() => toggleSentence(candidate.id)}
                     >
-                      {sentenceOpen ? 'Satz kürzen' : `Ganzen Satz zeigen (${label})`}
+                      {sentenceOpen ? 'Satz kürzen' : 'Ganzen Satz zeigen'}
                     </button>
                   ) : null}
 

@@ -806,14 +806,14 @@ describe('Ein langer Originalsatz', () => {
 
   it('lässt sich ausklappen und wieder kürzen', async () => {
     const user = await setupLang();
-    const knopf = screen.getAllByRole('button', { name: /Ganzen Satz zeigen/ })[0];
+    const knopf = screen.getAllByRole('button', { name: /Ganzen Satz für .+ zeigen/ })[0];
     expect(knopf).toBeDefined();
     expect(knopf).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(knopf!);
     expect(document.querySelector('.candidate__sentence')).not.toHaveAttribute('data-clamped');
 
-    await user.click(screen.getAllByRole('button', { name: 'Satz kürzen' })[0]!);
+    await user.click(screen.getAllByRole('button', { name: /Ganzen Satz für .+ kürzen/ })[0]!);
     expect(document.querySelector('.candidate__sentence')).toHaveAttribute('data-clamped');
   });
 });
