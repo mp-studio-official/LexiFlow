@@ -127,11 +127,32 @@ function answerField(word: string): HTMLInputElement {
   return screen.getByLabelText(`Deutsche Antwort für „${word}“`) as HTMLInputElement;
 }
 
+/**
+ * Die vollständige Wörterbuchauskunft einer Zeile aufklappen.
+ *
+ * Seit 4B.2 stehen in der Karte selbst nur zwei bis drei Chips; Wortart,
+ * Genus, Markierungen und Herkunft liegen einen Klick tief. Versteckt ist
+ * nichts – der Aufklapper ist benannt und nennt die Zahl.
+ */
+async function openSenses(
+  user: ReturnType<typeof userEvent.setup>,
+  word: string,
+): Promise<HTMLElement> {
+  const row = rowOf(word);
+  await user.click(within(row).getByRole('button', { name: /Bedeutungen anzeigen/ }));
+  return rowOf(word);
+}
+
 describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   it('erscheinen ohne Zutun, auch ohne Sprachmodell', async () => {
     await setup();
-    expect(within(rowOf('litter')).getByText('Müll')).toBeInTheDocument();
-    expect(within(rowOf('litter')).getByText('Offline-Wörterbuch')).toBeInTheDocument();
+    // Der Chip steht in der Karte, und daneben steht, woher er kommt.
+    expect(
+      within(rowOf('litter')).getByRole('button', {
+        name: '„Müll“ als Antwort für litter einsetzen',
+      }),
+    ).toBeInTheDocument();
+    expect(within(rowOf('litter')).getByText(/Wörterbuch/)).toBeInTheDocument();
   });
 
   it('tragen nichts von selbst ein', async () => {
@@ -140,9 +161,9 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
     expect(answerField('litter').value).toBe('');
   });
 
-  it('nennen Wortart und Genus', async () => {
-    await setup();
-    const row = rowOf('litter');
+  it('nennen Wortart und Genus – einen Klick tief', async () => {
+    const { user } = await setup();
+    const row = await openSenses(user, 'litter');
     expect(within(row).getByText('noun')).toBeInTheDocument();
     expect(within(row).getByText('(der)')).toBeInTheDocument();
   });
@@ -165,12 +186,31 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
 
   it('übernehmen auf Wunsch mehrere Bedeutungen einer Gruppe', async () => {
     const { user } = await setup();
+    await openSenses(user, 'station');
     await user.click(
       screen.getByRole('button', {
         name: /Alle 2 Bedeutungen dieser Gruppe als Antwort für station/,
       }),
     );
-    expect(answerField('station').value).toBe('Bahnhof, Station');
+    // Semikolon: zwei Antworten, die beide zählen – kein Komma in einer.
+    expect(answerField('station').value).toBe('Bahnhof; Station');
+  });
+
+  it('bringen die Wortart mit, wenn eine gewählt wird', async () => {
+    /*
+      Wer „Bahnhof“ anklickt, hat damit auch gesagt, dass es ein Substantiv
+      ist. Dieselbe Auskunft noch einmal von Hand treffen zu lassen wäre Arbeit
+      ohne Erkenntnis. Überschrieben wird dabei nichts: Steht in der Wortart
+      schon etwas, bleibt es stehen.
+    */
+    const { user } = await setup();
+    const wortart = screen.getByLabelText('Wortart für „crowded“');
+    expect(wortart).toHaveValue('');
+
+    await user.click(
+      screen.getByRole('button', { name: '„Müll“ als Antwort für litter einsetzen' }),
+    );
+    expect(screen.getByLabelText('Wortart für „litter“')).toHaveValue('noun');
   });
 
   it('lassen eine getippte Antwort unangetastet', async () => {
@@ -183,9 +223,10 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   });
 
   it('kennzeichnen eine markierte Übersetzung sichtbar', async () => {
-    await setup();
-    const row = rowOf('quiet');
-    expect(within(row).getByText('stillschweigend')).toBeInTheDocument();
+    const { user } = await setup();
+    const row = await openSenses(user, 'quiet');
+    // Zweimal da – als Chip in der Karte und in der aufgeklappten Auskunft.
+    expect(within(row).getAllByText('stillschweigend').length).toBeGreaterThan(0);
     expect(within(row).getByText('dated')).toBeInTheDocument();
     expect(within(row).getByText(/vor der Übernahme prüfen/)).toBeInTheDocument();
   });
@@ -199,7 +240,7 @@ describe('Übersetzungsvorschläge eintragen', () => {
     // `litter`: eine Bedeutung, eine unmarkierte Übersetzung.
     expect(answerField('litter').value).toBe('Müll');
     // `station`: zwei Entsprechungen **einer** Bedeutung – Alternativen.
-    expect(answerField('station').value).toBe('Bahnhof, Station');
+    expect(answerField('station').value).toBe('Bahnhof; Station');
     // `neighbourhood`: zwei Bedeutungen. Über Bedeutungen hinweg wird nie
     // verbunden, deshalb steht hier die erste – und nur die.
     expect(answerField('neighbourhood').value).toBe('Nachbarschaft');
@@ -220,12 +261,23 @@ describe('Übersetzungsvorschläge eintragen', () => {
 });
 
 describe('Browserhinweis', () => {
+  /*
+    Der Hinweis stand bis 4B.1 als Kasten **über** den Ergebnissen. Seit 4B.2
+    liegt er unter ihnen in einem zugeklappten, benannten Aufklapper: Beim
+    ersten Mal liest man so etwas, beim dritten scrollt man daran vorbei – und
+    scrollt dabei über die Empfehlungen hinaus, um die es geht.
+  */
+  async function openHinweis(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+    await user.click(screen.getByRole('button', { name: /Woher die Vorschläge kommen/ }));
+  }
+
   it('sagt, dass das Wörterbuch auch in Safari funktioniert – und was Chrome zusätzlich kann', async () => {
-    mount();
-    const hinweis = await screen.findByText(
-      /Das integrierte Offline-Wörterbuch funktioniert auch in Safari/,
-    );
-    expect(hinweis).toBeInTheDocument();
+    const { user } = await setup();
+    await openHinweis(user);
+
+    expect(
+      screen.getByText(/Das integrierte Offline-Wörterbuch funktioniert auch in Safari/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Google Chrome/)).toBeInTheDocument();
     // Keine Behauptung, Chrome könne das überall.
     expect(
@@ -234,8 +286,17 @@ describe('Browserhinweis', () => {
   });
 
   it('steht einmal in der Ansicht, nicht an jeder Zeile', async () => {
-    await setup();
+    const { user } = await setup();
+    await openHinweis(user);
     expect(screen.getAllByText(/funktioniert auch in Safari/)).toHaveLength(1);
+  });
+
+  it('ist zugeklappt, bis jemand ihn öffnet', async () => {
+    await setup();
+    const knopf = screen.getByRole('button', { name: /Woher die Vorschläge kommen/ });
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    // Zu heißt zu: Auch eine Vorlesehilfe findet den Text dann nicht.
+    expect(screen.queryByText(/funktioniert auch in Safari/)).not.toBeInTheDocument();
   });
 
   it('bleibt sachlich, wenn das Wörterbuch selbst fehlt', async () => {
@@ -244,8 +305,9 @@ describe('Browserhinweis', () => {
         return false;
       },
     });
-    mount(fehlt);
-    expect(await screen.findByText(/steht hier gerade nicht zur Verfügung/)).toBeInTheDocument();
+    const { user } = await setup(fehlt);
+    await openHinweis(user);
+    expect(screen.getByText(/steht hier gerade nicht zur Verfügung/)).toBeInTheDocument();
   });
 
   it('sperrt die Hauptaktion nicht, wenn das Wörterbuch gar nicht antwortet', async () => {

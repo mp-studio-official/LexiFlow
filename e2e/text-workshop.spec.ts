@@ -115,7 +115,11 @@ test.describe('Textwerkstatt', () => {
     await expect(page.getByText('„The neighbourhood is crowded today.“').first()).toBeVisible();
     await expect(page.getByLabel('Deutsche Antwort für „crowded“')).toHaveValue('');
 
-    // Ohne Translator-API bleibt alles benutzbar.
+    // Ohne Translator-API bleibt alles benutzbar. Die Begründung steht seit
+    // 4B.2 im benannten Aufklapper unter den Ergebnissen statt als Kasten davor.
+    await page
+      .getByRole('button', { name: /Übersetzungsvorschläge aus dem Sprachmodell/ })
+      .click();
     await expect(page.getByText(/Dieser Browser bietet keine lokale Übersetzung/)).toBeVisible();
 
     // Es gibt keine Häkchen – die Antwort entscheidet.

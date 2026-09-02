@@ -1144,38 +1144,59 @@ td input[type='text'] {
 }
 
 /*
-  Übernommen oder nicht – das muss man beim Überfliegen sehen, ohne jedes
-  Kästchen einzeln zu prüfen. Die Auswahl kommt aus dem Formular selbst
-  (`:has`), es gibt also keinen zweiten Zustand im Markup, der veralten könnte.
+  Übernommen oder nicht – das muss man beim Überfliegen sehen, ohne jede Karte
+  einzeln zu lesen.
 
   Wichtig ist, **welche** Farbe das übernimmt. Der erste Versuch legte
-  ausgewählte Zeilen auf die weiche Akzentfläche – und weil eine frisch
+  übernommene Zeilen auf die weiche Akzentfläche – und weil eine frisch
   analysierte Vokabel noch keine deutsche Antwort hat, stand darunter jedes
   Mal eine rote Fehlermeldung. Sechzehn rosa Kästen mit roter Schrift: Die
   ganze Seite las sich wie ein Schadensbericht, obwohl nichts kaputt war.
 
-  Jetzt trägt die Auswahl eine Kante in Aubergine – derselben Farbe wie der
-  ruhige Hinweis – auf normalem Papier. Nicht ausgewählte Zeilen treten auf die
-  abgesenkte Fläche zurück. Rot bleibt damit dem vorbehalten, was wirklich ein
-  Fehler ist.
+  Jetzt trägt die übernommene Karte eine Kante in Aubergine – derselben Farbe
+  wie der ruhige Hinweis – auf normalem Papier. Eine offene Karte tritt auf die
+  abgesenkte Fläche zurück; sie ist **kein Fehler**, sondern eine offene Frage,
+  und sieht deshalb auch nicht nach einem aus. Rot bleibt dem vorbehalten, was
+  wirklich kaputt ist.
 
   Bis 4B.1b war diese Kante Orange. Beim Wegfall der vierten Markenfarbe war
   Tomato die naheliegende Nachfolgerin – und wäre genau in den Fehler
   zurückgefallen, den dieser Absatz beschreibt: Tomato ist Rot.
+
+  Der Zustand hing bis 4B.2 an `:has(input[type='checkbox']:checked)`. Häkchen
+  gibt es hier seit 4B.1 nicht mehr; der Selektor traf ins Leere, und **jede**
+  Karte sah deshalb aus wie abgewählt. Jetzt steht der Zustand als
+  `data-answered` im Markup – an derselben Stelle, an der ihn auch der Test
+  liest.
 */
-.candidate:has(input[type='checkbox']:checked) {
+.candidate[data-answered] {
   background: var(--surface);
   border-color: var(--border);
   border-left: 4px solid var(--info);
   padding-left: calc(var(--space-4) - 3px);
+  box-shadow: var(--shadow-1);
 }
-.candidate:not(:has(input[type='checkbox']:checked)) {
+.candidate:not([data-answered]) {
   background: var(--surface-sunken);
   border-left: 4px solid var(--border);
   padding-left: calc(var(--space-4) - 3px);
 }
-.candidate:not(:has(input[type='checkbox']:checked)) .candidate__head strong {
+.candidate:not([data-answered]) .candidate__word {
   color: var(--ink-secondary);
+}
+
+/* Ein sanftes Anheben beim Überfahren: Die Karte ist anfassbar, aber sie
+   drängt sich nicht auf. */
+@media (hover: hover) {
+  .candidate:hover {
+    box-shadow: var(--shadow-2);
+    border-color: var(--border-strong);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .candidate {
+    transition: none;
+  }
 }
 
 .candidate__head {
@@ -1184,12 +1205,71 @@ td input[type='text'] {
   align-items: center;
   gap: 0.4rem;
 }
-.candidate__head strong {
+.candidate__word {
   overflow-wrap: anywhere;
+  font-size: var(--text-lg);
 }
 
-/* Der Originalsatz ist ein Zitat aus dem Text – er bekommt die redaktionelle
-   Stimme, damit er nicht mit der Oberfläche verwechselt wird. */
+/*
+  Der Zustand: Zeichen **und** Wort, nicht Farbe allein.
+
+  „✓ wird übernommen“ gegen „○ noch offen“ – wer keine Farben unterscheidet,
+  liest dasselbe wie alle anderen. Das war vorher ein Badge in Grün gegen eines
+  in Gelb, und Gelb heißt „Achtung“; eine Vokabel ohne Antwort ist aber keine
+  Warnung, sondern eine Aufgabe.
+*/
+.candidate__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.candidate__state[data-state='taken'] {
+  color: var(--success);
+  font-weight: var(--weight-medium);
+}
+.candidate__state[data-state='open'] {
+  color: var(--ink-secondary);
+}
+.candidate__mark {
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+.candidate__flags {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* Antwort und Wortart nebeneinander: das breite Feld links, das schmale
+   rechts. Auf einem Telefon untereinander. */
+.candidate__fields {
+  display: grid;
+  gap: var(--space-2) var(--space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 12rem);
+  align-items: end;
+}
+@media (max-width: 34rem) {
+  .candidate__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.field--compact select {
+  width: 100%;
+}
+
+/*
+  Der Originalsatz ist ein Zitat aus dem Text – er bekommt die redaktionelle
+  Stimme, damit er nicht mit der Oberfläche verwechselt wird.
+
+  `data-clamped` kürzt die **Darstellung** auf zwei Zeilen. Im Dokument steht
+  weiterhin der ganze Satz: `line-clamp` ist eine Layouteigenschaft, keine
+  Textänderung, und eine Vorlesehilfe liest den vollständigen Satz. Der Knopf
+  darunter zeigt ihn auch sehend.
+*/
 .candidate__sentence {
   margin: 0;
   font-family: var(--font-quote);
@@ -1200,16 +1280,49 @@ td input[type='text'] {
   padding-left: var(--space-3);
   overflow-wrap: anywhere;
 }
+.candidate__sentence[data-clamped] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
 
-.candidate__suggestion {
-  border: 1px dashed var(--border-strong);
+/*
+  „Ganzen Satz zeigen“ – eine Schaltfläche, kein Link.
+
+  Sie führt nirgendwohin, sie klappt etwas auf. Unterstrichen ist sie deshalb
+  nicht: Ein Unterstrich verspricht in einer Oberfläche einen Ortswechsel.
+*/
+.candidate__more {
+  align-self: flex-start;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+  background: none;
+  border: 0;
+  padding: 0.2rem 0;
+  cursor: pointer;
+  min-height: 1.9rem;
+  text-align: left;
+}
+.candidate__more:hover {
+  color: var(--accent-ink);
+}
+.candidate__more:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
   border-radius: var(--radius-control);
-  padding: 0.55rem 0.7rem;
-  background: var(--surface-sunken);
+}
+
+/* Der maschinelle oder lokale Vorschlag – eine Zeile mit einem Chip, nicht
+   mehr ein eigener gestrichelter Kasten. */
+.candidate__suggestion {
+  margin: 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 progress {
@@ -2149,21 +2262,91 @@ progress {
  * wird die Abgrenzung von der Aubergine-Kante, derselben Markerfarbe wie bei
  * der Auswahl: „hier steht etwas Zusätzliches“, nicht „hier ist ein Fehler“.
  */
+/*
+  Die Wörterbuchauskunft in der Empfehlungskarte.
+
+  Bis 4B.1 war das ein eigener eingefärbter Kasten mit Kopfzeile, Wortartzeile
+  und allen Bedeutungen untereinander – pro Karte gut zehn Zeilen. Bei zehn
+  Empfehlungen füllte allein diese Auskunft zwei Bildschirmhöhen. Jetzt sind es
+  zwei bis drei Chips in einer Zeile; alles Übrige liegt im Aufklapper.
+
+  Ohne Einfärbung: Die Chips sind schon als Schaltflächen erkennbar, und eine
+  zweite Fläche in einer Karte, die selbst eine Fläche ist, macht die Seite
+  unruhig, ohne etwas zu sagen.
+*/
 .dictionary {
-  border-left: 3px solid var(--info);
-  background: var(--info-soft);
-  border-radius: 0 var(--radius-control) var(--radius-control) 0;
-  padding: var(--space-2) var(--space-3);
   display: grid;
   gap: var(--space-2);
 }
 
-.dictionary__head {
+.dictionary__chips {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1) var(--space-2);
+  gap: 0.3rem;
+}
+
+.dictionary__origin {
+  white-space: nowrap;
+}
+
+/*
+  Ein Chip ist eine echte Schaltfläche.
+
+  Vorher war das ein Wort mit gestricheltem Unterstrich – das sah aus wie ein
+  Link und versprach damit einen Ortswechsel, den es nicht gibt. Ein Chip trägt
+  seine Fläche selbst, hat eine Kante, ein sichtbares Ziel von mindestens
+  32 px Höhe und einen Fokusring, der nicht bloß die Farbe wechselt.
+*/
+.chip {
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  min-height: 2rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .chip:hover:not(:disabled) {
+    background: var(--info-soft);
+    border-color: var(--info);
+  }
+}
+
+.chip:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/*
+  Ein schon eingesetzter Chip ist deaktiviert – und sagt das nicht nur über
+  seine Farbe: Das Häkchen davor steht auch dann da, wenn niemand den
+  Kontrastunterschied sieht.
+*/
+.chip:disabled {
+  cursor: default;
+  color: var(--ink-secondary);
+  border-style: dashed;
+  background: var(--surface-sunken);
+}
+.chip:disabled::before {
+  content: '✓ ';
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
 }
 
 .dictionary__note,
@@ -2186,7 +2369,7 @@ progress {
 
 .dictionary__sense {
   display: grid;
-  gap: 0.15rem;
+  gap: 0.25rem;
   justify-items: start;
 }
 
@@ -2206,41 +2389,98 @@ progress {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.15rem 0.25rem;
+  align-items: center;
+  gap: 0.3rem;
   font-size: var(--text-md);
 }
 
 .dictionary__word {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.2rem;
-}
-
-/*
- * Jede Bedeutung ist einzeln anklickbar. Als Schaltfläche, nicht als Link:
- * Sie führt nirgendwohin, sie trägt etwas ein.
- */
-.dictionary__pick {
-  font: inherit;
-  font-weight: var(--weight-semibold);
-  color: var(--ink);
-  background: none;
-  border: 0;
-  border-bottom: 1px dashed var(--border-strong);
-  padding: 0 0 1px;
-  cursor: pointer;
-  min-height: 1.6rem;
-}
-
-.dictionary__pick:hover {
-  border-bottom-style: solid;
-  color: var(--accent-ink);
 }
 
 .dictionary__gender {
   color: var(--ink-secondary);
   font-size: var(--text-sm);
+}
+
+/* --- Aufklapper ---------------------------------------------------------- */
+
+/*
+  Ein Abschnitt, der zu ist, bis jemand ihn öffnet.
+
+  Die Beschriftung wechselt nicht zwischen den Klicks – wer „Frühere
+  Empfehlungen (4)“ sucht, soll es beim zweiten Mal an derselben Stelle mit
+  demselben Namen finden. Was sich ändert, ist das Dreieck und `aria-expanded`.
+*/
+.disclosure {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: start;
+}
+
+.disclosure__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink-secondary);
+  background: none;
+  border: 0;
+  padding: 0.3rem 0;
+  min-height: 2.2rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .disclosure__summary:hover {
+    color: var(--ink);
+  }
+}
+
+.disclosure__summary:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius-control);
+}
+
+/* Das Dreieck dreht sich – die einzige Zustandsanzeige, die keine Farbe ist. */
+.disclosure__caret {
+  width: 0;
+  height: 0;
+  border-top: 0.3rem solid transparent;
+  border-bottom: 0.3rem solid transparent;
+  border-left: 0.42rem solid currentcolor;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.disclosure[data-open] .disclosure__caret {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disclosure__caret {
+    transition: none;
+  }
+}
+
+.disclosure__hint {
+  margin: 0 0 0.2rem;
+}
+
+.disclosure__panel {
+  justify-self: stretch;
+  display: grid;
+  gap: var(--space-2);
+  border-left: 2px solid var(--border);
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+}
+
+.disclosure__panel p {
+  margin: 0;
 }
 
 /* --- Kopf der Lernansichten ---------------------------------------------- */

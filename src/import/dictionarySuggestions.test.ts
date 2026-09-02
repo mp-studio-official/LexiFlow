@@ -290,7 +290,13 @@ describe('Sichere Sammelübernahme', () => {
         },
       ],
     });
-    expect(safeAutoAnswer(summarizeLookup([station]))).toBe('Bahnhof, Station');
+    /*
+      Getrennt wird mit **Semikolon**, seit Phase 1 dieses Sprints. Das ist
+      keine Schreibvariante: „Bahnhof, Station“ wäre *eine* Antwort, die nur
+      richtig ist, wenn jemand beide Wörter mit genau diesem Komma tippt. Als
+      zwei Antworten zählt jede für sich.
+    */
+    expect(safeAutoAnswer(summarizeLookup([station]))).toBe('Bahnhof; Station');
     expect(MAX_AUTO_SYNONYMS).toBe(2);
   });
 
@@ -319,7 +325,7 @@ describe('Sichere Sammelübernahme', () => {
   it('verbindet niemals über Bedeutungen hinweg', () => {
     // `casualty`: *Unfall* ODER *Notaufnahme* ODER *Opfer*.
     const answer = safeAutoAnswer(summarizeLookup([casualty]));
-    expect(answer).toBe('Unfall, Unglück');
+    expect(answer).toBe('Unfall; Unglück');
     expect(answer).not.toContain('Opfer');
   });
 

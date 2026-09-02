@@ -2,6 +2,7 @@ import type { DictionaryEntry, DictionaryProvider } from '../dictionary/Dictiona
 import { isQuestionable } from '../dictionary/ranking';
 import { isVerifiedReference } from '../dictionary/verifiedReferences';
 import type { PartOfSpeech } from '../domain/schema';
+import { formatAnswers } from '../domain/normalize';
 
 /**
  * Wörterbuchtreffer für die Kandidatenprüfung aufbereiten.
@@ -15,7 +16,13 @@ import type { PartOfSpeech } from '../domain/schema';
  * verdrängt nie einen deterministischen Abkürzungsvorschlag.
  */
 
-/** Wie viele Bedeutungen zunächst sichtbar sind, bevor aufgeklappt wird. */
+/**
+ * Wie viele Bedeutungen als Chips direkt in der Karte stehen.
+ *
+ * Seit 4B.2 sind das die **Chips** und nicht mehr die ersten Zeilen einer
+ * Liste: Drei anklickbare Wörter passen in eine Zeile, drei Bedeutungsblöcke
+ * mit Wortart und Herkunft füllten eine halbe Karte.
+ */
 export const VISIBLE_SENSE_LIMIT = 3;
 
 export interface DictionarySuggestionSummary {
@@ -212,6 +219,21 @@ export function partOfSpeechOf(
   return (only && PART_OF_SPEECH_BY_SOURCE[only]) ?? '';
 }
 
+/**
+ * Die Wortart **eines einzelnen** Wörterbucheintrags.
+ *
+ * Der Unterschied zu `partOfSpeechOf` ist der Anlass, nicht die Tabelle. Dort
+ * geht es um die Frage „lässt sich das Feld vorausfüllen, bevor jemand etwas
+ * entschieden hat?“ – und die Antwort ist bei `book` mit Recht nein.
+ *
+ * Hier hat jemand entschieden: Wer beim Wort `book` auf „das Buch“ klickt, hat
+ * damit die Bedeutungsgruppe gewählt, und die ist ein Substantiv. Die Auskunft
+ * ist jetzt eindeutig, weil die Auswahl sie eindeutig gemacht hat.
+ */
+export function partOfSpeechOfSource(source: string | undefined): PartOfSpeech | undefined {
+  return source ? PART_OF_SPEECH_BY_SOURCE[source] : undefined;
+}
+
 /* ------------------------------------------------- Sichere Sammelübernahme */
 
 /** Wie viele echte Synonyme höchstens automatisch eingetragen werden. */
@@ -287,8 +309,15 @@ export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined)
 
   // Regel 2: eins, zwei – oder bei dreien nur das erste.
   const take = safe.length <= MAX_AUTO_SYNONYMS ? safe.length : 1;
-  return safe
-    .slice(0, take)
-    .map((suggestion) => suggestion.german)
-    .join(', ');
+  /*
+    Verbunden wird mit **Semikolon**, seit Sprint 4B.2 Phase 1.
+
+    Bis dahin stand hier ein Komma – und das war ein echter Fehler, nicht bloß
+    eine andere Schreibweise: `station` → „Bahnhof, Station“ wurde damit zu
+    **einer** Antwort, die nur richtig war, wenn jemand genau diese beiden
+    Wörter mit genau diesem Komma tippte. Als zwei Antworten zählt jede für
+    sich. Formatiert wird über `formatAnswers`, damit hier keine zweite,
+    stillschweigend abweichende Trennregel entsteht.
+  */
+  return formatAnswers(safe.slice(0, take).map((suggestion) => suggestion.german));
 }

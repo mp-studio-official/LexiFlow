@@ -36,6 +36,7 @@ import { CEFR_LEVELS, GRADES, GRADE_LABELS } from '../../domain/cefr';
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
 import { DictionarySuggestionList } from './DictionarySuggestionList';
+import { Disclosure } from '../../ui/Disclosure';
 
 /**
  * Schritt 2 des Import-Assistenten: **Empfehlungen generieren**.
@@ -64,6 +65,24 @@ import { DictionarySuggestionList } from './DictionarySuggestionList';
 
 const SOURCE_LANGUAGE = 'en';
 const TARGET_LANGUAGE = 'de';
+
+/**
+ * Ab wie vielen Zeichen der Originalsatz zusammengeklappt gezeigt wird.
+ *
+ * Die Zahl ist eine Schätzung, keine Messung – und das mit Absicht. Wie viele
+ * Zeilen ein Satz belegt, hängt an Fensterbreite, Schriftgröße und Zoom; das
+ * im Browser auszumessen hieße, bei jedem Rendern Layout zu erzwingen und die
+ * Liste bei jeder Fensteränderung springen zu lassen. Das Kürzen selbst
+ * übernimmt CSS (`line-clamp: 2`) und trifft es genau; die Schätzung
+ * entscheidet nur, ob der Knopf „Ganzen Satz zeigen“ dazugehört.
+ *
+ * Der Fehler ist deshalb absichtlich einseitig: 150 Zeichen sind auf einer
+ * üblichen Kartenbreite eher **weniger** als zwei Zeilen. Auf einem breiten
+ * Bildschirm steht der Knopf damit gelegentlich an einem Satz, der ohnehin
+ * ganz zu sehen ist – das kostet einen folgenlosen Klick. Der umgekehrte
+ * Fehler wäre der schlimme: ein gekürzter Satz ohne Weg zum Rest.
+ */
+export const SENTENCE_CLAMP_CHARS = 150;
 
 /**
  * Ein Wörterbuch je Sitzung, nicht je Ansicht.
@@ -255,6 +274,16 @@ export function TextCandidateReview({
   const [earlier, setEarlier] = useState<CandidateRow[]>([]);
   const [earlierOpen, setEarlierOpen] = useState(false);
   const [generated, setGenerated] = useState(false);
+  /** Karten, deren Originalsatz gerade in voller Länge steht. */
+  const [openSentences, setOpenSentences] = useState<ReadonlySet<string>>(new Set());
+
+  function toggleSentence(id: string): void {
+    setOpenSentences((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
 
   const [providerState, setProviderState] = useState<ProviderState | 'checking'>('checking');
   const [progress, setProgress] = useState<number | null>(null);
@@ -429,18 +458,41 @@ export function TextCandidateReview({
     [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext],
   );
 
-  function generate(): void {
-    refill({
-      excludeShown: false,
-      announce: (result) =>
-        result.added === 0
-          ? 'Der Text gibt keine weiteren geeigneten Vokabeln her.'
-          : `${result.added} Empfehlungen erzeugt. Bitte durchsehen und ergänzen.`,
-    });
-  }
+  /**
+   * **Eine** Aktion für beide Anlässe.
+   *
+   * Bis 4B.1 standen hier zwei Knöpfe – „Empfehlungen neu berechnen“ oben und
+   * „Offene Empfehlungen ersetzen“ unten – die dieselbe Funktion mit einem
+   * anderen Schalter riefen. Zwei Knöpfe für eine Sache heißt: Man muss den
+   * Unterschied kennen, um den richtigen zu treffen, und der Unterschied stand
+   * nirgends.
+   *
+   * Offen ist offen: ein leeres Antwortfeld **und** ein weggeräumter Platz.
+   * Beides zählt `replaceOpenRecommendations` gleich – nachgelegt wird bis zur
+   * eingestellten Anzahl, beantwortete Zeilen bleiben unangetastet.
+   *
+   * Den einen Unterschied, der wirklich einer ist, entscheidet die Aktion
+   * selbst: Wurde seit dem letzten Lauf **nichts** an den Einstellungen
+   * geändert, will man offensichtlich *andere* Wörter – dann bleiben die schon
+   * gezeigten außen vor. Wurde Jahrgang, Niveau, Sortierung oder Anzahl
+   * geändert, ist es eine neue Frage, und ein vorhin zurückgelegtes Wort darf
+   * wiederkommen, wenn es jetzt passt.
+   */
+  const settingsSignature = `${context.grade}|${context.cefrLevel}|${sort}|${count}`;
+  const lastRun = useRef<string | null>(null);
 
-  function replaceOpen(): void {
-    refill({ excludeShown: true, announce: describeReplacement });
+  function recalculate(): void {
+    const unchanged = lastRun.current === settingsSignature;
+    lastRun.current = settingsSignature;
+    refill({
+      excludeShown: unchanged,
+      announce: (result) =>
+        generated
+          ? describeReplacement(result)
+          : result.added === 0
+            ? 'Der Text gibt keine geeigneten Vokabeln her.'
+            : `${result.added} Empfehlungen erzeugt. Bitte durchsehen und ergänzen.`,
+    });
   }
 
   /**
@@ -717,7 +769,11 @@ export function TextCandidateReview({
       ? 'Sprachmodell laden und Vorschläge erzeugen'
       : providerState === 'downloading'
         ? 'Laden abwarten und Vorschläge erzeugen'
-        : 'Vorschläge für offene Empfehlungen erzeugen';
+        : 'KI-Vorschläge für offene Empfehlungen';
+
+  function translateOpen(): void {
+    void runTranslation(rows.filter((row) => !hasAnswer(row)));
+  }
 
   return (
     <div className="stack">
@@ -834,10 +890,10 @@ export function TextCandidateReview({
         <div className="row" style={{ marginTop: '0.75rem' }}>
           <Button
             variant="primary"
-            onClick={generate}
+            onClick={recalculate}
             disabled={dictionaryState === 'prueft' || dictionaryState === 'laeuft'}
           >
-            {generated ? 'Empfehlungen neu berechnen' : 'Empfehlungen generieren'}
+            {generated ? 'Offene Empfehlungen neu berechnen' : 'Empfehlungen generieren'}
           </Button>
           {dictionaryState === 'laeuft' || dictionaryState === 'prueft' ? (
             <span className="small muted" role="status">
@@ -847,133 +903,65 @@ export function TextCandidateReview({
         </div>
         {generated ? (
           <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
-            Neu berechnet wird nur, was noch keine Antwort hat. Beantwortete Vokabeln bleiben
-            stehen.
+            Offen ist, was kein Antwortfeld gefüllt hat – und was du entfernt hast. Beides wird neu
+            besetzt; beantwortete Vokabeln bleiben unangetastet.
           </p>
         ) : null}
       </Card>
 
       {/*
-        Der Browserhinweis – einmal je Ansicht, nicht bei jeder Suche.
+        Was gerade passiert – und sonst nichts.
 
-        Erkannt wird über Feature Detection (`getAvailability`), nicht über den
-        User-Agent: Was ein Browser kann, sagt der Browser, nicht sein Name.
-        Und der Hinweis behauptet nicht, Chrome könne das überall – er nennt die
-        Bedingung mit.
+        Hier standen bis 4B.2 zwei große Hinweisflächen: ein Kasten über das
+        Offline-Wörterbuch und eine Karte über das optionale Sprachmodell.
+        Zusammen gut zwanzig Zeilen Text **vor** dem ersten Ergebnis. Beim
+        ersten Mal liest man sie, beim zweiten überfliegt man sie, ab dem
+        dritten scrollt man an ihnen vorbei – und scrollt dabei über die
+        Empfehlungen hinaus, um die es geht.
+
+        Der Text ist nicht weg. Er steht unter den Ergebnissen in zwei
+        zugeklappten Aufklappern, mit derselben Zahl und derselben Aussage.
+        Hier oben bleibt, was sich gerade ändert: ein laufender Download und
+        ein Fehler.
       */}
-      {dictionaryState === 'fertig' || dictionaryState === 'fehlt' ? (
-        <Alert tone="info" title="Lokale Grundvorschläge">
-          {dictionaryState === 'fertig' ? (
+      {progress !== null || busy ? (
+        <div className="row" role="status">
+          {progress !== null ? (
             <>
-              Das integrierte Offline-Wörterbuch funktioniert auch in Safari. Übersetzungsvorschläge
-              sowie Wortform- und Abkürzungserkennung laufen vollständig auf deinem Gerät.
+              <label htmlFor="model-progress" className="small muted">
+                Sprachmodell wird vorbereitet
+              </label>
+              <progress id="model-progress" max={1} value={progress}>
+                {Math.round(progress * 100)} %
+              </progress>
+              <span className="small muted">{Math.round(progress * 100)} %</span>
             </>
           ) : (
-            <>
-              Das integrierte Offline-Wörterbuch steht hier gerade nicht zur Verfügung. Empfehlungen
-              sowie Wortform- und Abkürzungserkennung funktionieren unverändert; deutsche Antworten
-              trägst du selbst ein.
-            </>
-          )}{' '}
-          {providerState === 'unavailable' ? (
-            <>
-              Für zusätzliche, kontextbezogene KI-Vorschläge kannst du LexiFlow in einer aktuellen
-              Desktop-Version von Google Chrome öffnen – dort sind sie verfügbar, sofern Chrome und
-              das Gerät die lokalen Modelle unterstützen.
-            </>
-          ) : (
-            <>
-              In diesem Browser kann zusätzlich ein lokales Sprachmodell kontextbezogene Vorschläge
-              erzeugen.
-            </>
+            <span className="small muted">Vorschläge werden erzeugt …</span>
           )}
-        </Alert>
+          {/*
+            „Abbrechen“ steht oben, nicht bei den Ergebnissen: Der Download
+            läuft schon, während unten noch nichts steht. Ein Abbruch, den man
+            erst nach dem Empfehlen erreicht, kommt für ein Gigabyte zu spät.
+          */}
+          <Button small onClick={() => cancelRef.current?.()}>
+            Abbrechen
+          </Button>
+        </div>
       ) : null}
 
-      {/* ------------------------------------------- Optionale Modellhilfe */}
-      <Card quiet>
-        <h3 style={{ fontSize: '1rem' }}>Übersetzungsvorschläge aus dem Sprachmodell (optional)</h3>
-        {providerState === 'checking' ? (
-          <p className="small muted" role="status">
-            Verfügbarkeit wird geprüft …
-          </p>
-        ) : providerState === 'unavailable' ? (
-          <p className="small muted">
-            Dieser Browser bietet keine lokale Übersetzung. Das Offline-Wörterbuch und die
-            Handeingabe funktionieren unverändert.
-          </p>
-        ) : (
-          <>
-            <p className="small muted">{provider.info.dataNotice}</p>
-            <p className="small muted">
-              Vorschläge sind <strong>ungeprüft</strong>. Sie werden nie automatisch
-              übernommen – du entscheidest je Vokabel.
-            </p>
-            {!busy && providerState === 'downloading' ? (
-              <p className="small muted" role="status">
-                Der Browser lädt das Sprachmodell gerade herunter. Du kannst die Vorschläge
-                jetzt anstoßen; sie beginnen, sobald das Modell bereit ist.
-              </p>
-            ) : null}
-            {!busy && providerState === 'downloadable' ? (
-              <p className="small muted">
-                Das Sprachmodell ist noch nicht auf diesem Gerät. Es wird erst nach deinem
-                Klick geladen.
-              </p>
-            ) : null}
-            <div className="row">
-              <Button
-                small
-                disabled={busy || !canTranslate || !generated}
-                onClick={() => void runTranslation(rows.filter((row) => !hasAnswer(row)))}
-              >
-                {translateLabel}
-              </Button>
-              {/*
-                „Abbrechen“ steht hier, nicht im Ergebnisbereich: Der
-                Modelldownload läuft schon, während oben noch das Niveau
-                eingestellt wird. Ein Abbruch, den man erst nach dem Empfehlen
-                erreicht, kommt für einen Gigabyte zu spät.
-              */}
-              {busy ? (
-                <Button small onClick={() => cancelRef.current?.()}>
-                  Abbrechen
-                </Button>
-              ) : null}
-            </div>
-            {!generated ? (
-              <p className="small muted" style={{ margin: '0.4rem 0 0' }}>
-                Vorschläge gibt es, sobald Empfehlungen da sind. Läuft das Modell schon, kommen sie
-                mit dem ersten Empfehlungslauf von selbst.
-              </p>
-            ) : null}
-            {progress !== null ? (
-              <p style={{ margin: '0.6rem 0 0' }}>
-                <label htmlFor="model-progress" className="small muted">
-                  Sprachmodell wird vorbereitet
-                </label>
-                <br />
-                <progress id="model-progress" max={1} value={progress}>
-                  {Math.round(progress * 100)} %
-                </progress>{' '}
-                <span className="small muted">{Math.round(progress * 100)} %</span>
-              </p>
-            ) : null}
-          </>
-        )}
-        {providerError ? (
-          <Alert tone="error">
-            {providerError} Die deutschen Antworten lassen sich weiterhin von Hand eintragen.{' '}
-            <Button
-              small
-              disabled={busy || !canTranslate}
-              onClick={() => void runTranslation(rows.filter((row) => !hasAnswer(row)))}
-            >
-              Erneut versuchen
-            </Button>
-          </Alert>
-        ) : null}
-      </Card>
+      {providerError ? (
+        <Alert tone="error">
+          {providerError} Die deutschen Antworten lassen sich weiterhin von Hand eintragen.{' '}
+          <Button
+            small
+            disabled={busy || !canTranslate}
+            onClick={() => void runTranslation(rows.filter((row) => !hasAnswer(row)))}
+          >
+            Erneut versuchen
+          </Button>
+        </Alert>
+      ) : null}
 
       {/* ---------------------------------------------------------- Ergebnis */}
       {generated ? (
@@ -1000,9 +988,16 @@ export function TextCandidateReview({
               >
                 Übersetzungsvorschläge eintragen
               </Button>
-              <Button small onClick={replaceOpen} disabled={open === 0}>
-                <span aria-hidden="true">↻</span> Offene Empfehlungen ersetzen
-              </Button>
+              {/*
+                Die Modellaktion steht hier bei den anderen Aktionen, ihr
+                Erklärtext unten im Aufklapper. Eine Schaltfläche in einem
+                zugeklappten Kasten zu verstecken hieße, sie abzuschaffen.
+              */}
+              {providerState !== 'unavailable' && providerState !== 'checking' ? (
+                <Button small disabled={busy || !canTranslate} onClick={translateOpen}>
+                  {translateLabel}
+                </Button>
+              ) : null}
               <span className="spacer" />
               {earlier.length > 0 ? (
                 <Button
@@ -1019,7 +1014,7 @@ export function TextCandidateReview({
             <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
               „Übersetzungsvorschläge eintragen“ füllt nur, was das Wörterbuch ohne Rückfrage
               hergibt. Mehrdeutiges, Veraltetes und über einen Querverweis Erschlossenes bleibt
-              leer und steht als Vorschlag darunter.
+              leer und steht als Chip darunter.
             </p>
           </Card>
 
@@ -1064,27 +1059,38 @@ export function TextCandidateReview({
               const label = candidate.english;
               const inflections = describeCandidateInflections(candidate);
               const answered = hasAnswer(row);
+              const sentence = candidate.sourceSentence;
+              const longSentence = sentence.length > SENTENCE_CLAMP_CHARS;
+              const sentenceOpen = openSentences.has(candidate.id);
+              const flags =
+                Boolean(candidate.abbreviation) ||
+                Boolean(candidate.isLikelyProperNoun) ||
+                Boolean(row.baseFormHint);
 
               return (
                 <li key={candidate.id} className="candidate" data-answered={answered ? '' : undefined}>
+                  {/*
+                    Der Kopf trägt vier Dinge und nicht mehr: das Wort, wie oft
+                    es im Text steht, den Zustand und den Weg hinaus. Bis 4B.1
+                    standen hier bis zu fünf Badges nebeneinander – bei zehn
+                    Karten waren das fünfzig kleine Kästchen, und keines davon
+                    hat man noch gelesen.
+                  */}
                   <div className="candidate__head">
-                    <strong>{label}</strong>
-                    <span className="spacer" />
+                    <strong className="candidate__word">{label}</strong>
                     <Badge>{candidate.occurrences}× im Text</Badge>
-                    {answered ? (
-                      <Badge tone="success">wird übernommen</Badge>
-                    ) : (
-                      <Badge tone="warning">noch offen</Badge>
-                    )}
-                    {candidate.abbreviation ? (
-                      <Badge tone={candidate.abbreviation.resolved ? 'success' : 'warning'}>
-                        {candidate.abbreviation.resolved
-                          ? 'Abkürzung erkannt'
-                          : 'Abkürzung – muss geprüft werden'}
-                      </Badge>
-                    ) : null}
-                    {candidate.isLikelyProperNoun ? <Badge tone="warning">Eigenname?</Badge> : null}
-                    {row.baseFormHint ? <Badge tone="warning">{row.baseFormHint}</Badge> : null}
+                    <span className="spacer" />
+                    {/*
+                      Der Zustand steht **nicht** nur in der Farbe: Zeichen und
+                      Wort sagen dasselbe, und beide sind auch dann da, wenn
+                      jemand keine Farben unterscheidet.
+                    */}
+                    <span className="candidate__state" data-state={answered ? 'taken' : 'open'}>
+                      <span aria-hidden="true" className="candidate__mark">
+                        {answered ? '✓' : '○'}
+                      </span>
+                      {answered ? 'wird übernommen' : 'noch offen'}
+                    </span>
                     <Button
                       small
                       variant="quiet"
@@ -1095,29 +1101,55 @@ export function TextCandidateReview({
                     </Button>
                   </div>
 
-                  {/* Was im Text tatsächlich stand – ehrlicher als eine bloße Zahl. */}
-                  <p className="small muted" style={{ margin: '0 0 0.35rem' }}>
-                    {describeCandidateForms(candidate)}
-                    {inflections.length > 0 ? ` · ${inflections.join(' · ')}` : ''}
-                  </p>
-
-                  <p className="candidate__sentence">
-                    <span className="visually-hidden">Originalsatz: </span>„{candidate.sourceSentence}“
-                  </p>
-
                   {/*
-                    Die Form könnte zu mehreren Grundformen gehören, und der
-                    Satz verrät nicht welche. Statt zu raten steht hier, was im
-                    Text stand – mit dem Hinweis, dass eine Entscheidung offen
-                    ist. Das Stichwort ist im letzten Schritt änderbar.
+                    Was besonders ist, steht nur dann da, wenn es besonders ist.
+                    Eine Abkürzung, ein möglicher Eigenname, eine unklare
+                    Grundform: drei Fälle, die eine Entscheidung verlangen – und
+                    in den meisten Karten schlicht nicht vorkommen.
                   */}
-                  {row.baseFormHint ? (
-                    <p className="small muted" style={{ margin: '0 0 0.35rem' }}>
-                      „{label}“ könnte auch eine gebeugte Form sein. Der Satz gibt nicht her,
-                      welche Grundform gemeint ist – deshalb steht hier die Form aus dem Text.
+                  {flags ? (
+                    <p className="candidate__flags">
+                      {candidate.abbreviation ? (
+                        <Badge tone={candidate.abbreviation.resolved ? 'success' : 'warning'}>
+                          {candidate.abbreviation.resolved
+                            ? 'Abkürzung erkannt'
+                            : 'Abkürzung – muss geprüft werden'}
+                        </Badge>
+                      ) : null}
+                      {candidate.isLikelyProperNoun ? <Badge tone="warning">Eigenname?</Badge> : null}
+                      {row.baseFormHint ? <Badge tone="warning">{row.baseFormHint}</Badge> : null}
                     </p>
                   ) : null}
 
+                  {/*
+                    Der Originalsatz ist der Grund, warum man einer Empfehlung
+                    zustimmt oder nicht – er gehört sichtbar in die Karte. Zwei
+                    Zeilen reichen dafür fast immer; für den Rest gibt es den
+                    Knopf. Gekürzt wird nur die **Darstellung**: Im Dokument
+                    steht der ganze Satz, eine Vorlesehilfe liest ihn vollständig.
+                  */}
+                  <p
+                    className="candidate__sentence"
+                    data-clamped={longSentence && !sentenceOpen ? '' : undefined}
+                  >
+                    <span className="visually-hidden">Originalsatz: </span>„{sentence}“
+                  </p>
+                  {longSentence ? (
+                    <button
+                      type="button"
+                      className="candidate__more"
+                      aria-expanded={sentenceOpen}
+                      onClick={() => toggleSentence(candidate.id)}
+                    >
+                      {sentenceOpen ? 'Satz kürzen' : `Ganzen Satz zeigen (${label})`}
+                    </button>
+                  ) : null}
+
+                  {/*
+                    Die Langform einer Abkürzung ist eine Aufgabe, kein Detail –
+                    sie bleibt offen stehen. „US“ ohne Auflösung ist keine
+                    Vokabel, sondern zwei Buchstaben.
+                  */}
                   {candidate.abbreviation ? (
                     <div className="field">
                       <label htmlFor={`en-${candidate.id}`}>
@@ -1133,13 +1165,14 @@ export function TextCandidateReview({
                     </div>
                   ) : null}
 
-                  <div className="field-grid">
+                  <div className="candidate__fields">
                     <div className="field">
                       <label htmlFor={`de-${candidate.id}`}>Deutsche Antwort für „{label}“</label>
                       <input
                         id={`de-${candidate.id}`}
                         type="text"
                         value={row.german}
+                        placeholder="leer lassen heißt: nicht ins Paket"
                         onChange={(event) =>
                           update(candidate.id, {
                             german: event.target.value,
@@ -1148,11 +1181,13 @@ export function TextCandidateReview({
                           })
                         }
                       />
-                      <span className="field__hint">
-                        Leer heißt: Diese Vokabel geht nicht ins Paket.
-                      </span>
                     </div>
-                    <div className="field">
+                    {/*
+                      Die Wortart ist ein schmales Feld, kein halbes Formular:
+                      Sie steht meistens schon da, weil das Wörterbuch sie kennt
+                      oder weil ein Chip sie mitgebracht hat.
+                    */}
+                    <div className="field field--compact">
                       <label htmlFor={`pos-${candidate.id}`}>Wortart für „{label}“</label>
                       <select
                         id={`pos-${candidate.id}`}
@@ -1193,24 +1228,37 @@ export function TextCandidateReview({
                     </Alert>
                   ) : null}
 
+                  {row.dictionary ? (
+                    <DictionarySuggestionList
+                      label={label}
+                      summary={row.dictionary}
+                      current={row.german}
+                      /*
+                        Die Wortart kommt mit dem Klick. Überschrieben wird sie
+                        nur, solange das Feld leer ist: Wer sie von Hand gesetzt
+                        hat, hat sie entschieden.
+                      */
+                      onAccept={(german, partOfSpeech) =>
+                        update(candidate.id, {
+                          german,
+                          translation: 'accepted',
+                          ...(partOfSpeech && !row.partOfSpeech ? { partOfSpeech } : {}),
+                        })
+                      }
+                    />
+                  ) : null}
+
                   {row.suggestion && row.translation !== 'pending' ? (
-                    <div className="candidate__suggestion">
-                      <p className="small" style={{ margin: 0 }}>
-                        {row.suggestionSource === 'local' ? (
-                          <Badge>lokaler Vorschlag</Badge>
-                        ) : (
-                          <Badge tone="warning">maschineller Vorschlag</Badge>
-                        )}{' '}
-                        <strong>{row.suggestion}</strong>
-                      </p>
-                      {row.suggestedSentence ? (
-                        <p className="small muted" style={{ margin: '0.2rem 0 0' }}>
-                          Kontext (Hilfestellung, nicht geprüft): „{row.suggestedSentence}“
-                        </p>
-                      ) : null}
-                      <Button
-                        small
-                        aria-label={`Vorschlag für ${label} übernehmen`}
+                    <p className="candidate__suggestion">
+                      {row.suggestionSource === 'local' ? (
+                        <Badge>lokal</Badge>
+                      ) : (
+                        <Badge tone="warning">KI, ungeprüft</Badge>
+                      )}{' '}
+                      <button
+                        type="button"
+                        className="chip"
+                        aria-label={`Vorschlag „${row.suggestion}“ für ${label} übernehmen`}
                         disabled={row.translation === 'accepted' && row.german === row.suggestion}
                         onClick={() =>
                           update(candidate.id, {
@@ -1219,23 +1267,111 @@ export function TextCandidateReview({
                           })
                         }
                       >
-                        Vorschlag übernehmen
-                      </Button>
-                    </div>
+                        {row.suggestion}
+                      </button>
+                    </p>
                   ) : null}
 
-                  {row.dictionary ? (
-                    <DictionarySuggestionList
-                      label={label}
-                      summary={row.dictionary}
-                      current={row.german}
-                      onAccept={(german) => update(candidate.id, { german, translation: 'accepted' })}
-                    />
-                  ) : null}
+                  {/*
+                    Alles Weitere – benannt, nicht als „Details“.
+
+                    Was im Text tatsächlich stand, welche Beugungen vorkamen und
+                    warum die Grundform offen ist: wichtig, wenn man es braucht,
+                    und Ballast in jeder anderen Karte.
+                  */}
+                  <Disclosure summary="Formen im Text und Herkunft">
+                    <p className="small muted" style={{ margin: 0 }}>
+                      {describeCandidateForms(candidate)}
+                      {inflections.length > 0 ? ` · ${inflections.join(' · ')}` : ''}
+                    </p>
+                    {row.baseFormHint ? (
+                      <p className="small muted" style={{ margin: '0.35rem 0 0' }}>
+                        „{label}“ könnte auch eine gebeugte Form sein. Der Satz gibt nicht her,
+                        welche Grundform gemeint ist – deshalb steht hier die Form aus dem Text.
+                        Ändern lässt sie sich im letzten Schritt.
+                      </p>
+                    ) : null}
+                    {row.suggestedSentence ? (
+                      <p className="small muted" style={{ margin: '0.35rem 0 0' }}>
+                        Übersetzung des Beispielsatzes (Hilfestellung, nicht geprüft):
+                        „{row.suggestedSentence}“
+                      </p>
+                    ) : null}
+                  </Disclosure>
                 </li>
               );
             })}
           </ul>
+
+          {/*
+            Die beiden Hinweisflächen, die bis 4B.1 über den Ergebnissen
+            standen. Hier unten, zugeklappt, mit derselben Aussage.
+          */}
+          <Disclosure
+            summary="Woher die Vorschläge kommen"
+            hint="Offline-Wörterbuch, Wortformerkennung – und was dein Browser zusätzlich kann."
+          >
+            <p className="small">
+              {dictionaryState === 'fehlt'
+                ? 'Das integrierte Offline-Wörterbuch steht hier gerade nicht zur Verfügung. Empfehlungen sowie Wortform- und Abkürzungserkennung funktionieren unverändert; deutsche Antworten trägst du selbst ein.'
+                : 'Das integrierte Offline-Wörterbuch funktioniert auch in Safari. Übersetzungsvorschläge sowie Wortform- und Abkürzungserkennung laufen vollständig auf deinem Gerät.'}
+            </p>
+            <p className="small">
+              {providerState === 'unavailable'
+                ? 'Für zusätzliche, kontextbezogene KI-Vorschläge kannst du LexiFlow in einer aktuellen Desktop-Version von Google Chrome öffnen – dort sind sie verfügbar, sofern Chrome und das Gerät die lokalen Modelle unterstützen.'
+                : 'In diesem Browser kann zusätzlich ein lokales Sprachmodell kontextbezogene Vorschläge erzeugen.'}
+            </p>
+            <p className="small muted">
+              Erkannt wird das über die Auskunft des Browsers selbst, nicht über seinen Namen.
+            </p>
+          </Disclosure>
+
+          <Disclosure
+            summary="Übersetzungsvorschläge aus dem Sprachmodell"
+            hint="Optional, lokal, ungeprüft – und nie automatisch übernommen."
+          >
+            {providerState === 'checking' ? (
+              <p className="small muted" role="status">
+                Verfügbarkeit wird geprüft …
+              </p>
+            ) : providerState === 'unavailable' ? (
+              <p className="small">
+                Dieser Browser bietet keine lokale Übersetzung. Das Offline-Wörterbuch und die
+                Handeingabe funktionieren unverändert.
+              </p>
+            ) : (
+              <>
+                <p className="small">{provider.info.dataNotice}</p>
+                <p className="small">
+                  Vorschläge sind <strong>ungeprüft</strong>. Sie werden nie automatisch
+                  übernommen – du entscheidest je Vokabel.
+                </p>
+                {providerState === 'downloadable' ? (
+                  <p className="small muted">
+                    Das Sprachmodell ist noch nicht auf diesem Gerät. Es wird erst nach deinem Klick
+                    geladen.
+                  </p>
+                ) : null}
+                {providerState === 'downloading' ? (
+                  <p className="small muted" role="status">
+                    Der Browser lädt das Sprachmodell gerade herunter. Du kannst die Vorschläge
+                    jetzt anstoßen; sie beginnen, sobald das Modell bereit ist.
+                  </p>
+                ) : null}
+                {/*
+                  Hier steht **kein** zweiter Knopf. Die Aktion liegt oben bei
+                  den anderen Aktionen; sie hier zu wiederholen hieße, zwei
+                  Schaltflächen mit demselben Namen auf einer Seite zu haben –
+                  und eine Suche nach diesem Namen fände dann zwei Elemente
+                  statt einem. Für eine Vorlesehilfe ist das keine Bequemlichkeit,
+                  sondern eine Mehrdeutigkeit.
+                */}
+                <p className="small muted">
+                  Angestoßen wird das oben mit „{translateLabel}“.
+                </p>
+              </>
+            )}
+          </Disclosure>
         </>
       ) : null}
 

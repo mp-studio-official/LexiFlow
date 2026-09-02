@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ImportWizardPage } from './ImportWizardPage';
@@ -157,7 +157,7 @@ describe('Der Weg durch die drei Schritte', () => {
     await analyzeAndRecommend(user);
 
     await screen.findByText('crowded-de');
-    await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
+    await user.click(screen.getByRole('button', { name: /Vorschlag .+ für crowded übernehmen/ }));
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
     expect(screen.getByLabelText('Deutsch, Zeile 1')).toHaveValue('crowded-de');
@@ -405,7 +405,7 @@ describe('Schritt 3 zeigt im Textimport nur, was es wirklich gibt', () => {
     await analyzeAndRecommend(user);
 
     await screen.findByText('crowded-de');
-    await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
+    await user.click(screen.getByRole('button', { name: /Vorschlag .+ für crowded übernehmen/ }));
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
     await user.click(screen.getByRole('button', { name: /Beispielsatz für crowded bearbeiten/ }));
 
@@ -564,6 +564,11 @@ describe('Übersetzung im Hauptweg', () => {
     const user = setup();
     await analyzeAndRecommend(user);
 
+    // Seit 4B.2 steht die Begründung im benannten Aufklapper unter den
+    // Ergebnissen statt als Kasten davor.
+    await user.click(
+      screen.getByRole('button', { name: /Übersetzungsvorschläge aus dem Sprachmodell/ }),
+    );
     expect(screen.getByText(/keine lokale Übersetzung/i)).toBeInTheDocument();
     // Die deutsche Antwort lässt sich weiterhin von Hand eintragen.
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toBeEnabled();
@@ -574,6 +579,15 @@ describe('Wortformen und Abkürzungen im Empfehlungsschritt', () => {
   it('zeigt die beobachteten Formen und ihre gemeinsame Häufigkeit', async () => {
     const user = setup();
     await analyzeAndRecommend(user, BAY_TEXT);
+
+    /*
+      Die beobachteten Formen stehen seit 4B.2 im Aufklapper „Formen im Text
+      und Herkunft“ – in der Karte selbst steht das Wort, die Häufigkeit, der
+      Satz und die Antwort. Der Aufklapper ist benannt, nicht „Details“.
+    */
+    const zeile = screen.getByLabelText('Deutsche Antwort für „island“').closest('li');
+    if (!zeile) throw new Error('Keine Zeile für island');
+    await user.click(within(zeile).getByRole('button', { name: /Formen im Text/ }));
 
     expect(screen.getByText(/Im Text: islands, island · insgesamt 3-mal/)).toBeInTheDocument();
     expect(screen.getByText(/Plural: islands/)).toBeInTheDocument();
@@ -654,7 +668,7 @@ describe('Ein Klick, ein Ablauf', () => {
     await screen.findByText('crowded-de');
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('');
 
-    await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
+    await user.click(screen.getByRole('button', { name: /Vorschlag .+ für crowded übernehmen/ }));
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('crowded-de');
   });
 
@@ -679,6 +693,9 @@ describe('Ein Klick, ein Ablauf', () => {
     const user = setup();
     await analyzeAndRecommend(user);
 
+    await user.click(
+      screen.getByRole('button', { name: /Übersetzungsvorschläge aus dem Sprachmodell/ }),
+    );
     expect(screen.getByText(/keine lokale Übersetzung/i)).toBeInTheDocument();
     expect(screen.queryByText(/wird vorbereitet/)).not.toBeInTheDocument();
   });
@@ -692,8 +709,10 @@ describe('Lokale Abkürzungsvorschläge', () => {
     await analyzeAndRecommend(user, UNIT_TEXT);
 
     expect(screen.getByLabelText('Langform für „sq mi“')).toHaveValue('square mile (sq mi)');
-    expect(screen.getByText('lokaler Vorschlag')).toBeInTheDocument();
-    expect(screen.getByText('die Quadratmeile')).toBeInTheDocument();
+    expect(screen.getByText('lokal')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Vorschlag „die Quadratmeile“ für square mile/ }),
+    ).toBeInTheDocument();
   });
 
   it('trägt den Vorschlag erst nach ausdrücklicher Übernahme ein', async () => {
@@ -704,7 +723,7 @@ describe('Lokale Abkürzungsvorschläge', () => {
     expect(field).toHaveValue('');
 
     await user.click(
-      screen.getByRole('button', { name: 'Vorschlag für square mile (sq mi) übernehmen' }),
+      screen.getByRole('button', { name: /Vorschlag .+ für square mile \(sq mi\) übernehmen/ }),
     );
     expect(field).toHaveValue('die Quadratmeile');
   });
@@ -715,7 +734,7 @@ describe('Lokale Abkürzungsvorschläge', () => {
 
     expect(screen.getByLabelText('Deutsche Antwort für „bhp“')).toHaveValue('');
     expect(screen.getByText('Abkürzung – Langform prüfen')).toBeInTheDocument();
-    expect(screen.queryByText('lokaler Vorschlag')).not.toBeInTheDocument();
+    expect(screen.queryByText('lokal')).not.toBeInTheDocument();
   });
 
   it('nimmt eine ungeklärte Abkürzung nicht ins Paket, solange sie offen ist', async () => {
@@ -864,7 +883,7 @@ describe('Rennen zwischen Verfügbarkeit und Vorbereitung', () => {
       screen.queryByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
+      screen.getByRole('button', { name: 'KI-Vorschläge für offene Empfehlungen' }),
     ).toBeInTheDocument();
     expect(base.prepareCount()).toBe(1);
   });

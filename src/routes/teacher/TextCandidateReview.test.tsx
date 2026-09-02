@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TextCandidateReview, describeProgress } from './TextCandidateReview';
+import {
+  SENTENCE_CLAMP_CHARS,
+  TextCandidateReview,
+  describeProgress,
+} from './TextCandidateReview';
 import { ProviderRegistry } from '../../providers/ProviderContext';
 import { extractTextCandidates } from '../../domain/textExtraction';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
@@ -284,13 +288,20 @@ describe('Empfehlungen statt Häkchen', () => {
 
 describe('Nachlegen, ohne Arbeit zu verlieren', () => {
   it('ersetzt die offenen Empfehlungen und hebt sie auf', async () => {
+    /*
+      Zweimal dieselbe Frage heißt: „gib mir andere Wörter“.
+
+      Seit 4B.2 gibt es dafür **einen** Knopf statt zweier. Was er tut, hängt
+      daran, ob sich seit dem letzten Lauf etwas an den Einstellungen geändert
+      hat – hier hat es das nicht, also werden die offenen Plätze mit anderen
+      Wörtern besetzt.
+    */
     const { user } = await setup();
 
-    await user.selectOptions(screen.getByLabelText('Anzahl'), '5');
     await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
 
     const vorher = screen.getAllByText(/× im Text/).length;
-    await user.click(screen.getByRole('button', { name: /Offene Empfehlungen ersetzen/ }));
+    await user.click(screen.getByRole('button', { name: /Offene Empfehlungen neu berechnen/ }));
 
     // Die beantwortete Zeile steht noch da …
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
@@ -328,7 +339,7 @@ describe('Nachlegen, ohne Arbeit zu verlieren', () => {
     await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
 
     await user.selectOptions(screen.getByLabelText('Sortierung'), 'frequency');
-    await user.click(screen.getByRole('button', { name: 'Empfehlungen neu berechnen' }));
+    await user.click(screen.getByRole('button', { name: 'Offene Empfehlungen neu berechnen' }));
 
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
   });
@@ -339,7 +350,8 @@ describe('Nachlegen, ohne Arbeit zu verlieren', () => {
       Empfehlungen“ wäre hier eine Lüge; es kommt keine einzige.
     */
     const { user } = await setup();
-    await user.click(screen.getByRole('button', { name: /Offene Empfehlungen ersetzen/ }));
+    // Unveränderte Einstellungen: Es sollen ausdrücklich **andere** Wörter kommen.
+    await user.click(screen.getByRole('button', { name: /Offene Empfehlungen neu berechnen/ }));
 
     const meldung = screen
       .getAllByRole('status')
@@ -356,7 +368,7 @@ describe('Nachlegen, ohne Arbeit zu verlieren', () => {
     */
     const { user } = await setup();
     await user.selectOptions(screen.getByLabelText('Anzahl'), '5');
-    await user.click(screen.getByRole('button', { name: 'Empfehlungen neu berechnen' }));
+    await user.click(screen.getByRole('button', { name: 'Offene Empfehlungen neu berechnen' }));
 
     const vorher = screen.getAllByText(/× im Text/).length;
     await user.click(screen.getByRole('button', { name: 'Litter entfernen' }));
@@ -424,11 +436,33 @@ describe('Der Wörterbuchlauf kommt niemandem in die Quere', () => {
 
 describe('Empfehlungsschritt ohne Übersetzungs-Anbieter', () => {
   it('bleibt vollständig benutzbar', async () => {
-    await setup();
+    const { user } = await setup();
+
+    // Ohne Anbieter gibt es die Aktion gar nicht – auch nicht gesperrt.
+    expect(screen.queryByRole('button', { name: /KI-Vorschläge für offene/ })).not.toBeInTheDocument();
+
+    /*
+      Die Begründung steht seit 4B.2 unter den Ergebnissen im Aufklapper und
+      nicht mehr als Kasten davor. Sie ist da – man muss sie nur nicht mehr
+      jedes Mal überscrollen.
+    */
+    await user.click(
+      screen.getByRole('button', { name: /Übersetzungsvorschläge aus dem Sprachmodell/ }),
+    );
     expect(
       await screen.findByText(/Dieser Browser bietet keine lokale Übersetzung/),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Vorschläge für offene/ })).not.toBeInTheDocument();
+  });
+
+  it('sagt unter den Ergebnissen, woher die Vorschläge kommen', async () => {
+    const { user } = await setup();
+
+    const aufklapper = screen.getByRole('button', { name: /Woher die Vorschläge kommen/ });
+    expect(aufklapper).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(aufklapper);
+    expect(aufklapper).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/auch in Safari/)).toBeInTheDocument();
   });
 });
 
@@ -447,8 +481,17 @@ describe('Empfehlungsschritt mit Übersetzungs-Anbieter', () => {
   });
 
   it('nennt vor der Nutzung ehrlich, wohin die Daten gehen', async () => {
+    /*
+      „Vor der Nutzung“ heißt seit 4B.2: an derselben Stelle erreichbar wie die
+      Aktion, nicht als zwanzig Zeilen vor jedem Ergebnis. Der Aufklapper ist
+      zu – aber er ist benannt, und was in ihm steht, hat sich nicht geändert.
+    */
     const { provider } = createFakeTranslationProvider();
-    await setup(provider);
+    const { user } = await setup(provider);
+
+    await user.click(
+      screen.getByRole('button', { name: /Übersetzungsvorschläge aus dem Sprachmodell/ }),
+    );
     expect(await screen.findByText(provider.info.dataNotice)).toBeInTheDocument();
     expect(screen.getAllByText(/ungeprüft/).length).toBeGreaterThan(0);
   });
@@ -465,7 +508,7 @@ describe('Empfehlungsschritt mit Übersetzungs-Anbieter', () => {
     // Das Eingabefeld bleibt leer, bis die Lehrkraft übernimmt.
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('');
 
-    await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
+    await user.click(screen.getByRole('button', { name: /Vorschlag .+ für crowded übernehmen/ }));
     expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('crowded-de');
 
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
@@ -530,7 +573,7 @@ describe('Empfehlungsschritt mit Übersetzungs-Anbieter', () => {
       await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
     );
     await screen.findByText('crowded-de');
-    await user.click(screen.getByRole('button', { name: 'Vorschlag für crowded übernehmen' }));
+    await user.click(screen.getByRole('button', { name: /Vorschlag .+ für crowded übernehmen/ }));
     await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), '!');
 
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
@@ -546,7 +589,7 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
     const { user } = await setup(provider);
 
     const button = await screen.findByRole('button', {
-      name: 'Vorschläge für offene Empfehlungen erzeugen',
+      name: 'KI-Vorschläge für offene Empfehlungen',
     });
     expect(prepareCount()).toBe(0);
 
@@ -567,6 +610,11 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
       name: 'Laden abwarten und Vorschläge erzeugen',
     });
     expect(button).toBeEnabled();
+
+    // Der erklärende Satz dazu steht im Aufklapper unter den Ergebnissen.
+    await user.click(
+      screen.getByRole('button', { name: /Übersetzungsvorschläge aus dem Sprachmodell/ }),
+    );
     expect(screen.getByText(/Der Browser lädt das Sprachmodell gerade herunter/)).toBeInTheDocument();
 
     await user.click(button);
@@ -580,12 +628,12 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
     const { user } = await setup(provider);
 
     await user.click(
-      await screen.findByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
+      await screen.findByRole('button', { name: 'KI-Vorschläge für offene Empfehlungen' }),
     );
     await screen.findByText('crowded-de');
 
     await user.click(
-      screen.getByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
+      screen.getByRole('button', { name: 'KI-Vorschläge für offene Empfehlungen' }),
     );
     await waitFor(() => expect(screen.getAllByText(/-de$/).length).toBeGreaterThan(0));
 
@@ -606,7 +654,7 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
     const { user } = await setup(failing);
 
     await user.click(
-      await screen.findByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' }),
+      await screen.findByRole('button', { name: 'KI-Vorschläge für offene Empfehlungen' }),
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(/Download unterbrochen/);
 
@@ -621,7 +669,7 @@ describe('Verfügbarkeit ist nicht Initialisierung', () => {
   it('ruft ohne Klick niemals prepare auf', async () => {
     const { provider, prepareCount } = createFakeTranslationProvider({ availability: 'available' });
     await setup(provider);
-    await screen.findByRole('button', { name: 'Vorschläge für offene Empfehlungen erzeugen' });
+    await screen.findByRole('button', { name: 'KI-Vorschläge für offene Empfehlungen' });
     expect(prepareCount()).toBe(0);
   });
 });
@@ -657,5 +705,169 @@ describe('Übergabe an den Entwurfs-Workflow', () => {
       },
     ]);
     expect(drafts[0]?.issues.some((issue) => issue.level === 'error')).toBe(true);
+  });
+});
+
+/**
+ * Sprint 4B.2 Phase 3: Die Karte ist kompakt – ohne dass etwas verschwindet.
+ *
+ * Der Unterschied zwischen „aufgeräumt“ und „versteckt“ ist genau der, den
+ * diese Tests festhalten: Was nicht mehr in der Karte steht, steht hinter einem
+ * **benannten** Aufklapper und ist mit der Tastatur erreichbar.
+ */
+describe('Die Empfehlungskarte', () => {
+  it('trägt im Kopf nur Wort, Häufigkeit, Zustand und den Weg hinaus', async () => {
+    await setup();
+    const zeile = screen.getByLabelText('Deutsche Antwort für „crowded“').closest('li');
+    expect(zeile).not.toBeNull();
+    const kopf = zeile!.querySelector('.candidate__head');
+    expect(kopf).not.toBeNull();
+
+    expect(within(kopf as HTMLElement).getByText('crowded')).toBeInTheDocument();
+    expect(within(kopf as HTMLElement).getByText(/× im Text/)).toBeInTheDocument();
+    expect(
+      within(kopf as HTMLElement).getByRole('button', { name: 'crowded entfernen' }),
+    ).toBeInTheDocument();
+  });
+
+  it('sagt den Zustand mit Zeichen und Wort, nicht mit Farbe allein', async () => {
+    const { user } = await setup();
+    const zeile = () => screen.getByLabelText('Deutsche Antwort für „crowded“').closest('li')!;
+
+    const offen = zeile().querySelector('.candidate__state');
+    expect(offen).toHaveAttribute('data-state', 'open');
+    expect(offen).toHaveTextContent('noch offen');
+    expect(offen?.textContent).toContain('○');
+
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+
+    const belegt = zeile().querySelector('.candidate__state');
+    expect(belegt).toHaveAttribute('data-state', 'taken');
+    expect(belegt).toHaveTextContent('wird übernommen');
+    expect(belegt?.textContent).toContain('✓');
+  });
+
+  it('legt die beobachteten Formen hinter einen benannten Aufklapper', async () => {
+    const { user } = await setup();
+    const zeile = screen.getByLabelText('Deutsche Antwort für „crowded“').closest('li')!;
+
+    // Benannt, nicht „Details“ – man soll wissen, was dahinterliegt.
+    const knopf = within(zeile).getByRole('button', { name: 'Formen im Text und Herkunft' });
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(knopf);
+    expect(within(zeile).getByText(/Im Text:/)).toBeInTheDocument();
+  });
+
+});
+
+describe('Ein langer Originalsatz', () => {
+  /*
+    Zwei Zeilen reichen fast immer. „Fast immer“ ist der Punkt: Für den Rest
+    gibt es einen Knopf, und gekürzt wird nur die **Darstellung** – im Dokument
+    steht der ganze Satz, eine Vorlesehilfe liest ihn vollständig vor.
+  */
+  const LANG =
+    'The neighbourhood is crowded because a great many people who once lived somewhere else have ' +
+    'moved into the very same narrow streets during the past ten years, and the litter that ' +
+    'follows them is a problem nobody has solved yet.';
+
+  async function setupLang() {
+    const user = userEvent.setup();
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={extractTextCandidates(LANG)}
+          context={CONTEXT}
+          onContextChange={vi.fn()}
+          dictionary={LEERES_WOERTERBUCH}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+    const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await user.selectOptions(screen.getByLabelText('Anzahl'), '20');
+    await user.click(knopf);
+    return user;
+  }
+
+  it('steht vollständig im Dokument, auch wenn er gekürzt aussieht', async () => {
+    await setupLang();
+    expect(LANG.length).toBeGreaterThan(SENTENCE_CLAMP_CHARS);
+
+    const satz = document.querySelector('.candidate__sentence');
+    expect(satz).not.toBeNull();
+    expect(satz).toHaveAttribute('data-clamped');
+    // Der Text ist da – gekürzt wird er von CSS, nicht vom Markup.
+    expect(satz?.textContent).toContain('nobody has solved yet');
+  });
+
+  it('lässt sich ausklappen und wieder kürzen', async () => {
+    const user = await setupLang();
+    const knopf = screen.getAllByRole('button', { name: /Ganzen Satz zeigen/ })[0];
+    expect(knopf).toBeDefined();
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(knopf!);
+    expect(document.querySelector('.candidate__sentence')).not.toHaveAttribute('data-clamped');
+
+    await user.click(screen.getAllByRole('button', { name: 'Satz kürzen' })[0]!);
+    expect(document.querySelector('.candidate__sentence')).toHaveAttribute('data-clamped');
+  });
+});
+
+describe('Eine Aktion für beide Anlässe', () => {
+  it('heißt nach dem ersten Lauf „Offene Empfehlungen neu berechnen“', async () => {
+    const mounted = mount();
+    const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await mounted.user.click(knopf);
+
+    expect(
+      screen.getByRole('button', { name: 'Offene Empfehlungen neu berechnen' }),
+    ).toBeInTheDocument();
+    // Und den zweiten Knopf von früher gibt es nicht mehr.
+    expect(
+      screen.queryByRole('button', { name: /Offene Empfehlungen ersetzen/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('behandelt einen entfernten Platz wie einen leeren', async () => {
+    /*
+      Der Kern der Zusammenlegung. Wer eine Empfehlung wegräumt, hat einen
+      offenen Platz erzeugt – genau wie jemand, der ein Antwortfeld leer lässt.
+      Derselbe Knopf besetzt beides neu.
+
+      Geprüft wird der Fall „geänderte Einstellung“: Dann ist es eine neue
+      Frage, und ein zurückgelegtes Wort darf wiederkommen, wenn es zur neuen
+      Einstellung passt. Bei **unveränderter** Einstellung heißt derselbe Knopf
+      „gib mir andere“ – das prüft der Test „ersetzt die offenen Empfehlungen
+      und hebt sie auf“.
+    */
+    const { user } = await setup();
+    const vorher = screen.getAllByText(/× im Text/).length;
+
+    await user.click(screen.getByRole('button', { name: 'Litter entfernen' }));
+    expect(screen.getAllByText(/× im Text/).length).toBe(vorher - 1);
+    expect(screen.getByRole('button', { name: /Frühere Empfehlungen/ })).toHaveTextContent('1');
+
+    await user.selectOptions(screen.getByLabelText('Sortierung'), 'frequency');
+    await user.click(screen.getByRole('button', { name: 'Offene Empfehlungen neu berechnen' }));
+
+    // Der Platz ist wieder besetzt – und das Wort steht nicht mehr in der Rückschau.
+    expect(screen.getAllByText(/× im Text/).length).toBe(vorher);
+    expect(screen.queryByRole('button', { name: /Frühere Empfehlungen/ })).not.toBeInTheDocument();
+  });
+
+  it('rührt eine beantwortete Zeile auch beim zweiten Klick nicht an', async () => {
+    const { user } = await setup();
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+
+    await user.click(screen.getByRole('button', { name: 'Offene Empfehlungen neu berechnen' }));
+    await user.click(screen.getByRole('button', { name: 'Offene Empfehlungen neu berechnen' }));
+
+    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');
   });
 });

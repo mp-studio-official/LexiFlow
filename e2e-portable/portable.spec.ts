@@ -149,7 +149,6 @@ test.describe('Portable Lehrkraftdatei', () => {
 
     // Schritt 2: Empfehlungen – erst nachdem das Wörterbuch durch ist.
     await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
-    await expect(page.getByText(/funktioniert auch in Safari/)).toBeVisible({ timeout: 30_000 });
     const empfehlen = page.getByRole('button', { name: 'Empfehlungen generieren', exact: true });
     await expect(empfehlen).toBeEnabled({ timeout: 30_000 });
     await page.getByLabel('Anzahl').selectOption('5');
@@ -157,7 +156,14 @@ test.describe('Portable Lehrkraftdatei', () => {
     await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
 
     // Der Vorschlag kommt aus dem eingebauten Bestand – ohne einen einzigen Klick.
-    await expect(page.getByText('Offline-Wörterbuch').first()).toBeVisible();
+    await expect(page.locator('.dictionary__chips .chip').first()).toBeVisible();
+    /*
+      Und die Zusage dazu steht seit 4B.2 im benannten Aufklapper unter den
+      Ergebnissen statt als Kasten davor – dieselbe Aussage, nur nicht mehr im
+      Weg.
+    */
+    await page.getByRole('button', { name: /Woher die Vorschläge kommen/ }).click();
+    await expect(page.getByText(/funktioniert auch in Safari/)).toBeVisible();
     // Es gibt keine Häkchen: Die Antwort entscheidet.
     await expect(page.getByRole('checkbox')).toHaveCount(0);
     await expect(page.getByText(/0 Vokabeln werden übernommen/)).toBeVisible();

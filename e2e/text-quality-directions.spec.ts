@@ -113,7 +113,17 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
     await recommend(page);
 
-    // 3. „island“ und „islands“ sind ein Vorschlag mit gemeinsamer Häufigkeit.
+    /*
+      3. „island“ und „islands“ sind ein Vorschlag mit gemeinsamer Häufigkeit.
+
+      Die beobachteten Formen stehen seit 4B.2 im benannten Aufklapper der
+      Karte statt in einer Zeile darunter – wichtig, wenn man es braucht, und
+      Ballast in jeder anderen Karte.
+    */
+    const inselkarte = page
+      .locator('li.candidate')
+      .filter({ has: page.getByLabel('Deutsche Antwort für „island“') });
+    await inselkarte.getByRole('button', { name: 'Formen im Text und Herkunft' }).click();
     await expect(page.getByText('Im Text: islands, island · insgesamt 3-mal')).toBeVisible();
     await expect(page.getByText(/Plural: islands/)).toBeVisible();
     await expect(page.getByLabel('Deutsche Antwort für „islands“')).toHaveCount(0);
@@ -126,12 +136,12 @@ test.describe('Textqualität und Lernrichtungen', () => {
     // 5. Der eine Klick genügt: Die Vorschläge laufen nach der Vorbereitung von
     //    selbst an. Ein zweiter Knopf wird hier bewusst nicht gedrückt.
     await expect(
-      page.getByRole('button', { name: 'Vorschlag für island übernehmen' }),
+      page.getByRole('button', { name: /Vorschlag .+ für island übernehmen/ }),
     ).toBeVisible({ timeout: 15_000 });
 
     // Vorgeschlagen ist nicht übernommen: Das Feld bleibt leer.
     await expect(page.getByLabel('Deutsche Antwort für „island“')).toHaveValue('');
-    await page.getByRole('button', { name: 'Vorschlag für island übernehmen' }).click();
+    await page.getByRole('button', { name: /Vorschlag .+ für island übernehmen/ }).click();
     await expect(page.getByLabel('Deutsche Antwort für „island“')).toHaveValue('die Insel');
 
     // Der Abkürzungsvorschlag stammt aus dem Lexikon, nicht aus dem Modell.
@@ -188,14 +198,22 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await recommend(page);
 
     // Die Analyse ist vollständig – inklusive Wortformen und Abkürzung.
+    await page
+      .locator('li.candidate')
+      .filter({ has: page.getByLabel('Deutsche Antwort für „island“') })
+      .getByRole('button', { name: 'Formen im Text und Herkunft' })
+      .click();
     await expect(page.getByText('Im Text: islands, island · insgesamt 3-mal')).toBeVisible();
     await expect(page.getByLabel('Langform für „sq mi“')).toHaveValue('square mile (sq mi)');
 
-    // Der Grund steht dabei, und die Handeingabe funktioniert.
+    // Der Grund steht dabei – seit 4B.2 im Aufklapper unter den Ergebnissen.
+    await page
+      .getByRole('button', { name: /Übersetzungsvorschläge aus dem Sprachmodell/ })
+      .click();
     await expect(page.getByText(/Dieser Browser bietet keine lokale Übersetzung/)).toBeVisible();
 
     // Der lokal bekannte Abkürzungsvorschlag braucht kein Modell.
-    await expect(page.getByText('lokaler Vorschlag')).toBeVisible();
+    await expect(page.getByText('lokal', { exact: true })).toBeVisible();
     await expect(page.getByText('die Quadratmeile')).toBeVisible();
     await expect(page.getByLabel('Deutsche Antwort für „square mile (sq mi)“')).toHaveValue('');
     await page.getByLabel('Deutsche Antwort für „island“').fill('die Insel');

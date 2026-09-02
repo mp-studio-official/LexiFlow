@@ -25,9 +25,9 @@ Parchment `#F8EFE3`. Orange ist mit 4B.1c entfallen.
 | --- | --- | --- | --- |
 | 0 | 4B.1 übernehmen, Branch anlegen | ✅ | – (nur Branchoperationen) |
 | 1 | Strukturierte Vokabeln, eindeutige Antworttrennung | ✅ | siehe unten |
-| 2 | Strukturierte Quellen und lokaler PDF-Import | **in Arbeit** – Parser fertig, PDF-Kern fertig, Oberfläche offen | |
-| 3 | Empfehlungen kompakt und modern | offen | |
-| 4 | „Prüfen & Speichern“ und direkte Weitergabe | offen | |
+| 2 | Strukturierte Quellen und lokaler PDF-Import | ✅ | `5a56b84` |
+| 3 | Empfehlungen kompakt und modern | ✅ | siehe unten |
+| 4 | „Prüfen & Speichern“ und direkte Weitergabe | **in Arbeit** | |
 | 5 | Materialverwaltung für mehrere Pakete | offen | |
 | 6 | „Zu einem Thema“ offline in Safari | offen | |
 | 7 | Inklusives und konsistentes Wording | offen | |
@@ -372,5 +372,154 @@ Nebenbei behoben: Vier E2E-Dateien prüften `formatVersion === 1` als Zahl und
 wurden von der Migration auf Version 2 aus Phase 1 rot. Sie lesen jetzt
 `VOCABPACK_FORMAT_VERSION` – dieselbe Korrektur wie in den Portabilitätstests,
 nur eine Ebene höher.
+
+---
+## Phase 3 – Empfehlungen kompakt
+
+### 3.1 Was vorher im Weg stand
+
+Der Empfehlungsschritt hatte **vor** der ersten Empfehlung zwei große
+Hinweisflächen: einen Kasten „Lokale Grundvorschläge“ und eine Karte
+„Übersetzungsvorschläge aus dem Sprachmodell (optional)“ – zusammen gut zwanzig
+Zeilen Text. Beim ersten Mal liest man das, beim zweiten überfliegt man es, ab
+dem dritten scrollt man daran vorbei – und scrollt dabei über die Empfehlungen
+hinaus, um die es geht.
+
+Darunter kamen die Karten, und jede trug bis zu fünf Badges im Kopf, eine
+Formenzeile, den Originalsatz in voller Länge, zwei Felder, einen gestrichelten
+Vorschlagskasten und einen eingefärbten Wörterbuchkasten mit allen Bedeutungen
+untereinander. Bei zehn Empfehlungen füllte allein die Wörterbuchauskunft zwei
+Bildschirmhöhen.
+
+### 3.2 Die Hinweise: unter die Ergebnisse, zugeklappt
+
+Beide Flächen stehen jetzt **unter** der Liste, in zwei benannten Aufklappern
+(`src/ui/Disclosure.tsx`): „Woher die Vorschläge kommen“ und
+„Übersetzungsvorschläge aus dem Sprachmodell“. Der Text ist wörtlich derselbe.
+
+Oben bleibt nur, was sich gerade ändert: ein laufender Modelldownload mit
+Fortschritt und „Abbrechen“, und ein Fehler mit „Erneut versuchen“.
+
+Der Aufklapper rendert seinen Inhalt **erst beim Öffnen**. Das ist der
+Unterschied zwischen aufgeräumt und versteckt: Ein Hinweis, der unsichtbar ist,
+aber trotzdem vorgelesen wird, wäre schlechter als der große Kasten vorher, weil
+er dann nur noch für Sehende verschwindet. `<details>` wurde deshalb nicht
+verwendet – dort steht der Inhalt auch zugeklappt im Dokument.
+
+Die Beschriftung wechselt zwischen den Zuständen **nicht**. Was wechselt, ist
+`aria-expanded` und ein Dreieck. Eine Schaltfläche, die von „Anzeigen“ zu
+„Ausblenden“ wird, wechselt ihren Namen – wer sie über die Sprachsteuerung
+anspricht oder in einer Elementliste sucht, findet sie beim zweiten Mal nicht.
+
+### 3.3 Die Karte
+
+| Was | Wo |
+| --- | --- |
+| Englische Form | Kopf, links |
+| Häufigkeit („3× im Text“) | Kopf, daneben |
+| Zustand („✓ wird übernommen“ / „○ noch offen“) | Kopf, rechts |
+| „Entfernen“ | Kopf, ganz rechts |
+| Abkürzung, Eigenname, unklare Grundform | eigene Zeile – **nur wenn zutreffend** |
+| Originalsatz | höchstens zwei Zeilen, mit „Ganzen Satz zeigen“ |
+| Deutsche Antwort | breites Feld |
+| Wortart | schmales Feld daneben |
+| Wörterbuch | 2–3 Chips in einer Zeile |
+| Formen, Beugungen, Herkunft, Satzübersetzung | Aufklapper „Formen im Text und Herkunft“ |
+| Weitere Bedeutungen mit Angaben | Aufklapper „Weitere Bedeutungen anzeigen (n)“ |
+
+**Der Zustand hängt nicht an der Farbe.** „✓ wird übernommen“ gegen „○ noch
+offen“ – Zeichen und Wort sagen dasselbe. Vorher waren das ein grünes und ein
+gelbes Badge, und Gelb heißt „Achtung“; eine Vokabel ohne Antwort ist aber keine
+Warnung, sondern eine Aufgabe. Aus demselben Grund trägt eine offene Karte kein
+Fehlerrot, sondern tritt auf die abgesenkte Fläche zurück.
+
+**Nebenbei repariert:** Der Zustand der Karte hing an
+`:has(input[type='checkbox']:checked)`. Häkchen gibt es seit 4B.1 nicht mehr;
+der Selektor traf ins Leere, und **jede** Karte sah deshalb aus wie abgewählt.
+Jetzt steht der Zustand als `data-answered` im Markup – an derselben Stelle, an
+der ihn auch der Test liest.
+
+**Der Originalsatz** wird per CSS (`line-clamp: 2`) gekürzt, nicht im Markup:
+Im Dokument steht der ganze Satz, eine Vorlesehilfe liest ihn vollständig. Ob
+der Knopf „Ganzen Satz zeigen“ dazugehört, entscheidet eine Zeichenzahl
+(`SENTENCE_CLAMP_CHARS = 150`) und keine Messung – Layout bei jedem Rendern zu
+erzwingen und die Liste bei jeder Fensteränderung springen zu lassen wäre der
+schlechtere Handel. Der Fehler ist absichtlich einseitig: Auf einem breiten
+Bildschirm steht der Knopf gelegentlich an einem Satz, der ohnehin ganz zu sehen
+ist. Der umgekehrte Fehler wäre der schlimme.
+
+### 3.4 Chips statt Liste – und das Semikolon
+
+Die wahrscheinlichsten Antworten stehen als **Chips** in der Karte: echte
+`<button>`-Elemente mit Fläche, Kante, mindestens 32 px Höhe und Fokusring.
+Vorher war das ein Wort mit gestricheltem Unterstrich – das sah aus wie ein Link
+und versprach damit einen Ortswechsel, den es nicht gibt. Ein schon eingesetzter
+Chip ist deaktiviert und trägt ein „✓“ davor, damit auch das nicht nur an der
+Farbe hängt.
+
+Ausgewählt werden die Chips **über** Bedeutungen hinweg, nicht innerhalb einer:
+Wer `bank` nachschlägt, soll *Bank* und *Ufer* nebeneinander sehen und nicht drei
+Synonyme für dasselbe.
+
+**Zwei echte Fehler dabei behoben** – beide Nachzügler aus Phase 1:
+
+1. `DictionarySuggestionList` verband mehrere Bedeutungen mit einem **Komma**.
+   Seit Phase 1 ist ein Komma ein Zeichen *innerhalb* einer Antwort. „Unfall,
+   Notaufnahme“ wäre damit **eine** falsche Antwort geworden. Jetzt laufen
+   Zusammenführen und Formatieren über `splitAnswers`/`formatAnswers` – dieselben
+   Funktionen wie im Editor und im Export.
+2. `safeAutoAnswer` (die Sammelaktion „Übersetzungsvorschläge eintragen“) hatte
+   denselben Fehler: `station` → „Bahnhof, Station“ war eine Antwort, die nur
+   richtig war, wenn jemand beide Wörter mit genau diesem Komma tippte. Jetzt
+   „Bahnhof; Station“ – zwei Antworten, jede für sich richtig.
+
+### 3.5 Die Wortart kommt mit der gewählten Bedeutung
+
+Wer bei `book` auf „das Buch“ klickt, hat die Bedeutungsgruppe gewählt – und
+die ist ein Substantiv. Das Feld daneben leer zu lassen und dieselbe Auskunft
+noch einmal von Hand treffen zu lassen wäre Arbeit ohne Erkenntnis.
+
+Der Unterschied zu `partOfSpeechOf` ist der Anlass, nicht die Tabelle: Dort geht
+es um „lässt sich das vorausfüllen, **bevor** jemand entschieden hat?“ – und die
+Antwort ist bei `book` mit Recht nein. Hier hat jemand entschieden.
+`partOfSpeechOfSource` ist die zweite, kleinere Funktion dafür. Überschrieben
+wird nichts: Steht in der Wortart schon etwas, bleibt es stehen.
+
+### 3.6 Eine Aktion statt zweier
+
+„Empfehlungen neu berechnen“ (oben) und „Offene Empfehlungen ersetzen“ (unten)
+riefen dieselbe Funktion mit einem anderen Schalter. Zwei Knöpfe für eine Sache
+heißt: Man muss den Unterschied kennen, um den richtigen zu treffen – und der
+Unterschied stand nirgends.
+
+Jetzt heißt der eine Knopf vor dem ersten Lauf **„Empfehlungen generieren“** und
+danach **„Offene Empfehlungen neu berechnen“**. Offen ist offen: ein leeres
+Antwortfeld **und** ein entfernter Platz. Beides zählt
+`replaceOpenRecommendations` gleich.
+
+Den einen Unterschied, der wirklich einer ist, entscheidet die Aktion selbst:
+
+| Lage | Verhalten |
+| --- | --- |
+| Einstellungen seit dem letzten Lauf **unverändert** | „gib mir andere“ – schon gezeigte Wörter bleiben außen vor |
+| Jahrgang, Niveau, Sortierung oder Anzahl **geändert** | neue Frage – ein zurückgelegtes Wort darf wiederkommen, wenn es jetzt passt |
+
+Frühere Empfehlungen bleiben wie bisher aufklappbar und einzeln
+zurückholbar.
+
+### Verifikation Phase 3
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | grün |
+| `npm run test` | **1579** grün / 89 Dateien |
+| `npm run build` | grün |
+| `npm run build:portable` | grün, 9326,8 KiB / 631,6 KiB |
+| `npm run verify:portable` | grün, 25 Prüfungen |
+| `npm run e2e` | **111** grün (Chromium), davon 8 neu in `e2e/recommendation-compact.spec.ts` |
+| `npm run e2e:portable` | **19** grün (Chromium, `file://`) |
+
+Die Schülerlaufzeit wächst um 2,6 KiB – die Aufklapper-Komponente und ihr CSS,
+die auch die Lernansichten nutzen. Schranke 700 KiB, unverändert eingehalten.
 
 ---

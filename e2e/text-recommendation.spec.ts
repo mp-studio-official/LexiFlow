@@ -167,6 +167,12 @@ test.describe('Empfehlungen aus einem Text', () => {
   });
 
   test('@smoke offene Empfehlungen ersetzen, ohne Arbeit zu verlieren', async ({ page }) => {
+    /*
+      Seit 4B.2 gibt es dafür **einen** Knopf statt zweier. Was er tut, hängt
+      daran, ob sich seit dem letzten Lauf etwas an den Einstellungen geändert
+      hat: Hier hat es das nicht – also sollen ausdrücklich andere Wörter
+      kommen, und die bisherigen wandern in die Rückschau.
+    */
     await analyze(page);
     await recommend(page, '5');
 
@@ -174,7 +180,7 @@ test.describe('Empfehlungen aus einem Text', () => {
     await page.getByLabel(`Deutsche Antwort für „${erste}“`).fill('meine Antwort');
 
     const vorher = await listedWords(page);
-    await page.getByRole('button', { name: /Offene Empfehlungen ersetzen/ }).click();
+    await page.getByRole('button', { name: 'Offene Empfehlungen neu berechnen' }).click();
 
     // Die beantwortete Zeile steht noch da …
     await expect(page.getByLabel(`Deutsche Antwort für „${erste}“`)).toHaveValue('meine Antwort');
