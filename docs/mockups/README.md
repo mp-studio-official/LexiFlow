@@ -42,6 +42,13 @@ Bild nur behaupten.
 
 ## Was in allen dreien gleich bleibt
 
+- **Das echte Signet.** Oben links steht in allen drei Routen das
+  LexiFlow-Zeichen mit den Pfaden aus `src/ui/logoPaths.ts` – kein
+  Platzhalter. Auf dunklem Grund gilt die Variante `onAubergine`, auf hellem
+  `onParchment`; das sind dieselben drei Markenfarben in getauschten Rollen.
+  In Route B steht nur das Signet: In eine 56 px schmale Schiene passt keine
+  Wortmarke.
+
 - **Die Palette.** Aubergine `#2F092D`, Tomato `#FF2E2D`, Parchment `#F8EFE3`
   und die daraus abgeleiteten Töne aus `src/styles/tokens.css`. Keine vierte
   Farbe, in keiner Route.
