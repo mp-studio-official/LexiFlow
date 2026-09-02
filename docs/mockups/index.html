@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LexiFlow – drei Mockup-Routen</title>
+<style>
+:root {
+  --aubergine: #2f092d; --tomato: #ff2e2d; --parchment: #f8efe3;
+  --paper: #fffcf7; --ink-2: #674960; --ink-3: #715569; --rule: #d8c4ae; --accent-ink: #b3201f;
+  --sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--aubergine); font-family: var(--sans); line-height: 1.6; }
+.band { background: var(--aubergine); color: var(--parchment); }
+.wrap { max-width: 60rem; margin: 0 auto; padding: 0 clamp(1rem, 5vw, 3rem); }
+.band .wrap { padding-top: 3rem; padding-bottom: 3.25rem; }
+.tag { font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; color: var(--tomato); margin: 0 0 .8rem; }
+h1 { font-size: clamp(2rem, 1.2rem + 3.4vw, 3.25rem); letter-spacing: -.03em; line-height: 1.05; margin: 0 0 1rem; font-weight: 800; }
+.band p { color: #d8c8cb; max-width: 42rem; margin: 0 0 .7rem; }
+.routes { display: grid; gap: 1rem; padding: 2.5rem 0 1rem; }
+a.route {
+  display: grid; grid-template-columns: 3rem 1fr auto; gap: .2rem 1.25rem; align-items: baseline;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 16px;
+  padding: 1.3rem 1.4rem; text-decoration: none; color: inherit;
+}
+a.route:hover { border-color: var(--aubergine); }
+.no { font-size: 1.9rem; font-weight: 800; color: var(--rule); letter-spacing: -.04em; line-height: 1; }
+.t { font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em; }
+.d { grid-column: 2; color: var(--ink-2); font-size: .95rem; margin: .25rem 0 0; max-width: 46ch; }
+.r { grid-column: 2; font-size: .82rem; color: var(--ink-3); margin: .5rem 0 0; }
+.go { color: var(--accent-ink); font-weight: 700; font-size: .9rem; white-space: nowrap; }
+.note { border-top: 1px solid var(--rule); margin-top: 1.5rem; padding: 1.5rem 0 3rem; color: var(--ink-2); font-size: .92rem; }
+.note b { color: var(--aubergine); }
+@media (max-width: 34rem) { a.route { grid-template-columns: 2.25rem 1fr; } .go { grid-column: 2; } }
+</style>
+</head>
+<body>
+<div class="band"><div class="wrap">
+  <p class="tag">LexiFlow · Entwürfe</p>
+  <h1>Drei Routen für den Lehrkraftweg</h1>
+  <p>
+    Drei Vorschläge, wie das Portal moderner aussehen könnte – auf derselben Palette,
+    mit denselben Texten, mit denselben Kontrastregeln. Jede Route zeigt dieselben drei
+    Bildschirme, damit sie sich vergleichen lassen.
+  </p>
+  <p><strong>Am laufenden Design ist nichts geändert.</strong> Das hier sind Entwürfe, kein Produktcode.</p>
+</div></div>
+
+<div class="wrap">
+  <div class="routes">
+    <a class="route" href="route-a-papierbogen.html">
+      <span class="no">A</span>
+      <span class="t">Papierbogen</span>
+      <span class="go">Ansehen →</span>
+      <p class="d">Die Kästen weg. Haarlinien statt Rahmen, große Ziffern statt Badges, eine Spalte statt einer Fläche. Alles bleibt an seinem Platz – es atmet nur.</p>
+      <p class="r">Risiko gering · überwiegend CSS · niemand muss die App neu lernen</p>
+    </a>
+    <a class="route" href="route-b-werkbank.html">
+      <span class="no">B</span>
+      <span class="t">Werkbank</span>
+      <span class="go">Ansehen →</span>
+      <p class="d">Links die Quelle, rechts das Ergebnis – nebeneinander statt hintereinander. Kompakte Zeilen und eine feste Leiste unten, die immer sagt, wie viel schon fertig ist.</p>
+      <p class="r">Risiko mittel · neues Layout für den Importweg · Domänenlogik unberührt</p>
+    </a>
+    <a class="route" href="route-c-karteikasten.html">
+      <span class="no">C</span>
+      <span class="t">Karteikasten</span>
+      <span class="go">Ansehen →</span>
+      <p class="d">Die Marke sichtbar machen: Aubergine-Bänder als Kapitel, Vokabeln als Karteikarten mit Stapel, große Schrift – und Tomato genau einmal je Bildschirm.</p>
+      <p class="r">Risiko höher · Karten brauchen Platz · mehr Layoutarbeit für schmale Fenster</p>
+    </a>
+  </div>
+
+  <p class="note">
+    Die drei schließen sich nicht aus. <b>A</b> ließe sich schrittweise einführen,
+    <b>B</b> betrifft nur den Importweg, <b>C</b> vor allem Kopfbereiche und Listen –
+    und ließe sich mit A oder B verbinden. Was in allen dreien fehlt und warum,
+    steht in <b>README.md</b> daneben.
+  </p>
+</div>
+</body>
+</html>

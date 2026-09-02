@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LexiFlow – Mockup Route B: Werkbank</title>
+<style>
+/* ===========================================================================
+   MOCKUP – Route B „Werkbank"
+   ---------------------------------------------------------------------------
+   Kein Produktcode. Nur eine Abbildung davon, wie der Lehrkraftweg aussehen
+   könnte.
+
+   Die Idee: Vokabeln erstellen ist eine **beidhändige** Arbeit. Links liegt
+   die Quelle – der Text, die PDF, die Liste –, rechts entsteht das Ergebnis.
+   Heute liegen beide hintereinander: Man klickt „Text analysieren" und der
+   Text ist weg. Wer prüfen will, ob „resilience" im Satz wirklich so gemeint
+   war, muss einen Schritt zurück.
+
+   Diese Route stellt beides nebeneinander und hängt die Hauptaktion an eine
+   feste Leiste unten, die immer sagt, wie viel schon fertig ist.
+   =========================================================================== */
+
+:root {
+  --aubergine: #2f092d;
+  --tomato: #ff2e2d;
+  --parchment: #f8efe3;
+
+  --ink: var(--aubergine);
+  --ink-2: #674960;
+  --ink-3: #715569;
+  --paper: #fffcf7;
+  --sunken: #f0e4d4;
+  --rule: #d8c4ae;
+  --rule-soft: #eadccb;
+  --accent-ink: #b3201f;
+  --success: #17624a;
+  --nav-muted: #bcaaac;
+  --nav-active: #472543;
+
+  --sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--parchment); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+
+/* --- Rahmen der Mockup-Datei (nicht Teil des Entwurfs) ------------------- */
+.meta { background: var(--aubergine); color: var(--parchment); padding: 2.5rem clamp(1rem,5vw,4rem) 2.75rem; }
+.meta h1 { font-size: clamp(1.75rem,1rem+3vw,2.75rem); margin: .2rem 0 .6rem; letter-spacing: -.02em; }
+.meta p { max-width: 46rem; color: #d8c8cb; margin: 0 0 .6rem; }
+.meta .tag { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; color: var(--tomato); margin: 0; }
+.meta dl { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1.2rem; max-width: 46rem; margin: 1.4rem 0 0; font-size: .875rem; }
+.meta dt { color: var(--tomato); }
+.meta dd { margin: 0; color: #d8c8cb; }
+.screen-label { position: sticky; top: 0; z-index: 30; background: var(--aubergine); color: var(--parchment); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; padding: .55rem clamp(1rem,5vw,4rem); border-bottom: 2px solid var(--tomato); }
+
+/* --- Der Entwurf: eine Werkbank ----------------------------------------- */
+/* Keine erzwungene Mindesthöhe: Der erste Entwurf hatte 46rem, und auf den
+   Bildschirmen mit wenig Inhalt stand darunter eine handbreite leere Fläche –
+   die Werkbank sah aus wie ein halb geräumter Tisch. */
+.bench { display: grid; grid-template-columns: 3.5rem 1fr; background: var(--paper); }
+
+/* Schmale, dunkle Kante ganz links: Ort statt Menü. */
+.rail { background: var(--aubergine); display: flex; flex-direction: column; align-items: center; gap: 1.5rem; padding: 1rem 0; }
+.rail .mark { width: 1.5rem; height: 1.5rem; border-radius: 5px; background: var(--tomato); }
+.rail a { color: var(--nav-muted); text-decoration: none; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; writing-mode: vertical-rl; padding: .6rem .15rem; border-radius: 6px; }
+.rail a[aria-current] { color: var(--parchment); background: var(--nav-active); box-shadow: inset 2px 0 0 var(--tomato); }
+
+.work { display: flex; flex-direction: column; min-width: 0; }
+
+/* Fortschrittsschiene statt Stepper-Knöpfe. */
+.rail-top { display: flex; align-items: center; gap: 1.25rem; padding: .85rem 1.5rem; border-bottom: 1px solid var(--rule-soft); background: var(--paper); position: sticky; top: 0; z-index: 10; }
+.rail-top .title { font-weight: 700; letter-spacing: -.015em; }
+.rail-top .track { display: flex; align-items: center; gap: .55rem; margin-left: auto; font-size: .78rem; color: var(--ink-3); }
+.rail-top .track i { font-style: normal; display: inline-flex; align-items: center; gap: .35rem; }
+.rail-top .track i b { width: 1.15rem; height: 1.15rem; border-radius: 50%; border: 1px solid var(--rule); display: grid; place-items: center; font-size: .68rem; font-weight: 700; }
+.rail-top .track i[data-now] { color: var(--ink); font-weight: 600; }
+.rail-top .track i[data-now] b { background: var(--aubergine); color: var(--parchment); border-color: var(--aubergine); }
+.rail-top .track i[data-done] b { background: var(--sunken); }
+.rail-top .track s { color: var(--rule); text-decoration: none; }
+
+/* Zwei Spalten: Quelle links, Ergebnis rechts. */
+.split { display: grid; grid-template-columns: minmax(0, 21rem) minmax(0, 1fr); flex: 1; min-height: 0; }
+.source { border-right: 1px solid var(--rule-soft); background: var(--sunken); padding: 1.25rem; overflow: auto; }
+.source h3 { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 .8rem; }
+.source .doc { font-family: var(--serif); font-size: .95rem; line-height: 1.62; color: var(--ink-2); background: var(--paper); border: 1px solid var(--rule-soft); border-radius: 10px; padding: .9rem 1rem; }
+.source .doc mark { background: #f9dcd1; color: var(--ink); border-radius: 3px; padding: 0 .12rem; box-shadow: inset 0 -2px 0 var(--tomato); }
+.source .meta-row { display: flex; justify-content: space-between; font-size: .78rem; color: var(--ink-3); margin: .6rem 0 1.25rem; }
+.source .settings { display: grid; gap: .7rem; }
+.source label { display: block; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: .2rem; }
+.source .ctl { width: 100%; font: inherit; font-size: .9rem; padding: .4rem .55rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); }
+.source .recalc { width: 100%; margin-top: .9rem; }
+
+.list { overflow: auto; padding: 1.25rem 1.5rem 1.75rem; min-width: 0; }
+.list-head { display: flex; align-items: baseline; gap: .8rem; margin-bottom: .9rem; }
+.list-head h3 { margin: 0; font-size: 1.05rem; letter-spacing: -.015em; }
+.list-head .n { font-size: .8rem; color: var(--ink-3); font-variant-numeric: tabular-nums; margin-left: auto; }
+
+/* Kompakte Arbeitszeilen, keine Karten. */
+.rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--rule-soft); border-radius: 10px; overflow: hidden; }
+/* Die Zustandsspalte war 5,5rem breit – „✓ übernommen“ passte nicht hinein und
+   wurde abgeschnitten. Eine Spalte, die ihren eigenen Text nicht fasst, ist
+   keine Spalte. */
+.row { display: grid; grid-template-columns: 1.75rem minmax(8rem, 1fr) minmax(13rem, 1.7fr) 6.5rem 8.5rem; gap: 0 .7rem; align-items: center; padding: .5rem .7rem; border-bottom: 1px solid var(--rule-soft); background: var(--paper); }
+.row:last-child { border-bottom: 0; }
+.row:hover { background: #fffdfa; }
+.row[data-open] { background: #fdf7ef; }
+.row .grip { color: var(--rule); font-size: .8rem; text-align: center; font-variant-numeric: tabular-nums; }
+.row .en { font-weight: 600; letter-spacing: -.01em; }
+.row .en small { display: block; font-weight: 400; font-size: .72rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.row input.de { width: 100%; font: inherit; font-size: .9rem; padding: .3rem .5rem; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--ink); }
+.row input.de:hover { border-color: var(--rule); }
+.row input.de:focus { border-color: var(--aubergine); outline: 2px solid var(--aubergine); outline-offset: 1px; background: var(--paper); }
+.row select { font: inherit; font-size: .82rem; padding: .25rem .4rem; border: 1px solid var(--rule); border-radius: 7px; background: var(--paper); color: var(--ink-2); width: 100%; }
+.row .state { font-size: .78rem; color: var(--ink-3); white-space: nowrap; }
+.row .state[data-on] { color: var(--success); font-weight: 600; }
+.row .sub { grid-column: 3 / -1; display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; padding: .1rem 0 .25rem; }
+.row .sub .lbl { font-size: .72rem; color: var(--ink-3); }
+.chip { font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 999px; padding: .1rem .55rem; }
+.chip:hover { border-color: var(--aubergine); background: #fdf3e9; }
+.row .quote { grid-column: 2 / -1; font-family: var(--serif); font-size: .88rem; color: var(--ink-2); margin: .15rem 0 .35rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+
+/* Die Leiste, die immer sagt, wo man steht.
+
+   Im echten Produkt wäre sie `position: sticky; bottom: 0` – sie soll ja auch
+   bei fünfzig Zeilen stehen bleiben. In diesem Mockup ist sie eine gewöhnliche
+   Fußleiste: Ein klebendes Element wandert beim Aufnehmen eines ganzen
+   Bildschirms mit und wäre auf dem Bild gar nicht oder an der falschen Stelle
+   zu sehen. */
+.actionbar { display: flex; align-items: center; gap: .9rem; padding: .8rem 1.5rem; background: var(--paper); border-top: 1px solid var(--rule); box-shadow: 0 -10px 26px -22px rgb(47 9 45 / 55%); }
+.actionbar .meter { flex: 0 0 8rem; height: .4rem; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.actionbar .meter i { display: block; height: 100%; width: 20%; background: var(--aubergine); }
+.actionbar .status { font-size: .85rem; color: var(--ink-2); }
+.actionbar .status b { color: var(--ink); }
+.actionbar .kbd { margin-left: auto; font-family: var(--mono); font-size: .72rem; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 5px; padding: .1rem .35rem; }
+
+.btn { font: inherit; font-size: .85rem; font-weight: 600; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 9px; padding: .45rem .9rem; cursor: pointer; }
+.btn--primary { background: var(--aubergine); border-color: var(--aubergine); color: var(--parchment); }
+.btn--quiet { border-color: transparent; background: transparent; color: var(--ink-2); }
+
+/* --- Bildschirm 1: Material als Werkbank-Startseite ---------------------- */
+.home { padding: 1.5rem 1.5rem 2.5rem; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,18rem); gap: 1.5rem; align-items: start; }
+.home h2 { font-size: clamp(1.5rem,1rem+2vw,2.25rem); letter-spacing: -.03em; margin: 0 0 .3rem; font-weight: 800; }
+.home .lede { color: var(--ink-2); margin: 0 0 1.4rem; max-width: 44rem; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem,1fr)); gap: .7rem; margin-bottom: 1.75rem; }
+.tile { text-align: left; border: 1px solid var(--rule); border-radius: 11px; padding: .85rem .9rem; background: var(--paper); cursor: pointer; font: inherit; color: inherit; }
+.tile:hover { border-color: var(--aubergine); background: #fffdfa; }
+.tile b { display: block; font-size: .98rem; letter-spacing: -.01em; margin-bottom: .2rem; }
+.tile span { font-size: .82rem; color: var(--ink-3); }
+.tile .k { font-family: var(--mono); font-size: .68rem; color: var(--ink-3); border: 1px solid var(--rule-soft); border-radius: 4px; padding: 0 .25rem; float: right; }
+
+table.mat { width: 100%; border-collapse: collapse; font-size: .88rem; }
+table.mat th { text-align: left; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: .4rem .6rem; border-bottom: 1px solid var(--rule); }
+table.mat td { padding: .55rem .6rem; border-bottom: 1px solid var(--rule-soft); }
+table.mat tr:hover td { background: #fffdfa; }
+table.mat .t { font-weight: 600; }
+table.mat .num { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+table.mat a { color: var(--accent-ink); text-decoration: none; font-weight: 600; }
+
+.aside { border: 1px solid var(--rule-soft); border-radius: 11px; padding: .9rem 1rem; background: var(--sunken); }
+.aside h4 { margin: 0 0 .5rem; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.aside p { margin: 0 0 .6rem; font-size: .85rem; color: var(--ink-2); }
+.aside .stat { display: flex; justify-content: space-between; font-size: .85rem; padding: .3rem 0; border-bottom: 1px solid var(--rule-soft); }
+.aside .stat:last-of-type { border-bottom: 0; }
+.aside .stat b { font-variant-numeric: tabular-nums; }
+
+/* --- Bildschirm 3: Paketseite ------------------------------------------- */
+.pack { padding: 1.5rem 1.5rem 1.75rem; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,19rem); gap: 1.75rem; align-items: start; }
+.pack h2 { font-size: clamp(1.5rem,1rem+2vw,2.1rem); letter-spacing: -.025em; margin: 0 0 .35rem; font-weight: 800; }
+.pack .facts { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .85rem; color: var(--ink-2); margin-bottom: 1.4rem; }
+.pack .facts b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.handover { border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; background: var(--paper); }
+.handover header { background: var(--aubergine); color: var(--parchment); padding: .75rem 1rem; }
+.handover header b { display: block; font-size: .95rem; }
+.handover header span { font-size: .78rem; color: var(--nav-muted); }
+.handover ul { list-style: none; margin: 0; padding: 0; }
+.handover li { border-bottom: 1px solid var(--rule-soft); }
+.handover li:last-child { border-bottom: 0; }
+.handover li a { display: block; padding: .7rem 1rem; text-decoration: none; color: inherit; }
+.handover li a:hover { background: #fffdfa; }
+.handover .h1 { font-weight: 600; font-size: .92rem; display: flex; justify-content: space-between; gap: .5rem; }
+.handover .h1 em { font-style: normal; font-family: var(--mono); font-size: .72rem; color: var(--ink-3); }
+.handover .h2 { font-size: .8rem; color: var(--ink-3); margin-top: .1rem; }
+.handover footer { padding: .7rem 1rem; font-size: .78rem; color: var(--ink-3); background: var(--sunken); }
+
+@media (max-width: 62rem) {
+  .split { grid-template-columns: 1fr; }
+  .source { border-right: 0; border-bottom: 1px solid var(--rule-soft); }
+  .home, .pack { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 1.5rem 1fr; }
+  .row select, .row .state { grid-column: 2; }
+}
+</style>
+</head>
+<body>
+
+<header class="meta">
+  <p class="tag">LexiFlow · Mockup 2 von 3</p>
+  <h1>Route B — Werkbank</h1>
+  <p>
+    Vokabeln erstellen ist eine <strong>beidhändige</strong> Arbeit: links die Quelle,
+    rechts das Ergebnis. Heute liegen beide hintereinander – man klickt „Text analysieren“,
+    und der Text ist weg. Wer prüfen will, ob „resilience“ im Satz wirklich so gemeint war,
+    muss einen Schritt zurück und danach wieder vor.
+  </p>
+  <p>
+    Diese Route stellt beides nebeneinander, macht die Zeilen kompakt und hängt die
+    Hauptaktion an eine feste Leiste unten, die immer sagt, wie viel schon fertig ist.
+  </p>
+  <dl>
+    <dt>Idee</dt><dd>Zweispaltige Werkbank statt Schrittfolge. Quelle bleibt sichtbar.</dd>
+    <dt>Risiko</dt><dd>Mittel. Der Assistent verliert seine Schritte als Seiten – das ist eine echte Umstellung.</dd>
+    <dt>Kosten</dt><dd>Neues Layout für den Importweg; die Domänenlogik bleibt unberührt.</dd>
+    <dt>Wofür</dt><dd>Wenn LexiFlow sich wie ein Werkzeug anfühlen soll, mit dem man zwanzig Vokabeln in fünf Minuten schafft.</dd>
+  </dl>
+</header>
+
+<!-- ============================================================ Bildschirm 1 -->
+<p class="screen-label">Bildschirm 1 — Material · Startseite</p>
+<div class="bench">
+  <nav class="rail">
+    <span class="mark"></span>
+    <a href="#">Lernen</a>
+    <a href="#" aria-current="page">Erstellen</a>
+    <a href="#">Daten</a>
+  </nav>
+  <div class="work">
+    <div class="rail-top"><span class="title">Material</span>
+      <span class="track"><i>4 Pakete · 95 Vokabeln auf diesem Gerät</i></span>
+    </div>
+    <div class="home">
+      <div>
+        <h2>Was willst du heute erstellen?</h2>
+        <p class="lede">Keine Anmeldung, kein Rückkanal. Lernstände sind hier grundsätzlich nicht einsehbar.</p>
+        <div class="tiles">
+          <button class="tile"><span class="k">T</span><b>Aus einem Text</b><span>Einfügen, lokal analysieren, prüfen.</span></button>
+          <button class="tile"><span class="k">L</span><b>Aus Liste oder PDF</b><span>Einfügen, CSV/XLSX oder PDF öffnen.</span></button>
+          <button class="tile"><span class="k">T H</span><b>Zu einem Thema</b><span>Lokal Vorschläge erzeugen, dann prüfen.</span></button>
+        </div>
+        <table class="mat">
+          <thead><tr><th>Paket</th><th>Stufe</th><th>Vokabeln</th><th>Geändert</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="t">Unit 7 – Coastal erosion</td><td>Klasse 9 · B1</td><td class="num">24</td><td class="num">heute</td><td><a href="#">Öffnen</a></td></tr>
+            <tr><td class="t">Unit 3 – City life</td><td>Klasse 8 · A2+</td><td class="num">18</td><td class="num">28.08.</td><td><a href="#">Öffnen</a></td></tr>
+            <tr><td class="t">Manifest Destiny – Q1 Lektüre</td><td>Q1 · B2</td><td class="num">41</td><td class="num">21.08.</td><td><a href="#">Öffnen</a></td></tr>
+            <tr><td class="t">Phrasal verbs – Wiederholung</td><td>Klasse 10 · B1+</td><td class="num">12</td><td class="num">14.08.</td><td><a href="#">Öffnen</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="aside">
+        <h4>Auf diesem Gerät</h4>
+        <div class="stat"><span>Pakete</span><b>4</b></div>
+        <div class="stat"><span>Vokabeln</span><b>95</b></div>
+        <div class="stat"><span>Mit Beispielsatz</span><b>71</b></div>
+        <div class="stat"><span>Wörterbuch</span><b>bereit</b></div>
+        <p style="margin-top:.8rem">Nichts davon verlässt diesen Browser.</p>
+        <button class="btn" style="width:100%">Paketdatei öffnen</button>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ Bildschirm 2 -->
+<p class="screen-label">Bildschirm 2 — Importassistent · Empfehlungen (Quelle bleibt links stehen)</p>
+<div class="bench">
+  <nav class="rail">
+    <span class="mark"></span>
+    <a href="#">Lernen</a>
+    <a href="#" aria-current="page">Erstellen</a>
+    <a href="#">Daten</a>
+  </nav>
+  <div class="work">
+    <div class="rail-top">
+      <span class="title">Unit 7 – Coastal erosion</span>
+      <span class="track">
+        <i data-done><b>✓</b> Quelle</i><s>—</s>
+        <i data-now><b>2</b> Empfehlungen</i><s>—</s>
+        <i><b>3</b> Prüfen &amp; Speichern</i>
+      </span>
+    </div>
+
+    <div class="split">
+      <aside class="source">
+        <h3>Quelle · eingefügter Text</h3>
+        <div class="doc">
+          Coastal <mark>erosion</mark> threatens the settlement, and the <mark>evacuation</mark> of
+          residents demonstrates the <mark>resilience</mark> of the local
+          <mark>infrastructure</mark> in a way that nobody who lives along this
+          <mark>shoreline</mark> had expected before the storms of last winter.
+          Erosion and evacuation were discussed at length by the council.
+        </div>
+        <div class="meta-row"><span>328 Zeichen · 2 Sätze</span><span>22 Kandidaten</span></div>
+
+        <div class="settings">
+          <div><label>Thema</label><input class="ctl" value="Coastal erosion" /></div>
+          <div><label>Jahrgang</label><select class="ctl"><option>Klasse 9</option></select></div>
+          <div><label>GeR-Niveau</label><select class="ctl"><option>B1</option></select></div>
+          <div><label>Sortierung</label><select class="ctl"><option>Empfehlung</option></select></div>
+          <div><label>Anzahl</label><select class="ctl"><option>5 Vokabeln</option></select></div>
+        </div>
+        <button class="btn recalc">Offene neu berechnen</button>
+      </aside>
+
+      <div class="list">
+        <div class="list-head">
+          <h3>Vorgeschlagene Vokabeln</h3>
+          <span class="n">5 von 22 gefundenen</span>
+        </div>
+        <ul class="rows">
+          <li class="row" data-open>
+            <span class="grip">1</span>
+            <span class="en">erosion<small>2× im Text</small></span>
+            <input class="de" value="die Erosion" />
+            <select><option>Substantiv</option></select>
+            <span class="state" data-on>✓ übernommen</span>
+            <p class="quote">„Coastal erosion threatens the settlement, and the evacuation of residents demonstrates the resilience of the local infrastructure.“</p>
+            <span class="sub"><span class="lbl">Wörterbuch:</span><button class="chip">Erosion</button><button class="chip">Abtragung</button><span class="lbl">· ▸ 3 weitere</span></span>
+          </li>
+          <li class="row">
+            <span class="grip">2</span>
+            <span class="en">evacuation<small>2× im Text</small></span>
+            <input class="de" placeholder="deutsche Antwort" />
+            <select><option>Substantiv</option></select>
+            <span class="state">○ offen</span>
+            <p class="quote">„…and the evacuation of residents demonstrates the resilience of the local infrastructure.“</p>
+            <span class="sub"><span class="lbl">Wörterbuch:</span><button class="chip">Evakuierung</button><button class="chip">Räumung</button><span class="lbl">· ▸ 2 weitere</span></span>
+          </li>
+          <li class="row">
+            <span class="grip">3</span>
+            <span class="en">resilience<small>1× im Text</small></span>
+            <input class="de" placeholder="deutsche Antwort" />
+            <select><option>Substantiv</option></select>
+            <span class="state">○ offen</span>
+            <p class="quote">„…demonstrates the resilience of the local infrastructure in a way that nobody who lives along this shoreline had expected.“</p>
+            <span class="sub"><span class="lbl">Wörterbuch:</span><button class="chip">Widerstandsfähigkeit</button><button class="chip">Belastbarkeit</button><span class="lbl">· ▸ 4 weitere</span></span>
+          </li>
+          <li class="row">
+            <span class="grip">4</span>
+            <span class="en">shoreline<small>1× im Text</small></span>
+            <input class="de" placeholder="deutsche Antwort" />
+            <select><option>Substantiv</option></select>
+            <span class="state">○ offen</span>
+            <span class="sub"><span class="lbl">Wörterbuch:</span><button class="chip">Küstenlinie</button><button class="chip">Ufer</button></span>
+          </li>
+          <li class="row">
+            <span class="grip">5</span>
+            <span class="en">settlement<small>1× im Text</small></span>
+            <input class="de" placeholder="deutsche Antwort" />
+            <select><option>–</option></select>
+            <span class="state">○ offen</span>
+            <span class="sub"><span class="lbl">Wörterbuch:</span><button class="chip">Siedlung</button><button class="chip">Einigung</button><span class="lbl">· mehrdeutig, bitte wählen</span></span>
+          </li>
+        </ul>
+        <p style="font-size:.8rem;color:var(--ink-3);margin:.9rem 0 0">▸ Woher die Vorschläge kommen &nbsp;·&nbsp; ▸ Übersetzungsvorschläge aus dem Sprachmodell</p>
+      </div>
+    </div>
+
+    <div class="actionbar">
+      <span class="meter"><i></i></span>
+      <span class="status"><b>1 von 5</b> beantwortet · 4 offen</span>
+      <button class="btn btn--quiet">Übersetzungsvorschläge eintragen</button>
+      <span class="kbd">⌘↵</span>
+      <button class="btn btn--primary">1 Vokabel prüfen &amp; speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ Bildschirm 3 -->
+<p class="screen-label">Bildschirm 3 — Paketseite · Weitergeben</p>
+<div class="bench">
+  <nav class="rail">
+    <span class="mark"></span>
+    <a href="#">Lernen</a>
+    <a href="#" aria-current="page">Erstellen</a>
+    <a href="#">Daten</a>
+  </nav>
+  <div class="work">
+    <div class="rail-top">
+      <span class="title">Unit 7 – Coastal erosion</span>
+      <span class="track"><i>zuletzt gespeichert 17:42</i></span>
+    </div>
+    <div class="pack">
+      <div>
+        <h2>Unit 7 – Coastal erosion</h2>
+        <div class="facts">
+          <span><b>24</b> Vokabeln</span><span>Klasse 9 · B1</span>
+          <span>beide Richtungen</span><span><b>19</b> mit Beispielsatz</span>
+        </div>
+        <ul class="rows">
+          <li class="row">
+            <span class="grip">1</span>
+            <span class="en">erosion<small>Substantiv</small></span>
+            <input class="de" value="die Erosion" />
+            <select><option>Substantiv</option></select>
+            <span class="state" data-on>✓ OK</span>
+          </li>
+          <li class="row">
+            <span class="grip">2</span>
+            <span class="en">to coin a phrase / term<small>Verb</small></span>
+            <input class="de" value="einen Begriff, eine Redewendung prägen" />
+            <select><option>Verb</option></select>
+            <span class="state" data-on>✓ OK</span>
+          </li>
+          <li class="row">
+            <span class="grip">3</span>
+            <span class="en">restraints<small>Plural</small></span>
+            <input class="de" placeholder="deutsche Antwort" />
+            <select><option>Substantiv</option></select>
+            <span class="state">○ bitte prüfen</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="handover">
+        <header>
+          <b>Weitergeben an die Lerngruppe</b>
+          <span>Ohne Konto, ohne Internet. Lernstände wandern nicht mit.</span>
+        </header>
+        <ul>
+          <li><a href="#"><span class="h1">Als Einzeldatei herunterladen <em>.html</em></span><span class="h2">Eine Datei für die Klasse. Doppelklick genügt.</span></a></li>
+          <li><a href="#"><span class="h1">Als LexiFlow-Paket herunterladen <em>.json</em></span><span class="h2">Zum Weiterbearbeiten, ohne Trainer darin.</span></a></li>
+          <li><a href="#"><span class="h1">Im Lernbereich ansehen <em>→</em></span><span class="h2">So sieht es aus, wenn jemand damit lernt.</span></a></li>
+        </ul>
+        <footer>Personenbezogene Daten stehen nur darin, wenn du selbst welche geschrieben hast.</footer>
+      </div>
+    </div>
+    <div class="actionbar">
+      <span class="status"><b>23 von 24</b> vollständig · 1 bitte prüfen</span>
+      <button class="btn btn--quiet" style="margin-left:auto">Paket löschen</button>
+      <button class="btn btn--primary">Änderungen speichern</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

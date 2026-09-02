@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LexiFlow – Mockup Route A: Papierbogen</title>
+<style>
+/* ===========================================================================
+   MOCKUP – Route A „Papierbogen"
+   ---------------------------------------------------------------------------
+   Kein Produktcode. Diese Datei bildet nur ab, wie der Lehrkraftweg aussehen
+   könnte; sie teilt mit LexiFlow ausschließlich die drei Markenfarben und die
+   Kontrastregeln.
+
+   Die Idee: Das heutige Design ist nicht falsch, es ist voll. Fast jede
+   Information sitzt in einem eigenen Kasten mit Rand, und Kästen in Kästen
+   ergeben Grau. Diese Route nimmt die Kästen weg und lässt Typografie und
+   Weißraum die Gliederung machen – Haarlinien statt Rahmen, große Ziffern
+   statt Badges, eine Spalte statt einer Fläche.
+   =========================================================================== */
+
+:root {
+  --aubergine: #2f092d;
+  --tomato: #ff2e2d;
+  --parchment: #f8efe3;
+
+  --ink: var(--aubergine);
+  --ink-2: #674960;
+  --ink-3: #715569;
+  --paper: #fffcf7;
+  --rule: #d8c4ae;
+  --rule-soft: #eadccb;
+  --accent-ink: #b3201f;
+  --success: #17624a;
+
+  --sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Rahmen der Mockup-Datei selbst (nicht Teil des Entwurfs) ------------ */
+.meta {
+  background: var(--aubergine);
+  color: var(--parchment);
+  padding: 2.5rem clamp(1rem, 5vw, 4rem) 2.75rem;
+}
+.meta h1 { font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem); margin: .2rem 0 .6rem; letter-spacing: -.02em; }
+.meta p { max-width: 46rem; color: #d8c8cb; margin: 0 0 .6rem; }
+.meta .tag { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; color: var(--tomato); margin: 0; }
+.meta dl { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1.2rem; max-width: 46rem; margin: 1.4rem 0 0; font-size: .875rem; }
+.meta dt { color: var(--tomato); }
+.meta dd { margin: 0; color: #d8c8cb; }
+
+.screen-label {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--aubergine); color: var(--parchment);
+  font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+  padding: .55rem clamp(1rem, 5vw, 4rem);
+  border-bottom: 2px solid var(--tomato);
+}
+.frame { padding: 0 0 4rem; background: var(--parchment); }
+
+/* --- Der Entwurf ---------------------------------------------------------
+   Eine Spalte, eine Haarlinie, viel Luft. Kein Schatten, kein Kartenrand.
+   ------------------------------------------------------------------------ */
+.app { max-width: 68rem; margin: 0 auto; padding: 0 clamp(1rem, 5vw, 3rem); }
+
+.topbar {
+  display: flex; align-items: center; gap: 2rem;
+  border-bottom: 1px solid var(--rule);
+  padding: 1.1rem 0 1rem;
+  margin-bottom: 3.5rem;
+}
+.wordmark { font-weight: 800; letter-spacing: -.03em; font-size: 1.05rem; }
+.wordmark span { color: var(--accent-ink); }
+.topbar nav { display: flex; gap: 1.6rem; font-size: .9rem; margin-left: auto; }
+.topbar nav a { color: var(--ink-2); text-decoration: none; padding-bottom: .2rem; }
+.topbar nav a[aria-current] { color: var(--ink); border-bottom: 2px solid var(--tomato); font-weight: 600; }
+
+.eyebrow {
+  font-size: .7rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 .8rem;
+}
+h2.display {
+  font-size: clamp(2rem, 1.2rem + 3vw, 3.25rem);
+  line-height: 1.05; letter-spacing: -.03em; font-weight: 800;
+  margin: 0 0 1rem; max-width: 20ch;
+}
+.lede { font-size: 1.0625rem; color: var(--ink-2); max-width: 42rem; margin: 0 0 3rem; }
+
+/* Die drei Wege: keine Karten, sondern Zeilen mit großer Ziffer. */
+.ways { border-top: 1px solid var(--rule); margin: 0 0 3.5rem; }
+.way {
+  display: grid; grid-template-columns: 4.5rem 1fr auto; align-items: baseline;
+  gap: 0 1.5rem; padding: 1.6rem 0; border-bottom: 1px solid var(--rule-soft);
+  text-decoration: none; color: inherit;
+}
+.way:hover { background: #fffdfa; }
+.way__no { font-size: 2.25rem; font-weight: 800; color: var(--rule); letter-spacing: -.04em; line-height: 1; }
+.way__title { font-size: 1.25rem; font-weight: 700; letter-spacing: -.015em; margin: 0 0 .2rem; }
+.way__text { color: var(--ink-2); font-size: .95rem; margin: 0; max-width: 44ch; }
+.way__go { color: var(--accent-ink); font-size: .9rem; font-weight: 600; white-space: nowrap; }
+
+.section-head {
+  display: flex; align-items: baseline; gap: 1rem;
+  border-bottom: 2px solid var(--ink); padding-bottom: .6rem; margin-bottom: 0;
+}
+.section-head h3 { font-size: 1.5rem; letter-spacing: -.02em; margin: 0; font-weight: 700; }
+.section-head .count { margin-left: auto; font-size: .85rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* Materialliste: Tabellenzeilen ohne Tabellenoptik. */
+.packs { list-style: none; margin: 0 0 3rem; padding: 0; }
+.pack {
+  display: grid; grid-template-columns: 1fr auto auto; gap: .2rem 2rem;
+  align-items: center; padding: 1.15rem 0; border-bottom: 1px solid var(--rule-soft);
+}
+.pack__title { font-size: 1.0625rem; font-weight: 600; letter-spacing: -.01em; }
+.pack__meta { grid-column: 1; font-size: .85rem; color: var(--ink-3); }
+.pack__num { font-variant-numeric: tabular-nums; font-size: .9rem; color: var(--ink-2); text-align: right; }
+.pack__link { font-size: .9rem; color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+
+.btn {
+  font: inherit; font-size: .9rem; font-weight: 600;
+  border: 1px solid var(--rule); background: transparent; color: var(--ink);
+  border-radius: 999px; padding: .55rem 1.15rem; cursor: pointer;
+}
+.btn--primary { background: var(--aubergine); border-color: var(--aubergine); color: var(--parchment); }
+.btn--quiet { border-color: transparent; color: var(--ink-2); padding-left: .4rem; padding-right: .4rem; }
+
+/* --- Bildschirm 2: der Empfehlungsschritt -------------------------------- */
+.steps { display: flex; gap: 2rem; font-size: .85rem; margin: 0 0 2.75rem; border-bottom: 1px solid var(--rule); padding-bottom: .8rem; }
+.steps span { color: var(--ink-3); }
+.steps b { color: var(--ink); font-weight: 700; border-bottom: 2px solid var(--tomato); padding-bottom: .8rem; margin-bottom: -.85rem; }
+
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.4rem 2rem; margin: 0 0 2rem; }
+.field label { display: block; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-3); margin-bottom: .35rem; }
+.field .value {
+  border: 0; border-bottom: 1.5px solid var(--ink); background: transparent;
+  font: inherit; font-size: 1rem; padding: .25rem 0; width: 100%; color: var(--ink);
+}
+
+.result-head { display: flex; align-items: baseline; gap: 1rem; margin: 2.5rem 0 .4rem; }
+.result-head h3 { margin: 0; font-size: 1.5rem; letter-spacing: -.02em; }
+.progress { font-size: .95rem; color: var(--ink-2); margin: 0 0 2rem; }
+.progress b { color: var(--ink); }
+
+/* Die Vokabel als Absatz, nicht als Kasten. */
+.entries { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); }
+.entry { padding: 1.5rem 0; border-bottom: 1px solid var(--rule-soft); display: grid; grid-template-columns: 1fr 15rem; gap: .5rem 2.5rem; }
+.entry__head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: .75rem; }
+.entry__word { font-size: 1.375rem; font-weight: 700; letter-spacing: -.02em; }
+.entry__freq { font-size: .8rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.entry__state { margin-left: auto; font-size: .85rem; color: var(--ink-3); }
+.entry__state[data-on] { color: var(--success); font-weight: 600; }
+.entry__quote {
+  grid-column: 1; font-family: var(--serif); font-size: 1.0625rem; color: var(--ink-2);
+  margin: 0; max-width: 52ch;
+}
+.entry__answer { grid-column: 2; grid-row: 2 / span 2; }
+.entry__answer input {
+  width: 100%; font: inherit; padding: .5rem 0; color: var(--ink);
+  border: 0; border-bottom: 1.5px solid var(--ink); background: transparent;
+}
+.entry__answer .hint { font-size: .78rem; color: var(--ink-3); margin: .4rem 0 0; }
+.chips { grid-column: 1; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-top: .2rem; }
+.chips .lbl { font-size: .78rem; color: var(--ink-3); }
+.chip {
+  font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
+  background: transparent; color: var(--ink); border: 1px solid var(--rule);
+  border-radius: 999px; padding: .18rem .7rem;
+}
+.chip:hover { border-color: var(--ink); }
+.more { grid-column: 1 / -1; font-size: .85rem; color: var(--ink-3); margin-top: .6rem; }
+
+.footer-actions { display: flex; gap: .8rem; align-items: center; margin: 2.5rem 0 0; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+
+/* --- Bildschirm 3: Paketseite ------------------------------------------- */
+.pack-hero { border-bottom: 1px solid var(--rule); padding-bottom: 2rem; margin-bottom: 2.5rem; }
+.pack-hero h2 { font-size: clamp(2rem, 1.2rem + 3vw, 3rem); margin: .4rem 0 .6rem; letter-spacing: -.03em; font-weight: 800; }
+.pack-hero .facts { display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: .9rem; color: var(--ink-2); }
+.pack-hero .facts b { font-variant-numeric: tabular-nums; color: var(--ink); }
+
+.handover { display: grid; grid-template-columns: minmax(0, 22rem) 1fr; gap: 2.5rem; align-items: start; margin-bottom: 3rem; }
+.handover h3 { font-size: 1.25rem; margin: 0 0 .6rem; letter-spacing: -.015em; }
+.handover p { color: var(--ink-2); font-size: .95rem; margin: 0; }
+.handover ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.handover li { border-bottom: 1px solid var(--rule-soft); }
+.handover li a {
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: .2rem 1rem;
+  padding: 1rem 0; text-decoration: none; color: inherit;
+}
+.handover li a:hover { background: #fffdfa; }
+.handover .h-title { font-weight: 600; font-size: 1.0625rem; }
+.handover .h-note { grid-column: 1; font-size: .85rem; color: var(--ink-3); }
+.handover .h-go { color: var(--accent-ink); font-weight: 600; font-size: .9rem; }
+
+.dangerzone { display: flex; align-items: center; gap: 1rem; border-top: 1px solid var(--rule); padding-top: 1.4rem; font-size: .9rem; color: var(--ink-3); }
+.dangerzone .btn { margin-left: auto; border-color: var(--rule); color: var(--accent-ink); }
+
+@media (max-width: 46rem) {
+  .entry { grid-template-columns: 1fr; }
+  .entry__answer { grid-column: 1; grid-row: auto; }
+  .handover { grid-template-columns: 1fr; }
+  .way { grid-template-columns: 3rem 1fr; }
+  .way__go { grid-column: 2; }
+}
+</style>
+</head>
+<body>
+
+<header class="meta">
+  <p class="tag">LexiFlow · Mockup 1 von 3</p>
+  <h1>Route A — Papierbogen</h1>
+  <p>
+    Das heutige Design ist nicht falsch, es ist <strong>voll</strong>. Fast jede Information
+    sitzt in einem eigenen Kasten mit eigenem Rand, und Kästen in Kästen ergeben Grau.
+    Diese Route nimmt die Kästen weg: Haarlinien statt Rahmen, große Ziffern statt Badges,
+    eine Spalte statt einer Fläche. Alles bleibt an seinem Platz – es atmet nur.
+  </p>
+  <dl>
+    <dt>Idee</dt><dd>Typografie und Weißraum gliedern, nicht Rahmen und Schatten.</dd>
+    <dt>Risiko</dt><dd>Gering. Gleiche Struktur, gleiche Wege, gleiche Beschriftungen.</dd>
+    <dt>Kosten</dt><dd>Überwiegend CSS. Wenige Komponenten müssten ihre Kartenhülle verlieren.</dd>
+    <dt>Wofür</dt><dd>Wenn du Ruhe willst, ohne dass jemand die App neu lernen muss.</dd>
+  </dl>
+</header>
+
+<!-- ============================================================ Bildschirm 1 -->
+<p class="screen-label">Bildschirm 1 — Material · Startseite</p>
+<section class="frame">
+  <div class="app">
+    <div class="topbar">
+      <span class="wordmark">Lexi<span>Flow</span></span>
+      <nav>
+        <a href="#">Lernen</a>
+        <a href="#" aria-current="page">Erstellen</a>
+        <a href="#">Daten</a>
+      </nav>
+    </div>
+
+    <p class="eyebrow">Material</p>
+    <h2 class="display">Was willst du heute erstellen?</h2>
+    <p class="lede">
+      Dieser Bereich braucht keine Anmeldung. Lernstände von Schülerinnen und Schülern sind
+      hier grundsätzlich nicht einsehbar.
+    </p>
+
+    <div class="ways">
+      <a class="way" href="#">
+        <span class="way__no">01</span>
+        <span>
+          <span class="way__title">Aus einem Text</span>
+          <p class="way__text">Englischen Text einfügen, auf diesem Gerät analysieren, Kandidaten prüfen.</p>
+        </span>
+        <span class="way__go">Beginnen →</span>
+      </a>
+      <a class="way" href="#">
+        <span class="way__no">02</span>
+        <span>
+          <span class="way__title">Aus einer Liste oder PDF</span>
+          <p class="way__text">Vokabeln einfügen, eine CSV- oder XLSX-Datei öffnen – oder eine PDF lesen lassen.</p>
+        </span>
+        <span class="way__go">Beginnen →</span>
+      </a>
+      <a class="way" href="#">
+        <span class="way__no">03</span>
+        <span>
+          <span class="way__title">Zu einem Thema</span>
+          <p class="way__text">Vorschläge lokal erzeugen lassen und anschließend prüfen.</p>
+        </span>
+        <span class="way__go">Beginnen →</span>
+      </a>
+    </div>
+
+    <div class="section-head">
+      <h3>Dein Material</h3>
+      <span class="count">4 Pakete auf diesem Gerät</span>
+    </div>
+    <ul class="packs">
+      <li class="pack">
+        <span class="pack__title">Unit 7 – Coastal erosion</span>
+        <span class="pack__num">24 Vokabeln</span>
+        <a class="pack__link" href="#">Öffnen</a>
+        <span class="pack__meta">Klasse 9 · B1 · beide Richtungen · geändert 02.09.2026</span>
+      </li>
+      <li class="pack">
+        <span class="pack__title">Unit 3 – City life</span>
+        <span class="pack__num">18 Vokabeln</span>
+        <a class="pack__link" href="#">Öffnen</a>
+        <span class="pack__meta">Klasse 8 · A2+ · Englisch → Deutsch · geändert 28.08.2026</span>
+      </li>
+      <li class="pack">
+        <span class="pack__title">Manifest Destiny – Q1 Lektüre</span>
+        <span class="pack__num">41 Vokabeln</span>
+        <a class="pack__link" href="#">Öffnen</a>
+        <span class="pack__meta">Q1 · B2 · beide Richtungen · geändert 21.08.2026</span>
+      </li>
+      <li class="pack">
+        <span class="pack__title">Phrasal verbs – Wiederholung</span>
+        <span class="pack__num">12 Vokabeln</span>
+        <a class="pack__link" href="#">Öffnen</a>
+        <span class="pack__meta">Klasse 10 · B1+ · Deutsch → Englisch · geändert 14.08.2026</span>
+      </li>
+    </ul>
+
+    <button class="btn">Paketdatei öffnen (.vocabpack.json)</button>
+  </div>
+</section>
+
+<!-- ============================================================ Bildschirm 2 -->
+<p class="screen-label">Bildschirm 2 — Importassistent · Empfehlungen</p>
+<section class="frame">
+  <div class="app">
+    <div class="topbar">
+      <span class="wordmark">Lexi<span>Flow</span></span>
+      <nav>
+        <a href="#">Lernen</a>
+        <a href="#" aria-current="page">Erstellen</a>
+        <a href="#">Daten</a>
+      </nav>
+    </div>
+
+    <p class="eyebrow">Vokabelpaket erstellen</p>
+    <div class="steps">
+      <span>1 · Text analysieren</span>
+      <b>2 · Empfehlungen generieren</b>
+      <span>3 · Prüfen &amp; Speichern</span>
+    </div>
+
+    <h2 class="display" style="font-size:clamp(1.6rem,1rem+2vw,2.25rem)">Wofür sind die Vokabeln?</h2>
+    <div class="settings">
+      <div class="field"><label>Thema</label><input class="value" value="Coastal erosion" /></div>
+      <div class="field"><label>Jahrgang</label><input class="value" value="Klasse 9" /></div>
+      <div class="field"><label>GeR-Niveau</label><input class="value" value="B1" /></div>
+      <div class="field"><label>Sortierung</label><input class="value" value="Empfehlung" /></div>
+      <div class="field"><label>Anzahl</label><input class="value" value="5 Vokabeln" /></div>
+    </div>
+    <button class="btn btn--primary">Offene Empfehlungen neu berechnen</button>
+
+    <div class="result-head">
+      <h3>Vorgeschlagene Vokabeln</h3>
+      <span class="count" style="margin-left:auto;font-size:.85rem;color:var(--ink-3)">5 von 22 gefundenen</span>
+    </div>
+    <p class="progress"><b>1 Vokabel wird übernommen</b> · 4 Empfehlungen sind noch offen.</p>
+
+    <ul class="entries">
+      <li class="entry">
+        <div class="entry__head">
+          <span class="entry__word">erosion</span>
+          <span class="entry__freq">2× im Text</span>
+          <span class="entry__state" data-on>✓ wird übernommen</span>
+        </div>
+        <p class="entry__quote">„Coastal erosion threatens the settlement, and the evacuation of residents demonstrates the resilience of the local infrastructure.“</p>
+        <div class="entry__answer">
+          <input value="die Erosion" />
+          <p class="hint">Substantiv · leer heißt: nicht ins Paket</p>
+        </div>
+        <p class="chips"><span class="lbl">Wörterbuch:</span> <button class="chip">Erosion</button> <button class="chip">Abtragung</button></p>
+        <p class="more">▸ Weitere Bedeutungen (3) · ▸ Formen im Text und Herkunft</p>
+      </li>
+      <li class="entry">
+        <div class="entry__head">
+          <span class="entry__word">evacuation</span>
+          <span class="entry__freq">2× im Text</span>
+          <span class="entry__state">○ noch offen</span>
+        </div>
+        <p class="entry__quote">„…and the evacuation of residents demonstrates the resilience of the local infrastructure.“</p>
+        <div class="entry__answer">
+          <input placeholder="deutsche Antwort" />
+          <p class="hint">Substantiv · leer heißt: nicht ins Paket</p>
+        </div>
+        <p class="chips"><span class="lbl">Wörterbuch:</span> <button class="chip">Evakuierung</button> <button class="chip">Räumung</button></p>
+        <p class="more">▸ Weitere Bedeutungen (2) · ▸ Formen im Text und Herkunft</p>
+      </li>
+      <li class="entry">
+        <div class="entry__head">
+          <span class="entry__word">resilience</span>
+          <span class="entry__freq">1× im Text</span>
+          <span class="entry__state">○ noch offen</span>
+        </div>
+        <p class="entry__quote">„…demonstrates the resilience of the local infrastructure in a way that nobody had expected.“</p>
+        <div class="entry__answer">
+          <input placeholder="deutsche Antwort" />
+          <p class="hint">Substantiv · leer heißt: nicht ins Paket</p>
+        </div>
+        <p class="chips"><span class="lbl">Wörterbuch:</span> <button class="chip">Widerstandsfähigkeit</button> <button class="chip">Belastbarkeit</button></p>
+        <p class="more">▸ Weitere Bedeutungen (4) · ▸ Formen im Text und Herkunft</p>
+      </li>
+    </ul>
+
+    <p class="more" style="margin-top:2rem">▸ Woher die Vorschläge kommen &nbsp;·&nbsp; ▸ Übersetzungsvorschläge aus dem Sprachmodell</p>
+
+    <div class="footer-actions">
+      <button class="btn btn--quiet">← Zurück zum Text</button>
+      <button class="btn btn--primary" style="margin-left:auto">1 Vokabel prüfen &amp; speichern</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ Bildschirm 3 -->
+<p class="screen-label">Bildschirm 3 — Paketseite · Weitergeben</p>
+<section class="frame">
+  <div class="app">
+    <div class="topbar">
+      <span class="wordmark">Lexi<span>Flow</span></span>
+      <nav>
+        <a href="#">Lernen</a>
+        <a href="#" aria-current="page">Erstellen</a>
+        <a href="#">Daten</a>
+      </nav>
+    </div>
+
+    <div class="pack-hero">
+      <p class="eyebrow">Paket</p>
+      <h2>Unit 7 – Coastal erosion</h2>
+      <div class="facts">
+        <span><b>24</b> Vokabeln</span>
+        <span>Klasse 9 · B1</span>
+        <span>beide Richtungen</span>
+        <span><b>19</b> mit Beispielsatz</span>
+        <span>geändert heute, 17:42</span>
+      </div>
+    </div>
+
+    <div class="handover">
+      <div>
+        <h3>Weitergeben an die Lerngruppe</h3>
+        <p>
+          Die Einzeldatei enthält dieses Paket und den vollständigen Lerntrainer. Sie funktioniert
+          ohne Konto und ohne Internet. Lernstände und andere Pakete wandern nicht mit.
+        </p>
+      </div>
+      <ol>
+        <li><a href="#">
+          <span class="h-title">Als Einzeldatei herunterladen</span>
+          <span class="h-go">.html →</span>
+          <span class="h-note">Eine Datei für die Klasse. Doppelklick genügt, kein Netz nötig.</span>
+        </a></li>
+        <li><a href="#">
+          <span class="h-title">Als LexiFlow-Paket herunterladen</span>
+          <span class="h-go">.vocabpack.json →</span>
+          <span class="h-note">Zum Weiterbearbeiten – in LexiFlow wieder zu öffnen, ohne Trainer darin.</span>
+        </a></li>
+        <li><a href="#">
+          <span class="h-title">Im Lernbereich ansehen</span>
+          <span class="h-go">Öffnen →</span>
+          <span class="h-note">So sieht das Paket aus, wenn jemand damit lernt.</span>
+        </a></li>
+      </ol>
+    </div>
+
+    <div class="section-head"><h3>Vokabeln</h3><span class="count">24 Einträge</span></div>
+    <ul class="packs" style="margin-bottom:2.5rem">
+      <li class="pack">
+        <span class="pack__title">erosion</span>
+        <span class="pack__num">Substantiv</span>
+        <a class="pack__link" href="#">Bearbeiten</a>
+        <span class="pack__meta">die Erosion · 1 Beispielsatz</span>
+      </li>
+      <li class="pack">
+        <span class="pack__title">to coin a phrase / term</span>
+        <span class="pack__num">Verb</span>
+        <a class="pack__link" href="#">Bearbeiten</a>
+        <span class="pack__meta">einen Begriff, eine Redewendung prägen · 1 Beispielsatz</span>
+      </li>
+      <li class="pack">
+        <span class="pack__title">restraints (pl.)</span>
+        <span class="pack__num">Substantiv</span>
+        <a class="pack__link" href="#">Bearbeiten</a>
+        <span class="pack__meta">die Beschränkungen · kein Beispielsatz</span>
+      </li>
+    </ul>
+
+    <div class="footer-actions" style="border:0;padding:0;margin-bottom:2.5rem">
+      <button class="btn btn--primary">Änderungen speichern</button>
+      <button class="btn">Zeile hinzufügen</button>
+    </div>
+
+    <div class="dangerzone">
+      <span>Das Paket liegt nur in diesem Browser. Löschen lässt sich nicht rückgängig machen.</span>
+      <button class="btn">Paket löschen</button>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
