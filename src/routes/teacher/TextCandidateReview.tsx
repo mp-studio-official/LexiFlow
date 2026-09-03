@@ -31,7 +31,6 @@ import {
   type RecommendationSort,
   type ScoredCandidate,
 } from '../../import/recommendation';
-import type { TopicSuggestion } from '../../import/topicSuggestion';
 import { CEFR_LEVELS, GRADES, GRADE_LABELS } from '../../domain/cefr';
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
@@ -40,7 +39,7 @@ import { Disclosure } from '../../ui/Disclosure';
 import { mergeMultiwordTokens, tokenizeSource } from '../../import/sourceTokens';
 import { pickFromSource } from '../../import/sourcePick';
 import { contextPartOfSpeech } from '../../import/contextPartOfSpeech';
-import { SourceTextPane, type WordState } from './SourceTextPane';
+import { SourceTextLegend, SourceTextPane, type WordState } from './SourceTextPane';
 import { InfoDisclosure } from '../../ui/InfoDisclosure';
 import {
   particleAfter,
@@ -233,25 +232,6 @@ function hasAnswer(row: CandidateRow): boolean {
   return row.german.trim().length > 0;
 }
 
-/**
- * Woher der Themenvorschlag kommt – oder dass es keinen gibt.
- *
- * Der dritte Fall ist der wichtigste: Wenn im Text nichts heraussticht,
- * erfindet LexiFlow kein Thema und sagt das auch. Ein falscher Vorschlag muss
- * bemerkt und weggeklickt werden; ein leeres Feld ist eine Aufgabe.
- */
-export function describeTopicSuggestion(
-  source: TopicSuggestion['source'],
-  topic: string | undefined,
-): string {
-  if (!topic) {
-    return 'Aus diesem Text ließ sich kein Thema ableiten – trag es selbst ein, wenn du magst.';
-  }
-  return source === 'heading'
-    ? `Aus der Überschrift des Textes vorgeschlagen: „${topic}“. Frei änderbar.`
-    : `Aus den häufigsten Begriffen des Textes vorgeschlagen: „${topic}“. Frei änderbar.`;
-}
-
 /** „7 Vokabeln werden übernommen · 3 Empfehlungen sind noch offen.“ */
 export function describeProgress(taken: number, open: number): string {
   const links =
@@ -276,10 +256,12 @@ export interface TextCandidateReviewProps {
    * Seite weniger. Ein Platzhalter wäre schlechter als nichts.
    */
   sourceText?: string;
-  /** Ein Themenvorschlag aus dem Text, sofern etwas herausstach. */
-  suggestedTopic?: string;
-  /** Woraus er entstanden ist – die Beschriftung sagt es dazu. */
-  topicSource?: TopicSuggestion['source'];
+  /*
+    Der Themenvorschlag selbst steht im Lernkontext (`context.topic`) und
+    wird oben im Assistenten gesetzt. Woher er stammt, stand bis 4B.5 als
+    Hinweis unter dem Feld; er ist mit dem Hinweis weggefallen und nicht
+    stillschweigend nach innen gewandert.
+  */
   /**
    * Trägt der Quelltext Zeitschriftenapparat? Dann werden `issue`, `volume`
    * und Verwandtes abgewertet – sie sind Kopfdaten, nicht Lernvokabeln.
@@ -307,8 +289,6 @@ export function TextCandidateReview({
   context,
   onContextChange,
   sourceText,
-  suggestedTopic,
-  topicSource = 'none',
   publicationContext,
   preparation,
   dictionary,
@@ -1198,9 +1178,24 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
         <div className="stack stack--tight">
           {sourceText ? (
             <div>
-              <h3 className="eyebrow" style={{ margin: '0 0 var(--space-2)' }}>
-                Dein Text
-              </h3>
+              {/*
+                Die Bedienung liegt hinter dem **i**, nicht unter dem Text.
+
+                Als Legende unter dem Textfeld kostete sie drei Zeilen Höhe für
+                eine Auskunft, die man einmal liest. Neben der Überschrift
+                kostet sie keine – die Zeile gibt es ohnehin.
+              */}
+              <div className="section-title" style={{ marginBottom: 'var(--space-2)' }}>
+                <h3 className="eyebrow" style={{ margin: 0 }}>
+                  Dein Text
+                </h3>
+                <InfoDisclosure
+                  label="Wie der Text zu bedienen ist"
+                  title="Wie der Text zu bedienen ist"
+                >
+                  <SourceTextLegend />
+                </InfoDisclosure>
+              </div>
               {/*
                 Der Text ist Lesestoff **und** Werkzeug.
 
@@ -1244,12 +1239,14 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
               {/*
                 Das Thema ist vorgeschlagen und trotzdem ein ganz normales Feld.
 
-                Die Beschriftung sagt, woher der Vorschlag kommt – aus einer
-                Überschrift oder aus den häufigsten Begriffen –, und sie sagt es
-                auch, wenn es keinen gibt. „Kein Vorschlag“ ist eine Auskunft;
-                ein stillschweigend leeres Feld ist keine.
+                Der Hinweis, woher der Vorschlag stammt, ist seit 4B.5 weg. In
+                der 21 rem schmalen Spalte lief er über drei Zeilen und schob
+                die drei Felder darunter aus dem Bild – für eine Auskunft, die
+                man beim ersten Mal liest und danach nie wieder braucht. Dass
+                der Vorschlag aus dem Text kommt, sagt das ausgefüllte Feld
+                selbst; änderbar ist es ohnehin.
               */}
-              <Field label="Thema" hint={describeTopicSuggestion(topicSource, suggestedTopic)}>
+              <Field label="Thema">
                 {(props) => (
                   <input
                     {...props}
@@ -1309,10 +1306,15 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                   </select>
                 )}
               </Field>
-              <Field
-                label="Anzahl"
-                hint="Obergrenze. Gibt der Text weniger her, werden keine erfunden."
-              >
+              {/*
+                „Obergrenze. Gibt der Text weniger her, werden keine erfunden.“
+                stand hier bis 4B.5. Der Satz ist richtig, aber er beantwortet
+                eine Frage, die niemand stellt, bevor sie eintritt – und wenn
+                sie eintritt, sagt die Meldung nach dem Empfehlen dasselbe:
+                „5 neue Empfehlungen – gewünscht waren 10. Mehr geeignete
+                Wörter enthält der Text nicht; erfunden wird nichts.“
+              */}
+              <Field label="Anzahl">
                 {(props) => (
                   <select
                     {...props}

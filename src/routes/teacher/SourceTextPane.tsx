@@ -287,17 +287,6 @@ export function SourceTextPane({
         })}
       </div>
 
-      <p className="split__legend small muted">
-        <mark className="split__word" data-state="taken" aria-hidden="true">
-          Wort
-        </mark>{' '}
-        übernommen ·{' '}
-        <mark className="split__word" data-state="listed" aria-hidden="true">
-          Wort
-        </mark>{' '}
-        in der Liste · Klicken nimmt ein Wort dazu, Umschalt und Klicken markiert eine Wortgruppe.
-      </p>
-
       {/*
         Der Knopf für die Wortgruppe.
 
@@ -316,6 +305,43 @@ export function SourceTextPane({
 
       <p role="status" aria-live="polite" className="visually-hidden">
         {announcement}
+      </p>
+    </>
+  );
+}
+
+/**
+ * Wie der Text zu bedienen ist – der Inhalt hinter dem **i**.
+ *
+ * Bis 4B.5 stand er als Legende unter dem Textfeld: drei Zeilen, die man
+ * einmal liest, unter einem Feld, dessen Höhe ohnehin knapp ist. Hinter dem
+ * **i** neben „Dein Text“ steht dasselbe, kostet aber keine Höhe – und ist per
+ * Klick, Tastatur und auf einem Telefon erreichbar, nicht nur per Maus.
+ *
+ * Er lebt hier und nicht in der Ansicht daneben: Was der Text kann, weiß diese
+ * Datei, und eine Erklärung, die anderswo gepflegt wird, veraltet.
+ */
+export function SourceTextLegend(): React.JSX.Element {
+  return (
+    <>
+      <p style={{ margin: 0 }}>
+        <mark className="split__word" data-state="taken" aria-hidden="true">
+          Wort
+        </mark>{' '}
+        heißt <strong>übernommen</strong>,{' '}
+        <mark className="split__word" data-state="listed" aria-hidden="true">
+          Wort
+        </mark>{' '}
+        heißt <strong>steht in der Liste, Übersetzung fehlt</strong>.
+      </p>
+      <p style={{ margin: 0 }}>
+        Klicken nimmt ein Wort dazu; ein Klick auf ein schon markiertes Wort führt zu seiner
+        Zeile. Umschalt und Klicken markiert eine Wortgruppe wie „depend on“.
+      </p>
+      <p style={{ margin: 0 }}>
+        Mit der Tastatur: ein Tabstopp für den ganzen Text, Pfeiltasten von Wort zu Wort,
+        Umschalt und Pfeiltaste erweitern, Eingabetaste nimmt auf, Escape hebt die Markierung
+        auf.
       </p>
     </>
   );

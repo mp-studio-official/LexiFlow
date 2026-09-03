@@ -30,21 +30,79 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
  */
 export interface InfoDisclosureProps {
   /**
-   * Der zugängliche Name des **i**-Knopfes, z. B. „Hinweis zur
-   * Textverarbeitung“. Sichtbar ist nur das Symbol.
+   * Der zugängliche Name des Auslösers, z. B. „Hinweis zur Textverarbeitung“.
+   * Sichtbar ist nur das Symbol – oder das, was `trigger` zeigt.
    */
   label: string;
   /** Überschrift über dem geöffneten Bereich. */
   title?: string;
+  /**
+   * Was den Kasten öffnet. Fehlt es, ist es das runde **i**.
+   *
+   * Seit 4B.5 ist der Auslöser auch einmal etwas anderes: In der Prüftabelle
+   * ist es die Statusplakette selbst („Bitte prüfen“). Sie steht ohnehin da,
+   * sie ist die Auskunft, um die es geht, und ein zweites Symbol daneben wäre
+   * ein zweiter Weg zur selben Antwort.
+   */
+  trigger?: ReactNode;
+  /** Klassen des Auslösers, wenn er nicht das runde **i** ist. */
+  triggerClassName?: string;
+  /**
+   * Zusätzlich beim Überfahren öffnen.
+   *
+   * Ausdrücklich **zusätzlich**: Klick und Tastatur bleiben der Hauptweg, und
+   * der Inhalt ist auf einem Telefon ohne Maus vollständig erreichbar. Ein
+   * Hinweis, den nur eine Maus erreicht, wäre auf einem iPad keiner.
+   *
+   * Beim Verlassen schließt sich nur, was das Überfahren geöffnet hat: Wer
+   * geklickt hat, hat sich entschieden, und eine Entscheidung nimmt die
+   * Mausbewegung nicht zurück.
+   */
+  openOnHover?: boolean;
+  /** Zusätzliche Klasse am Rahmen – etwa für die Lage des Kastens. */
+  className?: string;
   children: ReactNode;
 }
 
-export function InfoDisclosure({ label, title, children }: InfoDisclosureProps): ReactNode {
+export function InfoDisclosure({
+  label,
+  title,
+  trigger,
+  triggerClassName,
+  openOnHover = false,
+  className,
+  children,
+}: InfoDisclosureProps): ReactNode {
   const id = useId();
   const panelId = `${id}-panel`;
   const [open, setOpen] = useState(false);
+  /**
+   * Klappt der Kasten nach oben auf?
+   *
+   * Unten auf der Seite – etwa in den letzten Zeilen der Prüftabelle, direkt
+   * über der klebenden Leiste – ist unterhalb des Auslösers kein Platz. Ein
+   * Kasten, der dort nach unten aufgeht, steht zur Hälfte außerhalb des
+   * Fensters, und man muss scrollen, um einen Satz zu lesen.
+   *
+   * Gemessen wird beim Öffnen, nicht beim Rendern: Vorher steht der Auslöser
+   * noch gar nicht dort, wo er beim Klick stehen wird.
+   */
+  const [flip, setFlip] = useState(false);
+  /** Geöffnet durch Überfahren – dann schließt das Verlassen wieder. */
+  const byHover = useRef(false);
+
   const buttonRef = useRef<HTMLButtonElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const rect = buttonRef.current?.getBoundingClientRect?.();
+    if (!rect) return;
+    const platz = window.innerHeight - rect.bottom;
+    // 14 rem ist die Höhe, unter der ein zweizeiliger Hinweis anfängt zu
+    // klemmen. Genauer geht es nicht, ohne den Kasten erst zu rendern.
+    setFlip(platz > 0 && platz < 14 * 16 && rect.top > 14 * 16);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -79,19 +137,57 @@ export function InfoDisclosure({ label, title, children }: InfoDisclosureProps):
   }, [open]);
 
   return (
-    <div className="info" ref={wrapperRef}>
+    <div
+      className={['info', className].filter(Boolean).join(' ')}
+      ref={wrapperRef}
+      {...(flip && open ? { 'data-flip': 'up' } : {})}
+      {...(openOnHover
+        ? {
+            onMouseEnter: () => {
+              if (!open) {
+                byHover.current = true;
+                setOpen(true);
+              }
+            },
+            onMouseLeave: () => {
+              if (byHover.current) {
+                byHover.current = false;
+                setOpen(false);
+              }
+            },
+          }
+        : {})}
+    >
       <button
         type="button"
         ref={buttonRef}
-        className="info__button"
+        className={triggerClassName ?? 'info__button'}
         aria-label={label}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          /*
+            Ein Klick auf etwas, das beim Überfahren schon aufging, **pinnt**
+            es fest – er schließt es nicht.
+
+            Mit der Maus kommt vor jedem Klick ein `mouseenter`. Ein blindes
+            Umschalten machte den Kasten damit im selben Moment wieder zu, in
+            dem jemand ihn festhalten wollte: Er ginge auf, und der Klick
+            nähme ihn zurück.
+          */
+          if (byHover.current) {
+            byHover.current = false;
+            setOpen(true);
+            return;
+          }
+          setOpen((current) => !current);
+        }}
       >
-        <span className="info__mark" aria-hidden="true">
-          i
-        </span>
+        {trigger ?? (
+          <span className="info__mark" aria-hidden="true">
+            i
+          </span>
+        )}
       </button>
       {open ? (
         <div className="info__panel" id={panelId} role="group" aria-label={title ?? label}>

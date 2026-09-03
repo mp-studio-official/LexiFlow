@@ -53,7 +53,7 @@ import { CEFR_LEVELS, GRADES, GRADE_LABELS, suggestCefrLevel } from '../../domai
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
 import { countCandidates } from '../../import/candidateLimit';
-import { suggestTopic, type TopicSuggestion } from '../../import/topicSuggestion';
+import { suggestTopic } from '../../import/topicSuggestion';
 import { looksLikePublication } from '../../import/recommendation';
 import { DIRECTION_LABELS, LEARNING_DIRECTIONS, type LearningDirection } from '../../domain/schema';
 import {
@@ -204,10 +204,6 @@ export function ImportWizardPage() {
   const preparationRef = useRef<TranslationPreparation | null>(null);
   const [englishText, setEnglishText] = useState('');
   const [analysis, setAnalysis] = useState<TextAnalysis | null>(null);
-  /** Der Themenvorschlag aus dem Text – leer, wenn nichts heraussticht. */
-  const [topicHint, setTopicHint] = useState('');
-  /** Woraus er entstanden ist – für eine ehrliche Beschriftung im Schritt 2. */
-  const [topicSource, setTopicSource] = useState<TopicSuggestion['source']>('none');
   /**
    * Sieht der Text nach einer Publikation mit Kopfdaten aus?
    *
@@ -364,9 +360,13 @@ export function ImportWizardPage() {
         Klick wieder weg – und was die Lehrkraft schon selbst geschrieben hat,
         wird nie überschrieben.
       */
+      /*
+        Woher der Vorschlag stammt, wurde bis 4B.5 mitgeführt und im
+        Empfehlungsschritt als Hinweis unter dem Themenfeld gezeigt. Der
+        Hinweis ist weg, und mit ihm die Buchführung darüber – ein Zustand,
+        den niemand liest, ist kein Zustand.
+      */
       const topic = suggestTopic(englishText);
-      setTopicHint(topic.topic);
-      setTopicSource(topic.source);
       if (topic.topic && !meta.topic.trim()) {
         setMeta((current) => (current.topic.trim() ? current : { ...current, topic: topic.topic }));
       }
@@ -947,8 +947,6 @@ export function ImportWizardPage() {
             candidates={candidates}
             context={learningContext}
             sourceText={englishText}
-            suggestedTopic={topicHint}
-            topicSource={topicSource}
             publicationContext={publicationContext}
             preparation={preparation}
             onContextChange={(next) => {
@@ -1213,10 +1211,6 @@ export function ImportWizardPage() {
               </div>
             )}
 
-            <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
-              Die GeR-Zuordnung folgt der üblichen Orientierung für Gymnasien in NRW und ist ein
-              Vorschlag – schulinterne Lehrpläne können abweichen.
-            </p>
           </Card>
 
           {/*

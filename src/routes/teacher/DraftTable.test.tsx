@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DraftTable } from './DraftTable';
 import { buildDrafts, type DraftRow } from '../../import/draft';
@@ -28,14 +28,24 @@ describe('DraftTable – Grundzeile', () => {
     expect(screen.getByDisplayValue('überfüllt')).toBeInTheDocument();
   });
 
-  it('kennzeichnet fehlende Stichwörter als Fehler', () => {
+  it('kennzeichnet fehlende Stichwörter als Fehler', async () => {
+    const user = userEvent.setup();
     render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
-    expect(screen.getByText(/Englisches Stichwort fehlt/)).toBeInTheDocument();
+    // Seit 4B.5 liegt der Grund hinter der Statusplakette, nicht unter dem Feld.
+    const zeile = screen.getByLabelText('Englisch, Zeile 3').closest('tr') as HTMLElement;
+    await user.click(within(zeile).getByRole('button', { name: /Befunde zu .* anzeigen/ }));
+    expect(within(zeile).getByText(/Englisches Stichwort fehlt/)).toBeInTheDocument();
   });
 
-  it('kennzeichnet Duplikate als Hinweis', () => {
+  it('kennzeichnet Duplikate als Hinweis', async () => {
+    const user = userEvent.setup();
     render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
-    expect(screen.getByText(/kommt mehrfach vor/)).toBeInTheDocument();
+    for (const knopf of screen.getAllByRole('button', { name: /Befunde zu .* anzeigen/ })) {
+      await user.click(knopf);
+      if (screen.queryByText(/kommt mehrfach vor/)) return;
+      await user.click(knopf);
+    }
+    throw new Error('Kein Duplikathinweis gefunden.');
   });
 
   it('meldet Änderungen samt neuer Prüfung nach oben', async () => {
@@ -199,7 +209,7 @@ describe('Die Übersichtszeile', () => {
     /*
       Bis 4B.1 stand hier eine Aufzählung aller Meldungen. Bei drei Hinweisen
       war die Statusspalte höher als die ganze übrige Zeile. Jetzt sagt der
-      Status **ob** – und der Grund steht unter dem Feld, das ihn angeht.
+      Status **ob** – und das **was** liegt einen Klick tief dahinter.
     */
     render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
 
@@ -210,14 +220,37 @@ describe('Die Übersichtszeile', () => {
     expect(screen.queryByText('Hinweis')).not.toBeInTheDocument();
   });
 
-  it('stellt den Grund unter das Feld, das ihn angeht', () => {
+  it('legt den Grund hinter die Statusplakette – als echten Knopf', async () => {
+    /*
+      Sprint 4B.5. Unter dem Feld kostete jede Meldung eine zusätzliche Zeile
+      Höhe; bei zwanzig Vokabeln wurde die Tabelle doppelt so lang wie ihr
+      Inhalt.
+
+      Die Plakette ist deshalb der Auslöser – und ein echter Knopf mit
+      `aria-expanded`, nicht ein Titel, den nur eine Maus erreicht. Auf einem
+      iPad gäbe es die Auskunft sonst gar nicht.
+    */
+    const user = userEvent.setup();
     render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
 
-    const meldung = screen.getByText(/Englisches Stichwort fehlt/);
-    const zelle = meldung.closest('td');
-    expect(zelle).not.toBeNull();
-    // Dieselbe Zelle wie die Felder der Zeile.
-    expect(zelle).toBe(screen.getByLabelText('Englisch, Zeile 3').closest('td'));
+    const zeile = screen.getByLabelText('Englisch, Zeile 3').closest('tr') as HTMLElement;
+    const plakette = within(zeile).getByRole('button', { name: /Befunde zu .* anzeigen/ });
+    expect(plakette).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/Englisches Stichwort fehlt/)).not.toBeInTheDocument();
+
+    await user.click(plakette);
+    expect(plakette).toHaveAttribute('aria-expanded', 'true');
+    expect(within(zeile).getByText(/Englisches Stichwort fehlt/)).toBeInTheDocument();
+  });
+
+  it('lässt eine Zeile ohne Befund ohne Knopf', () => {
+    // Eine Plakette, die nichts zu zeigen hat, wäre ein Angebot ohne Inhalt.
+    render(<DraftTable drafts={drafts()} onChange={vi.fn()} />);
+    const zeile = screen.getByDisplayValue('überfüllt').closest('tr') as HTMLElement;
+    expect(
+      within(zeile).queryByRole('button', { name: /Befunde zu .* anzeigen/ }),
+    ).not.toBeInTheDocument();
+    expect(within(zeile).getByText('OK')).toBeInTheDocument();
   });
 
   it('nennt den Beispielsatz benannt und mit Anzahl', async () => {

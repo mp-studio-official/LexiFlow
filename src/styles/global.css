@@ -1095,10 +1095,29 @@ textarea {
   width: 100%;
   transition: border-color var(--duration-fast) var(--ease-out);
 }
+/*
+  Beim Überfahren wird der Rand dunkler – und **sonst nichts**.
+
+  Bis 4B.5 stand hier ein Kommentar zwischen der Auswahlliste und `.growing`.
+  Ein Kommentar beendet eine Auswahlliste nicht: Aus vier Hover-Regeln und
+  einer Regel für das wachsende Textfeld wurde **eine** Regel, und jedes
+  überfahrene Textfeld bekam damit `min-height: var(--tap-target)`.
+
+  Sichtbar war das überall dort, wo ein Feld absichtlich flacher ist – in der
+  Prüftabelle und in der schmalen Einstellungsspalte. Die Felder wuchsen unter
+  der Maus um acht Pixel und schoben die Zeile auseinander. Der beabsichtigte
+  Randwechsel fand dagegen gar nicht statt.
+
+  Zwei Regeln, keine Kommentare dazwischen.
+*/
 input[type='text']:hover:not(:disabled),
 input[type='search']:hover:not(:disabled),
 input[type='number']:hover:not(:disabled),
 select:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: var(--ink-muted);
+}
+
 /*
   Ein Textfeld, das mit seinem Inhalt wächst.
 
@@ -1112,10 +1131,6 @@ select:hover:not(:disabled),
   resize: none;
   overflow: hidden;
   min-height: var(--tap-target);
-}
-
-textarea:hover:not(:disabled) {
-  border-color: var(--ink-muted);
 }
 input:disabled,
 select:disabled,
@@ -1346,15 +1361,20 @@ td input[type='text'] {
   ist eine Aufgabe, kein Schaden. Rot bleibt dem vorbehalten, was wirklich
   blockiert.
 */
+/*
+  Die Meldungen stehen seit 4B.5 **im Popover** hinter der Statusplakette.
+
+  Unter dem Feld kosteten sie je Zeile zusätzliche Höhe für einen Satz, den man
+  einmal liest; bei zwanzig Vokabeln wurde die Tabelle doppelt so lang wie ihr
+  Inhalt. Das Ausrufezeichen vor einem Fehler bleibt: Es unterscheidet ohne
+  Farbe, was blockiert, von dem, was nur auffällt.
+*/
 .draft__issues {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.15rem;
-}
-.draft__issues li {
-  color: var(--ink-secondary);
+  gap: 0.25rem;
 }
 .draft__issues li[data-level='error']::before {
   content: '! ';
@@ -1411,22 +1431,6 @@ tbody tr.draft__detail-row > td {
   padding-top: 0;
 }
 
-/*
-  Kein Randwechsel beim Überfahren – nicht in dieser Tabelle.
-
-  Ein Textfeld, das beim Überfahren dunkler umrandet wird, ist auf einem
-  Formular eine Hilfe: Es sagt, worauf man gerade zielt. In einer Tabelle mit
-  acht Feldern je Zeile ist es das Gegenteil – die Ränder blinken der Maus
-  hinterher, während man eigentlich liest. Fokus und Zustand bleiben
-  unverändert sichtbar; nur das Mitwandern ist weg.
-*/
-@media (hover: hover) {
-  td input[type='text']:hover:not(:disabled),
-  td select:hover:not(:disabled) {
-    border-color: var(--border-strong);
-  }
-}
-
 /* --- ENG und DE vor dem Feld (seit 4B.5) -------------------------------- */
 
 /*
@@ -1436,10 +1440,20 @@ tbody tr.draft__detail-row > td {
   Spaltenbreite, die in der Tabelle keine ist.
 */
 .draft__side {
-  display: grid;
-  gap: 0.1rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
+/*
+  Feste Breite, damit die beiden Felder untereinander bündig anfangen.
+
+  Ohne sie stünde `DE` weiter links als `ENG`, und die Zeile bekäme genau die
+  Unruhe, die das Kürzel beseitigen sollte. `ch` statt `rem`: Es geht um drei
+  Zeichen, nicht um eine Länge.
+*/
 .draft__lang {
+  flex: none;
+  inline-size: 3.2ch;
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-eyebrow);
@@ -1765,6 +1779,58 @@ progress {
   color: var(--accent-ink);
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+/*
+  Eine Plakette, die man drücken kann (seit 4B.5).
+
+  Zwei Fälle in der Prüftabelle: Der Status öffnet die Befunde, und „Als
+  geprüft bestätigen“ nimmt sie an. Beide stehen untereinander in derselben
+  Spalte und beantworten dieselbe Frage – als Plakette und Knopf nebeneinander
+  sahen sie aus wie zwei verschiedene Sorten Sache.
+
+  Die Schriftgröße bleibt klein, die **Klickfläche** nicht: `min-height` hebt
+  sie auf ein Maß, das auf einem Telefon zu treffen ist, ohne die Plakette
+  größer aussehen zu lassen.
+*/
+.badge--button {
+  font-family: inherit;
+  cursor: pointer;
+  min-block-size: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  text-align: center;
+}
+.badge--button:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .badge--button:hover {
+    border-color: currentColor;
+  }
+}
+
+/*
+  Grau: ein Angebot, kein Urteil.
+
+  Die farbigen Plaketten sagen, wie es um die Zeile steht. Diese hier sagt, was
+  man tun kann. Sie in dieselbe Farbe zu setzen hieße, eine Handlung wie einen
+  Zustand aussehen zu lassen.
+*/
+.badge--action {
+  color: var(--ink-secondary);
+  border-color: var(--border-strong);
+  background: var(--surface);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--text-xs);
+}
+@media (hover: hover) {
+  .badge--action:hover {
+    background: var(--surface-sunken);
+    color: var(--ink);
+  }
 }
 
 /* --------------------------------------------------------------- Übung */
@@ -2135,6 +2201,37 @@ progress {
     left: auto;
     right: 0;
   }
+}
+
+/*
+  Der Auslöser ist eine Plakette, kein 44-px-Knopf.
+
+  Der Abstand des Kastens hing an der Höhe des runden **i**; unter einer
+  Plakette klaffte damit eine Lücke. `100 %` misst den Auslöser selbst.
+
+  Und die Statusspalte steht ganz rechts: Der Kasten hängt dort am rechten
+  Rand, sonst liefe er aus der Tabelle heraus. Schmaler wird er ebenfalls – ein
+  30-rem-Kasten für einen Satz ist ein Plakat.
+*/
+.info--pill .info__panel {
+  top: calc(100% + var(--space-1));
+  left: auto;
+  right: 0;
+  inline-size: min(22rem, calc(100vw - 2 * var(--gutter)));
+  max-inline-size: min(22rem, calc(100vw - 2 * var(--gutter)));
+}
+
+/*
+  Unten kein Platz? Dann nach oben.
+
+  In den letzten Zeilen der Prüftabelle steht direkt unter dem Auslöser die
+  klebende Leiste und darunter der Fensterrand. Ein Kasten, der dort nach unten
+  aufgeht, steht zur Hälfte außerhalb – und man müsste scrollen, um einen Satz
+  zu lesen. Gemessen wird beim Öffnen (siehe `InfoDisclosure`).
+*/
+.info[data-flip='up'] .info__panel {
+  top: auto;
+  bottom: calc(100% + var(--space-1));
 }
 
 /* Wahl der Übungsart: zwei gut trennbare, große Klickflächen. */
@@ -3716,13 +3813,14 @@ progress {
   }
 }
 
-/* Die Legende erklärt die zwei Zustände – einmal, unter dem Text. */
-.split__legend {
-  margin: var(--space-2) 0 0;
-}
-.split__legend .split__word {
-  cursor: default;
-}
+/*
+  Die Legende unter dem Text ist seit 4B.5 weg.
+
+  Sie erklärte die zwei Zustände und die Bedienung – drei Zeilen unter einem
+  Textfeld, dessen Höhe ohnehin knapp ist. Dieselbe Auskunft steht jetzt hinter
+  dem **i** neben „Dein Text“: gleicher Inhalt, keine eigene Höhe, und für
+  Tastatur und Vorlesehilfe zusätzlich in der Beschreibung des Textbereichs.
+*/
 
 /*
   Der Knopf für die markierte Wortgruppe.

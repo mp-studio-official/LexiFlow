@@ -13,6 +13,7 @@ import {
   type DraftRow,
 } from '../../import/draft';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
+import { InfoDisclosure } from '../../ui/InfoDisclosure';
 import type { LearningContext } from '../../import/enrichment';
 
 /**
@@ -134,6 +135,24 @@ export function DraftTable({
             const offen = needsReview(draft);
             /** Es gab einen Befund, und jemand hat ihn ausdrücklich abgehakt. */
             const bestaetigt = !offen && reviewIssues(draft).length > 0;
+            /*
+              Vier Zustände, ein Wort und eine Farbe: ein echter Fehler, eine
+              offene fachliche Frage, eine abgehakte Frage, oder in Ordnung.
+              Berechnet wird beides an einer Stelle, damit Wort und Farbe nicht
+              auseinanderlaufen können.
+            */
+            const statusLabel = hasBlockingError(draft)
+              ? 'Bitte prüfen'
+              : offen
+                ? 'Bitte prüfen'
+                : bestaetigt
+                  ? 'Geprüft'
+                  : 'OK';
+            const statusTone: 'error' | 'warning' | 'success' = hasBlockingError(draft)
+              ? 'error'
+              : offen
+                ? 'warning'
+                : 'success';
 
             return (
               <Fragment key={draft.id}>
@@ -174,6 +193,11 @@ export function DraftTable({
                           Tabelle überfliegt, hat die Reihenfolge damit
                           auswendig gelernt oder eben nicht.
 
+                          Es steht **vor** dem Feld, nicht darüber: Darüber
+                          kostete es je Zeile eine weitere Textzeile Höhe, und
+                          bei zwanzig Vokabeln ist das eine Bildschirmhöhe für
+                          fünf Buchstaben.
+
                           `aria-hidden`: Die Felder tragen ihre Beschriftung
                           schon („Englisch, Zeile 3“). Das Kürzel doppelt sie
                           für die Augen, nicht für die Vorlesehilfe.
@@ -201,24 +225,6 @@ export function DraftTable({
                           onChange={(event) => patch(draft.id, { german: event.target.value })}
                         />
                       </div>
-                      {/*
-                        Der Grund steht dort, wo man ihn behebt.
-
-                        Bis 4B.1 stand in der Statusspalte eine Aufzählung aller
-                        Meldungen – bei drei Hinweisen war die Spalte höher als
-                        die ganze übrige Zeile und schob die Tabelle
-                        auseinander. Jetzt sagt der Status **ob**, und hier steht
-                        **was**, unmittelbar unter dem Feld, das es angeht.
-                      */}
-                      {draft.issues.length > 0 ? (
-                        <ul className="draft__issues">
-                          {draft.issues.map((issue, issueIndex) => (
-                            <li key={issueIndex} className="small" data-level={issue.level}>
-                              {issue.message}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
                     </div>
                   </td>
                   <td className="draft__pos">
@@ -276,14 +282,39 @@ export function DraftTable({
                         Zeile sagt, dass sie bestätigt wurde – sonst wüsste
                         niemand, ob er sie schon angesehen hat.
                       */}
-                      {hasBlockingError(draft) ? (
-                        <Badge tone="error">Bitte prüfen</Badge>
-                      ) : offen ? (
-                        <Badge tone="warning">Bitte prüfen</Badge>
-                      ) : bestaetigt ? (
-                        <Badge tone="success">Geprüft</Badge>
+                      {/*
+                        Der Grund liegt hinter dem Status, nicht unter der Zeile.
+
+                        Bis 4B.5 stand unter jedem Feld eine Aufzählung der
+                        Meldungen. Bei zwanzig Zeilen war das zwanzigmal
+                        zusätzliche Höhe für einen Satz, den man einmal liest –
+                        und die Tabelle wurde doppelt so lang wie ihr Inhalt.
+
+                        Jetzt sagt die Plakette **ob**, und sie ist zugleich der
+                        Weg zum **was**: Überfahren oder anklicken. Sie ist ein
+                        echter Knopf mit `aria-expanded`, per Tastatur bedienbar
+                        und mit Escape zu schließen – ein Hinweis, den nur eine
+                        Maus erreicht, wäre auf einem iPad keiner.
+                      */}
+                      {draft.issues.length > 0 ? (
+                        <InfoDisclosure
+                          className="info--pill"
+                          label={`${statusLabel} – Befunde zu „${rowLabel}“ anzeigen`}
+                          title={`„${rowLabel}“`}
+                          openOnHover
+                          trigger={statusLabel}
+                          triggerClassName={`badge badge--${statusTone} badge--button`}
+                        >
+                          <ul className="draft__issues">
+                            {draft.issues.map((issue, issueIndex) => (
+                              <li key={issueIndex} data-level={issue.level}>
+                                {issue.message}
+                              </li>
+                            ))}
+                          </ul>
+                        </InfoDisclosure>
                       ) : (
-                        <Badge tone="success">OK</Badge>
+                        <Badge tone={statusTone}>{statusLabel}</Badge>
                       )}
 
                       {/*
@@ -291,16 +322,23 @@ export function DraftTable({
                         Wegklicken. Deshalb steht im Namen, worum es geht, und
                         deshalb verfällt sie, sobald sich der beanstandete
                         Sachverhalt ändert (siehe `reviewFingerprint`).
+
+                        Als Plakette und nicht als Knopf: Sie steht direkt unter
+                        dem Status und beantwortet dieselbe Frage. Zwei
+                        verschiedene Formen nebeneinander sahen aus wie zwei
+                        verschiedene Sorten Sache. Grau, weil sie ein Angebot
+                        ist und kein Urteil.
                       */}
                       {offen ? (
-                        <Button
-                          small
+                        <button
+                          type="button"
+                          className="badge badge--button badge--action"
                           id={`draft-confirm-${draft.id}`}
                           aria-label={`Befund zu „${rowLabel}“ als geprüft bestätigen`}
                           onClick={() => transform(draft.id, confirmReview)}
                         >
                           Als geprüft bestätigen
-                        </Button>
+                        </button>
                       ) : null}
 
                       <Button

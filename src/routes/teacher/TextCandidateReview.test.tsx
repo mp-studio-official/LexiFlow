@@ -472,68 +472,57 @@ describe('Der Schritt beginnt mit einer Entscheidung, nicht mit einer Liste', ()
   });
 });
 
+/**
+ * Sprint 4B.5: Der Themenvorschlag steht im Feld, nicht in einem Hinweis.
+ *
+ * Bis 4B.4 stand unter dem Feld, woher der Vorschlag kam – aus der Überschrift
+ * oder aus den häufigsten Begriffen. In der 21 rem schmalen Einstellungsspalte
+ * lief das über drei Zeilen und schob die Felder darunter aus dem Bild, für
+ * eine Auskunft, die man beim ersten Mal liest und danach nie wieder braucht.
+ *
+ * Geblieben ist, worauf es ankommt: Der Vorschlag steht **eingetragen** da und
+ * ist ein ganz normales, änderbares Feld.
+ */
 describe('Der Themenvorschlag', () => {
-  function mountWithTopic(suggested: string, source: 'heading' | 'frequency' | 'none') {
-    render(
-      <ProviderRegistry>
-        <TextCandidateReview
-          candidates={candidates()}
-          context={CONTEXT}
-          onContextChange={vi.fn()}
-          suggestedTopic={suggested}
-          topicSource={source}
-          dictionary={LEERES_WOERTERBUCH}
-          onApply={vi.fn()}
-          onBack={vi.fn()}
-        />
-      </ProviderRegistry>,
-    );
-  }
-
-  it('sagt, dass er aus der Überschrift stammt', () => {
-    mountWithTopic('Coastal Erosion in Cornwall', 'heading');
-    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
-      /Aus der Überschrift des Textes vorgeschlagen: „Coastal Erosion in Cornwall“/,
-    );
-  });
-
-  it('sagt, dass er aus den häufigsten Begriffen stammt', () => {
-    mountWithTopic('Erosion und Settlement', 'frequency');
-    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
-      /häufigsten Begriffen des Textes vorgeschlagen/,
-    );
-  });
-
-  it('sagt es auch, wenn nichts herausstach', () => {
-    /*
-      Der wichtigste Fall. Ein erfundenes Thema kostet Vertrauen und muss
-      weggeklickt werden; ein leeres Feld mit einer Erklärung kostet nichts.
-    */
-    mountWithTopic('', 'none');
-    expect(screen.getByLabelText('Thema')).toHaveValue('');
-    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
-      /ließ sich kein Thema ableiten/,
-    );
-  });
-
   it('bleibt ein ganz normales, editierbares Feld', async () => {
     const onContextChange = vi.fn();
     render(
       <ProviderRegistry>
         <TextCandidateReview
           candidates={candidates()}
-          context={CONTEXT}
+          context={{ ...CONTEXT, topic: 'Coastal Erosion' }}
           onContextChange={onContextChange}
-          suggestedTopic="Coastal Erosion"
-          topicSource="heading"
           dictionary={LEERES_WOERTERBUCH}
           onApply={vi.fn()}
           onBack={vi.fn()}
         />
       </ProviderRegistry>,
     );
+
+    expect(screen.getByLabelText('Thema')).toHaveValue('Coastal Erosion');
     await userEvent.type(screen.getByLabelText('Thema'), 'X');
-    expect(onContextChange).toHaveBeenCalledWith(expect.objectContaining({ topic: 'X' }));
+    expect(onContextChange).toHaveBeenCalledWith(expect.objectContaining({ topic: 'Coastal ErosionX' }));
+  });
+
+  it('erklärt sich nicht mehr unter dem Feld', () => {
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={candidates()}
+          context={{ ...CONTEXT, topic: 'Coastal Erosion' }}
+          onContextChange={vi.fn()}
+          dictionary={LEERES_WOERTERBUCH}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+
+    expect(screen.getByLabelText('Thema')).not.toHaveAccessibleDescription();
+    expect(screen.queryByText(/häufigsten Begriffen/)).not.toBeInTheDocument();
+    // Und die Anzahl erklärt sich ebenso wenig – die Meldung nach dem
+    // Empfehlen sagt ohnehin, wenn der Text weniger hergibt.
+    expect(screen.getByLabelText('Anzahl')).not.toHaveAccessibleDescription();
   });
 });
 

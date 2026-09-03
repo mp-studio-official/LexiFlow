@@ -516,7 +516,13 @@ describe('GeR folgt dem Jahrgang, bis jemand widerspricht', () => {
 
     const thema = screen.getByLabelText('Thema');
     expect(thema).toHaveValue('Coastal Erosion in Cornwall');
-    expect(thema).toHaveAccessibleDescription(/Aus der Überschrift des Textes vorgeschlagen/);
+    /*
+      Woher der Vorschlag stammt, stand bis 4B.5 als Hinweis unter dem Feld.
+      In der schmalen Einstellungsspalte lief er über drei Zeilen und schob die
+      Felder darunter aus dem Bild – für eine Auskunft, die man beim ersten Mal
+      liest. Dass der Vorschlag aus dem Text kommt, sagt das ausgefüllte Feld.
+    */
+    expect(thema).not.toHaveAccessibleDescription();
 
     // Und er ist ein ganz normales Feld.
     await user.clear(thema);
@@ -527,10 +533,8 @@ describe('GeR folgt dem Jahrgang, bis jemand widerspricht', () => {
   it('erfindet kein Thema, wenn nichts heraussticht', async () => {
     const user = setup();
     await analyzeAndRecommend(user, 'One two three four five six seven eight nine.');
+    // Ein leeres Feld statt eines geratenen Themas – das ist der Punkt.
     expect(screen.getByLabelText('Thema')).toHaveValue('');
-    expect(screen.getByLabelText('Thema')).toHaveAccessibleDescription(
-      /ließ sich kein Thema ableiten/,
-    );
   });
 });
 
