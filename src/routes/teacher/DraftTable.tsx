@@ -2,9 +2,12 @@ import { Fragment, Suspense, lazy, useState } from 'react';
 import { Badge, Button } from '../../ui/components';
 import {
   addSentence,
+  confirmReview,
   hasBlockingError,
   moveSentence,
+  needsReview,
   removeSentence,
+  reviewIssues,
   updateSentence,
   validateDrafts,
   type DraftRow,
@@ -127,10 +130,17 @@ export function DraftTable({
                 : undefined;
             const rowLabel = draft.english || `Zeile ${index + 1}`;
             const isOpen = expanded.has(draft.id);
+            /** Offener fachlicher Befund – der einzige Fall für „Bitte prüfen“. */
+            const offen = needsReview(draft);
+            /** Es gab einen Befund, und jemand hat ihn ausdrücklich abgehakt. */
+            const bestaetigt = !offen && reviewIssues(draft).length > 0;
 
             return (
               <Fragment key={draft.id}>
-                <tr {...(state ? { 'data-state': state } : {})}>
+                <tr
+                  {...(state ? { 'data-state': state } : {})}
+                  {...(isOpen ? { 'data-expanded': 'true' } : {})}
+                >
                   <td>
                     <input
                       type="checkbox"
@@ -154,18 +164,43 @@ export function DraftTable({
                         wie bisher, damit eine Vorlesehilfe weiterhin sagt,
                         welche Seite gerade dran ist.
                       */}
-                      <input
-                        type="text"
-                        value={draft.english}
-                        aria-label={`Englisch, Zeile ${index + 1}`}
-                        onChange={(event) => patch(draft.id, { english: event.target.value })}
-                      />
-                      <input
-                        type="text"
-                        value={draft.german}
-                        aria-label={`Deutsch, Zeile ${index + 1}`}
-                        onChange={(event) => patch(draft.id, { german: event.target.value })}
-                      />
+                      <div className="draft__side">
+                        {/*
+                          `ENG` und `DE` vor dem Feld.
+
+                          Untereinander sind die beiden Felder gleich breit und
+                          gleich leer; welches die Vokabel und welches die
+                          Antwort ist, stand nur im unsichtbaren Namen. Wer die
+                          Tabelle überfliegt, hat die Reihenfolge damit
+                          auswendig gelernt oder eben nicht.
+
+                          `aria-hidden`: Die Felder tragen ihre Beschriftung
+                          schon („Englisch, Zeile 3“). Das Kürzel doppelt sie
+                          für die Augen, nicht für die Vorlesehilfe.
+                        */}
+                        <span className="draft__lang" aria-hidden="true">
+                          ENG
+                        </span>
+                        <input
+                          type="text"
+                          value={draft.english}
+                          id={`draft-english-${draft.id}`}
+                          aria-label={`Englisch, Zeile ${index + 1}`}
+                          onChange={(event) => patch(draft.id, { english: event.target.value })}
+                        />
+                      </div>
+                      <div className="draft__side">
+                        <span className="draft__lang" aria-hidden="true">
+                          DE
+                        </span>
+                        <input
+                          type="text"
+                          value={draft.german}
+                          id={`draft-german-${draft.id}`}
+                          aria-label={`Deutsch, Zeile ${index + 1}`}
+                          onChange={(event) => patch(draft.id, { german: event.target.value })}
+                        />
+                      </div>
                       {/*
                         Der Grund steht dort, wo man ihn behebt.
 
@@ -227,13 +262,47 @@ export function DraftTable({
                         „Bitte prüfen“ statt „Fehler“: Eine fehlende Übersetzung
                         ist eine offene Aufgabe, kein Schaden.
                       */}
-                      {draft.issues.length === 0 ? (
-                        <Badge tone="success">OK</Badge>
+                      {/*
+                        „Bitte prüfen“ steht nur noch dort, wo es etwas zu
+                        entscheiden gibt.
+
+                        Bis 4B.4 bekam jede Zeile mit irgendeiner Warnung diesen
+                        Status – bei zwanzig Empfehlungen zwölf Stück, von denen
+                        elf nichts zu entscheiden hatten. Die zwölfte ging darin
+                        unter, und genau die war die wichtige.
+
+                        Drei Zustände: ein echter Fehler (fehlendes Feld), eine
+                        offene fachliche Frage, oder in Ordnung. Eine bestätigte
+                        Zeile sagt, dass sie bestätigt wurde – sonst wüsste
+                        niemand, ob er sie schon angesehen hat.
+                      */}
+                      {hasBlockingError(draft) ? (
+                        <Badge tone="error">Bitte prüfen</Badge>
+                      ) : offen ? (
+                        <Badge tone="warning">Bitte prüfen</Badge>
+                      ) : bestaetigt ? (
+                        <Badge tone="success">Geprüft</Badge>
                       ) : (
-                        <Badge tone={hasBlockingError(draft) ? 'error' : 'warning'}>
-                          Bitte prüfen
-                        </Badge>
+                        <Badge tone="success">OK</Badge>
                       )}
+
+                      {/*
+                        Die Bestätigung ist eine fachliche Entscheidung, kein
+                        Wegklicken. Deshalb steht im Namen, worum es geht, und
+                        deshalb verfällt sie, sobald sich der beanstandete
+                        Sachverhalt ändert (siehe `reviewFingerprint`).
+                      */}
+                      {offen ? (
+                        <Button
+                          small
+                          id={`draft-confirm-${draft.id}`}
+                          aria-label={`Befund zu „${rowLabel}“ als geprüft bestätigen`}
+                          onClick={() => transform(draft.id, confirmReview)}
+                        >
+                          Als geprüft bestätigen
+                        </Button>
+                      ) : null}
+
                       <Button
                         small
                         variant="quiet"
@@ -247,7 +316,7 @@ export function DraftTable({
                 </tr>
 
                 {isOpen ? (
-                  <tr>
+                  <tr className="draft__detail-row">
                     <td colSpan={COLUMN_COUNT}>
                       <div className="details">
                         {/*

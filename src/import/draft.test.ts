@@ -2,11 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { detectColumns } from './columnDetect';
 import {
   addSentence,
+  blocksSaving,
   buildDrafts,
+  confirmReview,
   deselectDuplicates,
   draftsToEntries,
   emptyDraft,
   hasBlockingError,
+  needsReview,
+  reviewFingerprint,
+  reviewIssues,
   moveSentence,
   newSentence,
   parseDifficulty,
@@ -242,5 +247,151 @@ describe('parseDifficulty', () => {
     expect(parseDifficulty(0)).toBe('');
     expect(parseDifficulty(6)).toBe('');
     expect(parseDifficulty(undefined)).toBe('');
+  });
+});
+
+/**
+ * Sprint 4B.5: „Bitte prüfen“ nur dort, wo es etwas zu entscheiden gibt.
+ *
+ * Bis 4B.4 bekam jede Zeile mit irgendeiner Warnung diesen Status. Bei zwanzig
+ * Empfehlungen waren das zwölf, von denen elf nichts zu entscheiden hatten –
+ * und die zwölfte ging darin unter. Die Trennung hier ist deshalb keine
+ * Feinheit, sie ist der ganze Zweck.
+ */
+describe('Offene fachliche Befunde', () => {
+  function zeile(partial: Partial<ReturnType<typeof emptyDraft>>) {
+    const [row] = validateDrafts([{ ...emptyDraft(), include: true, ...partial }]);
+    if (!row) throw new Error('keine Zeile');
+    return row;
+  }
+
+  it('erklärt eine offene Frage zur Lernform zum Befund', () => {
+    const row = zeile({
+      english: 'depend',
+      german: 'abhängen',
+      formNeedsReview: true,
+      formReviewReason: 'Im Text steht „depend on“. Gehört das „on“ zur Vokabel?',
+    });
+    expect(reviewIssues(row)).toHaveLength(1);
+    expect(needsReview(row)).toBe(true);
+  });
+
+  it('erklärt einen fehlenden Beispielsatzbezug nicht zum Befund', () => {
+    /*
+      „Kein Beispielsatz enthält das Stichwort“ ist eine Auskunft, keine Frage.
+      Es gibt nichts zu bestätigen – man ändert den Satz oder man lässt es.
+    */
+    const row = zeile({
+      english: 'island',
+      german: 'die Insel',
+      sentences: [{ id: 's1', english: 'The bay is quiet.', german: '' }],
+    });
+    expect(row.issues.length).toBeGreaterThan(0);
+    expect(reviewIssues(row)).toHaveLength(0);
+    expect(needsReview(row)).toBe(false);
+  });
+
+  it('hält eine Zeile ohne jeden Befund für in Ordnung', () => {
+    const row = zeile({ english: 'island', german: 'die Insel' });
+    expect(needsReview(row)).toBe(false);
+    expect(blocksSaving(row)).toBe(false);
+  });
+});
+
+describe('Bestätigen – und wann die Bestätigung verfällt', () => {
+  function offen() {
+    const [row] = validateDrafts([
+      {
+        ...emptyDraft(),
+        include: true,
+        english: 'depend',
+        german: 'abhängen',
+        formNeedsReview: true,
+        formReviewReason: 'Gehört das „on“ zur Vokabel?',
+      },
+    ]);
+    if (!row) throw new Error('keine Zeile');
+    return row;
+  }
+
+  it('nimmt die Zeile nach der Bestätigung aus dem Weg', () => {
+    const [bestaetigt] = validateDrafts([confirmReview(offen())]);
+    expect(bestaetigt && needsReview(bestaetigt)).toBe(false);
+    expect(bestaetigt && blocksSaving(bestaetigt)).toBe(false);
+    // Der Befund bleibt sichtbar – bestätigt heißt nicht verschwunden.
+    expect(bestaetigt && reviewIssues(bestaetigt)).toHaveLength(1);
+  });
+
+  it('verfällt, wenn sich die englische Lernform ändert', () => {
+    const bestaetigt = confirmReview(offen());
+    const [geaendert] = validateDrafts([{ ...bestaetigt, english: 'depend on' }]);
+    expect(geaendert && needsReview(geaendert)).toBe(true);
+    expect(geaendert?.reviewConfirmedFor).toBeUndefined();
+  });
+
+  it('verfällt, wenn sich die Übersetzung ändert', () => {
+    const bestaetigt = confirmReview(offen());
+    const [geaendert] = validateDrafts([{ ...bestaetigt, german: 'angewiesen sein auf' }]);
+    expect(geaendert && needsReview(geaendert)).toBe(true);
+  });
+
+  it('verfällt, wenn sich die Wortart ändert', () => {
+    const bestaetigt = confirmReview(offen());
+    const [geaendert] = validateDrafts([{ ...bestaetigt, partOfSpeech: 'verb' }]);
+    expect(geaendert && needsReview(geaendert)).toBe(true);
+  });
+
+  it('überlebt eine Änderung, die den Befund nicht berührt', () => {
+    /*
+      Eine Notiz, ein Themen-Tag, ein zusätzlicher Beispielsatz: Sie ändern
+      nichts an der Frage, die beantwortet wurde. Eine Bestätigung, die daran
+      zerbricht, wäre eine Schikane.
+    */
+    const bestaetigt = confirmReview(offen());
+    const [geaendert] = validateDrafts([{ ...bestaetigt, notes: 'Für die Klassenarbeit' }]);
+    expect(geaendert && needsReview(geaendert)).toBe(false);
+  });
+
+  it('lässt sich von zusätzlichem Leerraum nicht täuschen', () => {
+    const bestaetigt = confirmReview(offen());
+    const [geaendert] = validateDrafts([{ ...bestaetigt, german: ' abhängen ' }]);
+    expect(geaendert && needsReview(geaendert)).toBe(false);
+  });
+
+  it('unterscheidet den Fingerabdruck nach allen drei Feldern', () => {
+    const row = offen();
+    expect(reviewFingerprint(row)).not.toBe(reviewFingerprint({ ...row, english: 'x' }));
+    expect(reviewFingerprint(row)).not.toBe(reviewFingerprint({ ...row, german: 'x' }));
+    expect(reviewFingerprint(row)).not.toBe(reviewFingerprint({ ...row, partOfSpeech: 'verb' }));
+  });
+});
+
+describe('Der Prüfstatus bleibt im Entwurf', () => {
+  it('steht in keinem Eintrag des Pakets', () => {
+    /*
+      Marcs Vorgabe: „Der Prüfstatus ist reine Erstellungsinformation und darf
+      nicht unnötig Bestandteil des exportierten Lernpakets werden.“
+
+      Geprüft wird über die Schlüssel des Eintrags, nicht über einen bekannten
+      Namen: So fällt auch auf, wenn das Feld später einmal anders heißt.
+    */
+    const [row] = validateDrafts([
+      {
+        ...emptyDraft(),
+        include: true,
+        english: 'depend',
+        german: 'abhängen',
+        formNeedsReview: true,
+        formReviewReason: 'Gehört das „on“ zur Vokabel?',
+      },
+    ]);
+    if (!row) throw new Error('keine Zeile');
+
+    const [entry] = draftsToEntries([confirmReview(row)], 'import');
+    expect(entry).toBeDefined();
+    const serialisiert = JSON.stringify(entry);
+    expect(serialisiert).not.toContain('reviewConfirmedFor');
+    expect(serialisiert).not.toContain('formNeedsReview');
+    expect(serialisiert).not.toContain('issues');
   });
 });

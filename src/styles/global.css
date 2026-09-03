@@ -1394,6 +1394,58 @@ tbody tr:not([hidden]) > td {
   border-bottom: 2px solid var(--border);
 }
 
+/*
+  Zwischen einer Vokabel und **ihrem** Beispielsatz steht keine Linie.
+
+  Die kräftige Trennung oben beantwortet die Frage „gehört dieses deutsche Feld
+  noch zu dem englischen darüber?“. Zwischen der aufgeklappten Zeile und ihrem
+  Detailbereich stellt sie niemand – die beiden gehören sichtbar zusammen, und
+  eine Linie dazwischen behauptete das Gegenteil. Nach unten trennt der
+  Detailbereich weiterhin, denn dort fängt die nächste Vokabel an.
+*/
+tbody tr[data-expanded] > td {
+  border-bottom: none;
+  padding-bottom: 0.3rem;
+}
+tbody tr.draft__detail-row > td {
+  padding-top: 0;
+}
+
+/*
+  Kein Randwechsel beim Überfahren – nicht in dieser Tabelle.
+
+  Ein Textfeld, das beim Überfahren dunkler umrandet wird, ist auf einem
+  Formular eine Hilfe: Es sagt, worauf man gerade zielt. In einer Tabelle mit
+  acht Feldern je Zeile ist es das Gegenteil – die Ränder blinken der Maus
+  hinterher, während man eigentlich liest. Fokus und Zustand bleiben
+  unverändert sichtbar; nur das Mitwandern ist weg.
+*/
+@media (hover: hover) {
+  td input[type='text']:hover:not(:disabled),
+  td select:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+}
+
+/* --- ENG und DE vor dem Feld (seit 4B.5) -------------------------------- */
+
+/*
+  Untereinander sind die beiden Felder gleich breit und gleich leer; welches
+  die Vokabel und welches die Antwort ist, stand nur im unsichtbaren Namen.
+  Das Kürzel steht **über** dem Feld und nicht davor: Daneben kostete es
+  Spaltenbreite, die in der Tabelle keine ist.
+*/
+.draft__side {
+  display: grid;
+  gap: 0.1rem;
+}
+.draft__lang {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--ink-muted);
+}
+
 /* Detailbereich einer Entwurfszeile */
 
 .details {
@@ -3454,6 +3506,83 @@ progress {
 @media (max-width: 61.999rem) {
   .actionbar {
     bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  }
+}
+
+/*
+  Die Aktionszeile innerhalb der Leiste.
+
+  Seit 4B.5 steht in der Leiste von Schritt 3 mehr als ein Knopf: darüber die
+  Meldung, was das Speichern aufhält, und darunter die Aktionen. Deshalb
+  stapelt die Leiste dort senkrecht.
+*/
+.actionbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+/*
+  Die Meldung über den Aktionen.
+
+  Sie steht **in** der Leiste und nicht oben auf der Seite: Sie beantwortet die
+  Frage, die man gerade gestellt hat, und zwar dort, wo man sie gestellt hat.
+  Ein leerer Absatz nimmt keinen Platz – `hidden` blendet ihn ganz aus.
+*/
+.actionbar__alert {
+  margin: 0;
+  width: 100%;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--danger);
+}
+.actionbar__more {
+  width: 100%;
+  margin: 0;
+}
+.actionbar__more ol {
+  margin: 0.3rem 0 0;
+  padding-inline-start: 1.2rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+/*
+  Ein Knopf, der wie ein Verweis aussieht.
+
+  Er springt an eine Stelle **auf derselben Seite**; ein `<a href>` wäre eine
+  Lüge über das, was passiert, und ein Knopf, der wie ein Knopf aussieht, machte
+  aus einer Liste von fünf Fundstellen eine Werkzeugleiste.
+*/
+.linklike {
+  font: inherit;
+  color: var(--primary);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: start;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.linklike:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+  Auf schmalen Bildschirmen darf die Leiste nicht zur halben Seite werden.
+
+  Bei 390 px und eingeblendeter Tastatur bleibt vom Fenster wenig übrig. Eine
+  Leiste, die dort Meldung, Liste und drei Knöpfe stapelt, verdeckt genau die
+  Felder, um die es geht. Die Höhe ist deshalb begrenzt und der Inhalt rollt
+  innerhalb der Leiste.
+*/
+@media (max-height: 34rem), (max-width: 32rem) {
+  .actionbar {
+    max-block-size: 45vh;
+    overflow-y: auto;
   }
 }
 

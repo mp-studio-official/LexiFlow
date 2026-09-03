@@ -15,6 +15,22 @@ export interface DraftIssue {
   level: 'error' | 'warning';
   field?: 'english' | 'german' | 'example' | 'accepted';
   message: string;
+  /**
+   * Ein **konkreter offener fachlicher Befund** – einer, den nur die Lehrkraft
+   * entscheiden kann (Sprint 4B.5).
+   *
+   * Der Unterschied zu einer gewöhnlichen Warnung ist die Frage, ob es etwas
+   * zu **entscheiden** gibt. „Gehört das `on` in `depend on` zur Vokabel?“ ist
+   * eine Frage; „Kein Beispielsatz enthält das Stichwort“ ist eine Auskunft.
+   * Nur die Frage hält das Speichern auf, und nur sie bekommt die Aktion „Als
+   * geprüft bestätigen“.
+   *
+   * Warum das überhaupt getrennt wird: Bis 4B.4 stand über jeder Zeile mit
+   * irgendeiner Warnung „Bitte prüfen“. Bei zwanzig Empfehlungen waren das
+   * zwölf Zeilen, von denen elf nichts zu entscheiden hatten – und die zwölfte
+   * ging darin unter.
+   */
+  review?: true;
 }
 
 /**
@@ -95,6 +111,25 @@ export interface DraftRow {
   formNeedsReview?: boolean;
   /** Warum – derselbe Satz, den schon der Empfehlungsschritt gezeigt hat. */
   formReviewReason?: string;
+  /**
+   * Der Stand der Dinge, für den die Lehrkraft „Als geprüft bestätigen“
+   * gedrückt hat (Sprint 4B.5).
+   *
+   * Gespeichert wird nicht „bestätigt: ja“, sondern **wofür**: ein
+   * Fingerabdruck aus englischer Lernform, Übersetzung und Wortart
+   * (`reviewFingerprint`). Ändert sich einer dieser Werte, stimmt der
+   * Fingerabdruck nicht mehr, und die Bestätigung verfällt.
+   *
+   * Der Grund ist der Sinn einer Bestätigung: Sie ist eine fachliche
+   * Entscheidung über einen bestimmten Sachverhalt. Wer nach der Bestätigung
+   * die Übersetzung austauscht, hat einen anderen Sachverhalt vor sich – und
+   * eine Bestätigung, die das überdauerte, wäre eine Unterschrift unter etwas,
+   * das man nie gelesen hat.
+   *
+   * Rein für die Erstellung: `draftsToEntries` liest das Feld nicht, und im
+   * `.vocabpack.json` steht es nie.
+   */
+  reviewConfirmedFor?: string;
   sentences: DraftSentence[];
   tags: string;
   notes: string;
@@ -322,6 +357,7 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
       issues.push({
         level: 'warning',
         field: 'english',
+        review: true,
         message:
           draft.formReviewReason?.trim() ||
           'An der englischen Lernform ist etwas offen. Bitte prüfen.',
@@ -332,6 +368,7 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
       issues.push({
         level: 'warning',
         field: 'german',
+        review: true,
         message: 'Übersetzung stimmt mit dem englischen Stichwort überein.',
       });
     }
@@ -375,6 +412,7 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
         issues.push({
           level: 'warning',
           field: 'english',
+          review: true,
           message: 'Dieses Stichwort kommt mehrfach vor.',
         });
       } else {
@@ -382,14 +420,83 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
       }
     }
 
-    // `duplicateOf` wird bei jeder Prüfung neu bestimmt, nie fortgeschrieben.
-    const { duplicateOf: _previous, ...rest } = draft;
-    return { ...rest, issues, ...(duplicateOf ? { duplicateOf } : {}) };
+    /*
+      Die Bestätigung überlebt nur, solange sie sich auf dasselbe bezieht.
+
+      Geprüft wird bei **jedem** Durchlauf, also auch nach jedem Tastendruck in
+      einem der drei Felder. Das ist der ganze Mechanismus: Nichts muss die
+      Bestätigung aktiv zurücknehmen, sie passt einfach nicht mehr.
+    */
+    const { duplicateOf: _previous, reviewConfirmedFor, ...rest } = draft;
+    const fingerprint = reviewFingerprint(draft);
+    const stillConfirmed = reviewConfirmedFor === fingerprint;
+
+    return {
+      ...rest,
+      issues,
+      ...(duplicateOf ? { duplicateOf } : {}),
+      ...(stillConfirmed ? { reviewConfirmedFor } : {}),
+    };
   });
 }
 
 export function hasBlockingError(draft: DraftRow): boolean {
   return draft.issues.some((issue) => issue.level === 'error');
+}
+
+/* ------------------------------------------------------- Prüfen & Bestätigen */
+
+/**
+ * Der Sachverhalt, über den bei „Als geprüft bestätigen“ entschieden wurde.
+ *
+ * Drei Felder, und zwar genau die, um die es bei einem fachlichen Befund geht:
+ * englische Lernform, deutsche Antwort, Wortart. Notiz, Themen-Tags oder ein
+ * zusätzlicher Beispielsatz ändern nichts an der Frage, die beantwortet wurde –
+ * sie sollen eine Bestätigung deshalb auch nicht ungültig machen.
+ *
+ * Verglichen wird über `normalizeAnswer`: Ein zusätzliches Leerzeichen ist
+ * keine fachliche Änderung.
+ */
+export function reviewFingerprint(draft: DraftRow): string {
+  return [
+    normalizeAnswer(draft.english),
+    normalizeAnswer(draft.german),
+    draft.partOfSpeech,
+  ].join('|');
+}
+
+/** Die Befunde, über die jemand entscheiden muss. */
+export function reviewIssues(draft: DraftRow): DraftIssue[] {
+  return draft.issues.filter((issue) => issue.review === true);
+}
+
+/**
+ * Steht an dieser Zeile noch eine fachliche Frage offen?
+ *
+ * „Offen“ heißt: Es gibt einen Befund **und** keine gültige Bestätigung dafür.
+ * Eine Zeile ohne Befund ist von selbst in Ordnung – bestätigen muss sie
+ * niemand.
+ */
+export function needsReview(draft: DraftRow): boolean {
+  if (reviewIssues(draft).length === 0) return false;
+  return draft.reviewConfirmedFor !== reviewFingerprint(draft);
+}
+
+/** Bestätigt die offenen Befunde dieser Zeile – für diesen Stand der Dinge. */
+export function confirmReview(draft: DraftRow): DraftRow {
+  return { ...draft, reviewConfirmedFor: reviewFingerprint(draft) };
+}
+
+/**
+ * Hält diese Zeile das Speichern auf?
+ *
+ * Nur, wenn sie überhaupt mitkommt. Eine abgewählte Zeile darf offen bleiben –
+ * sie landet in keinem Paket, und jemanden zu einer Entscheidung über etwas zu
+ * zwingen, das er gerade weggelegt hat, wäre Beschäftigung.
+ */
+export function blocksSaving(draft: DraftRow): boolean {
+  if (!draft.include) return false;
+  return hasBlockingError(draft) || needsReview(draft);
 }
 
 export interface DraftSummary {

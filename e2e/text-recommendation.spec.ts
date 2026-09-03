@@ -92,6 +92,25 @@ async function clearAutoAnswers(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Offene fachliche Befunde bestätigen.
+ *
+ * Seit 4B.5 hält ein Befund das Speichern auf, bis jemand ihn ausdrücklich
+ * bestätigt oder behebt. Hier trifft das vor allem Kognaten: `erosion` →
+ * „Erosion“ ist richtig und sieht für die Prüfung trotzdem so aus, als hätte
+ * jemand das Übersetzen vergessen.
+ *
+ * Diese Tests handeln nicht von der Bestätigung – die prüft
+ * `review-and-save.spec.ts`. Hier wird sie abgearbeitet wie von Hand.
+ */
+async function confirmOpenReviews(page: Page): Promise<void> {
+  for (;;) {
+    const knopf = page.getByRole('button', { name: /als geprüft bestätigen$/i }).first();
+    if ((await knopf.count()) === 0) break;
+    await knopf.click();
+  }
+}
+
 /** Die englischen Stichwörter der aktuellen Empfehlungen, in Anzeigereihenfolge. */
 async function listedWords(page: Page): Promise<string[]> {
   return page
@@ -154,6 +173,7 @@ test.describe('Empfehlungen aus einem Text', () => {
 
     await page.getByLabel('Titel', { exact: true }).fill('Coastal erosion – Empfehlungen');
     await page.getByLabel('Beschreibung (optional)').fill('Achte auf die Nomenendungen.');
+    await confirmOpenReviews(page);
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(
       page.getByRole('heading', { level: 1, name: 'Coastal erosion – Empfehlungen' }),

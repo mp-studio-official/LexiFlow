@@ -34,6 +34,11 @@ import {
   type DraftRow,
 } from '../../import/draft';
 import { parseCsv, parsePastedText } from '../../import/csv';
+import {
+  describeBlockers,
+  saveBlockers,
+  type SaveBlocker,
+} from '../../import/saveBlockers';
 import { looksStructured, parseStructuredList, structuredToDrafts } from '../../import/structuredList';
 import { TextCandidateReview } from './TextCandidateReview';
 import { syncManualEdits } from '../../import/suggestions';
@@ -108,6 +113,48 @@ const SOURCE_LABELS: Readonly<Record<SourceKind, string>> = {
 const EXAMPLE = `to apologise\tsich entschuldigen
 crowded\tvoll, überfüllt
 neighbourhood\tNachbarschaft, Viertel`;
+
+/**
+ * Die Stelle sichtbar machen – **über** der klebenden Leiste.
+ *
+ * `scrollIntoView({ block: 'center' })` allein reicht nicht: Die Leiste liegt
+ * über dem Blatt und nimmt auf einem Telefon mit eingeblendeter Tastatur die
+ * halbe Fensterhöhe ein. Zentriert im *Fenster* heißt dort: hinter der Leiste.
+ * Gerechnet wird deshalb mit dem Platz, der oberhalb der Leiste übrig bleibt.
+ *
+ * Der Fokus kommt zum Schluss und unabhängig davon, ob gerollt werden konnte:
+ * Er ist die eigentliche Zusage – der Bildlauf ist die Höflichkeit.
+ */
+function revealAndFocus(target: HTMLElement | null): void {
+  if (!target) return;
+
+  const rect = target.getBoundingClientRect?.();
+  const bar = document.querySelector('.actionbar')?.getBoundingClientRect?.();
+  if (rect && rect.height >= 0) {
+    const limit = bar && bar.top > 0 ? bar.top : window.innerHeight;
+    const wanted = Math.max(72, (limit - rect.height) / 2);
+    const delta = rect.top - wanted;
+    if (Number.isFinite(delta) && Math.abs(delta) > 1) {
+      window.scrollBy?.({ top: delta, behavior: 'smooth' });
+    }
+  }
+
+  target.focus();
+}
+
+/**
+ * Wohin der Fokus springt.
+ *
+ * Die ids stehen in `DraftTable` an genau den Stellen, an denen man den Fehler
+ * behebt: im Eingabefeld oder auf der Bestätigungsaktion. Ein Sprung auf die
+ * Zeile allein wäre die halbe Auskunft – man wüsste, welche Vokabel gemeint
+ * ist, aber nicht, was zu tun ist.
+ */
+function elementIdFor(blocker: SaveBlocker): string {
+  if (blocker.kind === 'german') return `draft-german-${blocker.draftId}`;
+  if (blocker.kind === 'review') return `draft-confirm-${blocker.draftId}`;
+  return `draft-english-${blocker.draftId}`;
+}
 
 export function ImportWizardPage() {
   const navigate = useNavigate();
@@ -194,6 +241,15 @@ export function ImportWizardPage() {
   const [candidates, setCandidates] = useState<TextCandidate[]>([]);
 
   const [error, setError] = useState<string>('');
+  /**
+   * Was den letzten Speicherversuch aufgehalten hat.
+   *
+   * Leer heißt: Es gab keinen blockierten Versuch. Die Liste entsteht erst
+   * beim Drücken – eine Fehlerwolke, die schon während des Tippens dasteht,
+   * ist Lärm.
+   */
+  const [blockers, setBlockers] = useState<SaveBlocker[]>([]);
+  const titleRef = useRef<HTMLInputElement>(null);
   const [announcement, setAnnouncement] = useState<string>('');
   /** Beim Import einer Paketdatei bleibt deren ID erhalten, damit spätere
    *  Fassungen dasselbe Paket aktualisieren statt zu duplizieren. */
@@ -528,11 +584,44 @@ export function ImportWizardPage() {
     setDrafts(buildDrafts(rawRows, next, { splitMultipleMeanings: splitMeaningsOption }));
   }
 
+  /**
+   * Der blockierte Speicherversuch – und was daraus folgt.
+   *
+   * Nicht „Fehlermeldung anzeigen und den Rest der Lehrkraft überlassen“:
+   * Die Meldung sagt, wie viele Stellen offen sind und welche die erste ist,
+   * die Ansicht scrollt dorthin, und der Fokus landet auf dem Feld oder auf
+   * der Bestätigungsaktion. Bei dreißig Zeilen Tabelle ist der Unterschied
+   * zwischen „irgendwo weiter oben“ und „hier“ die halbe Arbeit.
+   *
+   * Der Fokuswechsel geht durch `requestAnimationFrame`: Die Meldung muss
+   * gerendert sein, bevor sie gelesen werden kann, und das Ziel muss stehen,
+   * bevor man dorthin springt.
+   */
+  function reportBlockers(list: readonly SaveBlocker[]): void {
+    setBlockers([...list]);
+    setError('');
+    const first = list[0];
+    if (!first) return;
+
+    window.requestAnimationFrame(() => {
+      revealAndFocus(
+        first.kind === 'title'
+          ? titleRef.current
+          : first.draftId
+            ? document.getElementById(elementIdFor(first))
+            : null,
+      );
+    });
+  }
+
   function buildPack(): VocabPack | undefined {
-    if (!meta.title.trim()) {
-      setError('Bitte einen Titel angeben.');
+    const list = saveBlockers({ title: meta.title, drafts });
+    if (list.length > 0) {
+      reportBlockers(list);
       return undefined;
     }
+    setBlockers([]);
+
     const entries = draftsToEntries(drafts, sourceType);
     if (entries.length === 0) {
       setError('Es ist keine gültige Vokabel ausgewählt.');
@@ -994,11 +1083,14 @@ export function ImportWizardPage() {
               <Field
                 label="Titel"
                 hint="Erscheint in der Paketliste, z. B. „Unit 3 – Sports“."
-                {...(error && !meta.title.trim() ? { error: 'Bitte einen Titel angeben.' } : {})}
+                {...(blockers.some((blocker) => blocker.kind === 'title')
+                  ? { error: 'Das Paket braucht einen Titel.' }
+                  : {})}
               >
                 {(props) => (
                   <input
                     {...props}
+                    ref={titleRef}
                     type="text"
                     value={meta.title}
                     required
@@ -1173,17 +1265,88 @@ export function ImportWizardPage() {
             variant={source === 'text' ? 'text' : 'full'}
           />
 
-          <div className="row">
-            <Button onClick={() => setStep(source === 'text' ? 'candidates' : 'source')}>
-              Zurück
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => void handleSave()}
-              disabled={summary.selected === 0}
-            >
-              Paket speichern ({summary.selected} Vokabeln)
-            </Button>
+          {/*
+            Die klebende Aktionsleiste von Schritt 3.
+
+            Es gibt sie nur hier: Schritt 2 hat seine eigene, und beide stehen
+            in getrennten Zweigen – zwei gleichzeitig sichtbare Leisten kann es
+            damit nicht geben. Auf schmalen Bildschirmen sitzt sie über der
+            Navigation (siehe `.actionbar` in `global.css`), nicht darauf.
+
+            Die Meldung steht **in** der Leiste, nicht oben auf der Seite: Sie
+            beantwortet die Frage, die man gerade gestellt hat, und zwar dort,
+            wo man sie gestellt hat.
+          */}
+          <div className="actionbar">
+            {/*
+              `role="alert"` und nicht `role="status"`: Ein blockiertes
+              Speichern ist keine Randnotiz, es unterbricht. Der Bereich steht
+              immer im Baum und ist nur leer, wenn es nichts zu melden gibt –
+              ein erst beim Fehler eingehängter Live-Bereich wird von manchen
+              Vorlesehilfen gar nicht vorgelesen.
+            */}
+            <p role="alert" className="actionbar__alert" hidden={blockers.length === 0}>
+              {describeBlockers(blockers)}
+            </p>
+
+            {blockers.length > 1 ? (
+              <details className="actionbar__more small">
+                <summary>Alle {blockers.length} offenen Stellen</summary>
+                <ol className="small">
+                  {blockers.map((blocker, index) => (
+                    <li key={`${blocker.kind}-${blocker.draftId ?? index}`}>
+                      {/*
+                        Jede Stelle ist anspringbar, nicht nur die erste.
+                        „Danach weitere Fehler in stabiler Reihenfolge
+                        erreichbar machen“ heißt: erreichbar, nicht aufgezählt.
+                      */}
+                      <button
+                        type="button"
+                        className="linklike"
+                        onClick={() =>
+                          revealAndFocus(
+                            blocker.kind === 'title'
+                              ? titleRef.current
+                              : document.getElementById(elementIdFor(blocker)),
+                          )
+                        }
+                      >
+                        {blocker.message}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            ) : null}
+
+            <div className="actionbar__actions">
+              <Button onClick={() => setStep(source === 'text' ? 'candidates' : 'source')}>
+                Zurück
+              </Button>
+              <span className="spacer" />
+              <p className="small muted" style={{ margin: 0 }}>
+                {/*
+                  Bewusst ohne „von“: „10 von 10“ läse sich wie ein Anteil an
+                  einer gewünschten Menge, und genau diese Zahl bedeutet an
+                  anderer Stelle etwas anderes („10 von 15 gewünschten
+                  Vorschlägen“). Zwei Brüche mit verschiedenen Nennern auf
+                  einer Seite sind eine Falle.
+                */}
+                {summary.selected} {summary.selected === 1 ? 'Vokabel wird' : 'Vokabeln werden'}{' '}
+                übernommen
+              </p>
+              {/*
+                Der Knopf bleibt bedienbar, auch wenn etwas offen ist.
+
+                Ein gesperrter Knopf sagt „geht nicht“ und verschweigt „warum“
+                und „wo“. Gedrückt werden **darf** er immer; gespeichert wird
+                nur, wenn nichts mehr offen ist, und andernfalls springt die
+                Ansicht an die erste Stelle.
+              */}
+              <Button variant="primary" onClick={() => void handleSave()}>
+                Paket speichern ({summary.selected} Vokabeln)
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}

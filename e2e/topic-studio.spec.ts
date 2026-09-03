@@ -106,6 +106,25 @@ async function openTopicStudio(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Vokabeln zu einem Thema' })).toBeVisible();
 }
 
+/**
+ * Offene fachliche Befunde bestätigen.
+ *
+ * Seit 4B.5 hält ein Befund das Speichern auf, bis jemand ihn ausdrücklich
+ * bestätigt oder behebt. Hier trifft das vor allem Kognaten: `erosion` →
+ * „Erosion“ ist richtig und sieht für die Prüfung trotzdem so aus, als hätte
+ * jemand das Übersetzen vergessen.
+ *
+ * Diese Tests handeln nicht von der Bestätigung – die prüft
+ * `review-and-save.spec.ts`. Hier wird sie abgearbeitet wie von Hand.
+ */
+async function confirmOpenReviews(page: Page): Promise<void> {
+  for (;;) {
+    const knopf = page.getByRole('button', { name: /als geprüft bestätigen$/i }).first();
+    if ((await knopf.count()) === 0) break;
+    await knopf.click();
+  }
+}
+
 test.describe('Themenwerkstatt', () => {
   test('@smoke vom Thema zum portablen Paket', async ({ page }) => {
     const externalRequests: string[] = [];
@@ -155,6 +174,7 @@ test.describe('Themenwerkstatt', () => {
     // Speichern.
     await expect(page.getByRole('textbox', { name: 'Thema', exact: true })).toHaveValue('City life');
     await page.getByLabel('Titel', { exact: true }).fill('City life – Vorschläge');
+    await confirmOpenReviews(page);
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(
       page.getByRole('heading', { level: 1, name: 'City life – Vorschläge' }),
