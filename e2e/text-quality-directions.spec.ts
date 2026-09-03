@@ -83,6 +83,24 @@ async function recommend(page: Page, count = '20'): Promise<void> {
   await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
 }
 
+/**
+ * Die Wörterbuchantworten wieder leeren.
+ *
+ * Seit 4B.4 trägt das Wörterbuch beim Empfehlen ein, was ohne Rückfrage
+ * feststeht. Wie viele Zeilen das sind, hängt am Wörterbuchbestand und darf
+ * sich mit jeder Aktualisierung ändern – Tests, die feste Zahlen prüfen,
+ * hingen damit an einer Größe, über die sie nichts aussagen wollen.
+ *
+ * Hier wird deshalb ein bekannter Ausgangspunkt hergestellt: alle Felder leer.
+ * Was danach dasteht, hat der Test selbst hineingeschrieben.
+ */
+async function clearAutoAnswers(page: Page): Promise<void> {
+  const felder = page.getByLabel(/^Deutsche Antwort für/);
+  for (const feld of await felder.all()) {
+    if ((await feld.inputValue()).trim() !== '') await feld.fill('');
+  }
+}
+
 /** Alles, was nicht der lokale Testserver ist, wäre ein Fehler. */
 function watchExternalRequests(page: Page): string[] {
   const external: string[] = [];
@@ -114,18 +132,19 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await recommend(page);
 
     /*
-      3. „island“ und „islands“ sind ein Vorschlag mit gemeinsamer Häufigkeit.
+      3. „island“ und „islands“ sind **ein** Vorschlag.
 
-      Die beobachteten Formen stehen seit 4B.2 im benannten Aufklapper der
-      Karte statt in einer Zeile darunter – wichtig, wenn man es braucht, und
-      Ballast in jeder anderen Karte.
+      Der Aufklapper „Formen im Text und Herkunft“, der die beobachteten Formen
+      und ihre gemeinsame Häufigkeit zeigte, ist seit 4B.4 weg: Er stand in
+      jeder Zeile und beantwortete eine Frage, die selten jemand stellt. Die
+      Zusammenführung selbst ist geblieben, und sie ist das, worauf es hier
+      ankommt – zwei Zeilen für dasselbe Wort wären der Fehler, nicht die
+      fehlende Auskunft darüber.
     */
     const inselkarte = page
       .locator('li.candidate')
       .filter({ has: page.getByLabel('Deutsche Antwort für „island“') });
-    await inselkarte.getByRole('button', { name: 'Formen im Text und Herkunft' }).click();
-    await expect(page.getByText('Im Text: islands, island · insgesamt 3-mal')).toBeVisible();
-    await expect(page.getByText(/Plural: islands/)).toBeVisible();
+    await expect(inselkarte).toHaveCount(1);
     await expect(page.getByLabel('Deutsche Antwort für „islands“')).toHaveCount(0);
 
     // 4. „600 sq mi“ ist ein Vorschlag mit Langform – und keine Bruchstücke.
@@ -152,6 +171,8 @@ test.describe('Textqualität und Lernrichtungen', () => {
          geht mit; alles andere bleibt offen und bleibt hier. Die übrigen
          Empfehlungen werden deshalb ausdrücklich zurückgelegt.
     */
+    await clearAutoAnswers(page);
+    await page.getByLabel('Deutsche Antwort für „island“').fill('die Insel');
     await page.getByLabel('Deutsche Antwort für „bay“').fill('die Bucht');
     await expect(page.getByText(/2 Vokabeln werden übernommen/)).toBeVisible();
 
@@ -197,13 +218,14 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
     await recommend(page);
 
-    // Die Analyse ist vollständig – inklusive Wortformen und Abkürzung.
-    await page
-      .locator('li.candidate')
-      .filter({ has: page.getByLabel('Deutsche Antwort für „island“') })
-      .getByRole('button', { name: 'Formen im Text und Herkunft' })
-      .click();
-    await expect(page.getByText('Im Text: islands, island · insgesamt 3-mal')).toBeVisible();
+    // Die Analyse ist vollständig – inklusive zusammengeführter Wortformen und
+    // aufgelöster Abkürzung.
+    await expect(
+      page
+        .locator('li.candidate')
+        .filter({ has: page.getByLabel('Deutsche Antwort für „island“') }),
+    ).toHaveCount(1);
+    await expect(page.getByLabel('Deutsche Antwort für „islands“')).toHaveCount(0);
     await expect(page.getByLabel('Langform für „sq mi“')).toHaveValue('square mile (sq mi)');
 
     // Der Grund steht dabei – seit 4B.2 im Aufklapper unter den Ergebnissen.
@@ -231,6 +253,7 @@ test.describe('Textqualität und Lernrichtungen', () => {
     await page.getByLabel('Englischer Text').fill(TEXT);
     await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
     await recommend(page);
+    await clearAutoAnswers(page);
 
     for (const [english, german] of [
       ['island', 'die Insel'],

@@ -74,6 +74,24 @@ async function recommend(page: Page, count = '5'): Promise<void> {
   await expect(page.getByRole('heading', { name: /Vorgeschlagene Vokabeln/ })).toBeVisible();
 }
 
+/**
+ * Die Wörterbuchantworten wieder leeren.
+ *
+ * Seit 4B.4 trägt das Wörterbuch beim Empfehlen ein, was ohne Rückfrage
+ * feststeht. Wie viele Zeilen das sind, hängt am Wörterbuchbestand und darf
+ * sich mit jeder Aktualisierung ändern – Tests, die feste Zahlen prüfen,
+ * hingen damit an einer Größe, über die sie nichts aussagen wollen.
+ *
+ * Hier wird deshalb ein bekannter Ausgangspunkt hergestellt: alle Felder leer.
+ * Was danach dasteht, hat der Test selbst hineingeschrieben.
+ */
+async function clearAutoAnswers(page: Page): Promise<void> {
+  const felder = page.getByLabel(/^Deutsche Antwort für/);
+  for (const feld of await felder.all()) {
+    if ((await feld.inputValue()).trim() !== '') await feld.fill('');
+  }
+}
+
 /** Die englischen Stichwörter der aktuellen Empfehlungen, in Anzeigereihenfolge. */
 async function listedWords(page: Page): Promise<string[]> {
   return page
@@ -109,12 +127,18 @@ test.describe('Empfehlungen aus einem Text', () => {
 
     // 3. Keine Häkchen: Die Zählung sagt, was passiert.
     await expect(page.getByRole('checkbox')).toHaveCount(0);
-    await expect(page.getByText('0 Vokabeln werden übernommen · 5 Empfehlungen sind noch offen.'))
-      .toBeVisible();
+    await expect(page.getByText(/Vokabeln? (werden|wird) übernommen ·/)).toBeVisible();
 
-    // 4. Die sichere Sammelübernahme trägt nur Unstrittiges ein.
-    await page.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }).click();
-    await expect(page.getByText(/Vokabeln werden übernommen/)).toBeVisible();
+    /*
+      4. Der Sammelknopf „Übersetzungsvorschläge eintragen“ ist seit 4B.4 weg.
+
+      Er war ein Zwischenschritt, den man in jedem Durchgang als Erstes drückte
+      – also keine Wahl, sondern eine Frage ohne zweite Antwort. Was ohne
+      Rückfrage feststeht, steht jetzt gleich da.
+    */
+    await expect(
+      page.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }),
+    ).toHaveCount(0);
 
     // 5. Der Rest wird von Hand ergänzt, bis nichts mehr offen ist.
     for (const word of await listedWords(page)) {
@@ -175,6 +199,7 @@ test.describe('Empfehlungen aus einem Text', () => {
     */
     await analyze(page);
     await recommend(page, '5');
+    await clearAutoAnswers(page);
 
     const erste = (await listedWords(page))[0]!;
     await page.getByLabel(`Deutsche Antwort für „${erste}“`).fill('meine Antwort');
@@ -199,6 +224,7 @@ test.describe('Empfehlungen aus einem Text', () => {
   test('@smoke der Stepper führt zurück, ohne die Arbeit zu verlieren', async ({ page }) => {
     await analyze(page);
     await recommend(page, '5');
+    await clearAutoAnswers(page);
 
     const erste = (await listedWords(page))[0]!;
     await page.getByLabel(`Deutsche Antwort für „${erste}“`).fill('meine Antwort');

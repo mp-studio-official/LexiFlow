@@ -322,11 +322,81 @@ describe('Sichere Sammelübernahme', () => {
     expect(safeAutoAnswer(summarizeLookup([limestone]))).toBe('Kalkstein');
   });
 
-  it('verbindet niemals über Bedeutungen hinweg', () => {
-    // `casualty`: *Unfall* ODER *Notaufnahme* ODER *Opfer*.
-    const answer = safeAutoAnswer(summarizeLookup([casualty]));
-    expect(answer).toBe('Unfall; Unglück');
-    expect(answer).not.toContain('Opfer');
+  it('trägt bei mehreren Bedeutungen gar nichts ein', () => {
+    /*
+      `casualty`: *Unfall* ODER *Notaufnahme* ODER *Opfer*.
+
+      Bis 4B.3 stand hier „Unfall; Unglück“ – die **erste** Bedeutungsgruppe.
+      Hinter dem Knopf „Übersetzungsvorschläge eintragen“ war das vertretbar:
+      Jemand hatte darum gebeten und sah gleich, was entstanden war.
+
+      Seit der Schritt automatisch läuft, ist es eine Wette, die hinterher wie
+      eine geprüfte Antwort aussieht. Die Füllquote stiege, die
+      Verlässlichkeit fiele – und beides sähe von außen gleich aus. Also: Bei
+      mehr als einer Bedeutung bleibt das Feld leer, und die Bedeutungen
+      stehen als Chips daneben.
+    */
+    expect(safeAutoAnswer(summarizeLookup([casualty]))).toBe('');
+  });
+
+  it('trägt ein, worüber sich alle Bedeutungen einig sind', () => {
+    /*
+      Der Gegenfall zu `casualty` – und der Grund, warum „mehr als eine Gruppe
+      heißt gar nichts“ als Regel zu grob war.
+
+      Die Quelle führt fast jedes Wort in mehreren Bedeutungsgruppen, auch
+      dort, wo alle dasselbe sagen: `engine` steht zweimal da und heißt beide
+      Male „Motor“. Bliebe das Feld leer, wäre das keine Vorsicht, sondern
+      Arbeit ohne Grund – die Regel füllte praktisch nichts mehr aus.
+
+      Übernommen wird dabei **nur** das übereinstimmende Wort. Einig war man
+      sich über „Motor“, nicht über „Triebwerk“.
+    */
+    const engine = entry({
+      headword: 'engine',
+      senses: [
+        {
+          sense: 'motor',
+          suggestions: [
+            { german: 'Motor', gender: 'm' },
+            { german: 'Triebwerk', gender: 'n' },
+          ],
+        },
+        { sense: 'locomotive', suggestions: [{ german: 'Motor', gender: 'm' }] },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([engine]))).toBe('Motor');
+  });
+
+  it('trägt nichts ein, wenn die Bedeutungen sich widersprechen', () => {
+    // `problem` → „Problem“ und „Übung“. Beides steht in der Quelle, und
+    // welches gemeint ist, entscheidet der Satz – nicht dieses Modul.
+    const problem = entry({
+      headword: 'problem',
+      senses: [
+        { sense: 'difficulty', suggestions: [{ german: 'Problem', gender: 'n' }] },
+        { sense: 'exercise', suggestions: [{ german: 'Übung', gender: 'f' }] },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([problem]))).toBe('');
+  });
+
+  it('trägt nichts ein, wenn die Wortart offen ist', () => {
+    /*
+      `island` ist Substantiv **und** Verb. Welche Wortart gemeint ist,
+      entscheidet der Satz. Selbst wenn die Substantivbedeutungen sich einig
+      wären, bliebe die Frage offen – und eine offene Frage ist keine Antwort.
+    */
+    const substantiv = entry({
+      headword: 'island',
+      senses: [{ sense: 'land', suggestions: [{ german: 'Insel', gender: 'f' }] }],
+    });
+    const verb = entry({
+      headword: 'island',
+      partOfSpeech: 'verb',
+      senses: [{ sense: 'to isolate', suggestions: [{ german: 'isolieren' }] }],
+    });
+    expect(safeAutoAnswer(summarizeLookup([substantiv, verb]))).toBe('');
   });
 
   it('trägt nichts ein, wenn nur Markiertes vorliegt', () => {

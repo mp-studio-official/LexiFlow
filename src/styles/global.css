@@ -3463,3 +3463,206 @@ progress {
     display: none !important;
   }
 }
+
+/* ============================ Werkbank: die schmale Einstellungsspalte === */
+
+/*
+  Zwei Felder nebeneinander und niedrigere Bedienhöhe (Sprint 4B.4).
+
+  Die Quellspalte ist 21 rem breit; dort ist **senkrechter** Platz das knappe
+  Gut. Vier volle Felder untereinander plus Erklärtexte schoben den Knopf unter
+  die Falzkante – wer die Anzahl änderte, musste zum Auslösen erst scrollen.
+
+  `auto-fit` mit einer kleinen Mindestbreite: Jahrgang und Niveau stehen
+  nebeneinander, solange die Spalte es hergibt, und stapeln sich sonst von
+  selbst. Eine feste Zweispaltigkeit bräche, sobald jemand den Griff nach links
+  zieht.
+*/
+.field-grid--tight {
+  gap: var(--space-2) var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+}
+.field-grid--tight .field {
+  gap: 0.15rem;
+}
+.field-grid--tight select,
+.field-grid--tight input {
+  padding-block: 0.35rem;
+  font-size: var(--text-sm);
+}
+/* Das Themenfeld braucht die volle Breite – ein Thema ist ein Satz, keine
+   Auswahl aus vier Zeichen. */
+.field-grid--tight > .field:first-child {
+  grid-column: 1 / -1;
+}
+
+/* ==================== Werkbank: der Quelltext als Werkzeug (4B.4) ======== */
+
+/*
+  Anklickbare Wörter im Quelltext.
+
+  Jedes Wort, das die Analyse gefunden hat, ist ein `<button>` – aber es soll
+  wie Text aussehen, solange man nichts damit vorhat. Kein Rahmen, keine
+  Fläche, dieselbe Schrift und dieselbe Grundlinie wie der Satz drumherum;
+  sonst läse sich der Absatz wie ein Formular.
+
+  Der Zustand steckt in `data-state` und nicht in einer Klasse, weil er sich
+  bei jedem Tastendruck im Antwortfeld ändern kann.
+*/
+/*
+  Ein Wort im Quelltext.
+
+  Seit 4B.4 ist es kein `<button>` mehr, sondern ein `<span>` – und ein
+  `<mark>`, sobald es in der Liste steht. Der Grund steht in
+  `SourceTextPane.tsx`: 220 Knöpfe waren 220 Tabstopps, und ein Screenreader
+  las den Absatz als Liste von Schaltflächen statt als Text.
+
+  `<mark>` bringt einen gelben Hintergrund mit. Der muss weg: Die Markierung
+  arbeitet mit Linien, nicht mit Flächen – siehe unten.
+*/
+.split__word {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  /* Damit ein umbrechendes Wort nicht mitten in der Markierung reißt. */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.split__word:hover {
+  background: var(--accent-soft, var(--surface-sunken));
+  color: var(--ink);
+}
+.split__word:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/*
+  Übernommen: Aubergine unterstrichen, nicht eingefärbt.
+
+  Eine Fläche unter jedem zehnten Wort macht aus dem Absatz ein Schachbrett.
+  Eine Unterstreichung sagt dasselbe und lässt den Text ein Text bleiben.
+  Zusätzlich der halbfette Schnitt – wer keine Farben unterscheidet, sieht ihn
+  trotzdem.
+*/
+.split__word[data-state='taken'] {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--ink);
+}
+/* In der Liste, aber ohne Antwort: dieselbe Linie, nur gepunktet und still. */
+.split__word[data-state='listed'] {
+  color: var(--ink-secondary);
+  text-decoration: underline dotted;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/*
+  Die erweiterte Markierung – die einzige Stelle, an der eine Fläche richtig ist.
+
+  Eine Wortgruppe ist ein zusammenhängendes Stück Text, und genau das soll man
+  sehen: `depend on` als ein Block, nicht als zwei unterstrichene Wörter. Die
+  Fläche endet, sobald die Markierung wieder ein einzelnes Wort ist.
+
+  Der Rand macht sie auch ohne Farbe erkennbar – in `forced-colors` bleibt vom
+  Hintergrund nichts übrig.
+*/
+.split__word[data-selected] {
+  background: var(--accent-soft, var(--surface-sunken));
+  color: var(--ink);
+  outline: 1px solid var(--border);
+}
+@media (forced-colors: active) {
+  .split__word[data-selected] {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* Die Legende erklärt die zwei Zustände – einmal, unter dem Text. */
+.split__legend {
+  margin: var(--space-2) 0 0;
+}
+.split__legend .split__word {
+  cursor: default;
+}
+
+/*
+  Der Knopf für die markierte Wortgruppe.
+
+  Er steht nur da, wenn es etwas zu übernehmen gibt. Ein dauerhaft sichtbarer,
+  meistens wirkungsloser Knopf unter dem Text wäre ein Angebot, das in neun von
+  zehn Fällen nichts tut.
+*/
+.split__take {
+  margin: var(--space-2) 0 0;
+}
+
+/* ---------------- Wörterbuch: der Aufklapper in der Chipzeile ------------ */
+
+/*
+  Zugeklappt rechts neben den Chips, aufgeklappt auf eigener Zeile.
+
+  Als eigene Zeile kostete der Aufklapper in **jeder** Vokabelzeile Höhe – bei
+  zwanzig Empfehlungen zwanzig Zeilen für einen Knopf, den man selten braucht.
+  Rechts neben den Chips ist der Platz ohnehin frei.
+
+  `margin-inline-start: auto` schiebt ihn nach rechts; `[data-open]` gibt ihm
+  die volle Breite, sobald Inhalt darunter erscheint. Ohne das zweite Stück
+  quetschte sich die Bedeutungsliste in die Restbreite der Chipzeile.
+*/
+.dictionary__chips .disclosure {
+  margin-inline-start: auto;
+}
+.dictionary__chips .disclosure[data-open] {
+  flex-basis: 100%;
+  margin-inline-start: 0;
+}
+
+/*
+  Überschrift und **i** in einer Zeile (4B.4).
+
+  Das `i` gehört zur Überschrift, nicht unter sie. Als eigener Block darunter
+  sah es aus wie eine Aktion, die man ausführen soll – und kostete eine Zeile
+  Höhe an einer Stelle, an der die Arbeit anfängt.
+*/
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+.section-title > h2,
+.section-title > h3 {
+  margin: 0;
+}
+
+/*
+  Die Knöpfe der Aktionsleiste bleiben beieinander.
+
+  Mit einem Zwischenraum-Element riss die Leiste beim Umbruch auseinander:
+  „Zurück“ oben rechts, „Speichern“ unten links. Als eigene Gruppe wandern sie
+  zusammen – `margin-inline-start: auto` schiebt sie nach rechts, solange
+  Platz ist.
+*/
+.actionbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* Während das Wörterbuch nachschlägt, ist ein Wort noch kein Angebot. */
+.split__word:disabled {
+  cursor: default;
+  opacity: 0.65;
+}

@@ -95,30 +95,61 @@ test.describe('Der Empfehlungsschritt ist kompakt', () => {
   test('sagt den Zustand mit Zeichen und Wort', async ({ page }) => {
     await recommend(page);
 
-    const erste = page.locator('li.candidate').first();
-    await expect(erste.locator('.candidate__state')).toHaveAttribute('data-state', 'open');
+    /*
+      Gesucht wird eine **offene** Zeile, nicht die erste.
+
+      Seit 4B.4 trägt das Wörterbuch beim Empfehlen ein, was ohne Rückfrage
+      feststeht – welche Zeilen das sind, hängt am Wörterbuchbestand und darf
+      sich ändern. Was sich nicht ändern darf: dass „noch offen“ und „wird
+      übernommen“ als Zeichen **und** als Wort dastehen.
+    */
+    const offene = page.locator('li.candidate').filter({
+      has: page.locator('.candidate__state[data-state="open"]'),
+    });
+    const erste = offene.first();
     await expect(erste.locator('.candidate__state')).toContainText('noch offen');
 
     const wort = (await erste.locator('.candidate__word').textContent()) ?? '';
     await page.getByLabel(`Deutsche Antwort für „${wort}“`).fill('eine Antwort');
 
-    await expect(erste.locator('.candidate__state')).toHaveAttribute('data-state', 'taken');
-    await expect(erste.locator('.candidate__state')).toContainText('wird übernommen');
+    const zeile = page.locator('li.candidate').filter({
+      has: page.getByLabel(`Deutsche Antwort für „${wort}“`),
+    });
+    await expect(zeile.locator('.candidate__state')).toHaveAttribute('data-state', 'taken');
+    await expect(zeile.locator('.candidate__state')).toContainText('wird übernommen');
   });
 
-  test('legt die Formen hinter einen benannten Aufklapper – erreichbar mit der Tastatur', async ({
+  test('legt die Bedeutungen hinter einen benannten Aufklapper – erreichbar mit der Tastatur', async ({
     page,
   }) => {
     await recommend(page);
 
-    const erste = page.locator('li.candidate').first();
-    const formen = erste.getByRole('button', { name: 'Formen im Text und Herkunft' });
-    await expect(formen).toHaveAttribute('aria-expanded', 'false');
+    /*
+      Der Aufklapper „Formen im Text und Herkunft“ ist seit 4B.4 weg.
 
-    await formen.focus();
+      Er stand in **jeder** Zeile und beantwortete eine Frage, die selten
+      jemand stellt – zwanzig Empfehlungen, zwanzig Zeilen Höhe für eine
+      Auskunft über Wortformen. Geblieben ist der Aufklapper, der tatsächlich
+      gebraucht wird: die vollständige Bedeutungsliste des Wörterbuchs, rechts
+      neben den Chips, damit er keine eigene Zeile kostet.
+
+      Geprüft wird hier dasselbe wie vorher: benannt, zugeklappt, mit der
+      Tastatur zu öffnen.
+    */
+    await expect(
+      page.getByRole('button', { name: 'Formen im Text und Herkunft' }),
+    ).toHaveCount(0);
+
+    const zeile = page
+      .locator('li.candidate')
+      .filter({ has: page.getByRole('button', { name: /Bedeutungen anzeigen$/ }) })
+      .first();
+    const alle = zeile.getByRole('button', { name: /Bedeutungen anzeigen$/ });
+    await expect(alle).toHaveAttribute('aria-expanded', 'false');
+
+    await alle.focus();
     await page.keyboard.press('Enter');
-    await expect(formen).toHaveAttribute('aria-expanded', 'true');
-    await expect(erste.getByText(/Im Text:/)).toBeVisible();
+    await expect(alle).toHaveAttribute('aria-expanded', 'true');
   });
 
   test('kürzt einen langen Originalsatz und zeigt ihn auf Klick ganz', async ({ page }) => {

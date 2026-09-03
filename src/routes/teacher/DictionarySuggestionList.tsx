@@ -138,26 +138,27 @@ export function DictionarySuggestionList({
         {summary.viaLemma ? (
           <span className="small muted">· Grundform „{summary.viaLemma}“</span>
         ) : null}
-      </p>
 
-      {family ? (
-        <p className="small muted dictionary__note">
-          Gehört zur selben Wortfamilie wie „{family}“ – vermutlich reicht eine der beiden Formen im
-          Paket.
-        </p>
-      ) : null}
+        {/*
+          Der Aufklapper steht **in** der Chipzeile, rechts – nicht darunter.
 
-      {/*
-        Die Beschriftung sagt, was dahinterliegt – und wie viel. „Weitere
-        Bedeutungen anzeigen (4)“ ist eine Auskunft; „Details“ wäre keine.
-        Steht schon alles als Chip da, führt derselbe Aufklapper zu den Angaben
-        dazu: Wortart, Genus, Markierung, Herkunft.
-      */}
-      {senses.length > 0 ? (
-        <Disclosure
-          summary={hidden > 0 ? 'Weitere Bedeutungen anzeigen' : 'Alle Bedeutungen anzeigen'}
-          {...(hidden > 0 ? { count: hidden } : {})}
-        >
+          Als eigene Zeile kostete er in jeder Vokabelzeile eine weitere Zeile
+          Höhe; bei zwanzig Empfehlungen sind das zwanzig Zeilen für einen
+          Knopf, den man selten braucht. Rechts neben den Chips ist der Platz
+          ohnehin frei, weil zwei bis drei Chips die Zeile nie füllen.
+
+          Zugeklappt sitzt er rechts, aufgeklappt rutscht er samt Inhalt auf
+          eine eigene Zeile – das macht `[data-open]` in `global.css`, ohne
+          zweite Komponente und ohne JavaScript.
+
+          Die Beschriftung sagt, was dahinterliegt, und wie viel: „Weitere
+          Bedeutungen anzeigen (4)“ ist eine Auskunft, „Details“ wäre keine.
+        */}
+        {senses.length > 0 ? (
+          <Disclosure
+            summary={hidden > 0 ? 'Weitere Bedeutungen anzeigen' : 'Alle Bedeutungen anzeigen'}
+            {...(hidden > 0 ? { count: hidden } : {})}
+          >
           <ul className="dictionary__senses">
             {senses.map(({ entry, sense }) => {
               const words = sense.suggestions.map((suggestion) => suggestion.german);
@@ -229,8 +230,16 @@ export function DictionarySuggestionList({
                 </li>
               );
             })}
-          </ul>
-        </Disclosure>
+            </ul>
+          </Disclosure>
+        ) : null}
+      </p>
+
+      {family ? (
+        <p className="small muted dictionary__note">
+          Gehört zur selben Wortfamilie wie „{family}“ – vermutlich reicht eine der beiden Formen im
+          Paket.
+        </p>
       ) : null}
     </div>
   );

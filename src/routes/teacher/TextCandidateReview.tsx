@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Announcer, Badge, Button, Card, Field, Meter } from '../../ui/components';
 import { useTranslationProvider } from '../../providers/ProviderContext';
-import {
-  describeCandidateForms,
-  describeCandidateInflections,
-  type TextCandidate,
-} from '../../domain/textExtraction';
+import { segmentSentences, type TextCandidate } from '../../domain/textExtraction';
 import type { CandidateSelection } from '../../import/textDraft';
 import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
@@ -37,6 +33,10 @@ import type { CefrLevel, Grade } from '../../domain/cefr';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
 import { DictionarySuggestionList } from './DictionarySuggestionList';
 import { Disclosure } from '../../ui/Disclosure';
+import { mergeMultiwordTokens, tokenizeSource } from '../../import/sourceTokens';
+import { pickFromSource } from '../../import/sourcePick';
+import { SourceTextPane, type WordState } from './SourceTextPane';
+import { InfoDisclosure } from '../../ui/InfoDisclosure';
 import {
   particleAfter,
   proposeLearningForm,
@@ -334,6 +334,18 @@ export function TextCandidateReview({
     'prueft',
   );
 
+  /**
+   * Kandidaten, die es ohne die Analyse nicht gäbe.
+   *
+   * Sie entstehen, wenn jemand im Quelltext ein Wort oder eine Wortgruppe
+   * markiert, die nicht vorgeschlagen war – `depend on` etwa, das die Analyse
+   * nur findet, wenn es mehrfach beieinandersteht. Sie stehen getrennt von
+   * `candidates`, weil sie nicht in den Empfehlungspool gehören: Vorgeschlagen
+   * wird, was der Text hergibt; ausgesucht wird von Hand.
+   */
+  const [picked, setPicked] = useState<TextCandidate[]>([]);
+  const knownCandidates = useMemo(() => [...candidates, ...picked], [candidates, picked]);
+
   /* --------------------------------------------------------- Die Empfehlungen */
   const [rows, setRows] = useState<CandidateRow[]>([]);
   /** Ersetzte und entfernte Empfehlungen – aufhebbar, nicht verloren. */
@@ -527,9 +539,22 @@ export function TextCandidateReview({
       */
       const markedFamilies = familiesNeedingLabels(inputs);
 
+      /*
+        Von Hand aus dem Text geholte Zeilen bleiben, wo sie sind.
+
+        „Offene Empfehlungen ersetzen“ räumt weg, was der Vorschlag hergegeben
+        und niemand beantwortet hat. Eine Vokabel, die jemand im Text markiert
+        hat, ist das Gegenteil davon – sie steht da, weil sie ausgesucht wurde.
+        Sie wegzuräumen wäre auch nicht wiederherstellbar: Sie stammt nicht aus
+        `inputs`, also könnte kein späterer Lauf sie zurückholen.
+      */
+      const pickedIds = new Set(picked.map((candidate) => candidate.id));
+      const handpicked = rowsRef.current.filter((row) => pickedIds.has(row.candidate.id));
+      const machine = rowsRef.current.filter((row) => !pickedIds.has(row.candidate.id));
+
       const result = replaceOpenRecommendations<CandidateRow>({
         inputs,
-        rows: rowsRef.current,
+        rows: machine,
         earlier,
         context: { grade: context.grade, cefrLevel: context.cefrLevel },
         sort,
@@ -539,10 +564,21 @@ export function TextCandidateReview({
         toRow: (scored) => toRow(scored, markedFamilies),
       });
 
-      setRows(result.rows);
+      /*
+        Die sicheren Wörterbuchantworten stehen sofort da – kein Knopf davor.
+        Was mehrdeutig ist, bleibt leer und wartet auf einen Blick.
+      */
+      const withDefaults = applyDictionaryDefaults(result.rows);
+      const filled = countFilled(result.rows, withDefaults);
+
+      setRows([...handpicked, ...withDefaults]);
       setEarlier(result.earlier);
       setGenerated(true);
-      setStatus(options.announce(result));
+      setStatus(
+        filled === 0
+          ? options.announce(result)
+          : `${options.announce(result)} ${filled} Übersetzungen aus dem Wörterbuch eingetragen – bitte durchsehen.`,
+      );
 
       // Ein bereits eingelöstes Modellversprechen gilt für die neuen Zeilen.
       const freshRows = result.rows.slice(result.rows.length - result.added);
@@ -554,7 +590,7 @@ export function TextCandidateReview({
       // oben und weiß nicht, dass sich unten etwas geändert hat.
       window.requestAnimationFrame(() => resultRef.current?.focus());
     },
-    [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext],
+    [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext, picked],
   );
 
   /**
@@ -610,6 +646,156 @@ export function TextCandidateReview({
   }
 
   /**
+   * Zu einer vorhandenen Zeile springen – die Antwort auf „habe ich das schon?“.
+   *
+   * Nicht nur scrollen: Der Fokus geht auf das Antwortfeld. Wer im Text auf ein
+   * markiertes Wort klickt, will meistens **an** dieser Zeile etwas tun, und
+   * eine Zeile, die man erst noch mit der Maus suchen muss, ist nur die halbe
+   * Antwort. Für die Tastaturbedienung ist es die ganze: Ohne Fokuswechsel
+   * bliebe man im Text stehen und wüsste nicht, dass unten etwas passiert ist.
+   */
+  const goToRow = useCallback((id: string): void => {
+    window.requestAnimationFrame(() => {
+      const card = document.getElementById(`kandidat-${id}`);
+      // `scrollIntoView` gibt es nicht überall – in jsdom nicht, und in älteren
+      // Safari-Versionen ohne die Optionen. Ein fehlender Bildlauf darf den
+      // Fokuswechsel nicht verhindern; der ist die eigentliche Zusage.
+      card?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      const field = document.getElementById(`de-${id}`);
+      if (field instanceof HTMLElement) field.focus();
+      else if (card instanceof HTMLElement) card.focus();
+    });
+  }, []);
+
+  /**
+   * Ein Wort oder eine Wortgruppe aus dem Quelltext aufnehmen.
+   *
+   * Wer den Text liest und denkt „das brauchen sie auch“, soll es nicht in
+   * einer Zwanzigerliste rechts wiederfinden müssen. Die Zeile entsteht auf
+   * demselben Weg wie jede andere (`toRow`) und bekommt dieselbe
+   * Wörterbuchantwort, die auch die Empfehlung bekommen hätte – sonst hinge
+   * die Herkunft einer Vokabel davon ab, wie man sie aufgenommen hat.
+   *
+   * Vier Fälle, vier Antworten:
+   *
+   * - Sie steht schon in der Liste → dorthin springen, nicht verdoppeln.
+   * - Sie liegt unter „Frühere Empfehlungen“ → zurückholen statt verdoppeln.
+   * - Sie ist bekannt, aber nicht in der Liste → aus den Kandidaten aufnehmen.
+   * - Sie ist neu (`depend on`, ein übergangenes Wort) → Kandidat bauen,
+   *   nachschlagen, aufnehmen.
+   *
+   * Der letzte Fall ist der einzige, der wartet: Ein Wörterbuchzugriff dauert.
+   * Er passiert trotzdem, weil eine Zeile ohne Vorschlag, die zwei Sekunden
+   * später einen gehabt hätte, niemand nachträgt.
+   */
+  async function takeFromSource(from: number, to: number): Promise<void> {
+    if (!sourceText) return;
+
+    const result = pickFromSource({
+      sourceText,
+      tokens: sourceTokens,
+      from,
+      to,
+      candidates: knownCandidates,
+      sentences,
+    });
+
+    if (result.kind === 'rejected') {
+      setStatus(result.reason);
+      return;
+    }
+
+    if (result.kind === 'existing') {
+      const id = result.candidateId;
+      const vorhanden = rowsRef.current.find((row) => row.candidate.id === id);
+      if (vorhanden) {
+        setStatus(`„${vorhanden.proposal.english}“ steht schon in der Liste.`);
+        goToRow(id);
+        return;
+      }
+
+      if (earlier.some((row) => row.candidate.id === id)) {
+        restore(id);
+        goToRow(id);
+        return;
+      }
+
+      const input = inputs.find((item) => item.candidate.id === id);
+      if (!input) return;
+      const [neu] = applyDictionaryDefaults([toRow(input, familiesNeedingLabels(inputs))]);
+      if (!neu) return;
+      addRow(neu);
+      return;
+    }
+
+    const candidate = result.candidate;
+    const source = dictionary ?? defaultDictionary();
+
+    let summary: DictionarySuggestionSummary | undefined;
+    let phrase: DictionarySuggestionSummary | undefined;
+    try {
+      summary = summarizeLookup(await source.lookup(candidate.english));
+      /*
+        Der zweite Nachschlag entfällt bei einer markierten Wortgruppe: Sie
+        **ist** schon die Wendung. Ihn trotzdem zu machen ergäbe
+        `depend on on`.
+      */
+      if (!candidate.normalizedEnglish.includes(' ')) {
+        const particle = particleAfter(candidate.sourceSentence, candidate.english);
+        if (particle) phrase = summarizeLookup(await source.lookup(`${candidate.english} ${particle}`));
+      }
+    } catch {
+      // Ohne Wörterbuchauskunft ist die Zeile leerer, aber es gibt sie.
+    }
+
+    const input: RecommendationInput = {
+      candidate,
+      ...(summary ? { dictionary: summary } : {}),
+      ...(phrase ? { phrase } : {}),
+    };
+
+    const [neu] = applyDictionaryDefaults([
+      toRow(input, familiesNeedingLabels([...inputs, input])),
+    ]);
+    if (!neu) return;
+
+    /*
+      Die Auskunft mit ablegen.
+
+      Die Zeile trägt ihre Wörterbuchantwort selbst, aber `phrases` wird an
+      anderer Stelle noch einmal befragt – etwa wenn jemand die Wortart ändert
+      und die Lernform neu berechnet wird. Stünde sie dort nicht, verlöre die
+      Vokabel beim Umstellen der Wortart genau die Angabe, wegen der sie
+      aufgenommen wurde.
+    */
+    setPicked((current) => [...current, candidate]);
+    if (summary) setLookups((current) => new Map(current).set(candidate.id, summary));
+    if (phrase) setPhrases((current) => new Map(current).set(candidate.id, phrase));
+    addRow(neu);
+  }
+
+  /**
+   * Eine Zeile ans Ende hängen und dorthin springen.
+   *
+   * Ans **Ende**, damit nichts an Ort und Stelle springt, während jemand
+   * daneben tippt. Und die Ergebnisliste aufmachen, falls sie noch zu ist: Wer
+   * ein Wort anklickt, bevor er einmal „Empfehlungen generieren“ gedrückt hat,
+   * hat trotzdem eine Vokabel erzeugt, und sie muss sichtbar sein. Ohne das
+   * läge sie in `rows`, während der Bereich, der `rows` zeigt, noch hinter
+   * `generated` verborgen ist: ein Klick ohne jede Wirkung.
+   */
+  function addRow(row: CandidateRow): void {
+    setGenerated(true);
+    setRows((current) => [...current, row]);
+    setStatus(
+      hasAnswer(row)
+        ? `„${row.proposal.english}“ aufgenommen – mit Übersetzungsvorschlag aus dem Wörterbuch.`
+        : `„${row.proposal.english}“ aufgenommen. Die Übersetzung fehlt noch.`,
+    );
+    goToRow(row.candidate.id);
+  }
+
+  /**
    * Eine frühere Empfehlung zurückholen.
    *
    * Sie legt sich **oben drauf** und verdrängt nichts – auch dann nicht, wenn
@@ -639,38 +825,38 @@ export function TextCandidateReview({
    * bleiben als Ein-Klick-Vorschlag daneben stehen – sichtbar, aber nicht
    * eingetragen.
    */
-  function fillSafeTranslations(): void {
-    /*
-      Gezählt wird **vor** dem Setzen, nicht in der Aktualisierungsfunktion.
+/**
+ * Trägt ein, was das Wörterbuch **ohne Rückfrage** hergibt.
+ *
+ * Bis 4B.3 war das ein Knopf: „Übersetzungsvorschläge eintragen“. Der ist weg,
+ * und zwar nicht aus Platzgründen. Er war ein Zwischenschritt, den man in
+ * jedem Durchgang als Erstes drückte – also keine Wahl, sondern eine Frage
+ * ohne zweite Antwort. Was ohne Rückfrage feststeht, kann gleich dastehen.
+ *
+ * „Ohne Rückfrage“ ist dabei eng gefasst und bleibt es (siehe `safeAutoAnswer`):
+ * genau eine Wortart, genau eine Bedeutung, keine Registermarkierung, kein
+ * Querverweis. Alles Mehrdeutige bleibt leer und steht als Chip darunter – ein
+ * Klick entfernt, aber eben ein Klick, den jemand trifft.
+ *
+ * Die Wortart kommt aus demselben Befund mit: Sie stand vorher schon in der
+ * Zeile, nur eben unbenutzt.
+ */
+function applyDictionaryDefaults(rows: readonly CandidateRow[]): CandidateRow[] {
+  return rows.map((row) => {
+    if (hasAnswer(row)) return row;
+    const answer = safeAutoAnswer(row.dictionary);
+    if (!answer) return row;
+    return { ...row, german: answer, suggestionSource: 'dictionary', translation: 'accepted' };
+  });
+}
 
-      Ein früherer Entwurf zählte in `setRows(current => …)` hoch und meldete
-      danach das Ergebnis – nur läuft diese Funktion erst beim nächsten Rendern,
-      und im StrictMode zweimal. Die Meldung sagte deshalb verlässlich „Es gab
-      nichts einzutragen“, während die Felder sich sichtbar füllten.
-    */
-    const filled = rowsRef.current
-      .filter((row) => !hasAnswer(row))
-      .map((row) => ({ row, answer: safeAutoAnswer(row.dictionary) }));
-    const taken = filled.filter((item) => item.answer).length;
-    const left = filled.filter((item) => !item.answer && item.row.dictionary).length;
-
-    setRows((current) =>
-      current.map((row) => {
-        if (hasAnswer(row)) return row;
-        const answer = safeAutoAnswer(row.dictionary);
-        if (!answer) return row;
-        return { ...row, german: answer, suggestionSource: 'dictionary', translation: 'accepted' };
-      }),
-    );
-    setStatus(
-      taken === 0
-        ? 'Es gab nichts, was sich ohne Rückfrage eintragen ließe.'
-        : `${taken} Übersetzungen eingetragen. Bitte trotzdem durchsehen.` +
-          (left > 0
-            ? ` ${left} Wörter blieben leer, weil sie mehrdeutig oder markiert sind – die Vorschläge stehen jeweils darunter.`
-            : ''),
-    );
-  }
+/** Wie viele Zeilen dabei gefüllt wurden – für die Ansage. */
+function countFilled(before: readonly CandidateRow[], after: readonly CandidateRow[]): number {
+  return after.filter((row, index) => {
+    const previous = before[index];
+    return previous !== undefined && !hasAnswer(previous) && hasAnswer(row);
+  }).length;
+}
 
   /* ------------------------------------------------------------ Übersetzen */
 
@@ -850,6 +1036,45 @@ export function TextCandidateReview({
   */
   const openQuestions = taken.filter((row) => row.proposal.needsReview);
 
+  /*
+    Der zerlegte Quelltext. `useMemo`, weil er sich nur ändert, wenn Text oder
+    Kandidaten sich ändern – und nicht bei jedem Tastendruck in einem
+    Antwortfeld. Bei 20.000 Zeichen wäre das sonst spürbar.
+  */
+  const sourceTokens = useMemo(
+    () =>
+      sourceText
+        ? mergeMultiwordTokens(
+            tokenizeSource(sourceText, knownCandidates),
+            knownCandidates,
+          )
+        : [],
+    [sourceText, knownCandidates],
+  );
+
+  const sentences = useMemo(
+    () => (sourceText ? segmentSentences(sourceText) : []),
+    [sourceText],
+  );
+
+  /**
+   * Wie ein Wort im Text aussieht: übernommen, in der Liste, oder noch nicht da.
+   *
+   * „Übernommen“ heißt hier: Die Zeile hat eine deutsche Antwort und geht
+   * damit ins Paket. „In der Liste“ heißt: Die Zeile steht da, aber die
+   * Antwort fehlt noch. Der Unterschied ist genau der, den man beim Lesen
+   * wissen will – „habe ich das schon erledigt?“, nicht „habe ich es schon
+   * angeklickt?“.
+   */
+  const wordState = useCallback(
+    (candidateId: string): WordState => {
+      const row = rows.find((item) => item.candidate.id === candidateId);
+      if (!row) return 'open';
+      return hasAnswer(row) ? 'taken' : 'listed';
+    },
+    [rows],
+  );
+
   function apply(): void {
     const selections: CandidateSelection[] = taken.map((row) => ({
       candidate: headwordOf(row),
@@ -896,17 +1121,31 @@ export function TextCandidateReview({
 
   return (
     <div className="stack">
-      <div>
+      {/*
+        Die Erklärung steht hinter einem **i**, nicht über der Seite.
+
+        Sie ist wichtig – sie sagt, dass die Empfehlung eine Schätzung ist und
+        keine geprüfte Wortliste – und sie ist beim zweiten Mal gelesen. Fünf
+        Zeilen Fließtext über dem Arbeitsbereich schiebt jeden Durchgang die
+        eigentliche Arbeit nach unten. Hinter dem **i** ist sie da, wenn man
+        sie sucht, und im Weg ist sie nie.
+      */}
+      <div className="section-title">
         <h2 id="empfehlungen-heading" ref={headingRef} tabIndex={-1}>
           Empfehlungen generieren
         </h2>
-        <p className="muted small">
-          Aus {candidates.length} gefundenen Wörtern schlägt LexiFlow die vor, die zum Jahrgang und
-          Niveau passen. Das ist eine <strong>Schätzung aus messbaren Merkmalen</strong> – Länge,
-          Wortbildung, Häufigkeit und Stellung im Text sowie die Auskunft des Offline-Wörterbuchs –,
-          keine geprüfte Wortliste. Alles wurde auf diesem Gerät berechnet. Beispielsätze stammen
-          unverändert aus deinem Text; Übersetzungen erfindet LexiFlow nicht.
-        </p>
+        <InfoDisclosure label="Wie die Empfehlungen entstehen" title="Wie die Empfehlungen entstehen">
+          <p className="small" style={{ marginTop: 0 }}>
+            Aus {candidates.length} gefundenen Wörtern schlägt LexiFlow die vor, die zum Jahrgang
+            und Niveau passen. Das ist eine <strong>Schätzung aus messbaren Merkmalen</strong> –
+            Länge, Wortbildung, Häufigkeit und Stellung im Text sowie die Auskunft des
+            Offline-Wörterbuchs –, keine geprüfte Wortliste.
+          </p>
+          <p className="small" style={{ marginBottom: 0 }}>
+            Alles wurde auf diesem Gerät berechnet. Beispielsätze stammen unverändert aus deinem
+            Text; Übersetzungen erfindet LexiFlow nicht.
+          </p>
+        </InfoDisclosure>
       </div>
 
       <Announcer message={status} />
@@ -934,24 +1173,45 @@ export function TextCandidateReview({
                 Dein Text
               </h3>
               {/*
+                Der Text ist Lesestoff **und** Werkzeug.
+
                 Nur lesen, nicht bearbeiten: Geändert wird der Text in Schritt 1,
                 und eine zweite Eingabestelle für denselben Inhalt wäre eine
                 Einladung, zwei verschiedene Fassungen zu erzeugen. Die Höhe ist
                 trotzdem ziehbar – wie viel Text man gleichzeitig sehen will,
                 weiß nur, wer ihn liest.
+
+                Wie aus dem Text ein Werkzeug wird, ohne dass er aufhört, ein
+                Text zu sein, steht in `SourceTextPane`.
               */}
-              <div className="split__doc" tabIndex={0} role="region" aria-label="Analysierter Text">
-                {sourceText}
-              </div>
+              <SourceTextPane
+                tokens={sourceTokens}
+                stateOf={wordState}
+                onTake={(from, to) => void takeFromSource(from, to)}
+                busy={dictionaryState === 'prueft' || dictionaryState === 'laeuft'}
+              />
             </div>
           ) : null}
 
           <div>
-            <h3 style={{ fontSize: '1rem' }}>Wofür sind die Vokabeln?</h3>
-            <p className="muted small">
-              Jahrgang und Niveau bestimmen die Auswahl. Sie stehen im letzten Schritt schon bereit.
-            </p>
-            <div className="field-grid">
+            {/*
+              Die Einstellungen stehen in einer 21 rem schmalen Spalte – dort
+              ist senkrechter Platz das knappe Gut. Vier volle Felder
+              untereinander plus Erklärtexte schoben den Knopf unter die
+              Falzkante, und wer die Anzahl änderte, musste zum Auslösen erst
+              scrollen.
+
+              `field-grid--tight` legt zwei Felder nebeneinander, wo sie
+              zusammengehören (Jahrgang und Niveau), und macht die Bedienhöhe
+              kleiner. Der Hinweis „Folgt dem Jahrgang, bis du widersprichst“
+              ist weg: Das Feld zeigt beim Öffnen des Jahrgangs, dass es
+              mitgeht, und wer widerspricht, merkt es daran, dass es stehen
+              bleibt.
+            */}
+            <h3 style={{ fontSize: '1rem', margin: '0 0 var(--space-2)' }}>
+              Wofür sind die Vokabeln?
+            </h3>
+            <div className="field-grid field-grid--tight">
               {/*
                 Das Thema ist vorgeschlagen und trotzdem ein ganz normales Feld.
 
@@ -988,7 +1248,7 @@ export function TextCandidateReview({
                   </select>
                 )}
               </Field>
-              <Field label="GeR-Niveau" hint="Folgt dem Jahrgang, bis du widersprichst.">
+              <Field label="GeR-Niveau">
                 {(props) => (
                   <select
                     {...props}
@@ -1130,25 +1390,28 @@ export function TextCandidateReview({
             <p className="small" style={{ margin: 0 }}>
               <strong>{describeProgress(taken.length, open)}</strong>
             </p>
-            <p className="small muted" style={{ margin: '0.2rem 0 0' }}>
-              Es gibt hier keine Häkchen: Was eine deutsche Antwort hat, wird übernommen. Eine
-              Zeile ohne Antwort ist eine offene Frage, keine abgewählte Vokabel.
-            </p>
           </div>
 
-          <Card quiet>
-            <div className="row">
-              <Button
-                small
-                onClick={fillSafeTranslations}
-                title="Nur unmarkierte Entsprechungen einer einzigen Bedeutung"
-              >
-                Übersetzungsvorschläge eintragen
-              </Button>
-              {/*
-                Die Modellaktion steht hier bei den anderen Aktionen, ihr
-                Erklärtext unten im Aufklapper. Eine Schaltfläche in einem
-                zugeklappten Kasten zu verstecken hieße, sie abzuschaffen.
+          {/*
+            Kein Kasten mehr um eine Zeile.
+
+            Hier stand eine `Card` – sinnvoll, solange sie zwei Knöpfe und
+            einen Erklärabsatz trug. Übrig ist ein einzelner Knopf, und ein
+            gerahmter Kasten um einen Knopf sieht aus, als stünde etwas darin.
+          */}
+          <div className="row">
+            {/*
+                Der Sammelknopf „Übersetzungsvorschläge eintragen“ ist weg.
+
+                Er tat etwas, das niemand anders wollte: Was das Wörterbuch
+                **ohne Rückfrage** hergibt – genau eine Wortart, genau eine
+                Bedeutung, keine Markierung –, kann auch gleich dastehen. Ein
+                Knopf, den man in jedem Durchgang als Erstes drückt, ist keine
+                Wahl, sondern ein Zwischenschritt. Eingetragen wird jetzt beim
+                Empfehlen selbst (siehe `applyDictionaryDefaults`).
+
+                Die Modellaktion bleibt ein Knopf: Sie lädt ein Sprachmodell
+                herunter, und das passiert nicht ungefragt.
               */}
               {providerState !== 'unavailable' && providerState !== 'checking' ? (
                 <Button small disabled={busy || !canTranslate} onClick={translateOpen}>
@@ -1167,13 +1430,7 @@ export function TextCandidateReview({
                   Frühere Empfehlungen ({earlier.length})
                 </Button>
               ) : null}
-            </div>
-            <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
-              „Übersetzungsvorschläge eintragen“ füllt nur, was das Wörterbuch ohne Rückfrage
-              hergibt. Mehrdeutiges, Veraltetes und über einen Querverweis Erschlossenes bleibt
-              leer und steht als Chip darunter.
-            </p>
-          </Card>
+          </div>
 
           {earlier.length > 0 ? (
             <div id="fruehere-empfehlungen" hidden={!earlierOpen}>
@@ -1223,7 +1480,6 @@ export function TextCandidateReview({
                 die fertige Form schon hier, samt der Frage, wo eine offen ist.
               */
               const label = row.proposal.english || candidate.english;
-              const inflections = describeCandidateInflections(candidate);
               const answered = hasAnswer(row);
               const sentence = candidate.sourceSentence;
               const longSentence = sentence.length > SENTENCE_CLAMP_CHARS;
@@ -1514,25 +1770,34 @@ export function TextCandidateReview({
                     warum die Grundform offen ist: wichtig, wenn man es braucht,
                     und Ballast in jeder anderen Karte.
                   */}
-                  <Disclosure summary="Formen im Text und Herkunft">
+                  {/*
+                    „Formen im Text und Herkunft“ ist weg (4B.4).
+
+                    Der Aufklapper stand unter **jeder** Zeile und wurde fast
+                    nie geöffnet – zwanzig Zeilen, zwanzig zugeklappte Kästen,
+                    die die Liste um ein Drittel verlängerten. Was er trug, ist
+                    entweder anderswo besser aufgehoben (die Beugungen im
+                    Belegsatz darüber) oder betrifft nur Ausnahmefälle.
+
+                    Zwei dieser Ausnahmen bleiben – aber nur, wenn sie
+                    zutreffen, und dann offen statt zugeklappt: Eine ungeklärte
+                    Grundform ist eine Entscheidung, keine Fußnote, und eine
+                    Satzübersetzung aus dem Modell muss als ungeprüft
+                    dastehen.
+                  */}
+                  {row.baseFormHint ? (
                     <p className="small muted" style={{ margin: 0 }}>
-                      {describeCandidateForms(candidate)}
-                      {inflections.length > 0 ? ` · ${inflections.join(' · ')}` : ''}
+                      „{label}“ könnte auch eine gebeugte Form sein. Der Satz gibt nicht her,
+                      welche Grundform gemeint ist – deshalb steht hier die Form aus dem Text.
+                      Ändern lässt sie sich im letzten Schritt.
                     </p>
-                    {row.baseFormHint ? (
-                      <p className="small muted" style={{ margin: '0.35rem 0 0' }}>
-                        „{label}“ könnte auch eine gebeugte Form sein. Der Satz gibt nicht her,
-                        welche Grundform gemeint ist – deshalb steht hier die Form aus dem Text.
-                        Ändern lässt sie sich im letzten Schritt.
-                      </p>
-                    ) : null}
-                    {row.suggestedSentence ? (
-                      <p className="small muted" style={{ margin: '0.35rem 0 0' }}>
-                        Übersetzung des Beispielsatzes (Hilfestellung, nicht geprüft):
-                        „{row.suggestedSentence}“
-                      </p>
-                    ) : null}
-                  </Disclosure>
+                  ) : null}
+                  {row.suggestedSentence ? (
+                    <p className="small muted" style={{ margin: 0 }}>
+                      Übersetzung des Beispielsatzes (Hilfestellung, nicht geprüft):
+                      „{row.suggestedSentence}“
+                    </p>
+                  ) : null}
                 </li>
               );
             })}
@@ -1673,13 +1938,22 @@ export function TextCandidateReview({
             </span>
           ) : null}
 
-          <span className="spacer" />
-          <Button onClick={onBack}>Zurück zum Text</Button>
-          <Button variant="primary" disabled={taken.length === 0} onClick={apply}>
-            {taken.length === 1
-              ? '1 Vokabel prüfen & speichern'
-              : `${taken.length} Vokabeln prüfen & speichern`}
-          </Button>
+          {/*
+            Die beiden Knöpfe bleiben beieinander.
+
+            Mit einem `spacer` dazwischen riss die Leiste beim Umbruch
+            auseinander: „Zurück zum Text“ oben rechts, „Speichern“ unten
+            links. Als eigene Gruppe wandern sie zusammen in die nächste
+            Zeile – und stehen dort in derselben Reihenfolge wie vorher.
+          */}
+          <span className="actionbar__actions">
+            <Button onClick={onBack}>Zurück zum Text</Button>
+            <Button variant="primary" disabled={taken.length === 0} onClick={apply}>
+              {taken.length === 1
+                ? '1 Vokabel prüfen & speichern'
+                : `${taken.length} Vokabeln prüfen & speichern`}
+            </Button>
+          </span>
         </div>
       ) : (
         <div className="row">

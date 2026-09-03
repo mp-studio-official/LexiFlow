@@ -155,10 +155,28 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
     expect(within(rowOf('litter')).getByText(/Wörterbuch/)).toBeInTheDocument();
   });
 
-  it('tragen nichts von selbst ein', async () => {
+  it('tragen ein, was ohne Rückfrage feststeht', async () => {
+    /*
+      Umgekehrt zu 4B.3: Bis dahin blieb jedes Feld leer, bis jemand
+      „Übersetzungsvorschläge eintragen“ drückte. Dieser Knopf war ein
+      Zwischenschritt, den man in jedem Durchgang als Erstes traf – also keine
+      Wahl, sondern eine Frage ohne zweite Antwort.
+
+      Was **ohne Rückfrage** feststeht, steht jetzt gleich da. Der Maßstab
+      dafür ist unverändert eng (siehe `safeAutoAnswer`): genau eine Wortart,
+      genau eine Bedeutung, keine Markierung, kein Querverweis.
+    */
     await setup();
-    // Der Vorschlag steht daneben – das Antwortfeld bleibt leer.
-    expect(answerField('litter').value).toBe('');
+    expect(answerField('litter').value).toBe('Müll');
+  });
+
+  it('lassen leer, was eine Entscheidung braucht', async () => {
+    await setup();
+    // `quiet`: nur ein veralteter Treffer. Der Chip steht daneben, das Feld
+    // bleibt leer – markierte Entsprechungen setzt niemand ungefragt ein.
+    expect(answerField('quiet').value).toBe('');
+    // `crowded`: kein Treffer.
+    expect(answerField('crowded').value).toBe('');
   });
 
   it('nennen Wortart und Genus – einen Klick tief', async () => {
@@ -214,10 +232,16 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   });
 
   it('lassen eine getippte Antwort unangetastet', async () => {
+    /*
+      Die Zusage gilt auch ohne den alten Sammelknopf: Eingetragen wird nur in
+      **leere** Felder, und zwar einmal beim Empfehlen. Wer danach etwas
+      hineinschreibt, behält es – auch über einen zweiten Lauf hinweg.
+    */
     const { user } = await setup();
 
+    await user.clear(answerField('litter'));
     await user.type(answerField('litter'), 'Abfall');
-    await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
+    await user.click(screen.getByRole('button', { name: /Offene Empfehlungen neu berechnen/ }));
 
     expect(answerField('litter').value).toBe('Abfall');
   });
@@ -232,31 +256,43 @@ describe('Wörterbuchvorschläge im Empfehlungsschritt', () => {
   });
 });
 
-describe('Übersetzungsvorschläge eintragen', () => {
+describe('Was ohne Rückfrage eingetragen wird', () => {
+  /*
+    Die Regeln sind dieselben wie vorher – nur ohne Knopf davor. Sie stehen
+    hier weiterhin einzeln, weil jede an einem echten Beispiel entstanden ist.
+  */
   it('trägt ein, was ohne Rückfrage geht, und lässt den Rest offen', async () => {
-    const { user } = await setup();
-    await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
+    await setup();
 
     // `litter`: eine Bedeutung, eine unmarkierte Übersetzung.
     expect(answerField('litter').value).toBe('Müll');
     // `station`: zwei Entsprechungen **einer** Bedeutung – Alternativen.
     expect(answerField('station').value).toBe('Bahnhof; Station');
-    // `neighbourhood`: zwei Bedeutungen. Über Bedeutungen hinweg wird nie
-    // verbunden, deshalb steht hier die erste – und nur die.
-    expect(answerField('neighbourhood').value).toBe('Nachbarschaft');
+    // `neighbourhood`: zwei Bedeutungen. Welche im Text gemeint ist, weiß das
+    // Wörterbuch nicht. Automatisch die erste zu nehmen sähe von außen genauso
+    // aus wie ein sicherer Treffer – deshalb bleibt das Feld leer und die
+    // Bedeutungen stehen als Chips zur Auswahl.
+    expect(answerField('neighbourhood').value).toBe('');
     // `quiet`: nur ein veralteter Treffer. Bleibt leer.
     expect(answerField('quiet').value).toBe('');
   });
 
-  it('sagt hinterher, was liegen geblieben ist', async () => {
-    const { user } = await setup();
-    await user.click(screen.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }));
+  it('sagt, wie viele eingetragen wurden', async () => {
+    await setup();
     const meldung = screen
       .getAllByRole('status')
       .map((element) => element.textContent ?? '')
       .join(' ');
-    expect(meldung).toMatch(/3 Übersetzungen eingetragen/);
-    expect(meldung).toMatch(/mehrdeutig oder markiert/);
+    expect(meldung).toMatch(/2 Übersetzungen aus dem Wörterbuch eingetragen/);
+    expect(meldung).toMatch(/bitte durchsehen/);
+  });
+
+  it('bietet den alten Sammelknopf nicht mehr an', () => {
+    // Er hätte nichts mehr zu tun – und ein Knopf ohne Wirkung ist schlimmer
+    // als keiner.
+    expect(
+      screen.queryByRole('button', { name: 'Übersetzungsvorschläge eintragen' }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -350,13 +386,20 @@ describe('Fehler führen zur Handeingabe, nicht zum Abbruch', () => {
   it('gibt die Auswahl unverändert weiter – Vorschläge sind keine Antworten', async () => {
     const { onApply, user } = await setup();
 
-    await user.type(answerField('litter'), 'Müll');
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 
     const selections = onApply.mock.calls.at(-1)?.[0] as CandidateSelection[];
-    // Nur die beantwortete Zeile geht weiter.
-    expect(selections).toHaveLength(1);
-    const litter = selections[0];
+    /*
+      Seit 4B.4 stehen die sicheren Wörterbuchantworten schon da, also gehen
+      zwei Zeilen weiter statt einer: `litter` und `station`.
+      `neighbourhood` (zwei Bedeutungen, keine automatisch gewählt), `quiet`
+      (nur markiert) und `crowded` (kein Treffer) bleiben offen.
+    */
+    expect(selections.map((selection) => selection.candidate.english).sort()).toEqual([
+      'litter',
+      'station',
+    ]);
+    const litter = selections.find((selection) => selection.candidate.english === 'litter');
     /*
       Kleingeschrieben: `Litter` steht im Text nur am Satzanfang, und das
       Wörterbuch führt das Wort klein. Die Empfehlung normalisiert das, bevor

@@ -280,6 +280,73 @@ export const MAX_AUTO_SYNONYMS = 2;
  * Im Zweifel: gar nichts. Ein leeres Feld ist eine Aufgabe; eine falsche
  * Antwort ist ein Fehler, den jemand später glaubt.
  */
+/**
+ * Die **eine** Bedeutung eines Wortes – oder gar keine.
+ *
+ * ## Warum das nicht „die erste“ ist
+ *
+ * Bis 4B.3 stand hinter dem automatischen Eintragen ein Knopf, und dahinter
+ * war „die erste Bedeutung“ vertretbar: Jemand hatte ausdrücklich darum
+ * gebeten und sah gleich darauf, was entstanden war. Seit der Schritt von
+ * selbst läuft, ist es etwas anderes. `litter` heißt „Streu“ **oder** „Wurf“
+ * **oder** „Abfall“; die erste davon einzutragen ist keine Auskunft, sondern
+ * eine Wette – und eine, die hinterher wie eine geprüfte Antwort aussieht.
+ * Die Füllquote stiege, die Verlässlichkeit fiele, und beides sähe von außen
+ * gleich aus.
+ *
+ * ## Warum es auch nicht „genau eine Bedeutungsgruppe“ ist
+ *
+ * Diese Regel wurde zuerst so gebaut – und füllte praktisch nichts mehr aus.
+ * Die Quelle führt fast jedes Wort in mehreren Gruppen, auch dort, wo alle
+ * dasselbe sagen: `engine` steht zweimal da und heißt beide Male „Motor“.
+ * Ein leeres Feld ist dort keine Vorsicht, sondern Arbeit ohne Grund.
+ *
+ * ## Was hier gilt
+ *
+ * Zwei Bedingungen, beide müssen erfüllt sein:
+ *
+ * 1. **Eine Wortart.** Steht das Wort in mehreren Wortarten mit Inhalt
+ *    (`island` als Substantiv *und* als Verb), entscheidet der Satz, welche
+ *    gemeint ist – und den liest dieses Modul nicht. Also nichts.
+ * 2. **Einigkeit über die Hauptbedeutung.** Führen alle Bedeutungsgruppen
+ *    dieser Wortart dasselbe deutsche Wort an, ist das keine Auswahl unter
+ *    mehreren, sondern dieselbe Antwort mehrfach. Weichen sie voneinander ab
+ *    (`problem` → „Problem“ und „Übung“), bleibt das Feld leer.
+ *
+ * Bei Einigkeit über mehrere Gruppen hinweg wird **nur** das übereinstimmende
+ * Wort übernommen, nicht die Synonyme der ersten Gruppe: Einig war man sich
+ * über das eine Wort, nicht über deren Verwandtschaft.
+ *
+ * Erschlossene Verweise (`via`) sind hier nie dabei – Regel 4 gilt weiter.
+ */
+function soleMeaning(entries: readonly DictionaryEntry[]): DictionaryEntry['senses'][number] | undefined {
+  const withContent = entries.filter((entry) =>
+    entry.senses.some((sense) => !sense.via && sense.suggestions.length > 0),
+  );
+  const first = withContent[0];
+  if (!first) return undefined;
+
+  // Bedingung 1: eine Wortart.
+  if (withContent.some((entry) => entry.partOfSpeech !== first.partOfSpeech)) return undefined;
+
+  const senses = withContent.flatMap((entry) =>
+    entry.senses.filter((sense) => !sense.via && sense.suggestions.length > 0),
+  );
+  const lead = senses[0];
+  if (!lead) return undefined;
+  if (senses.length === 1) return lead;
+
+  // Bedingung 2: Einigkeit über die Hauptbedeutung.
+  const head = lead.suggestions[0];
+  if (!head) return undefined;
+  const agreed = senses.every(
+    (sense) => sense.suggestions[0]?.german.toLowerCase() === head.german.toLowerCase(),
+  );
+  if (!agreed) return undefined;
+
+  return { ...lead, suggestions: [head] };
+}
+
 export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined): string {
   const entries = summary?.entries ?? [];
   if (!entries.length) return '';
@@ -296,9 +363,8 @@ export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined)
     ungeprüfter Verweis kommt nie infrage – auch dann nicht, wenn er die einzige
     Gruppe mit Inhalt ist.
   */
-  const sense =
-    withContent.find((candidate) => isVerifiedReference(headword, candidate.via)) ??
-    withContent.find((candidate) => !candidate.via);
+  const verified = withContent.find((candidate) => isVerifiedReference(headword, candidate.via));
+  const sense = verified ?? soleMeaning(entries);
   if (!sense) return '';
 
   // Regel 3: Markiertes und Bedingtes zählt nicht mit.

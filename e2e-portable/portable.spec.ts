@@ -313,6 +313,18 @@ test.describe('Portable Lehrkraftdatei', () => {
     await expect(empfehlen).toBeEnabled({ timeout: 30_000 });
     await empfehlen.click();
 
+    /*
+      Erst leeren, dann eine Antwort setzen.
+
+      Seit 4B.4 trägt das Wörterbuch beim Empfehlen ein, was ohne Rückfrage
+      feststeht – wie viele Zeilen das sind, hängt am Wörterbuchbestand. Dieser
+      Test handelt vom Stepper, nicht von der Füllquote, und braucht deshalb
+      einen bekannten Ausgangspunkt.
+    */
+    for (const feld of await page.getByLabel(/^Deutsche Antwort für/).all()) {
+      if ((await feld.inputValue()).trim() !== '') await feld.fill('');
+    }
+
     const antwort = page.getByLabel(/^Deutsche Antwort für/).first();
     await antwort.fill('meine Antwort');
     await page.getByRole('button', { name: '1 Vokabel prüfen & speichern' }).click();

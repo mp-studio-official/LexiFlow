@@ -7,7 +7,7 @@ import {
   describeProgress,
 } from './TextCandidateReview';
 import { ProviderRegistry } from '../../providers/ProviderContext';
-import { extractTextCandidates } from '../../domain/textExtraction';
+import { extractTextCandidates, type TextCandidate } from '../../domain/textExtraction';
 import { candidatesToDrafts, type CandidateSelection } from '../../import/textDraft';
 import { createFakeTranslationProvider } from '../../test/fakeTranslator';
 import type { TranslationProvider } from '../../translation/TranslationProvider';
@@ -99,13 +99,13 @@ describe('Die Quellspalte', () => {
       />,
     );
 
-    const quelle = screen.getByRole('region', { name: 'Analysierter Text' });
+    const quelle = screen.getByRole('group', { name: 'Analysierter Text' });
     expect(quelle).toHaveTextContent('Coastal erosion threatens the settlement.');
   });
 
   it('kommt ohne Quelltext aus, statt einen leeren Kasten zu zeigen', () => {
     mount();
-    expect(screen.queryByRole('region', { name: 'Analysierter Text' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Analysierter Text' })).not.toBeInTheDocument();
     // Die Einstellungen stehen trotzdem da – die Spalte fällt nicht weg.
     expect(screen.getByLabelText('Jahrgang')).toBeInTheDocument();
   });
@@ -115,6 +115,277 @@ describe('Die Quellspalte', () => {
     expect(
       screen.getByRole('separator', { name: 'Breite der Quellspalte' }),
     ).toBeInTheDocument();
+  });
+});
+
+/**
+ * Sprint 4B.4: Der Quelltext ist Lesestoff **und** Werkzeug.
+ *
+ * Zwei Fragen beantwortet er jetzt, für die man vorher rechts suchen musste:
+ * „habe ich das schon?“ und „wie kommt es rein?“.
+ */
+describe('Der Quelltext als Werkzeug', () => {
+  /*
+    Seit 4B.4 ist der Text kein Feld voller Schaltflächen mehr.
+
+    Er war es einmal: jedes gefundene Wort ein `<button>`. Für die Maus war das
+    richtig, für alles andere nicht – 220 Kandidaten waren 220 Tabstopps, und
+    ein Screenreader las den Absatz als Liste von Schaltflächen statt als Text.
+
+    Jetzt ist der Text Text: Wörter sind `<span>`, aufgenommene sind `<mark>`.
+    Bedient wird er über einen einzigen Tabstopp und die Pfeiltasten. Die Tests
+    hier halten beides fest – dass er lesbar bleibt **und** bedienbar ist.
+  */
+
+  /** Ein Wort im Quelltext – als Textstück, nicht als Schaltfläche. */
+  function wordInSource(text: string): HTMLElement | undefined {
+    const quelle = screen.getByRole('group', { name: 'Analysierter Text' });
+    return [...quelle.querySelectorAll<HTMLElement>('[data-word]')].find(
+      (element) => element.textContent === text,
+    );
+  }
+
+  function source(): HTMLElement {
+    return screen.getByRole('group', { name: 'Analysierter Text' });
+  }
+
+  function mountWithText(text: string = TEXT, list: TextCandidate[] = candidates()) {
+    const onApply = vi.fn();
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={list}
+          context={CONTEXT}
+          onContextChange={vi.fn()}
+          dictionary={LEERES_WOERTERBUCH}
+          sourceText={text}
+          onApply={onApply}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+    return { onApply, user: userEvent.setup() };
+  }
+
+  it('ist Text und keine Sammlung von Schaltflächen', () => {
+    mountWithText();
+    /*
+      Die eigentliche Zusage dieses Umbaus. Ein Absatz, der aus Knöpfen
+      besteht, ist für eine Lehrkraft mit Screenreader kein Text mehr.
+    */
+    expect(within(source()).queryAllByRole('button')).toHaveLength(0);
+  });
+
+  it('hat einen einzigen Tabstopp für den ganzen Text', () => {
+    mountWithText();
+    const erreichbar = [...source().querySelectorAll('[data-word]')].filter(
+      (element) => element.getAttribute('tabindex') === '0',
+    );
+    expect(erreichbar).toHaveLength(1);
+  });
+
+  it('macht jedes gefundene Wort ansteuerbar – und die anderen auch', () => {
+    mountWithText();
+
+    expect(wordInSource('crowded')).toBeDefined();
+    expect(wordInSource('neighbourhood')).toBeDefined();
+    /*
+      Auch Artikel und Hilfsverben sind ansteuerbar – anders als vorher.
+
+      Der Grund ist `depend on`: Die Wortgruppe braucht das zweite Wort, und
+      `on` ist für sich genommen kein Kandidat. Wer nur Kandidaten ansteuern
+      kann, kann keine Wendung markieren.
+    */
+    expect(wordInSource('The')).toBeDefined();
+    expect(wordInSource('is')).toBeDefined();
+  });
+
+  it('zeigt den Text unverändert, mit allen Satzzeichen', () => {
+    mountWithText();
+    expect(source()).toHaveTextContent(
+      'The neighbourhood is crowded. Litter is a problem in the neighbourhood.',
+    );
+  });
+
+  it('nimmt ein Wort mit einem Klick auf', async () => {
+    const { user } = mountWithText();
+
+    // Vor dem Klick gibt es die Zeile nicht.
+    expect(screen.queryByLabelText('Deutsche Antwort für „crowded“')).not.toBeInTheDocument();
+
+    await user.click(wordInSource('crowded') as HTMLElement);
+
+    expect(await screen.findByLabelText('Deutsche Antwort für „crowded“')).toBeInTheDocument();
+  });
+
+  it('markiert, was schon in der Liste steht', async () => {
+    const { user } = mountWithText();
+    await user.click(wordInSource('crowded') as HTMLElement);
+    await screen.findByLabelText('Deutsche Antwort für „crowded“');
+
+    /*
+      Ohne Antwort: „in der Liste“. Mit Antwort: „wird übernommen“. Der
+      Unterschied ist der ganze Sinn der Markierung – sonst müsste man rechts
+      nachsehen, was man schon hat.
+    */
+    expect(wordInSource('crowded')).toHaveAttribute('data-state', 'listed');
+    // `<mark>` statt `<span>`: hervorgehobener Text mit Bezug, ohne dass eine
+    // Bedienrolle erfunden wird.
+    expect(wordInSource('crowded')?.tagName).toBe('MARK');
+
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+    expect(wordInSource('crowded')).toHaveAttribute('data-state', 'taken');
+  });
+
+  it('führt beim zweiten Klick zur vorhandenen Zeile, statt zu verdoppeln', async () => {
+    const { user } = mountWithText();
+
+    await user.click(wordInSource('crowded') as HTMLElement);
+    const feld = await screen.findByLabelText('Deutsche Antwort für „crowded“');
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    await user.click(wordInSource('crowded') as HTMLElement);
+
+    expect(screen.getAllByLabelText('Deutsche Antwort für „crowded“')).toHaveLength(1);
+    // Und der Fokus steht dort, wo die Vokabel schon liegt.
+    await waitFor(() => expect(document.activeElement).toBe(feld));
+  });
+
+  it('markiert auch die gebeugte Form', async () => {
+    const text = 'One island rises. The islands are famous.';
+    const { user } = mountWithText(text, extractTextCandidates(text));
+
+    await user.click(wordInSource('island') as HTMLElement);
+    await screen.findByLabelText(/Deutsche Antwort für/);
+
+    // Beide Formen gehören zu derselben Vokabel – und zeigen es.
+    expect(wordInSource('island')).toHaveAttribute('data-state', 'listed');
+    expect(wordInSource('islands')).toHaveAttribute('data-state', 'listed');
+  });
+});
+
+/**
+ * Sprint 4B.4: Die Tastaturbedienung des Quelltextes.
+ *
+ * Sie ist kein Zusatz für den Notfall. `depend on`, `single out`,
+ * `to coin a phrase` sind die Lernformen, um die es im Unterricht geht, und ein
+ * Klick auf ein einzelnes Wort erreicht keine davon. Umschalt und Pfeiltaste
+ * sind der Weg dorthin – für alle, nicht nur für die Tastatur.
+ */
+describe('Wortgruppen im Quelltext', () => {
+  const SATZ = 'Small islands depend on tourism. The season is short.';
+
+  function source(): HTMLElement {
+    return screen.getByRole('group', { name: 'Analysierter Text' });
+  }
+
+  function wordInSource(text: string): HTMLElement {
+    const found = [...source().querySelectorAll<HTMLElement>('[data-word]')].find(
+      (element) => element.textContent === text,
+    );
+    if (!found) throw new Error(`„${text}“ steht nicht im Quelltext.`);
+    return found;
+  }
+
+  async function mountSentence() {
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={extractTextCandidates(SATZ)}
+          context={CONTEXT}
+          onContextChange={vi.fn()}
+          dictionary={LEERES_WOERTERBUCH}
+          sourceText={SATZ}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+    const user = userEvent.setup();
+    // Erst wenn das Wörterbuch durch ist, ist das Aufnehmen nicht mehr geraten.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Empfehlungen generieren' })).toBeEnabled(),
+    );
+    return { user };
+  }
+
+  it('geht mit den Pfeiltasten von Wort zu Wort', async () => {
+    const { user } = await mountSentence();
+
+    wordInSource('Small').focus();
+    await user.keyboard('{ArrowRight}');
+    expect(document.activeElement).toBe(wordInSource('islands'));
+    await user.keyboard('{ArrowLeft}');
+    expect(document.activeElement).toBe(wordInSource('Small'));
+  });
+
+  it('bleibt am Anfang und am Ende stehen, statt umzulaufen', async () => {
+    const { user } = await mountSentence();
+
+    wordInSource('Small').focus();
+    await user.keyboard('{ArrowLeft}{ArrowLeft}');
+    // Ein Umlauf ans Textende wäre eine Reise, die niemand angetreten hat.
+    expect(document.activeElement).toBe(wordInSource('Small'));
+  });
+
+  it('nimmt mit Umschalt und Pfeiltaste eine Wortgruppe auf', async () => {
+    const { user } = await mountSentence();
+
+    wordInSource('depend').focus();
+    await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
+
+    // Erst sagt die Ansicht, was markiert ist …
+    expect(
+      screen.getByRole('button', { name: '„depend on“ aufnehmen' }),
+    ).toBeInTheDocument();
+
+    // … und dann entsteht genau diese Lernform.
+    await user.keyboard('{Enter}');
+    expect(await screen.findByLabelText(/Deutsche Antwort für „(to )?depend on“/)).toBeInTheDocument();
+  });
+
+  it('hebt die Erweiterung mit Escape auf', async () => {
+    const { user } = await mountSentence();
+
+    wordInSource('depend').focus();
+    await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
+    expect(screen.getByRole('button', { name: '„depend on“ aufnehmen' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('button', { name: /aufnehmen$/ })).not.toBeInTheDocument();
+  });
+
+  it('markiert mit Umschalt und Klicken – ohne sofort aufzunehmen', async () => {
+    const { user } = await mountSentence();
+
+    await user.click(wordInSource('depend'));
+    await screen.findByLabelText(/Deutsche Antwort für/);
+
+    await user.keyboard('{Shift>}');
+    await user.click(wordInSource('on'));
+    await user.keyboard('{/Shift}');
+    // Der zweite Klick erweitert nur. Aufgenommen wird über den Knopf – sonst
+    // wüsste niemand, ob gerade ein Wort oder eine Gruppe gemeint ist.
+    expect(screen.getByRole('button', { name: '„depend on“ aufnehmen' })).toBeInTheDocument();
+  });
+
+  it('erklärt die Bedienung, ohne dass man sie erraten muss', () => {
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={extractTextCandidates(SATZ)}
+          context={CONTEXT}
+          onContextChange={vi.fn()}
+          dictionary={LEERES_WOERTERBUCH}
+          sourceText={SATZ}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+
+    expect(source()).toHaveAccessibleDescription(/Umschalt und Pfeiltaste/);
+    expect(source()).toHaveAccessibleDescription(/Escape/);
   });
 });
 
@@ -844,16 +1115,21 @@ describe('Die Empfehlungskarte', () => {
     expect(belegt?.textContent).toContain('✓');
   });
 
-  it('legt die beobachteten Formen hinter einen benannten Aufklapper', async () => {
-    const { user } = await setup();
+  it('trägt keinen Aufklapper „Formen im Text und Herkunft“ mehr', async () => {
+    /*
+      Der Aufklapper stand unter **jeder** Zeile und wurde fast nie geöffnet:
+      zwanzig Empfehlungen, zwanzig zugeklappte Kästen, die die Liste um ein
+      Drittel verlängerten. Was er trug, ist entweder anderswo besser
+      aufgehoben – die beobachteten Formen sind jetzt links im Quelltext
+      markiert – oder betrifft nur Ausnahmefälle, und die stehen offen da.
+    */
+    await setup();
     const zeile = screen.getByLabelText('Deutsche Antwort für „crowded“').closest('li')!;
 
-    // Benannt, nicht „Details“ – man soll wissen, was dahinterliegt.
-    const knopf = within(zeile).getByRole('button', { name: 'Formen im Text und Herkunft' });
-    expect(knopf).toHaveAttribute('aria-expanded', 'false');
-
-    await user.click(knopf);
-    expect(within(zeile).getByText(/Im Text:/)).toBeInTheDocument();
+    expect(
+      within(zeile).queryByRole('button', { name: 'Formen im Text und Herkunft' }),
+    ).not.toBeInTheDocument();
+    expect(within(zeile).queryByText(/Im Text:/)).not.toBeInTheDocument();
   });
 
 });

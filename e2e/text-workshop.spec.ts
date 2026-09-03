@@ -111,9 +111,13 @@ test.describe('Textwerkstatt', () => {
     await page.getByLabel('Jahrgang').selectOption('7');
     await recommend(page);
 
-    // Empfehlungen mit Originalsatz, ohne erfundene Übersetzung.
+    /*
+      Empfehlungen mit Originalsatz – und mit dem, was das Wörterbuch ohne
+      Rückfrage hergibt (seit 4B.4). „Ohne erfundene Übersetzung“ gilt
+      unverändert: Erfunden wird nichts, eingetragen nur Eindeutiges.
+    */
     await expect(page.getByText('„The neighbourhood is crowded today.“').first()).toBeVisible();
-    await expect(page.getByLabel('Deutsche Antwort für „crowded“')).toHaveValue('');
+    await expect(page.getByLabel('Deutsche Antwort für „neighbourhood“')).toHaveValue('');
 
     // Ohne Translator-API bleibt alles benutzbar. Die Begründung steht seit
     // 4B.2 im benannten Aufklapper unter den Ergebnissen statt als Kasten davor.
@@ -133,9 +137,20 @@ test.describe('Textwerkstatt', () => {
     ] as const) {
       await page.getByLabel(`Deutsche Antwort für „${english}“`).fill(german);
     }
-    await expect(page.getByText(/3 Vokabeln werden übernommen/)).toBeVisible();
+    /*
+      Wie viele mitkommen, hängt seit 4B.4 auch daran, zu wie vielen das
+      Wörterbuch ohne Rückfrage etwas weiß. Geprüft wird deshalb der
+      Zusammenhang – die Zahl im Satz und die im Knopf sind dieselbe –, nicht
+      ihr Wert.
+    */
+    const zahl = Number(
+      /(\d+) Vokabeln? werden übernommen/.exec(
+        (await page.getByText(/Vokabeln? werden übernommen/).first().textContent()) ?? '',
+      )?.[1] ?? '0',
+    );
+    expect(zahl).toBeGreaterThanOrEqual(3);
 
-    await page.getByRole('button', { name: '3 Vokabeln prüfen & speichern' }).click();
+    await page.getByRole('button', { name: `${zahl} Vokabeln prüfen & speichern` }).click();
 
     /*
       Übergabe an die bekannte Tabelle samt Beispielsatz aus dem Quelltext.
@@ -143,7 +158,7 @@ test.describe('Textwerkstatt', () => {
       Die Zeilenreihenfolge folgt jetzt der Empfehlung, nicht mehr dem Text –
       deshalb wird hier auf Werte geprüft und nicht auf Zeilennummern.
     */
-    await expect(page.getByText('3 Zeilen ·')).toBeVisible();
+    await expect(page.getByText(`${zahl} Zeilen ·`)).toBeVisible();
     const germanValues = await page
       .locator('table input[type="text"]')
       .evaluateAll((nodes) => nodes.map((node) => (node as HTMLInputElement).value));
@@ -169,14 +184,26 @@ test.describe('Textwerkstatt', () => {
     const download = await downloadPromise;
     const path = await download.path();
     const content = await (await import('node:fs/promises')).readFile(path, 'utf8');
-    expect(content).not.toContain('Volunteers collect litter every Saturday.');
+    /*
+      Die Zusage ist: Der **ganze** Quelltext wird nicht als Datensatz
+      gespeichert. Einzelne Sätze daraus schon – als Beispielsatz derjenigen
+      Vokabel, in der sie vorkommen; das ist der Zweck der Textwerkstatt.
+
+      Bis 4B.3 stand hier ein einzelner Satz als Gegenprobe. Das trug nur,
+      solange genau drei Vokabeln mitkamen; seit das Wörterbuch von selbst
+      einträgt, kommt auch „Volunteers collect litter…“ als Beispielsatz mit –
+      völlig richtig, aber es macht den Satz zum untauglichen Zeugen.
+
+      Geprüft wird deshalb der Text als Ganzes: Er steht nirgends am Stück.
+    */
+    expect(content).not.toContain(TEXT);
     expect(content).toContain('The neighbourhood is crowded today.');
 
     // Schülerbereich funktioniert unverändert.
     await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
-    await expect(page.getByText(/0 von 3 Vokabeln sicher/)).toBeVisible();
+    await expect(page.getByText(new RegExp(`0 von ${zahl} Vokabeln sicher`))).toBeVisible();
     await page.getByRole('button', { name: 'Lernrunde starten' }).click();
-    await expect(page.getByText('Aufgabe 1 von 3')).toBeVisible();
+    await expect(page.getByText(`Aufgabe 1 von ${zahl}`)).toBeVisible();
     await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
     await page.getByRole('button', { name: 'Gewusst', exact: true }).click();
 
@@ -212,7 +239,7 @@ test.describe('Textwerkstatt', () => {
     const griff = page.getByRole('separator', { name: 'Breite der Quellspalte' });
 
     // Der analysierte Text steht links zum Nachschlagen.
-    await expect(page.getByRole('region', { name: 'Analysierter Text' })).toContainText(
+    await expect(page.getByRole('group', { name: 'Analysierter Text' })).toContainText(
       'crowded',
     );
 
@@ -320,10 +347,26 @@ test.describe('Textwerkstatt', () => {
     const leiste = page.locator('.actionbar');
     await expect(leiste).toBeVisible();
 
-    // Der Fortschritt zählt mit.
-    await expect(leiste).toContainText('0 von');
-    await page.getByLabel('Deutsche Antwort für „to depend“').fill('abhängen');
-    await expect(leiste).toContainText('1 von');
+    /*
+      Der Fortschritt zählt mit – und zwar die **Veränderung**.
+
+      Wie viele Zeilen beim Empfehlen schon gefüllt sind, hängt am Wörterbuch
+      und darf sich ändern, ohne diesen Test zu brechen. Was sich nicht ändern
+      darf: Ein Feld leeren senkt die Zahl um genau eins, es wieder füllen hebt
+      sie um genau eins.
+    */
+    const feld = page.getByLabel('Deutsche Antwort für „to depend“');
+    await feld.fill('abhängen');
+    const gezaehlt = async (): Promise<number> => {
+      const text = (await leiste.textContent()) ?? '';
+      return Number(/(\d+) von \d+/.exec(text)?.[1] ?? '-1');
+    };
+    const voll = await gezaehlt();
+    expect(voll).toBeGreaterThan(0);
+    await feld.fill('');
+    await expect(leiste).toContainText(`${voll - 1} von 10`);
+    await feld.fill('abhängen');
+    await expect(leiste).toContainText(`${voll} von 10`);
 
     /*
       Und sie klebt: Auch ganz unten in einer langen Liste steht sie im Bild.
@@ -355,6 +398,136 @@ test.describe('Textwerkstatt', () => {
     // Beantwortet – und die Leiste meldet nichts Offenes mehr.
     await bestaetigen.click();
     await expect(leiste.getByRole('button', { name: /offene Frage/ })).toHaveCount(0);
+  });
+
+  /*
+    Sprint 4B.4: Der Quelltext links ist Werkzeug geworden – ohne aufzuhören,
+    ein Text zu sein.
+
+    Was jsdom nicht kann und der Browser schon: zeigen, dass ein Klick auf ein
+    Wort im Fließtext rechts eine Zeile erzeugt – mit dem
+    Übersetzungsvorschlag aus dem **echten** Wörterbuch, nicht aus einem
+    eingesetzten Miniatursatz.
+
+    Der Text ist mit Absicht ein anderer als oben: `erosion` ist eines der
+    wenigen Wörter, über deren Bedeutung die Quelle sich einig ist. Genau
+    daran hängt die Zusage „samt Vorschlag“.
+  */
+  const KUeSTE = [
+    'The village suffers from erosion every winter.',
+    'People there depend on natural barriers to survive.',
+  ].join(' ');
+
+  function word(page: Page, text: string) {
+    return page
+      .getByRole('group', { name: 'Analysierter Text' })
+      .locator('[data-word]')
+      .filter({ hasText: new RegExp(`^${text}$`) })
+      .first();
+  }
+
+  test('@smoke ein Klick im Quelltext nimmt ein Wort samt Vorschlag auf', async ({ page }) => {
+    await withoutBrowserModels(page);
+    await page.goto('/#/material/import?quelle=text');
+    await page.getByLabel('Englischer Text').fill(KUeSTE);
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+
+    /*
+      Warten, bis das Wörterbuch fertig ist: Vorher erzeugte ein Klick eine
+      Zeile **ohne** Vorschlag, obwohl er zwei Sekunden später dagestanden
+      hätte. Dieselbe Bedingung sperrt auch die Hauptaktion.
+    */
+    await expect(
+      page.getByRole('button', { name: 'Empfehlungen generieren', exact: true }),
+    ).toBeEnabled({ timeout: 30_000 });
+
+    await word(page, 'erosion').click();
+
+    // Die Zeile ist da – und das Wörterbuch hat schon geantwortet.
+    const feld = page.getByLabel('Deutsche Antwort für „erosion“');
+    await expect(feld).toBeVisible();
+    await expect(feld).not.toHaveValue('');
+
+    // Und das Wort im Text sagt jetzt, dass es übernommen wird.
+    await expect(word(page, 'erosion')).toHaveAttribute('data-state', 'taken');
+  });
+
+  /*
+    Sprint 4B.4: Wortgruppen.
+
+    `depend on` ist die Lernform, um die es im Unterricht geht – und ein Klick
+    auf ein einzelnes Wort erreicht sie nicht. Umschalt und Pfeiltaste sind der
+    Weg dorthin. Geprüft wird im Browser, weil es um echte Tastendrücke und um
+    echten Fokus geht.
+  */
+  test('@smoke eine Wortgruppe im Text wird eine Lernform', async ({ page }) => {
+    await withoutBrowserModels(page);
+    await page.goto('/#/material/import?quelle=text');
+    await page.getByLabel('Englischer Text').fill(KUeSTE);
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Empfehlungen generieren', exact: true }),
+    ).toBeEnabled({ timeout: 30_000 });
+
+    await word(page, 'depend').focus();
+    await page.keyboard.press('Shift+ArrowRight');
+
+    const knopf = page.getByRole('button', { name: '„depend on“ aufnehmen' });
+    await expect(knopf).toBeVisible();
+
+    await page.keyboard.press('Enter');
+    await expect(page.getByLabel(/Deutsche Antwort für „(to )?depend on“/)).toBeVisible();
+  });
+
+  /*
+    Sprint 4B.4: Ein Tabstopp für den ganzen Text.
+
+    Der Grund für den ganzen Umbau. Vorher war jedes gefundene Wort ein
+    `<button>` – bei 220 Kandidaten 220 Tabstopps, durch die man sich
+    hindurchdrücken musste, um zu den Einstellungen zu kommen.
+  */
+  test('@a11y der Quelltext kostet genau einen Tabstopp', async ({ page }) => {
+    await withoutBrowserModels(page);
+    await page.goto('/#/material/import?quelle=text');
+    await page.getByLabel('Englischer Text').fill(KUeSTE);
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+
+    const quelle = page.getByRole('group', { name: 'Analysierter Text' });
+    await expect(quelle.locator('[data-word][tabindex="0"]')).toHaveCount(1);
+    // Und keine Schaltflächen: Der Absatz ist Text, keine Werkzeugleiste.
+    await expect(quelle.getByRole('button')).toHaveCount(0);
+  });
+
+  test('@smoke die eingetragenen Übersetzungen stehen ohne Knopf da', async ({ page }) => {
+    /*
+      Der Sammelknopf „Übersetzungsvorschläge eintragen“ ist weg: Was das
+      Wörterbuch **ohne Rückfrage** hergibt, steht gleich da. Geprüft wird
+      beides – dass etwas dasteht und dass der Knopf verschwunden ist.
+
+      Der Küstentext steht hier, weil er `erosion` enthält. Über die meisten
+      Wörter ist die Quelle sich uneins, und dann bleibt das Feld mit gutem
+      Grund leer – siehe `safeAutoAnswer`.
+    */
+    await withoutBrowserModels(page);
+    await page.goto('/#/material/import?quelle=text');
+    await page.getByLabel('Englischer Text').fill(KUeSTE);
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+    await recommend(page);
+
+    await expect(
+      page.getByRole('button', { name: 'Übersetzungsvorschläge eintragen' }),
+    ).toHaveCount(0);
+
+    const gefuellt = await page
+      .getByLabel(/^Deutsche Antwort für/)
+      .evaluateAll((felder) =>
+        felder.filter((feld) => (feld as HTMLInputElement).value.trim().length > 0).length,
+      );
+    expect(gefuellt).toBeGreaterThan(0);
   });
 
   test('@a11y Empfehlungsschritt ohne schwerwiegende Befunde', async ({ page }) => {
@@ -395,6 +568,9 @@ test.describe('Textwerkstatt', () => {
 
     await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
     await recommend(page);
+    // Leeren vor dem Tippen: Das Wörterbuch hat hier schon geantwortet, und
+    // getippt werden soll die Eingabe, nicht ein Anhängsel.
+    await page.getByLabel('Deutsche Antwort für „crowded“').fill('');
     await page.getByLabel('Deutsche Antwort für „crowded“').focus();
     await page.keyboard.type('überfüllt');
     await expect(page.getByLabel('Deutsche Antwort für „crowded“')).toHaveValue('überfüllt');

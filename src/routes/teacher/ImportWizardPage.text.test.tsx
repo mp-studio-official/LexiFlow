@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ImportWizardPage } from './ImportWizardPage';
@@ -61,9 +61,17 @@ async function analyzeAndRecommend(user: User, text = TEXT): Promise<void> {
   await recommend(user);
 }
 
-/** Antworten eintragen und in den letzten Schritt gehen. */
+/**
+ * Antworten eintragen und in den letzten Schritt gehen.
+ *
+ * `clear` vor `type`: Seit 4B.4 trägt das Wörterbuch ein, was ohne Rückfrage
+ * feststeht – und in ein bereits gefülltes Feld zu tippen ergäbe
+ * „überfülltüberfüllt“. Der Test will die Antwort **setzen**, nicht anhängen.
+ */
 async function toReview(user: User, word: string, answer: string): Promise<void> {
-  await user.type(screen.getByLabelText(`Deutsche Antwort für „${word}“`), answer);
+  const feld = screen.getByLabelText(`Deutsche Antwort für „${word}“`);
+  await user.clear(feld);
+  await user.type(feld, answer);
   await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
 }
 
@@ -108,7 +116,13 @@ describe('Der Weg durch die drei Schritte', () => {
 
     // Titel und Speichern stehen in **demselben** Schritt wie die Tabelle.
     expect(screen.getByLabelText('Titel')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Paket speichern (1 Vokabeln)' })).toBeInTheDocument();
+    /*
+      Ohne feste Zahl: Wie viele Vokabeln mitkommen, hängt seit 4B.4 daran, zu
+      wie vielen das Wörterbuch ohne Rückfrage etwas weiß. Der Test will
+      wissen, dass der Knopf da ist und seine Zahl nennt – nicht, wie sie
+      lautet.
+    */
+    expect(screen.getByRole('button', { name: /^Paket speichern \(\d+ Vokabeln\)$/ })).toBeInTheDocument();
   });
 
   it('hält den Zustand fest, wenn man im Stepper zurückspringt', async () => {
@@ -119,6 +133,7 @@ describe('Der Weg durch die drei Schritte', () => {
     */
     const user = setup();
     await analyzeAndRecommend(user);
+    await user.clear(screen.getByLabelText('Deutsche Antwort für „crowded“'));
     await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
 
     // In den ersten Schritt und wieder zurück.
@@ -284,11 +299,14 @@ describe('Der Stepper im Assistenten', () => {
     await user.type(screen.getByLabelText('Deutsche Antwort für „litter“'), 'Müll');
 
     // … und wieder nach vorn.
+    const beantwortet = screen
+      .getAllByLabelText(/^Deutsche Antwort für/)
+      .filter((feld) => (feld as HTMLInputElement).value.trim().length > 0).length;
     await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
     expect(screen.getByLabelText('Titel')).toHaveValue('Unit 3');
     expect(screen.getByLabelText('Beschreibung (optional)')).toHaveValue('Kurzer Hinweis.');
     expect(screen.getByLabelText('Lernrichtung')).toHaveValue('de-en');
-    expect(screen.getByText(/^2 Zeilen ·/)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`^${beantwortet} Zeilen ·`))).toBeInTheDocument();
   });
 
   it('ist mit der Tastatur bedienbar und setzt den Fokus sichtbar', async () => {
@@ -428,16 +446,36 @@ describe('Schritt 3 zeigt im Textimport nur, was es wirklich gibt', () => {
   });
 
   it('nimmt nur beantwortete Empfehlungen mit', async () => {
+    /*
+      Die Zusage: Eine Empfehlung ohne deutsche Antwort ist keine abgewählte
+      Vokabel, sondern eine offene Frage – und offene Fragen kommen nicht ins
+      Paket.
+
+      Der Text ist dafür mit Absicht so gewählt, dass das Wörterbuch nichts
+      ohne Rückfrage einträgt: `crowded`, `litter`, `problem` und
+      `neighbourhood` haben alle mehrere Bedeutungen. Was hier beantwortet
+      wird, wird also von Hand beantwortet – und genau eine Zeile geht durch.
+    */
     const user = setup();
     await analyzeAndRecommend(user);
 
-    const offen = screen.getAllByLabelText(/^Deutsche Antwort für/).length;
-    expect(offen).toBeGreaterThan(1);
+    const felder = screen.getAllByLabelText(/^Deutsche Antwort für/);
+    expect(felder.length).toBeGreaterThan(1);
 
-    await toReview(user, 'crowded', 'überfüllt');
-    // Genau eine Zeile – die anderen Empfehlungen blieben offen und bleiben dort.
-    expect(screen.getAllByRole('row')).toHaveLength(2); // Kopfzeile + eine Vokabel
-    expect(screen.getByText(/^1 Zeilen ·/)).toBeInTheDocument();
+    const erstes = felder[0] as HTMLInputElement;
+    await user.type(erstes, 'überfüllt');
+
+    const beantwortet = screen
+      .getAllByLabelText(/^Deutsche Antwort für/)
+      .filter((feld) => (feld as HTMLInputElement).value.trim().length > 0).length;
+    expect(beantwortet).toBe(1);
+
+    await user.click(screen.getByRole('button', { name: /prüfen & speichern/ }));
+    await screen.findByRole('table');
+
+    // Kopfzeile plus je eine Zeile für jede beantwortete Empfehlung.
+    expect(screen.getAllByRole('row')).toHaveLength(beantwortet + 1);
+    expect(screen.getByText(new RegExp(`^${beantwortet} Zeilen ·`))).toBeInTheDocument();
   });
 });
 
@@ -584,7 +622,7 @@ describe('Übersetzung im Hauptweg', () => {
     );
     expect(screen.getByText(/keine lokale Übersetzung/i)).toBeInTheDocument();
     // Die deutsche Antwort lässt sich weiterhin von Hand eintragen.
-    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toBeEnabled();
+    expect(screen.getByLabelText('Deutsche Antwort für „neighbourhood“')).toBeEnabled();
   });
 });
 
@@ -594,18 +632,29 @@ describe('Wortformen und Abkürzungen im Empfehlungsschritt', () => {
     await analyzeAndRecommend(user, BAY_TEXT);
 
     /*
-      Die beobachteten Formen stehen seit 4B.2 im Aufklapper „Formen im Text
-      und Herkunft“ – in der Karte selbst steht das Wort, die Häufigkeit, der
-      Satz und die Antwort. Der Aufklapper ist benannt, nicht „Details“.
-    */
-    const zeile = screen.getByLabelText('Deutsche Antwort für „island“').closest('li');
-    if (!zeile) throw new Error('Keine Zeile für island');
-    await user.click(within(zeile).getByRole('button', { name: /Formen im Text/ }));
+      Seit 4B.4 stehen die beobachteten Formen **im Quelltext links**, nicht
+      mehr in einem Aufklapper unter jeder Zeile: Dort ist jede Form markiert,
+      die zu einer aufgenommenen Vokabel gehört – auch die gebeugte.
 
-    expect(screen.getByText(/Im Text: islands, island · insgesamt 3-mal/)).toBeInTheDocument();
-    expect(screen.getByText(/Plural: islands/)).toBeInTheDocument();
-    // Und keine zweite Zeile für die Pluralform.
+      Das ist dieselbe Auskunft am besseren Ort. „islands“ gehört zu „island“,
+      und man sieht es dort, wo das Wort steht, statt in einem Kasten, den man
+      erst öffnen muss.
+    */
+    expect(
+      screen.queryByRole('button', { name: /Formen im Text/ }),
+    ).not.toBeInTheDocument();
+
+    // Eine Zeile für die Familie, nicht zwei.
+    expect(screen.getByLabelText('Deutsche Antwort für „island“')).toBeInTheDocument();
     expect(screen.queryByLabelText('Deutsche Antwort für „islands“')).not.toBeInTheDocument();
+
+    // Und beide Formen sind im Quelltext demselben Kandidaten zugeordnet.
+    const quelle = screen.getByRole('group', { name: 'Analysierter Text' });
+    for (const form of ['island', 'islands']) {
+      expect(
+        [...quelle.querySelectorAll('[data-word]')].some((wort) => wort.textContent === form),
+      ).toBe(true);
+    }
   });
 
   it('macht aus „600 sq mi“ einen Vorschlag mit bearbeitbarer Langform', async () => {
@@ -654,7 +703,7 @@ describe('Ein Klick, ein Ablauf', () => {
     await recommend(user);
 
     // Kein zweiter Klick auf das Modell: Die Vorschläge laufen von selbst an.
-    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(await screen.findByText('neighbourhood-de')).toBeInTheDocument();
     expect(prepareCount()).toBe(1);
   });
 
@@ -666,23 +715,34 @@ describe('Ein Klick, ein Ablauf', () => {
     await analyzeAndRecommend(user);
 
     // Solange die Vorbereitung läuft, gibt es noch keinen Vorschlag.
-    expect(screen.queryByText('crowded-de')).not.toBeInTheDocument();
+    expect(screen.queryByText('neighbourhood-de')).not.toBeInTheDocument();
 
     releasePrepare();
-    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(await screen.findByText('neighbourhood-de')).toBeInTheDocument();
     expect(prepareCount()).toBe(1);
   });
 
   it('lässt die deutschen Felder leer, bis ein Vorschlag übernommen wird', async () => {
+    /*
+      `neighbourhood` statt `crowded`: Seit 4B.4 trägt das Wörterbuch ein, was
+      ohne Rückfrage feststeht, und `crowded` ist davon betroffen. Das Modell
+      füllt nur **offene** Zeilen – der Fall, um den es hier geht, hängt also
+      an einem Wort, das offen bleibt. `neighbourhood` hat zwei Bedeutungen und
+      bleibt es.
+    */
     const { provider } = createFakeTranslationProvider();
     const user = setup(provider);
     await analyzeAndRecommend(user);
 
-    await screen.findByText('crowded-de');
-    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('');
+    await screen.findByText('neighbourhood-de');
+    expect(screen.getByLabelText('Deutsche Antwort für „neighbourhood“')).toHaveValue('');
 
-    await user.click(screen.getByRole('button', { name: /Vorschlag .+ für crowded übernehmen/ }));
-    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toHaveValue('crowded-de');
+    await user.click(
+      screen.getByRole('button', { name: /Vorschlag .+ für neighbourhood übernehmen/ }),
+    );
+    expect(screen.getByLabelText('Deutsche Antwort für „neighbourhood“')).toHaveValue(
+      'neighbourhood-de',
+    );
   });
 
   it('meldet eine gescheiterte Vorbereitung und wiederholt sie erfolgreich', async () => {
@@ -694,11 +754,11 @@ describe('Ein Klick, ein Ablauf', () => {
     expect(alert).toHaveTextContent(/konnte nicht geladen werden/);
     expect(alert).toHaveTextContent(/von Hand eintragen/);
     // Die Handeingabe funktioniert weiterhin.
-    expect(screen.getByLabelText('Deutsche Antwort für „crowded“')).toBeEnabled();
+    expect(screen.getByLabelText('Deutsche Antwort für „neighbourhood“')).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
 
-    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(await screen.findByText('neighbourhood-de')).toBeInTheDocument();
     expect(prepareCount()).toBe(2);
   });
 
@@ -759,9 +819,24 @@ describe('Lokale Abkürzungsvorschläge', () => {
     const user = setup();
     await analyzeAndRecommend(user, 'The heavy engine delivers 400 bhp on the long test track.');
 
-    await user.type(screen.getByLabelText('Deutsche Antwort für „engine“'), 'der Motor');
+    // Die Abkürzung bleibt offen – das Wörterbuch weiß zu „bhp“ nichts, und
+    // geraten wird nicht.
     expect(screen.getByLabelText('Deutsche Antwort für „bhp“')).toHaveValue('');
-    expect(screen.getByRole('button', { name: '1 Vokabel prüfen & speichern' })).toBeEnabled();
+
+    /*
+      Die Zusage: Was keine Antwort hat, zählt nicht mit. Geprüft wird sie an
+      der Zahl im Knopf gegen die tatsächlich gefüllten Felder – unabhängig
+      davon, wie viele das Wörterbuch schon beantwortet hat.
+    */
+    const gefuellt = screen
+      .getAllByLabelText(/^Deutsche Antwort für/)
+      .filter((feld) => (feld as HTMLInputElement).value.trim().length > 0).length;
+    const offen = screen.getAllByLabelText(/^Deutsche Antwort für/).length - gefuellt;
+    expect(offen).toBeGreaterThan(0);
+
+    const knopf = screen.getByRole('button', { name: /prüfen & speichern/ });
+    expect(knopf).toHaveTextContent(new RegExp(`^${gefuellt} Vokabeln? prüfen`));
+    expect(knopf).toBeEnabled();
   });
 });
 
@@ -786,7 +861,7 @@ describe('Fortschritt und Abbruch der Vorbereitung', () => {
 
     releasePrepare();
     await recommend(user);
-    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(await screen.findByText('neighbourhood-de')).toBeInTheDocument();
   });
 
   it('bricht den laufenden Modelldownload wirklich ab', async () => {
@@ -821,7 +896,7 @@ describe('Fortschritt und Abbruch der Vorbereitung', () => {
       screen.getByRole('button', { name: /Vorschläge erzeugen|Sprachmodell laden/ }),
     );
 
-    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(await screen.findByText('neighbourhood-de')).toBeInTheDocument();
     expect(prepareCount()).toBe(2);
   });
 
@@ -885,7 +960,7 @@ describe('Rennen zwischen Verfügbarkeit und Vorbereitung', () => {
     await analyzeAndRecommend(user);
 
     // Die Vorbereitung ist durch, die Vorschläge sind da.
-    expect(await screen.findByText('crowded-de')).toBeInTheDocument();
+    expect(await screen.findByText('neighbourhood-de')).toBeInTheDocument();
 
     // Jetzt trudelt die alte Auskunft ein.
     answerAvailability('downloadable');
