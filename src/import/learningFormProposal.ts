@@ -286,10 +286,27 @@ export function proposeLearningForm(input: LearningFormInput): LearningFormPropo
     evidence.push('dictionary');
   }
 
-  // --- Fehlt das Wichtigste? -----------------------------------------------
-  if (!partOfSpeech && !reviewReason) {
-    reviewReason = 'Die Wortart ist nicht gesichert. Bitte prüfen.';
-  }
+  /*
+    Eine ungesicherte Wortart ist **kein** Prüfhinweis.
+
+    Der erste Entwurf setzte hier `needsReview`, wenn die Wortart unklar blieb.
+    Gemessen an einem echten Text hieß das: eine sichtbare Frage im
+    Empfehlungsschritt – und **zwölf** „Bitte prüfen“ in der Entwurfstabelle,
+    weil `coin`, `wall`, `plan` und die Hälfte aller Substantive im Englischen
+    nun einmal auch Verben sind.
+
+    Eine Warnung an jeder Zeile ist eine Warnung an keiner. Die eine Frage, die
+    wirklich beantwortet werden muss, ging darin unter – und genau sie soll vor
+    dem Speichern auffallen.
+
+    Die Auskunft geht dabei nicht verloren: `partOfSpeech` bleibt leer, und das
+    Auswahlfeld daneben steht sichtbar auf „–“. Das ist die ehrlichere
+    Darstellung, denn eine fehlende Wortart ist kein Fehler – ein Paket ohne
+    sie ist gültig.
+
+    `needsReview` bleibt damit dem vorbehalten, was es benennt: einer offenen
+    Frage zur **Form**, zu der es eine konkrete Antwort und einen Knopf gibt.
+  */
 
   const english = buildLearningForm({
     lemma: head,

@@ -3387,3 +3387,79 @@ progress {
   padding-top: var(--space-4);
   border-top: 1px solid var(--border-subtle);
 }
+
+/* ================================================== Die Aktionsleiste */
+
+/*
+  Klebt am unteren Rand (Sprint 4B.3, Entwurfsroute B).
+
+  Bei zwanzig Empfehlungen sind die Aktionen am Seitenfuß drei Bildschirmhöhen
+  entfernt: Wer bei Vokabel sieben ist, sieht weder, wie weit er ist, noch den
+  Weg weiter – und scrollt zum Speichern an allem vorbei, was er gerade
+  bearbeitet hat.
+
+  `position: sticky` und nicht `fixed`: Eine feste Leiste läge auch dann über
+  dem Inhalt, wenn die Seite kürzer ist als das Fenster, und verdeckte auf
+  einem Telefon im Querformat die halbe Liste. Sticky legt sich erst an den
+  Rand, wenn es unter ihr weitergeht.
+*/
+.actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+  /* Der Schatten zeigt nach **oben**: Die Leiste liegt über dem, was
+     darunter durchscrollt, und nicht auf dem Blatt. */
+  box-shadow: 0 -2px 6px rgb(47 9 45 / 6%), 0 -18px 36px -30px rgb(47 9 45 / 34%);
+}
+.actionbar .meter {
+  flex: 0 0 8rem;
+}
+.actionbar__status {
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+}
+.actionbar__status strong {
+  color: var(--ink);
+}
+
+/*
+  Die offenen Fragen stehen neben dem Speichern-Knopf.
+
+  Eine Frage, die man nur findet, wenn man scrollt, ist vor dem Speichern
+  keine. Deshalb hat sie hier ihren Platz – und den Weg dorthin gleich mit.
+*/
+.actionbar__review {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/*
+  Auf schmalen Fenstern liegt unten schon die Bereichsnavigation.
+
+  Sie ist `position: fixed` mit `z-index: 30` und läge damit **über** der
+  Aktionsleiste – der Speichern-Knopf verschwände hinter „Lernen · Erstellen ·
+  Daten“. Die Leiste rückt deshalb genau um deren Höhe nach oben; dieselbe
+  Rechnung benutzt schon der Innenabstand des Inhalts weiter oben.
+*/
+@media (max-width: 61.999rem) {
+  .actionbar {
+    bottom: calc(var(--bottom-nav-height) + var(--safe-bottom));
+  }
+}
+
+/* Auf Papier gibt es nichts zu bedienen. */
+@media print {
+  .actionbar {
+    display: none !important;
+  }
+}

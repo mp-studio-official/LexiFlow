@@ -995,3 +995,89 @@ benutzt nur `@page`, `display: table-header-group`, `break-inside` und
 `window.print()` – alles seit Jahren in Safari vorhanden. Ob „Als PDF sichern“
 im Safari-Druckdialog das erwartete Blatt liefert, ist damit **plausibel, aber
 nicht gemessen**; ein Durchgang in echtem Safari steht aus.
+
+## Die klebende Aktionsleiste – und die Sichtbarkeit der Prüfhinweise
+
+Der letzte offene Punkt aus dem Entwurf, zusammen mit der bestätigten
+Anforderung, dass ein Prüfhinweis **vor dem Speichern zuverlässig auffällt**.
+Beides gehört in dieselbe Leiste, deshalb in denselben Commit.
+
+### Warum die Leiste klebt
+
+Bei zwanzig Empfehlungen sind die Aktionen am Seitenfuß drei Bildschirmhöhen
+entfernt. Wer bei Vokabel sieben ist, sieht weder, wie weit er ist, noch den
+Weg weiter – und scrollt zum Speichern an allem vorbei, was er gerade
+bearbeitet hat. Jetzt stehen Fortschritt, Rückweg und Speichern immer im Bild.
+
+`position: sticky`, nicht `fixed`: Eine feste Leiste läge auch über kurzen
+Seiten und verdeckte auf einem Telefon im Querformat die halbe Liste. Auf
+schmalen Fenstern rückt sie um die Höhe der Bereichsnavigation nach oben –
+sonst läge der Speichern-Knopf hinter „Lernen · Erstellen · Daten“.
+
+### Der Fehler, den die Messung gezeigt hat
+
+Die offenen Fragen zur Lernform sollten neben dem Speichern-Knopf stehen. Beim
+Zählen fiel auf, wie viele es waren: An einem echten Text stand **eine**
+sichtbare Frage im Empfehlungsschritt – und **zwölf** „Bitte prüfen“ in der
+Entwurfstabelle.
+
+Der Grund: `needsReview` wurde auch gesetzt, wenn nur die **Wortart** unklar
+blieb. Das ist im Englischen der Normalfall – `coin`, `wall`, `plan`, `try`,
+`shore` sind Substantiv **und** Verb, und das Wörterbuch sagt zu Recht nichts
+Eindeutiges. Eine Warnung an jeder Zeile ist aber eine Warnung an keiner: Die
+eine Frage, die wirklich beantwortet werden muss, ging darin unter – genau die,
+die auffallen soll.
+
+`needsReview` ist jetzt dem vorbehalten, was es benennt: einer offenen Frage
+zur **Form**, zu der es eine konkrete Antwort und einen Knopf gibt. Die
+ungesicherte Wortart geht dabei nicht verloren – `partOfSpeech` bleibt leer,
+und das Auswahlfeld daneben steht sichtbar auf „–“. Eine fehlende Wortart ist
+kein Fehler; ein Paket ohne sie ist gültig.
+
+Gemessen am selben Text: 10 Zeilen, neunmal „OK“, **einmal** „Bitte prüfen“ mit
+dem Wortlaut „Im Text steht ‚depend on‘. Gehört ‚on‘ zur Vokabel?“ – im
+Empfehlungsschritt, in der Leiste neben dem Speichern-Knopf und in der
+Entwurfstabelle.
+
+### Der Weg zur Frage
+
+Die Leiste zählt nur Zeilen, die auch ins Paket gehen: Eine offene Frage an
+einer Vokabel ohne Antwort ist keine, weil die Vokabel gar nicht übernommen
+wird. Der Knopf daneben springt zur ersten betroffenen Zeile **und setzt den
+Fokus auf die Bestätigung** – wer mit der Tastatur arbeitet, landet ebenfalls
+dort.
+
+### Zu den beiden bestätigten Entscheidungen
+
+Beide sind so umgesetzt, wie bestätigt, und durch Tests festgehalten:
+
+- Das Wortartkürzel erscheint zur **Unterscheidung verwandter Formen**
+  (`attainability (n.)` neben `attainable (adj.)`), bei **grammatisch
+  relevanten Angaben** (`restraints (pl.)` – immer) und wenn es die Lehrkraft
+  **geschrieben** hat. Sonst nicht: `erosion` bleibt `erosion`.
+- Verben tragen unabhängig davon ihr `to`; notwendige Partikel, Präpositionen
+  und belegte Ergänzungsmuster bleiben Bestandteil der Lernform und sind in der
+  Antwortprüfung nicht weglassbar.
+- Geschriebene Kürzel laufen unverändert durch Import, Bearbeitung, Speichern,
+  Lernansichten und Export – festgehalten von
+  `src/import/learningFormChain.test.ts`.
+
+### Verifikation
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | grün |
+| `npm run test` | **1701** grün / 96 Dateien |
+| `npm run build` | grün |
+| `npm run build:portable` | grün, **9368,6 KiB** (Schranke 12 MiB) / **647,4 KiB** (Schranke 700 KiB) |
+| `npm run verify:portable` | grün, 25 Prüfungen |
+| `npm run e2e` | **131** grün (Chromium), davon 1 neu für die Leiste |
+| `npm run e2e:portable` | **23** grün (Chromium, `file://`) |
+
+Der neue E2E-Test misst im Browser, was jsdom nicht kann: dass die Leiste nach
+4000 px Scrollen noch im Bild steht, dass der Fortschritt mitzählt, dass der
+Knopf zur offenen Frage führt und den Fokus auf die Bestätigung setzt – und
+dass die Leiste danach nichts Offenes mehr meldet.
+
+**Safari:** weiterhin ausschließlich Chromium automatisiert. `position: sticky`
+ist dort alt; der manuelle Durchgang steht aus.

@@ -567,8 +567,19 @@ describe('Empfehlungsschritt mit Übersetzungs-Anbieter', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
     );
-    // Nach Abschluss verschwindet die Anzeige wieder.
-    await waitFor(() => expect(screen.queryByRole('progressbar')).not.toBeInTheDocument());
+    /*
+      Nach Abschluss verschwindet die Anzeige wieder.
+
+      Seit 4B.3 gibt es einen **zweiten** Fortschrittsbalken: den der
+      Aktionsleiste, der zählt, wie viele Empfehlungen beantwortet sind. Der
+      steht dauerhaft da. Gefragt wird deshalb nach dem Namen, nicht nach der
+      Rolle – sonst prüfte dieser Test, ob die Leiste verschwindet.
+    */
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('progressbar', { name: 'Sprachmodell wird vorbereitet' }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it('hält einen Fehler bei der einzelnen Vokabel und bietet Wiederholung an', async () => {
@@ -757,6 +768,50 @@ describe('Übergabe an den Entwurfs-Workflow', () => {
  * diese Tests festhalten: Was nicht mehr in der Karte steht, steht hinter einem
  * **benannten** Aufklapper und ist mit der Tastatur erreichbar.
  */
+/**
+ * Sprint 4B.3: Die klebende Aktionsleiste.
+ *
+ * Zwei Aufgaben, und die zweite ist die wichtigere: Sie zeigt, wie weit man
+ * ist – und sie stellt die offenen Fragen zur Lernform **neben** den
+ * Speichern-Knopf. Eine Frage, die man nur findet, wenn man scrollt, ist vor
+ * dem Speichern keine.
+ *
+ * Ob die Leiste wirklich klebt, kann jsdom nicht sagen (kein Layout); das
+ * misst der E2E-Lauf. Hier geht es um den Inhalt.
+ */
+describe('Die Aktionsleiste', () => {
+  it('steht erst da, wenn es etwas zu tun gibt', async () => {
+    mount();
+    // Vor dem Empfehlen gibt es keinen Fortschritt und nichts zu speichern.
+    expect(document.querySelector('.actionbar')).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Zurück zum Text' })).toBeInTheDocument();
+  });
+
+  it('zählt mit, wie weit man ist', async () => {
+    const { user } = await setup();
+    const leiste = document.querySelector('.actionbar') as HTMLElement;
+    expect(leiste).not.toBeNull();
+
+    expect(within(leiste).getByText(/0 von \d+/)).toBeInTheDocument();
+    expect(within(leiste).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
+
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+
+    expect(within(leiste).getByText(/1 von \d+/)).toBeInTheDocument();
+    expect(within(leiste).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
+  });
+
+  it('trägt den Speichern-Knopf mit der Zahl, die gespeichert wird', async () => {
+    const { user } = await setup();
+    const leiste = document.querySelector('.actionbar') as HTMLElement;
+
+    await user.type(screen.getByLabelText('Deutsche Antwort für „crowded“'), 'überfüllt');
+    expect(
+      within(leiste).getByRole('button', { name: '1 Vokabel prüfen & speichern' }),
+    ).toBeEnabled();
+  });
+});
+
 describe('Die Empfehlungskarte', () => {
   it('trägt im Kopf nur Wort, Häufigkeit, Zustand und den Weg hinaus', async () => {
     await setup();

@@ -186,12 +186,21 @@ describe('Substantive und Adjektive', () => {
 });
 
 describe('Wo es nicht reicht, sagt es das', () => {
-  it('meldet eine ungesicherte Wortart zur Prüfung', () => {
+  it('macht aus einer ungesicherten Wortart keinen Prüfhinweis', () => {
+    /*
+      Gemessen an einem echten Text hätte das eine sichtbare Frage und **zwölf**
+      „Bitte prüfen“ in der Entwurfstabelle ergeben – weil `coin`, `wall`,
+      `plan` und die Hälfte aller englischen Substantive auch Verben sind.
+      Eine Warnung an jeder Zeile ist eine Warnung an keiner.
+
+      Verloren geht nichts: `partOfSpeech` bleibt leer, und das Auswahlfeld
+      steht sichtbar auf „–“. Eine fehlende Wortart ist kein Fehler.
+    */
     const proposal = proposeLearningForm({ written: 'shore' });
 
     expect(proposal.english).toBe('shore');
-    expect(proposal.needsReview).toBe(true);
-    expect(proposal.reviewReason).toMatch(/Wortart/);
+    expect(proposal.partOfSpeech).toBe('');
+    expect(proposal.needsReview).toBe(false);
   });
 
   it('rät nicht, wenn das Wörterbuch mehrere Wortarten kennt', () => {
@@ -206,7 +215,9 @@ describe('Wo es nicht reicht, sagt es das', () => {
 
     expect(proposal.english).toBe('coin');
     expect(proposal.partOfSpeech).toBe('');
-    expect(proposal.needsReview).toBe(true);
+    // Kein `to` – und trotzdem kein Prüfhinweis: Das leere Wortartfeld
+    // daneben sagt es deutlicher als ein Warnkasten an jeder zweiten Zeile.
+    expect(proposal.needsReview).toBe(false);
   });
 
   it('folgt der Lehrkraft, wenn sie die Wortart gesetzt hat', () => {

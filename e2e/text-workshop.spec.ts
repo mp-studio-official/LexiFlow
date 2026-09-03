@@ -292,6 +292,71 @@ test.describe('Textwerkstatt', () => {
     await expect(page.locator('.candidate__review')).toHaveCount(0);
   });
 
+  /*
+    Sprint 4B.3: Die klebende Aktionsleiste.
+
+    Ob sie wirklich klebt, kann nur der Browser sagen – jsdom rechnet kein
+    Layout. Und der zweite Teil ist der wichtigere: Die offene Frage zur
+    Lernform muss **vor dem Speichern** auffallen, also dort stehen, wo der
+    Speichern-Knopf steht.
+  */
+  test('@smoke die Aktionsleiste bleibt sichtbar und führt zur offenen Frage', async ({
+    page,
+  }) => {
+    const QUELLE = [
+      'Communities along the shore depend on natural barriers to survive.',
+      'Residents endure the noise of construction for years.',
+      'Engineers try to surmount obstacles by building sea walls.',
+      'Planners often single out the cheapest option to save money.',
+    ].join(' ');
+
+    await withoutBrowserModels(page);
+    await page.goto('/#/material/import?quelle=text');
+    await page.getByLabel('Englischer Text').fill(QUELLE);
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+    await recommend(page, '10');
+
+    const leiste = page.locator('.actionbar');
+    await expect(leiste).toBeVisible();
+
+    // Der Fortschritt zählt mit.
+    await expect(leiste).toContainText('0 von');
+    await page.getByLabel('Deutsche Antwort für „to depend“').fill('abhängen');
+    await expect(leiste).toContainText('1 von');
+
+    /*
+      Und sie klebt: Auch ganz unten in einer langen Liste steht sie im Bild.
+      Gemessen wird die Unterkante gegen die Fensterhöhe – eine Leiste, die
+      mit hinausgescrollt wäre, läge weit darunter.
+    */
+    await page.mouse.wheel(0, 4000);
+    await page.waitForTimeout(200);
+    const box = await leiste.boundingBox();
+    const hoehe = page.viewportSize()?.height ?? 0;
+    expect(box).not.toBeNull();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(hoehe + 2);
+
+    /*
+      Die offene Frage steht neben dem Speichern-Knopf – und der Knopf führt
+      hin. Eine Frage, die man nur beim Scrollen findet, ist vor dem Speichern
+      keine.
+    */
+    const frage = leiste.getByRole('button', { name: /offene Frage zur Lernform/ });
+    await expect(frage).toBeVisible();
+    await frage.click();
+
+    // Der Fokus liegt jetzt auf der Bestätigung in der betroffenen Zeile.
+    const bestaetigen = page.getByRole('button', {
+      name: 'Lernform „to depend on sb./sth.“ übernehmen',
+    });
+    await expect(bestaetigen).toBeFocused();
+
+    // Beantwortet – und die Leiste meldet nichts Offenes mehr.
+    await bestaetigen.click();
+    await expect(leiste.getByRole('button', { name: /offene Frage/ })).toHaveCount(0);
+  });
+
   test('@a11y Empfehlungsschritt ohne schwerwiegende Befunde', async ({ page }) => {
     await analyze(page);
     await recommend(page);

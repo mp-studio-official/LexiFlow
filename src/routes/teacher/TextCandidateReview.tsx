@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Announcer, Badge, Button, Card, Field } from '../../ui/components';
+import { Alert, Announcer, Badge, Button, Card, Field, Meter } from '../../ui/components';
 import { useTranslationProvider } from '../../providers/ProviderContext';
 import {
   describeCandidateForms,
@@ -841,6 +841,14 @@ export function TextCandidateReview({
 
   const taken = rows.filter(hasAnswer);
   const open = rows.length - taken.length;
+  /*
+    Die offenen Fragen zur Lernform – nur an Zeilen, die auch ins Paket gehen.
+
+    Eine unbeantwortete Vokabel wird gar nicht übernommen; die Frage danach,
+    ob ihr `on` dazugehört, ist dann keine. Sie mitzuzählen hieße, vor dem
+    Speichern auf etwas hinzuweisen, das nicht gespeichert wird.
+  */
+  const openQuestions = taken.filter((row) => row.proposal.needsReview);
 
   function apply(): void {
     const selections: CandidateSelection[] = taken.map((row) => ({
@@ -1226,7 +1234,12 @@ export function TextCandidateReview({
                 Boolean(row.baseFormHint);
 
               return (
-                <li key={candidate.id} className="candidate" data-answered={answered ? '' : undefined}>
+                <li
+                  key={candidate.id}
+                  id={`kandidat-${candidate.id}`}
+                  className="candidate"
+                  data-answered={answered ? '' : undefined}
+                >
                   {/*
                     Der Kopf trägt vier Dinge und nicht mehr: das Wort, wie oft
                     es im Text steht, den Zustand und den Weg hinaus. Bis 4B.1
@@ -1600,14 +1613,79 @@ export function TextCandidateReview({
         </div>
       </SplitPane>
 
-      <div className="row">
-        <Button onClick={onBack}>Zurück zum Text</Button>
-        <Button variant="primary" disabled={taken.length === 0} onClick={apply}>
-          {taken.length === 1
-            ? '1 Vokabel prüfen & speichern'
-            : `${taken.length} Vokabeln prüfen & speichern`}
-        </Button>
-      </div>
+      {/*
+        Die Aktionsleiste klebt am unteren Rand (Sprint 4B.3, Entwurfsroute B).
+
+        Vorher standen „Zurück zum Text“ und „prüfen & speichern“ am Fuß der
+        Seite. Bei zwanzig Empfehlungen sind das drei Bildschirmhöhen: Wer bei
+        Vokabel sieben ist, sieht weder, wie weit er ist, noch den Weg
+        weiter – und scrollt zum Speichern an allem vorbei, was er gerade
+        bearbeitet hat.
+
+        Jetzt ist beides immer da. Und mit ihm die eine Zahl, die vor dem
+        Speichern auffallen muss: die offenen Fragen zur Lernform.
+      */}
+      {generated ? (
+        <div className="actionbar">
+          <Meter
+            value={taken.length}
+            max={rows.length}
+            label={`${taken.length} von ${rows.length} Empfehlungen beantwortet`}
+          />
+          <span className="actionbar__status">
+            <strong>
+              {taken.length} von {rows.length}
+            </strong>{' '}
+            beantwortet
+            {open > 0 ? ` · ${open} offen` : null}
+          </span>
+
+          {/*
+            Die offenen Formfragen stehen **neben** dem Speichern-Knopf, nicht
+            irgendwo oben in der Liste.
+
+            Eine Frage, die man nur findet, wenn man scrollt, ist vor dem
+            Speichern keine. Hier steht sie im Blick, mit einem Weg hin: Der
+            Knopf springt zur ersten Zeile, die sie stellt, und setzt den Fokus
+            dorthin – wer mit der Tastatur arbeitet, landet ebenfalls dort.
+
+            Gezählt werden nur Zeilen, die auch ins Paket gehen. Eine offene
+            Frage an einer Vokabel ohne Antwort ist keine: Die Vokabel wird gar
+            nicht übernommen.
+          */}
+          {openQuestions.length > 0 ? (
+            <span className="actionbar__review">
+              <Badge tone="warning">Bitte prüfen</Badge>
+              <Button
+                small
+                onClick={() => {
+                  const first = openQuestions[0];
+                  if (!first) return;
+                  const element = document.getElementById(`kandidat-${first.candidate.id}`);
+                  element?.scrollIntoView({ block: 'center' });
+                  element?.querySelector<HTMLButtonElement>('.candidate__review button')?.focus();
+                }}
+              >
+                {openQuestions.length === 1
+                  ? '1 offene Frage zur Lernform'
+                  : `${openQuestions.length} offene Fragen zur Lernform`}
+              </Button>
+            </span>
+          ) : null}
+
+          <span className="spacer" />
+          <Button onClick={onBack}>Zurück zum Text</Button>
+          <Button variant="primary" disabled={taken.length === 0} onClick={apply}>
+            {taken.length === 1
+              ? '1 Vokabel prüfen & speichern'
+              : `${taken.length} Vokabeln prüfen & speichern`}
+          </Button>
+        </div>
+      ) : (
+        <div className="row">
+          <Button onClick={onBack}>Zurück zum Text</Button>
+        </div>
+      )}
     </div>
   );
 }
