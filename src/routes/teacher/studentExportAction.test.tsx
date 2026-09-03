@@ -126,7 +126,9 @@ describe('Als Einzeldatei herunterladen', () => {
     expect(file?.text).toContain('<title>Unit 3 – City life – LexiFlow</title>');
     expect(file?.text).toContain('crowded');
     expect(file?.text).not.toContain(PACK_PLACEHOLDER);
-    expect((await screen.findAllByText(/Schülerdatei erstellt/)).length).toBeGreaterThan(0);
+    // 4B.3: „Schülerdatei“ ist raus – die Datei ist eine Einzeldatei, und die
+    // Oberfläche spricht von Lernenden, nicht von Schülern.
+    expect((await screen.findAllByText(/Einzeldatei erstellt/)).length).toBeGreaterThan(0);
   });
 
   it('lässt den bestehenden JSON-Export unverändert', async () => {
@@ -154,7 +156,7 @@ describe('Als Einzeldatei herunterladen', () => {
 
     expect(downloads).toHaveLength(0);
     expect(
-      await screen.findByText(/steht in der portablen Datei „LexiFlow-Lehrkraft.html“/),
+      await screen.findByText(/lässt sich in der portablen Datei „LexiFlow-Lehrkraft.html“ erzeugen/),
     ).toBeInTheDocument();
   });
 

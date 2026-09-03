@@ -295,17 +295,30 @@ describe('Der Stepper im Assistenten', () => {
     const user = setup();
     await analyzeAndRecommend(user);
 
+    /*
+      Erst abwarten, dass die Anwendung ihren Fokus gesetzt hat.
+
+      Nach dem Empfehlungslauf wandert der Fokus auf die Ergebnisüberschrift –
+      absichtlich, damit nach dem Klick niemand oben stehen bleibt und die neue
+      Liste unten übersieht (`TextCandidateReview`). Das passiert in einem
+      `requestAnimationFrame`, also **nach** dem Klick, um den es hier gar
+      nicht geht.
+
+      Wer davor den Stepper fokussiert, verliert den Fokus einen Wimpernschlag
+      später wieder an die Überschrift; `{Enter}` läuft dann ins Leere, und der
+      Test scheitert – aber nicht an der Tastaturbedienung, sondern daran, dass
+      er zwei Dinge gleichzeitig getan hat. Genau das war die Ursache des
+      sporadischen Fehlschlags in der vollen Suite: nichts Langsames, sondern
+      ein Rennen um den Fokus.
+    */
+    const ergebnis = await screen.findByRole('heading', { name: /Vorgeschlagene Vokabeln/ });
+    await waitFor(() => expect(ergebnis).toHaveFocus());
+
     const erster = screen.getByRole('button', { name: 'Schritt 1: Text analysieren' });
     erster.focus();
     expect(erster).toHaveFocus();
     await user.keyboard('{Enter}');
 
-    /*
-      `findBy…` statt `getBy…`: Der Sprung zurück auf Schritt 1 hängt einen
-      Zustandswechsel an, und unter voller Testlast lief dieser Test dem
-      Rendern gelegentlich davon. Er prüfte damit nicht die Tastaturbedienung,
-      sondern die Auslastung des Rechners.
-    */
     expect(await screen.findByLabelText('Englischer Text')).toBeInTheDocument();
     await waitFor(() => expect(erster).toHaveAttribute('aria-current', 'step'));
   });

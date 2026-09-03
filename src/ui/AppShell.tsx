@@ -1,23 +1,43 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
-import { Logo } from './Logo';
+import { Logo, LogoMark } from './Logo';
 import { APP_CLAIM } from '../pwa/manifest';
 
 /**
- * App-Shell im Creator-Studio-Zuschnitt (Sprint 3A).
+ * App-Shell als **Werkbank** (Sprint 4B.3, Entwurfsroute B).
  *
- * Zwei Navigationen, eine Wahrheit: Auf breiten Fenstern steht eine ruhige,
- * schmale Seitenspalte neben dem Inhalt, auf schmalen eine erreichbare Leiste
- * am unteren Rand. Immer sichtbar ist genau eine von beiden – die jeweils
- * andere ist per `display: none` auch aus dem Accessibility-Baum entfernt,
- * damit Screenreader die drei Bereiche nicht doppelt vorfinden.
+ * ## Was sich gegenüber dem Creator-Studio geändert hat
  *
- * Die Navigation ist bewusst zurückhaltend: Der Inhalt trägt die Seite.
+ * Vorher: eine ganzbreite Kopfzeile in Aubergine, darunter eine schwebende,
+ * abgerundete Navigationsfläche *innerhalb* der Inhaltsspalte. Zwei dunkle
+ * Flächen übereinander, dazwischen ein Streifen Papier – und die Marke stand
+ * ganz oben allein in einer Zeile, die sonst nichts tat.
+ *
+ * Jetzt: **eine** dunkle Fläche, bündig am linken Fensterrand, über die volle
+ * Höhe. Sie trägt das Zeichen oben links und die drei Bereiche darunter. Der
+ * Rest ist Papier. Das ist der Unterschied zwischen einer Website mit
+ * Navigation und einem Werkzeug mit einem Ort für die Arbeit.
+ *
+ * ## Warum die Schiene nicht 56 px schmal ist
+ *
+ * Im Entwurf war sie das, mit senkrecht gestellten Beschriftungen. Senkrechte
+ * Schrift liest sich messbar langsamer, und die drei Bereiche verlieren dabei
+ * ihre Erklärungen („Deine Pakete und Runden“). Übernommen ist deshalb die
+ * **Haltung** – eine durchgehende dunkle Kante statt eines schwebenden
+ * Kastens –, nicht die Breite. Wer den Entwurf danebenlegt, sieht dieselbe
+ * Seite; wer ihn liest, sieht sie schneller.
+ *
+ * ## Zwei Navigationen, eine Wahrheit
+ *
+ * Auf schmalen Fenstern bleibt die Leiste am unteren Rand, unverändert.
+ * Sichtbar ist immer genau eine von beiden; die andere ist per `display: none`
+ * auch aus dem Accessibility-Baum entfernt, damit eine Vorlesehilfe die drei
+ * Bereiche nicht doppelt vorfindet.
  */
 
 interface NavItem {
   to: string;
   label: string;
-  /** Kurzer Zusatz für die Seitenspalte – erklärt den Bereich, ohne zu dozieren. */
+  /** Kurzer Zusatz für die Schiene – erklärt den Bereich, ohne zu dozieren. */
   hint: string;
 }
 
@@ -34,10 +54,13 @@ export function AppShell() {
         Zum Inhalt springen
       </a>
 
+      {/*
+        Die schmale Kopfzeile bleibt – aber nur für schmale Fenster. Auf
+        breiten trägt die Schiene das Zeichen, und eine zweite Marke darüber
+        wäre eine Dopplung.
+      */}
       <header className="app-header">
         <div className="app-header__inner">
-          {/* Die Wortmarke ist Zeichen plus Text – der Name bleibt markierbar
-              und vorlesbar, das Signet bleibt dekorativ. */}
           <Link className="brand" to="/" aria-label="LexiFlow – Startseite">
             <Logo tone="on-dark" size={28} />
           </Link>
@@ -46,12 +69,31 @@ export function AppShell() {
 
       <div className="app-body">
         <nav className="app-nav" aria-label="Hauptnavigation">
+          {/*
+            Das Zeichen oben links, und es tut etwas: Es führt zur Startseite.
+            Ein Markenzeichen in einer Ecke, das nichts tut, ist eine verpasste
+            Gelegenheit.
+          */}
+          <Link className="app-nav__brand" to="/" aria-label="LexiFlow – Startseite">
+            <LogoMark size={30} tone="on-dark" />
+            <span className="app-nav__wordmark">LexiFlow</span>
+          </Link>
+
           <ul className="app-nav__list">
             {NAV_ITEMS.map((item) => (
               <li key={item.to}>
-                <NavLink className="app-nav__link" to={item.to}>
+                {/*
+                  `aria-label` hält den Namen kurz: „Lernen“, nicht „Lernen
+                  Deine Pakete und Runden“. Der Zusatz ist für das Auge da –
+                  wer die Schaltfläche per Sprache anspricht oder in einer
+                  Elementliste sucht, will den Ort, nicht seine Erklärung.
+                */}
+                <NavLink className="app-nav__link" to={item.to} aria-label={item.label}>
                   <span className="app-nav__mark" aria-hidden="true" />
-                  {item.label}
+                  <span className="app-nav__text">
+                    <span className="app-nav__label">{item.label}</span>
+                    <span className="app-nav__hint">{item.hint}</span>
+                  </span>
                 </NavLink>
               </li>
             ))}
@@ -61,22 +103,24 @@ export function AppShell() {
           </p>
         </nav>
 
-        <main className="app-main" id="inhalt" tabIndex={-1}>
-          <Outlet />
-        </main>
-      </div>
+        <div className="app-work">
+          <main className="app-main" id="inhalt" tabIndex={-1}>
+            <Outlet />
+          </main>
 
-      <footer className="app-footer">
-        <div className="app-footer__inner">
-          <p className="app-footer__claim">{APP_CLAIM}</p>
-          <p style={{ margin: 0 }}>
-            Freiwillige Lernhilfe. Alle Lernstände bleiben auf diesem Gerät.
-          </p>
-          <p style={{ margin: 0 }}>
-            Keine Konten, keine Auswertung durch Lehrkräfte, keine Werbung.
-          </p>
+          <footer className="app-footer">
+            <div className="app-footer__inner">
+              <p className="app-footer__claim">{APP_CLAIM}</p>
+              <p style={{ margin: 0 }}>
+                Freiwillige Lernhilfe. Alle Lernstände bleiben auf diesem Gerät.
+              </p>
+              <p style={{ margin: 0 }}>
+                Keine Konten, keine Auswertung durch Lehrkräfte, keine Werbung.
+              </p>
+            </div>
+          </footer>
         </div>
-      </footer>
+      </div>
 
       <nav className="bottom-nav" aria-label="Bereichsnavigation">
         {NAV_ITEMS.map((item) => (

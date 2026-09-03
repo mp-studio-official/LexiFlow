@@ -37,6 +37,7 @@ import type { CefrLevel, Grade } from '../../domain/cefr';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
 import { DictionarySuggestionList } from './DictionarySuggestionList';
 import { Disclosure } from '../../ui/Disclosure';
+import { SplitPane } from '../../ui/SplitPane';
 
 /**
  * Schritt 2 des Import-Assistenten: **Empfehlungen generieren**.
@@ -210,6 +211,14 @@ export interface TextCandidateReviewProps {
   /** Derselbe Lernkontext wie im übrigen Assistenten – Änderungen wandern nach oben. */
   context: LearningContext;
   onContextChange: (context: LearningContext) => void;
+  /**
+   * Der analysierte Text selbst – links in der Werkbank zum Nachschlagen.
+   *
+   * Optional, weil diese Ansicht auch ohne ihn vollständig arbeitet: Fehlt er,
+   * bleibt die linke Spalte die Einstellungsspalte, und die Werkbank hat eine
+   * Seite weniger. Ein Platzhalter wäre schlechter als nichts.
+   */
+  sourceText?: string;
   /** Ein Themenvorschlag aus dem Text, sofern etwas herausstach. */
   suggestedTopic?: string;
   /** Woraus er entstanden ist – die Beschriftung sagt es dazu. */
@@ -240,6 +249,7 @@ export function TextCandidateReview({
   candidates,
   context,
   onContextChange,
+  sourceText,
   suggestedTopic,
   topicSource = 'none',
   publicationContext,
@@ -792,123 +802,161 @@ export function TextCandidateReview({
 
       <Announcer message={status} />
 
-      {/* ---------------------------------------------------- Einstellungen */}
-      <Card>
-        <h3 style={{ fontSize: '1rem' }}>Wofür sind die Vokabeln?</h3>
-        <p className="muted small">
-          Jahrgang und Niveau bestimmen die Auswahl. Sie stehen im letzten Schritt schon bereit.
-        </p>
-        <div className="field-grid">
-          {/*
-            Das Thema ist vorgeschlagen und trotzdem ein ganz normales Feld.
+      {/*
+        Die Werkbank: links die Quelle, rechts das Ergebnis.
 
-            Die Beschriftung sagt, woher der Vorschlag kommt – aus einer
-            Überschrift oder aus den häufigsten Begriffen –, und sie sagt es
-            auch, wenn es keinen gibt. „Kein Vorschlag“ ist eine Auskunft;
-            ein stillschweigend leeres Feld ist keine.
-          */}
-          <Field label="Thema" hint={describeTopicSuggestion(topicSource, suggestedTopic)}>
-            {(props) => (
-              <input
-                {...props}
-                type="text"
-                value={context.topic}
-                placeholder="z. B. Coastal erosion"
-                onChange={(event) => onContextChange({ ...context, topic: event.target.value })}
-              />
-            )}
-          </Field>
-          <Field label="Jahrgang">
-            {(props) => (
-              <select
-                {...props}
-                value={context.grade}
-                onChange={(event) =>
-                  onContextChange({ ...context, grade: event.target.value as Grade })
-                }
-              >
-                {GRADES.map((grade) => (
-                  <option key={grade} value={grade}>
-                    {GRADE_LABELS[grade]}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field label="GeR-Niveau" hint="Folgt dem Jahrgang, bis du widersprichst.">
-            {(props) => (
-              <select
-                {...props}
-                value={context.cefrLevel}
-                onChange={(event) =>
-                  onContextChange({ ...context, cefrLevel: event.target.value as CefrLevel })
-                }
-              >
-                {CEFR_LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field label="Sortierung">
-            {(props) => (
-              <select
-                {...props}
-                value={sort}
-                onChange={(event) => setSort(event.target.value as RecommendationSort)}
-              >
-                {(Object.keys(RECOMMENDATION_SORT_LABELS) as RecommendationSort[]).map((value) => (
-                  <option key={value} value={value}>
-                    {RECOMMENDATION_SORT_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field
-            label="Anzahl"
-            hint="Obergrenze. Gibt der Text weniger her, werden keine erfunden."
-          >
-            {(props) => (
-              <select
-                {...props}
-                value={count}
-                onChange={(event) => setCount(Number(event.target.value))}
-              >
-                {RECOMMENDATION_COUNTS.map((value) => (
-                  <option key={value} value={value}>
-                    {value} Vokabeln
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-        </div>
+        Bis 4B.2 lagen Einstellungen und Empfehlungen untereinander. Wer die
+        Anzahl änderte, scrollte danach an den Einstellungen vorbei nach unten,
+        um zu sehen, was daraus geworden ist – und wer beim Beantworten oben
+        nachsehen wollte, welcher Jahrgang eingestellt ist, scrollte zurück und
+        verlor die Zeile. Nebeneinander ist beides gleichzeitig da.
 
-        <div className="row" style={{ marginTop: '0.75rem' }}>
-          <Button
-            variant="primary"
-            onClick={recalculate}
-            disabled={dictionaryState === 'prueft' || dictionaryState === 'laeuft'}
-          >
-            {generated ? 'Offene Empfehlungen neu berechnen' : 'Empfehlungen generieren'}
-          </Button>
-          {dictionaryState === 'laeuft' || dictionaryState === 'prueft' ? (
-            <span className="small muted" role="status">
-              Das Offline-Wörterbuch schlägt gerade nach …
-            </span>
+        Die linke Spalte trägt den Text zum Nachschlagen: Beim Beantworten von
+        „shore“ ist der Satz, in dem es stand, die halbe Antwort.
+      */}
+      <SplitPane
+        className="workbench"
+        source={
+        /* ---------------------------------------------- Einstellungen */
+        <div className="stack stack--tight">
+          {sourceText ? (
+            <div>
+              <h3 className="eyebrow" style={{ margin: '0 0 var(--space-2)' }}>
+                Dein Text
+              </h3>
+              {/*
+                Nur lesen, nicht bearbeiten: Geändert wird der Text in Schritt 1,
+                und eine zweite Eingabestelle für denselben Inhalt wäre eine
+                Einladung, zwei verschiedene Fassungen zu erzeugen. Die Höhe ist
+                trotzdem ziehbar – wie viel Text man gleichzeitig sehen will,
+                weiß nur, wer ihn liest.
+              */}
+              <div className="split__doc" tabIndex={0} role="region" aria-label="Analysierter Text">
+                {sourceText}
+              </div>
+            </div>
           ) : null}
-        </div>
-        {generated ? (
-          <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
-            Offen ist, was kein Antwortfeld gefüllt hat – und was du entfernt hast. Beides wird neu
-            besetzt; beantwortete Vokabeln bleiben unangetastet.
-          </p>
-        ) : null}
-      </Card>
 
+          <div>
+            <h3 style={{ fontSize: '1rem' }}>Wofür sind die Vokabeln?</h3>
+            <p className="muted small">
+              Jahrgang und Niveau bestimmen die Auswahl. Sie stehen im letzten Schritt schon bereit.
+            </p>
+            <div className="field-grid">
+              {/*
+                Das Thema ist vorgeschlagen und trotzdem ein ganz normales Feld.
+
+                Die Beschriftung sagt, woher der Vorschlag kommt – aus einer
+                Überschrift oder aus den häufigsten Begriffen –, und sie sagt es
+                auch, wenn es keinen gibt. „Kein Vorschlag“ ist eine Auskunft;
+                ein stillschweigend leeres Feld ist keine.
+              */}
+              <Field label="Thema" hint={describeTopicSuggestion(topicSource, suggestedTopic)}>
+                {(props) => (
+                  <input
+                    {...props}
+                    type="text"
+                    value={context.topic}
+                    placeholder="z. B. Coastal erosion"
+                    onChange={(event) => onContextChange({ ...context, topic: event.target.value })}
+                  />
+                )}
+              </Field>
+              <Field label="Jahrgang">
+                {(props) => (
+                  <select
+                    {...props}
+                    value={context.grade}
+                    onChange={(event) =>
+                      onContextChange({ ...context, grade: event.target.value as Grade })
+                    }
+                  >
+                    {GRADES.map((grade) => (
+                      <option key={grade} value={grade}>
+                        {GRADE_LABELS[grade]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field label="GeR-Niveau" hint="Folgt dem Jahrgang, bis du widersprichst.">
+                {(props) => (
+                  <select
+                    {...props}
+                    value={context.cefrLevel}
+                    onChange={(event) =>
+                      onContextChange({ ...context, cefrLevel: event.target.value as CefrLevel })
+                    }
+                  >
+                    {CEFR_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field label="Sortierung">
+                {(props) => (
+                  <select
+                    {...props}
+                    value={sort}
+                    onChange={(event) => setSort(event.target.value as RecommendationSort)}
+                  >
+                    {(Object.keys(RECOMMENDATION_SORT_LABELS) as RecommendationSort[]).map((value) => (
+                      <option key={value} value={value}>
+                        {RECOMMENDATION_SORT_LABELS[value]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field
+                label="Anzahl"
+                hint="Obergrenze. Gibt der Text weniger her, werden keine erfunden."
+              >
+                {(props) => (
+                  <select
+                    {...props}
+                    value={count}
+                    onChange={(event) => setCount(Number(event.target.value))}
+                  >
+                    {RECOMMENDATION_COUNTS.map((value) => (
+                      <option key={value} value={value}>
+                        {value} Vokabeln
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+            </div>
+
+            <div className="row" style={{ marginTop: '0.75rem' }}>
+              <Button
+                variant="primary"
+                onClick={recalculate}
+                disabled={dictionaryState === 'prueft' || dictionaryState === 'laeuft'}
+              >
+                {generated ? 'Offene Empfehlungen neu berechnen' : 'Empfehlungen generieren'}
+              </Button>
+              {dictionaryState === 'laeuft' || dictionaryState === 'prueft' ? (
+                <span className="small muted" role="status">
+                  Das Offline-Wörterbuch schlägt gerade nach …
+                </span>
+              ) : null}
+            </div>
+            {generated ? (
+              <p className="small muted" style={{ margin: '0.6rem 0 0' }}>
+                Offen ist, was kein Antwortfeld gefüllt hat – und was du entfernt hast. Beides wird neu
+                besetzt; beantwortete Vokabeln bleiben unangetastet.
+              </p>
+            ) : null}
+          </div>
+        </div>
+        }
+      >
+        {/* --------------------------------------------------- Ergebnisse */}
+        <div className="stack">
       {/*
         Was gerade passiert – und sonst nichts.
 
@@ -1383,6 +1431,9 @@ export function TextCandidateReview({
           </Disclosure>
         </>
       ) : null}
+
+        </div>
+      </SplitPane>
 
       <div className="row">
         <Button onClick={onBack}>Zurück zum Text</Button>

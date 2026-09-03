@@ -857,6 +857,7 @@ export function ImportWizardPage() {
           <TextCandidateReview
             candidates={candidates}
             context={learningContext}
+            sourceText={englishText}
             suggestedTopic={topicHint}
             topicSource={topicSource}
             publicationContext={publicationContext}

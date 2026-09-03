@@ -40,7 +40,18 @@ describe('Aufbau', () => {
   it('nennt Marke und die drei Kernbereiche', () => {
     setup();
 
-    expect(screen.getByRole('link', { name: /LexiFlow/ })).toHaveAttribute('href', '/');
+    // Die Marke steht zweimal im Baum: in der Kopfzeile für schmale Fenster
+    // und in der Schiene für breite. Sichtbar ist per CSS immer genau eine.
+    // Beide müssen zur Startseite führen – ein Markenzeichen, das ins Leere
+    // zeigt, ist schlimmer als keines.
+    const brands = screen.getAllByRole('link', { name: /LexiFlow/ });
+    expect(brands).toHaveLength(2);
+    for (const brand of brands) {
+      expect(brand).toHaveAttribute('href', '/');
+    }
+    expect(within(sidebar()).getByRole('link', { name: /LexiFlow/ })).toBeInTheDocument();
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: /LexiFlow/ })).toBeInTheDocument();
+
     for (const nav of [sidebar(), bottomBar()]) {
       expect(within(nav).getByRole('link', { name: 'Lernen' })).toHaveAttribute('href', '/lernen');
       expect(within(nav).getByRole('link', { name: 'Erstellen' })).toHaveAttribute(

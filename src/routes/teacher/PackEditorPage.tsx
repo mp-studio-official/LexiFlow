@@ -12,11 +12,10 @@ import {
   validateDrafts,
   type DraftRow,
 } from '../../import/draft';
-import { countClozeReady, serializePack, suggestFilename } from '../../domain/vocabpack';
+import { countClozeReady } from '../../domain/vocabpack';
 import { describeUpdateSummary } from '../../domain/packDiff';
-import { downloadText } from '../../ui/download';
-import { buildStudentHtml } from '../../portable/studentExport';
-import { PORTABLE_BUILD, loadStudentRuntime } from '../../portable/studentRuntime';
+import { downloadPackFile, downloadStudentFile } from '../../ui/packDownloads';
+import { PORTABLE_BUILD } from '../../portable/studentRuntime';
 import { suggestCefrLevel } from '../../domain/cefr';
 import type { PackMeta } from '../../domain/schema';
 
@@ -128,40 +127,29 @@ export function PackEditorPage() {
     };
   }
 
+  /*
+    Beide Downloads liegen seit 4B.3 in `ui/packDownloads` – dieselbe Logik
+    bedient auch die Paketblöcke auf der Materialseite. Hier bleibt nur, was
+    diese Seite ausmacht: das Paket **so, wie es gerade im Formular steht**,
+    und die Rückmeldung an der Stelle, an der schon „Gespeichert“ erscheint.
+  */
   function handleExport(): void {
     if (!meta || !original) return;
-    const pack = currentPack(meta, original);
-    downloadText(suggestFilename(pack.meta), serializePack(pack));
-    setStatus('Export erstellt.');
+    const outcome = downloadPackFile(currentPack(meta, original));
+    setError('');
+    setStatus(outcome.message);
   }
 
-  /**
-   * Schülerdatei erzeugen – ein Paket, eine HTML-Datei.
-   *
-   * Der Weg ist bewusst derselbe wie beim JSON-Export: Blob, Objekt-URL,
-   * Anker-Klick. Das funktioniert auch in Safari und ohne Server; nichts
-   * verlässt dabei das Gerät.
-   */
   async function handleStudentExport(): Promise<void> {
     if (!meta || !original) return;
     setError('');
 
-    const runtime = await loadStudentRuntime();
-    if (!runtime) {
-      setError(
-        'Der Schüler-Export steht in der portablen Datei „LexiFlow-Lehrkraft.html“ zur Verfügung.',
-      );
+    const outcome = await downloadStudentFile(currentPack(meta, original));
+    if (!outcome.ok) {
+      setError(outcome.message);
       return;
     }
-
-    const result = buildStudentHtml(runtime, currentPack(meta, original));
-    if (!result.ok) {
-      setError(`Die Schülerdatei konnte nicht erzeugt werden: ${result.errors.join(' · ')}`);
-      return;
-    }
-
-    downloadText(result.filename, result.html, 'text/html');
-    setStatus(`Schülerdatei erstellt: ${result.filename}`);
+    setStatus(outcome.message);
   }
 
   async function handleDelete(): Promise<void> {

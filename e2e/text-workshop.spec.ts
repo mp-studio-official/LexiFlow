@@ -194,6 +194,53 @@ test.describe('Textwerkstatt', () => {
     await expect(page.getByLabel('Englischer Text')).toBeVisible();
   });
 
+  /*
+    Sprint 4B.3: Die Werkbank.
+
+    Ob eine Spalte wirklich schmaler wird, wenn man am Griff zieht, lässt sich
+    nur im echten Browser beantworten – jsdom rechnet kein Layout, und
+    `SplitPane.test.tsx` prüft deshalb nur die Tastatur und die Ansage. Hier
+    wird gemessen.
+  */
+  test('@smoke die Quellspalte lässt sich ziehen und mit den Pfeiltasten stellen', async ({
+    page,
+  }) => {
+    await analyze(page);
+    await recommend(page);
+
+    const quelle = page.locator('.split__source');
+    const griff = page.getByRole('separator', { name: 'Breite der Quellspalte' });
+
+    // Der analysierte Text steht links zum Nachschlagen.
+    await expect(page.getByRole('region', { name: 'Analysierter Text' })).toContainText(
+      'crowded',
+    );
+
+    const vorher = (await quelle.boundingBox())?.width ?? 0;
+    expect(vorher).toBeGreaterThan(0);
+
+    // Ziehen: 80 px nach rechts. Die Bewegung geht in zwei Schritten, damit
+    // ein `pointermove` zwischen Druck und Loslassen wirklich stattfindet.
+    const box = await griff.boundingBox();
+    if (!box) throw new Error('Der Griff hat keine Fläche.');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 40, box.y + box.height / 2);
+    await page.mouse.move(box.x + 80, box.y + box.height / 2);
+    await page.mouse.up();
+
+    const nachher = (await quelle.boundingBox())?.width ?? 0;
+    expect(nachher).toBeGreaterThan(vorher + 40);
+
+    // Und dasselbe ohne Maus.
+    const gezogen = Number(await griff.getAttribute('aria-valuenow'));
+    await griff.focus();
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    expect(Number(await griff.getAttribute('aria-valuenow'))).toBe(gezogen - 2);
+    expect((await quelle.boundingBox())?.width ?? 0).toBeLessThan(nachher);
+  });
+
   test('@a11y Empfehlungsschritt ohne schwerwiegende Befunde', async ({ page }) => {
     await analyze(page);
     await recommend(page);

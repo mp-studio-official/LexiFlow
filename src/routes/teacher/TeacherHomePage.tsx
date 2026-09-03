@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Alert, Badge, Button, EmptyState } from '../../ui/components';
 import { PackCard } from '../../ui/PackCard';
+import { IconButton } from '../../ui/IconButton';
+import { Icon } from '../../ui/Icon';
 import { PackUpdateConfirm } from '../../ui/PackUpdateConfirm';
 import { usePackImport } from '../../ui/usePackImport';
 import { deletePack, getPack, listPacks } from '../../data/packRepo';
 import { db } from '../../data/db';
-import { serializePack, suggestFilename } from '../../domain/vocabpack';
-import { downloadText } from '../../ui/download';
+import { downloadPackFile, downloadStudentFile } from '../../ui/packDownloads';
 import { GRADE_LABELS } from '../../domain/cefr';
 import { DIRECTION_LABELS } from '../../domain/schema';
 
@@ -84,10 +85,26 @@ export function TeacherHomePage() {
     new Map<string, number>(),
   );
 
-  async function handleExport(packId: string): Promise<void> {
+  /**
+   * Die beiden Downloads aus der Liste heraus.
+   *
+   * Beide laden das Paket frisch aus der Datenbank, statt sich auf die
+   * Listenzeile zu verlassen: Die Liste kennt nur Metadaten, und der Export
+   * braucht die Vokabeln. Das Ergebnis wird gemeldet – ein Download, der
+   * stumm nicht passiert, ist der schlimmste Fall.
+   */
+  async function handlePackDownload(packId: string): Promise<void> {
     const pack = await getPack(packId);
     if (!pack) return;
-    downloadText(suggestFilename(pack.meta), serializePack(pack));
+    const outcome = downloadPackFile(pack);
+    importer.setMessage({ tone: outcome.ok ? 'success' : 'error', text: outcome.message });
+  }
+
+  async function handleStudentDownload(packId: string): Promise<void> {
+    const pack = await getPack(packId);
+    if (!pack) return;
+    const outcome = await downloadStudentFile(pack);
+    importer.setMessage({ tone: outcome.ok ? 'success' : 'error', text: outcome.message });
   }
 
   async function handleDelete(packId: string): Promise<void> {
@@ -146,35 +163,42 @@ export function TeacherHomePage() {
           ))}
         </div>
 
-        <div className="row" style={{ marginTop: 'var(--space-4)' }}>
-          <Button onClick={() => fileInput.current?.click()}>
-            Paketdatei öffnen (.vocabpack.json)
-          </Button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".json,application/json"
-            className="visually-hidden"
-            aria-label="LexiFlow-Paketdatei auswählen"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (file) void importer.importFile(file);
-            }}
-          />
-        </div>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".json,application/json"
+          className="visually-hidden"
+          aria-label="LexiFlow-Paketdatei auswählen"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (file) void importer.importFile(file);
+          }}
+        />
       </section>
 
       <section aria-labelledby="paketliste">
+        {/*
+          „Paketdatei öffnen“ stand bis 4B.2 als vierter Knopf unter den drei
+          Erstellungswegen – zwischen Dingen, die etwas Neues anfangen, obwohl
+          es etwas Vorhandenes hereinholt. Jetzt steht es am Kopf der Liste,
+          in die das geöffnete Paket hineinfällt.
+        */}
         <div className="section-head">
-          <h2 id="paketliste" className="display display--section">
-            Dein Material
-          </h2>
-          {packs && packs.length > 0 ? (
-            <p className="small muted">
-              {packs.length} {packs.length === 1 ? 'Paket' : 'Pakete'} auf diesem Gerät
-            </p>
-          ) : null}
+          <div className="section-head__title">
+            <h2 id="paketliste" className="display display--section">
+              Dein Material
+            </h2>
+            {packs && packs.length > 0 ? (
+              <p className="small muted">
+                {packs.length} {packs.length === 1 ? 'Paket' : 'Pakete'} auf diesem Gerät
+              </p>
+            ) : null}
+          </div>
+          <Button small onClick={() => fileInput.current?.click()}>
+            <Icon name="upload" size={16} />
+            Paketdatei öffnen (.vocabpack.json)
+          </Button>
         </div>
 
         {packs === undefined ? (
@@ -202,14 +226,35 @@ export function TeacherHomePage() {
                 key={meta.id}
                 title={meta.title}
                 to={`/material/${meta.id}`}
+                count={`${counts?.get(meta.id) ?? 0} Vokabeln`}
                 meta={[
-                  `${counts?.get(meta.id) ?? 0} Vokabeln`,
                   GRADE_LABELS[meta.grade],
                   meta.cefrLevel,
                   DIRECTION_LABELS[meta.direction],
                   ...(meta.topic ? [meta.topic] : []),
                   ...(formatChanged(meta.updatedAt) ? [formatChanged(meta.updatedAt)] : []),
                 ]}
+                /*
+                  Die zwei Downloads als Zeichen: Sie sind der häufigste
+                  Griff in dieser Liste und brauchten bisher den Umweg über
+                  die Paketseite. Der Name jeder Schaltfläche nennt das Paket
+                  – in einer Liste mit acht Paketen stünden sonst acht
+                  gleichnamige „Herunterladen“.
+                */
+                tools={
+                  <>
+                    <IconButton
+                      icon="download"
+                      label={`${meta.title} als Einzeldatei herunterladen (.html)`}
+                      onClick={() => void handleStudentDownload(meta.id)}
+                    />
+                    <IconButton
+                      icon="package"
+                      label={`${meta.title} als LexiFlow-Paket herunterladen (.vocabpack.json)`}
+                      onClick={() => void handlePackDownload(meta.id)}
+                    />
+                  </>
+                }
                 actions={
                   pendingDelete === meta.id ? (
                     <>
@@ -226,10 +271,7 @@ export function TeacherHomePage() {
                       <Link className="btn btn--small" to={`/material/${meta.id}`}>
                         Bearbeiten
                       </Link>
-                      <Button small onClick={() => void handleExport(meta.id)}>
-                        Exportieren
-                      </Button>
-                      <Button small variant="danger" onClick={() => setPendingDelete(meta.id)}>
+                      <Button small variant="quiet" onClick={() => setPendingDelete(meta.id)}>
                         Löschen
                       </Button>
                     </>

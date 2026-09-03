@@ -157,18 +157,28 @@ describe('Die dunkle Hülle trägt die Aubergine-Variante', () => {
       unsichtbar auf dem Untergrund.
     */
     renderShell(shell);
-    const brand = screen.getByRole('link', { name: /LexiFlow/ });
-    const fills = [...(brand.innerHTML.matchAll(/fill="(#[0-9A-Fa-f]{6})"/g))].map((h) => h[1]);
     /*
-      Beide Varianten enthalten alle drei Farben – der Unterschied ist die
-      Reihenfolge. Geprüft wird deshalb das Tripel, nicht das Vorkommen.
+      Seit 4B.3 trägt die Lehrkraft-Hülle die Marke an zwei Stellen: in der
+      Kopfzeile für schmale Fenster und in der Schiene für breite. Beide liegen
+      auf Aubergine, also muss die Regel für **beide** gelten – geprüft wird
+      deshalb jede Marke im Baum, nicht die erste.
     */
-    expect(fills).toEqual([
-      LOGO_VARIANTS.onAubergine.back,
-      LOGO_VARIANTS.onAubergine.front,
-      LOGO_VARIANTS.onAubergine.inner,
-    ]);
-    expect(fills[0]).not.toBe(LOGO_VARIANTS.onParchment.back);
+    const brands = screen.getAllByRole('link', { name: /LexiFlow/ });
+    expect(brands.length).toBeGreaterThan(0);
+
+    for (const brand of brands) {
+      const fills = [...brand.innerHTML.matchAll(/fill="(#[0-9A-Fa-f]{6})"/g)].map((h) => h[1]);
+      /*
+        Beide Varianten enthalten alle drei Farben – der Unterschied ist die
+        Reihenfolge. Geprüft wird deshalb das Tripel, nicht das Vorkommen.
+      */
+      expect(fills).toEqual([
+        LOGO_VARIANTS.onAubergine.back,
+        LOGO_VARIANTS.onAubergine.front,
+        LOGO_VARIANTS.onAubergine.inner,
+      ]);
+      expect(fills[0]).not.toBe(LOGO_VARIANTS.onParchment.back);
+    }
   });
 
   it('lädt das Zeichen nicht als externe Datei', () => {
@@ -189,9 +199,15 @@ describe('Marke in den Hüllen', () => {
   it('steht in der Lehrkraft-Hülle samt Claim', () => {
     renderShell('lehrkraft');
 
-    const brand = screen.getByRole('link', { name: /LexiFlow/ });
-    expect(within(brand).getByText('LexiFlow')).toBeInTheDocument();
-    expect(brand.querySelector('svg')).not.toBeNull();
+    // Kopfzeile (schmale Fenster) und Schiene (breite) – beide tragen Zeichen
+    // **und** Wortmarke, und beide führen zur Startseite.
+    const brands = screen.getAllByRole('link', { name: /LexiFlow/ });
+    expect(brands).toHaveLength(2);
+    for (const brand of brands) {
+      expect(within(brand).getByText('LexiFlow')).toBeInTheDocument();
+      expect(brand.querySelector('svg')).not.toBeNull();
+      expect(brand).toHaveAttribute('href', '/');
+    }
     expect(screen.getByText(APP_CLAIM)).toBeInTheDocument();
   });
 

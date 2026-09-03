@@ -677,3 +677,108 @@ Zeile selbst „Bitte prüfen“ sagt. Das ist eine Wortwahl und gehört zu Phas
 | `npm run e2e:portable` | **19** grün (Chromium, `file://`) |
 
 ---
+
+# Sprint 4B.3 – Entwurfsroute B als Design
+
+Nach den drei Entwurfsrouten (`docs/mockups/`) ist **Route B – Werkbank** die
+gewählte. Dieser Abschnitt hält fest, was davon umgesetzt ist, was bewusst
+abweicht und was dabei an echten Fehlern aufgefallen ist.
+
+## Was Route B im Produkt heißt
+
+**Eine dunkle Fläche statt zwei.** Vorher: ganzbreite Kopfzeile in Aubergine,
+darunter eine schwebende, abgerundete Navigationsfläche *innerhalb* der
+Inhaltsspalte – zwei dunkle Flächen mit einem Streifen Papier dazwischen. Jetzt
+eine durchgehende Schiene, bündig am linken Fensterrand, über die volle Höhe.
+Sie trägt das Zeichen oben links (und es führt zur Startseite) und die drei
+Bereiche mit je einer Zeile Erklärung.
+
+**Abweichung vom Entwurf, bewusst:** Im Entwurf ist die Schiene 56 px schmal
+mit senkrecht gestellten Beschriftungen. Senkrechte Schrift liest sich messbar
+langsamer, und die drei Bereiche verlieren dabei ihre Erklärungen. Übernommen
+ist die **Haltung** – eine durchgehende dunkle Kante statt eines schwebenden
+Kastens –, nicht die Breite.
+
+**Pakete als Blöcke.** `PackCard` ist von der gleichmäßig gerahmten Karte zur
+Zeile mit eigener Fläche geworden: Kante links in Aubergine, Titel und Anzahl
+in einer Zeile, Metadaten dicht darunter. Eine Kachelwand sieht auf einem
+Entwurfsbild besser aus und ist beim Suchen schlechter – die Augen springen in
+zwei Richtungen statt in einer.
+
+**Die beiden Downloads als Zeichen.** Sie standen bisher nur auf der
+Paketseite; wer aus der Liste heraus weitergeben wollte, musste erst hinein.
+Jetzt stehen sie in jedem Block – mit einem Namen, der das Paket nennt
+(`Unit 7 – Coastal erosion als Einzeldatei herunterladen (.html)`), damit in
+einer Liste mit acht Paketen nicht acht gleichnamige Schaltflächen stehen.
+Die Logik liegt seit 4B.3 in `src/ui/packDownloads.ts` – **einmal**, von
+Materialseite und Paketseite gemeinsam benutzt.
+
+**`Paketdatei öffnen` am Kopf der Liste.** Vorher der vierte Knopf unter den
+drei Erstellungswegen – zwischen Dingen, die etwas Neues anfangen, obwohl er
+etwas Vorhandenes hereinholt. Jetzt steht er über der Liste, in die das
+geöffnete Paket fällt.
+
+**Feine Striche statt Rahmen.** Empfehlungsliste (`.candidates`) und
+Vokabeltabelle (`.table-wrap`) haben ihre Umrandung verloren; geblieben ist ein
+Haarstrich zwischen den Zeilen. Sechzehn Kästen untereinander sind sechzehn
+Ränder, die das Auge nachzieht – Arbeit, die nichts erklärt.
+
+**Die Werkbank.** `src/ui/SplitPane.tsx`: links die Quelle, rechts das
+Ergebnis. Der analysierte Text steht zum Nachschlagen daneben – beim Antworten
+auf „shore“ ist der Satz, in dem es stand, die halbe Antwort. Die Spaltenbreite
+ist ziehbar **und** mit den Pfeiltasten stellbar; der Griff ist ein
+`role="separator"` mit `aria-valuenow/min/max`, kein `<div>` mit Mauslauschern.
+
+## Zwei echte Fehler, die dabei aufgefallen sind
+
+**Die portable Lerndatei stand auf breiten Fenstern ohne Marke da.** Die neue
+Schiene brachte ein `@media (min-width: 62rem) { .app-header { display: none } }`
+mit – und `StudentShell` benutzt dieselbe Klasse, hat aber keine Schiene, die
+die Aufgabe der Kopfzeile übernehmen könnte. Auf einem Laptop zeigte die
+Lerndatei damit gar kein Zeichen mehr. Gefunden hat das der portable E2E-Lauf
+(`trägt das Logo als Pfad`), erklärt erst der Blick auf die Regel.
+
+Behoben mit `.app:has(.app-nav) .app-header { display: none }` – die Regel sagt
+jetzt, was sie meint: Die Kopfzeile geht nur dort, wo eine Schiene ihre Aufgabe
+übernimmt. Festgehalten wird das von zwei neuen portablen Prüfungen, die die
+Marke auf Laptop- **und** Telefonbreite verlangen.
+
+**Ein sporadisch fallender Test war ein Fokus-Rennen, keine Langsamkeit.**
+`ImportWizardPage.text.test.tsx` → „ist mit der Tastatur bedienbar“ fiel in der
+vollen Suite gelegentlich um, allein gestartet nie. Der erste Verdacht –
+Rechnerauslastung – war falsch, und eine großzügigere Frist hat es nicht
+behoben: Der Fehlschlag ist alles-oder-nichts, 220 ms oder gar nicht.
+
+Die Ursache: Nach dem Empfehlungslauf wandert der Fokus per
+`requestAnimationFrame` auf die Ergebnisüberschrift – absichtlich, damit nach
+dem Klick niemand oben stehen bleibt. Der Test griff sich davor den Stepper und
+verlor den Fokus einen Wimpernschlag später wieder; `{Enter}` lief ins Leere.
+Der Test wartet jetzt erst ab, dass die Anwendung ihren Fokus gesetzt hat.
+
+## Was vom Entwurf noch offen ist
+
+- **Die klebende Aktionsleiste mit Fortschrittsmesser** unten im
+  Empfehlungsschritt. Die Aktionen stehen weiterhin am Fuß der Seite.
+- **Lernbereichsübersichten** haben den Blockstil automatisch übernommen
+  (gemeinsame `PackCard`), aber keinen eigenen Durchgang bekommen.
+
+## Verifikation 4B.3 (Designblock)
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | grün |
+| `npm run test` | **1601** grün / 91 Dateien, zweimal hintereinander |
+| `npm run build` | grün |
+| `npm run build:portable` | grün, **9340,5 KiB** / 636,0 KiB (Grenze 12 MiB) |
+| `npm run verify:portable` | grün, 25 Prüfungen |
+| `npm run e2e` | **121** grün (Chromium) |
+| `npm run e2e:portable` | **21** grün (Chromium, `file://`) – 2 neu |
+
+Neue Dateien: `src/ui/Icon.tsx`, `src/ui/IconButton.tsx`, `src/ui/SplitPane.tsx`
+(+ Test), `src/ui/packDownloads.ts`.
+
+**Safari:** Automatisiert geprüft ist ausschließlich Chromium. `:has()` (neu in
+der Shell-Regel) ist ab Safari 15.4 verfügbar und wird im Projekt schon
+verwendet; `100dvh` ab Safari 15.4; `resize: vertical` und `position: sticky`
+sind alt. Das ist eine Einschätzung nach Verfügbarkeit, **keine Messung** – ein
+Durchgang durch Schiene, Paketblöcke und Werkbank in echtem Safari steht aus.

@@ -198,6 +198,8 @@ a {
   gap: var(--space-8);
 }
 
+.app-work { min-width: 0; }
+
 .app-main {
   min-width: 0;
   padding-block: var(--space-6) var(--space-8);
@@ -221,7 +223,8 @@ a {
   justify-content: space-between;
 }
 
-/* Seitliche Navigation – erst ab Tablet-Breite, dann dauerhaft sichtbar. */
+/* Die Schiene erscheint erst ab Tablet-Breite; darunter trägt die Leiste am
+   unteren Rand die drei Bereiche. */
 .app-nav {
   display: none;
 }
@@ -265,27 +268,71 @@ a {
 }
 
 @media (min-width: 62rem) {
-  .app-body {
-    grid-template-columns: var(--width-sidebar) minmax(0, 1fr);
-    gap: var(--space-10);
-    align-items: start;
+  /*
+    Eine Werkbank statt einer Website: **eine** dunkle Fläche, bündig am linken
+    Rand, über die volle Höhe – daneben Papier.
+
+    Vorher lagen hier zwei dunkle Flächen übereinander (Kopfzeile plus
+    schwebender Navigationskasten) mit einem Streifen Papier dazwischen. Die
+    Kopfzeile verschwindet auf breiten Fenstern deshalb ganz; ihre einzige
+    Aufgabe – das Zeichen zu tragen – übernimmt die Schiene.
+
+    **`:has(.app-nav)` ist hier kein Schmuck, sondern die Bedingung.** Die
+    portable Lerndatei benutzt dieselben Klassen, hat aber keine Schiene: eine
+    Navigation mit genau einem Ziel wäre Zierrat. Ein pauschales
+    `.app-header { display: none }` nahm ihr deshalb die Marke ersatzlos weg –
+    auf breiten Fenstern stand die Lerndatei ohne jedes Zeichen da, und das fiel
+    erst im portablen E2E-Lauf auf. Die Regel sagt jetzt, was sie meint: Die
+    Kopfzeile geht nur dort, wo eine Schiene ihre Aufgabe übernimmt.
+  */
+  .app:has(.app-nav) .app-header {
+    display: none;
   }
 
-  /*
-    Die Seitenspalte ist eine eigene Fläche in Aubergine – souverän statt
-    schwebend. Sie klebt am Fensterrand mit, damit der Weg in einen anderen
-    Bereich nie erst gesucht werden muss.
-  */
+  .app:has(.app-nav) {
+    grid-template-rows: 1fr;
+    grid-template-columns: var(--width-sidebar) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .app:has(.app-nav) .app-body {
+    display: contents;
+  }
+
   .app-nav {
-    display: block;
+    display: flex;
+    flex-direction: column;
     position: sticky;
-    top: 4.5rem;
+    top: 0;
+    align-self: start;
+    height: 100dvh;
     padding: var(--space-5) var(--space-3) var(--space-4);
     background: var(--nav);
     color: var(--nav-ink);
-    border-radius: var(--radius-surface-lg);
-    box-shadow: var(--shadow-2);
+    overflow: auto;
   }
+
+  .app-nav__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-3) var(--space-6);
+    color: var(--nav-ink);
+    text-decoration: none;
+    border-radius: var(--radius-control);
+  }
+  .app-nav__brand:focus-visible {
+    outline: var(--focus-width) solid var(--focus-ring-on-dark);
+    outline-offset: var(--focus-offset);
+  }
+  .app-nav__wordmark {
+    font-family: var(--font-display);
+    font-weight: var(--weight-black);
+    font-size: var(--text-lg);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
   .app-nav__list {
     list-style: none;
     margin: 0;
@@ -295,7 +342,7 @@ a {
   }
   .app-nav__link {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: var(--space-3);
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-control);
@@ -308,16 +355,23 @@ a {
      *
      * Aktiv ist Parchment auf einem helleren Aubergine, inaktiv gedämpftes
      * Lila auf dunklem Aubergine. Beide Zustände haben für sich reichlich
-     * Kontrast (11,1 : 1 und 8,4 : 1) – aber beim Routenwechsel wechselt die
-     * Textfarbe sofort, während ein animierter Hintergrund noch nachzöge. In
-     * diesen Millisekunden stünde die Schrift auf einem Zwischenton: ein
-     * echter, messbarer Kontrastfehler, kein Testartefakt (Sprint 3B.1c).
-     * Ein Zustandswechsel ohne Zwischenbild ist hier mehr wert als eine
-     * dekorative Animation.
-     *
-     * Die Bottom-Navigation hat dasselbe Muster nie gehabt: Sie wechselt nur
-     * Textfarbe und Marker, nie den Hintergrund.
+     * Kontrast – aber beim Routenwechsel wechselt die Textfarbe sofort,
+     * während ein animierter Hintergrund noch nachzöge. In diesen
+     * Millisekunden stünde die Schrift auf einem Zwischenton: ein echter,
+     * messbarer Kontrastfehler (Sprint 3B.1c).
      */
+  }
+  .app-nav__text { display: grid; gap: 1px; min-width: 0; }
+  /*
+    Der Zusatz erklärt den Bereich, ohne zu dozieren – und er ist der Grund,
+    warum die Schiene nicht 56 px schmal ist: In eine senkrechte Beschriftung
+    passt er nicht.
+  */
+  .app-nav__hint {
+    font-size: var(--text-2xs);
+    line-height: 1.35;
+    color: var(--nav-ink-muted);
+    font-weight: var(--weight-regular);
   }
   .app-nav__link:hover {
     background: var(--nav-active-surface);
@@ -328,6 +382,7 @@ a {
     color: var(--nav-ink);
     font-weight: var(--weight-semibold);
   }
+  .app-nav__link[aria-current='page'] .app-nav__hint { color: var(--nav-ink); opacity: .72; }
   .app-nav__mark {
     width: 3px;
     align-self: stretch;
@@ -338,13 +393,22 @@ a {
     background: var(--nav-marker);
   }
   .app-nav__note {
-    margin: var(--space-6) var(--space-3) 0;
+    margin: auto var(--space-3) 0;
+    padding-top: var(--space-6);
     font-size: var(--text-xs);
     line-height: 1.5;
     color: var(--nav-ink-muted);
   }
 
+  .app-work {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
   .app-main {
+    flex: 1;
+    width: min(100% - 2 * var(--gutter), var(--width-content));
+    margin-inline: auto;
     padding-bottom: var(--space-10);
   }
   .app-footer {
@@ -363,6 +427,11 @@ a {
 /* Redaktionelle Seiten atmen deutlich weiter als Formularseiten. */
 .stack--editorial {
   --gap: var(--space-8);
+}
+/* Eine schmale Spalte – die Quellspalte der Werkbank – braucht das Gegenteil:
+   Dort ist der Platz senkrecht knapp, weil er waagerecht knapp ist. */
+.stack--tight {
+  --gap: var(--space-3);
 }
 .row {
   display: flex;
@@ -509,6 +578,15 @@ a {
 .section-head p {
   margin: 0;
 }
+/* Überschrift und Anzahl gehören zusammen; eine Aktion daneben soll sie nicht
+   auseinanderziehen. */
+.section-head__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
 
 /* ------------------------------------------------------------------- Hero */
 
@@ -629,29 +707,65 @@ a {
 
 .feed {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
-/* Eine Karte, drei Zusammenhänge: Feed, Raster, Einzelspalte. */
+/*
+  Der Paketblock (Sprint 4B.3, Entwurfsroute B).
+
+  Vorher eine gleichmäßig gerahmte Karte mit großzügigem Innenabstand – acht
+  davon untereinander waren acht gleich aussehende Rechtecke. Jetzt: eine
+  Zeile, die trotzdem ein Block ist. Die Kante links in Aubergine gibt jedem
+  Paket einen Anfang, den das Auge beim Herunterlaufen findet; Titel, Anzahl
+  und Werkzeuge stehen in **einer** Zeile, die Metadaten dicht darunter.
+
+  Die Spalten: Titel nimmt den Rest, danach genau so viel, wie Anzahl und
+  Werkzeuge brauchen. `align-items: center` hält die drei auf einer Linie,
+  auch wenn der Titel umbricht.
+*/
 .pack-card {
   position: relative;
   display: grid;
-  gap: var(--space-3);
-  padding: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-1) var(--space-4);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  padding-left: var(--space-4);
   background: var(--surface);
   border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--ink);
   border-radius: var(--radius-surface);
   box-shadow: var(--shadow-1);
-  transition: border-color var(--duration-fast) var(--ease-out);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 }
 .pack-card:has(.pack-card__link:hover),
 .pack-card:has(.pack-card__link:focus-visible) {
   border-color: var(--border-strong);
+  border-left-color: var(--ink);
+  box-shadow: var(--shadow-2);
 }
 .pack-card__title {
-  font-size: var(--text-xl);
+  grid-column: 1;
+  font-size: var(--text-lg);
   letter-spacing: var(--tracking-tight);
   margin: 0;
+}
+/* Die Anzahl ist beim Überfliegen die meistgesuchte Angabe – eigene Spalte,
+   Tabellenziffern, damit 8 und 41 untereinander gleich breit beginnen. */
+.pack-card__count {
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+.pack-card__tools {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 2px;
 }
 /* Die ganze Karte ist anklickbar, ohne verschachtelte Interaktion:
    der Titel-Link spannt eine unsichtbare Fläche auf, alle weiteren
@@ -672,6 +786,7 @@ a {
   text-decoration-color: var(--accent);
 }
 .pack-card__meta {
+  grid-column: 1;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-3);
@@ -682,13 +797,21 @@ a {
 .pack-card__meta > * {
   white-space: nowrap;
 }
+.pack-card__body {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 1;
+  margin-top: var(--space-1);
+}
 .pack-card__actions {
+  grid-column: 1 / -1;
   position: relative;
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
+  margin-top: var(--space-2);
 }
 .pack-card__stat {
   display: grid;
@@ -700,11 +823,72 @@ a {
   margin: 0;
 }
 .pack-card__flag {
+  grid-column: 1 / -1;
+  margin: 0;
   font-size: var(--text-2xs);
   font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
   color: var(--accent-ink);
+}
+
+/*
+  Auf schmalen Fenstern hat die Zeile keine drei Spalten mehr. Anzahl und
+  Werkzeuge rutschen unter den Titel, links ausgerichtet – ein Titel, der
+  gegen zwei Zeichen um 12 rem kämpft, verliert.
+*/
+@media (max-width: 30rem) {
+  .pack-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pack-card__count,
+  .pack-card__tools {
+    grid-column: 1;
+    text-align: left;
+    justify-self: start;
+  }
+}
+
+/* ------------------------------------------------------ Zeichenschaltfläche */
+
+/*
+  Ein Zeichen als Schaltfläche: ruhig, bis man sie braucht. Ohne Rahmen und
+  ohne Fläche steht sie im Block nicht im Weg; beim Zeigen bekommt sie beides
+  und wird sichtbar anfassbar. Der Rahmen ist auch im Ruhezustand da – nur
+  durchsichtig –, damit beim Zeigen nichts springt.
+
+  Die Fläche ist `--tap-target` (44 px) groß, nicht die 2,15 rem aus dem
+  Entwurf. Der Entwurf lief auf einem Laptop mit Maus; LexiFlow läuft auf
+  Telefonen, und dieses Projekt hat sich auf 44 px festgelegt (siehe
+  `tapTargets.test.ts`). Das Zeichen darin bleibt klein – groß ist die
+  Trefferfläche, nicht der Strich.
+*/
+.icon-btn {
+  inline-size: var(--tap-target);
+  block-size: var(--tap-target);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: var(--surface-sunken);
+  border-color: var(--border);
+  color: var(--ink);
+}
+.icon-btn:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.icon-btn:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+  background: transparent;
+  border-color: transparent;
 }
 
 /* ------------------------------------------------------------ Leerzustand */
@@ -1059,11 +1243,19 @@ input[type='radio']:disabled {
 
 /* --------------------------------------------------------------- Tabelle */
 
+/*
+  Auch hier: feine Striche, kein Gehäuse (Sprint 4B.3, Entwurfsroute B).
+
+  Die Umrandung um die ganze Tabelle machte aus einer Liste ein Möbelstück.
+  Geblieben ist der Strich unter jeder Zeile und einer über der Kopfzeile –
+  genug, damit die Spalten zusammenhalten, und nicht mehr.
+
+  `overflow-x` bleibt: Die Tabelle ist auf schmalen Fenstern breiter als das
+  Fenster, und sie soll in sich scrollen, nicht das Dokument verbreitern.
+*/
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-surface);
-  background: var(--surface);
+  border-top: 1px solid var(--border-subtle);
   /* `position: relative` hält absolut positionierte Nachfahren – vor allem die
      `.visually-hidden`-Beschriftungen in der breiten Tabelle – innerhalb des
      Scroll-Containers. Ohne das verbreitern sie das gesamte Dokument. */
@@ -1078,11 +1270,10 @@ th,
 td {
   text-align: left;
   padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
   vertical-align: top;
 }
 th {
-  background: var(--surface-sunken);
   color: var(--ink-secondary);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
@@ -1252,25 +1443,31 @@ tbody tr:not([hidden]) > td {
 
 /* Kandidatenliste der Textwerkstatt */
 
+/*
+  Feine Striche statt Rahmen (Sprint 4B.3, Entwurfsroute B).
+
+  Vorher war jede Vokabel ein eigener Kasten mit Rahmen, Ecke und Schatten.
+  Sechzehn Kästen untereinander sind sechzehn Ränder, die das Auge nachzieht –
+  Arbeit, die nichts erklärt. Was eine Liste braucht, ist eine Trennung, kein
+  Gehäuse: ein Haarstrich zwischen den Zeilen, sonst nichts.
+
+  Der Strich steht oben an der Liste und unten an jeder Zeile. So beginnt und
+  endet sie sauber, ohne dass die letzte Zeile eine Ausnahme braucht.
+*/
 .candidates {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .candidate {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-surface);
-  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 /*
@@ -1299,17 +1496,31 @@ tbody tr:not([hidden]) > td {
   `data-answered` im Markup – an derselben Stelle, an der ihn auch der Test
   liest.
 */
+/*
+  Ohne Rahmen kann die Kante links kein Rahmenteil mehr sein. Sie steht jetzt
+  als `inset`-Schatten – dieselbe 3-px-Marke, die auch die Fehlerzeile in der
+  Tabelle trägt, und sie verschiebt nichts: Alle Zeilen behalten dieselbe
+  Textkante, ob übernommen oder offen.
+*/
 .candidate[data-answered] {
-  background: var(--surface);
-  border-color: var(--border);
-  border-left: 4px solid var(--info);
-  padding-left: calc(var(--space-4) - 3px);
-  box-shadow: var(--shadow-1);
+  box-shadow: inset 3px 0 0 var(--info);
 }
+/*
+  Die offene Zeile bekommt **keine** Fläche mehr.
+
+  Als jede Vokabel noch ein eigener Kasten war, hob die abgesenkte Fläche die
+  offenen Fragen sichtbar heraus. In einer Liste ohne Rahmen kippt genau das:
+  Frisch erzeugte Empfehlungen sind alle offen, also färbte sich die ganze
+  Liste – zehn Zeilen ohne Trennung, ein einziger grauer Block. Der Zustand
+  „offen“ war damit gar kein Unterschied mehr, sondern der Normalzustand des
+  Bildschirms.
+
+  Jetzt trägt die Fläche nur noch die Kante: offen eine stille in `--border`,
+  übernommen eine in Aubergine. Sichtbar wird dadurch, was man geschafft hat –
+  und das ist die Zahl, die beim Durcharbeiten wächst.
+*/
 .candidate:not([data-answered]) {
-  background: var(--surface-sunken);
-  border-left: 4px solid var(--border);
-  padding-left: calc(var(--space-4) - 3px);
+  box-shadow: inset 3px 0 0 var(--border);
 }
 .candidate:not([data-answered]) .candidate__word {
   color: var(--ink-secondary);
@@ -1317,10 +1528,17 @@ tbody tr:not([hidden]) > td {
 
 /* Ein sanftes Anheben beim Überfahren: Die Karte ist anfassbar, aber sie
    drängt sich nicht auf. */
+/*
+  Beim Überfahren nur ein Hauch Fläche. Ein Schatten hier hieße, die Zeile
+  hebe sich vom Blatt – sie tut es nicht, sie ist Teil einer Liste.
+
+  Wichtig: Der Zustand liegt in `background`, nicht in `box-shadow`. Der
+  Schatten trägt seit 4B.3 die Zustandskante links, und ein Hover, der ihn
+  überschriebe, ließe die Kante beim Überfahren verschwinden.
+*/
 @media (hover: hover) {
-  .candidate:hover {
-    box-shadow: var(--shadow-2);
-    border-color: var(--border-strong);
+  .candidate[data-answered]:hover {
+    background: var(--surface-sunken);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2705,4 +2923,140 @@ progress {
 .dropzone--over {
   border-color: var(--primary);
   background: var(--info-soft);
+}
+
+/* ============================================================ Die Werkbank */
+
+/*
+  Zwei Spalten mit einem Griff dazwischen (Sprint 4B.3, Entwurfsroute B).
+
+  Links die Quelle, rechts das Ergebnis – nebeneinander statt hintereinander.
+  Bis 4B.2 lagen Einstellungen und Empfehlungen untereinander in einer Spalte:
+  Wer die Anzahl änderte, scrollte danach an den Einstellungen vorbei nach
+  unten, um zu sehen, was daraus geworden ist. Jetzt steht beides gleichzeitig
+  im Blick, und die Breite dazwischen ist verstellbar, weil sie am Text hängt.
+
+  `--split-width` setzt die Komponente als Inline-Stil; hier steht nur der
+  Rückfallwert für den Fall, dass jemand das Markup ohne sie benutzt.
+*/
+.split {
+  --split-width: 21rem;
+  display: grid;
+  grid-template-columns: var(--split-width) 4px minmax(0, 1fr);
+  align-items: start;
+}
+.split__source {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-surface) 0 0 var(--radius-surface);
+  padding: var(--space-4);
+  min-width: 0;
+  /* Die Quelle bleibt stehen, während rechts gescrollt wird – sonst wäre sie
+     nach drei Bildschirmen Empfehlungen nicht mehr da, wo man sie braucht. */
+  position: sticky;
+  top: var(--space-3);
+  max-height: calc(100dvh - 2 * var(--space-3));
+  overflow: auto;
+}
+.split__main {
+  min-width: 0;
+  padding-left: var(--space-4);
+}
+
+/*
+  Der Griff ist 4 px breit und hat eine 16 px große Trefferfläche: Ein
+  4-px-Ziel trifft niemand mit der Maus, und ein 16-px-Balken sähe aus wie eine
+  Spalte. `::before` löst das – sichtbar schmal, anfassbar breit.
+*/
+/*
+  Der Griff folgt dem Blick, statt die ganze Seite hinunterzulaufen.
+
+  Zuerst stand hier `align-self: stretch`: Der Griff wurde so hoch wie die
+  längste Spalte – bei zehn Empfehlungen also einige tausend Pixel –, und seine
+  Markierung sitzt in der Mitte. Die lag damit weit unterhalb des Bildschirms:
+  ein Griff, den man nur findet, wenn man bis zur Hälfte der Liste scrollt.
+
+  Jetzt ist er genau ein Bildschirm hoch und klebt wie die Quellspalte oben.
+  Die Markierung steht damit immer auf halber Fensterhöhe – dort, wo die Hand
+  sie sucht.
+*/
+.split__grip {
+  position: sticky;
+  top: var(--space-3);
+  block-size: calc(100dvh - 2 * var(--space-3));
+  background: var(--border-subtle);
+  cursor: col-resize;
+  touch-action: none;
+}
+.split__grip::before {
+  content: '';
+  position: absolute;
+  inset: 0 -6px;
+}
+.split__grip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  inline-size: 2px;
+  block-size: 2.25rem;
+  border-radius: 2px;
+  background: var(--border);
+}
+.split__grip:hover,
+.split__grip:focus-visible {
+  background: var(--border);
+  outline: none;
+}
+.split__grip:hover::after,
+.split__grip:focus-visible::after {
+  background: var(--ink);
+}
+.split__grip:focus-visible {
+  box-shadow: 0 0 0 var(--focus-width) var(--focus-ring);
+}
+
+/*
+  Unter 62 rem gibt es keine zwei Spalten – und damit auch nichts zu ziehen.
+  Der Griff verschwindet vollständig (`display: none` nimmt ihn auch aus dem
+  Accessibility-Baum), statt als toter Tabstopp stehen zu bleiben.
+*/
+@media (max-width: 61.999rem) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .split__grip {
+    display: none;
+  }
+  .split__source {
+    position: static;
+    max-height: none;
+    border-radius: var(--radius-surface);
+    margin-bottom: var(--space-4);
+  }
+  .split__main {
+    padding-left: 0;
+  }
+}
+
+/*
+  Der Quelltext selbst: in der Höhe ziehbar, mit dem üblichen Griff unten
+  rechts. Serifen, weil hier gelesen und nicht bedient wird.
+*/
+.split__doc {
+  /* `--font-quote` ist die redaktionelle Stimme des Projekts – dieselbe, in der
+     die Beispielsätze stehen. Der Quelltext ist genau das: Lesestoff. */
+  font-family: var(--font-quote);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--ink-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  padding: var(--space-3);
+  block-size: 13.5rem;
+  overflow: auto;
+  resize: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

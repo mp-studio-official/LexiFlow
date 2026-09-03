@@ -141,8 +141,22 @@ describe('Material – Creator-Studio', () => {
     expect(within(card).getByText(/geändert/)).toBeInTheDocument();
 
     expect(within(card).getByRole('link', { name: 'Bearbeiten' })).toBeInTheDocument();
-    expect(within(card).getByRole('button', { name: 'Exportieren' })).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+
+    // Sprint 4B.3: Aus „Exportieren“ sind die beiden Downloads geworden, die
+    // es auf der Paketseite schon gab – als Zeichen, aber mit einem Namen,
+    // der das Paket nennt. Acht Pakete ergäben sonst acht gleichnamige
+    // Schaltflächen.
+    expect(
+      within(card).getByRole('button', {
+        name: 'Unit 3 – City life als LexiFlow-Paket herunterladen (.vocabpack.json)',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByRole('button', {
+        name: 'Unit 3 – City life als Einzeldatei herunterladen (.html)',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('fragt vor dem Löschen weiterhin nach', async () => {

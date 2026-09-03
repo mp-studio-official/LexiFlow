@@ -118,7 +118,9 @@ test.describe('Portable Lehrkraftdatei', () => {
     const fileUrl = await exportStudentFile(page);
 
     expect(fileUrl).toContain('unit-3-city-life-8-lexiflow.html');
-    await expect(page.getByText(/Schülerdatei erstellt/).last()).toBeVisible();
+    // 4B.3: Aus „Schülerdatei“ ist „Einzeldatei“ geworden – die Oberfläche
+    // spricht von Lernenden und Lerngruppen, nicht von Schülern.
+    await expect(page.getByText(/Einzeldatei erstellt/).last()).toBeVisible();
     // Der bestehende JSON-Export steht unverändert daneben.
     await expect(page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' })).toBeVisible();
     expect(external).toEqual([]);
@@ -249,6 +251,33 @@ test.describe('Portable Lehrkraftdatei', () => {
 });
 
 test.describe('Exportierte Schülerdatei', () => {
+  /*
+    Sprint 4B.3: Die Marke muss auf **breiten** Fenstern da sein.
+
+    Der Anlass ist ein echter Fehler: Mit der neuen Schiene bekam die
+    Lehrkraftoberfläche ab 62 rem ein `.app-header { display: none }` – und die
+    portable Lerndatei benutzt dieselbe Klasse, hat aber keine Schiene. Auf
+    einem Laptop stand sie damit ganz ohne Zeichen da. Der bestehende Logo-Test
+    lief im Standardfenster von 1280 px und fand deshalb nichts mehr; gefunden
+    hat den Fehler er, erklärt hat ihn erst diese zweite Prüfung.
+
+    Geprüft werden beide Breiten, weil genau der Unterschied der Fehler war.
+  */
+  for (const [name, width] of [
+    ['Laptop', 1280],
+    ['Telefon', 390],
+  ] as const) {
+    test(`@smoke zeigt die Marke auch auf ${name}-Breite`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      const fileUrl = await exportStudentFile(page);
+      await page.goto(fileUrl);
+
+      const marke = page.getByRole('link', { name: /LexiFlow/ }).first();
+      await expect(marke).toBeVisible();
+      await expect(marke).toHaveAttribute('href', /#\/$|\/$/);
+    });
+  }
+
   test('@smoke trägt das Logo als Pfad, nicht als Datei', async ({ page }) => {
     /*
       Sprint 4B.1c: Ein `<img src="lexiflow-mark-….svg">` wäre unter `file://`

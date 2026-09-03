@@ -76,6 +76,48 @@ function applied(onApply: ReturnType<typeof vi.fn>): CandidateSelection[] {
   return onApply.mock.calls.at(-1)?.[0] as CandidateSelection[];
 }
 
+/**
+ * Sprint 4B.3: Die Werkbank – links die Quelle, rechts das Ergebnis.
+ *
+ * Wie breit die Spalten werden, prüft `SplitPane.test.tsx`; wie sie sich auf
+ * schmalen Fenstern stapeln, prüft niemand in jsdom (dort gibt es keine
+ * Medienabfragen). Hier geht es nur um das Inhaltliche: dass der analysierte
+ * Text in dieser Ansicht **ansprechbar** ist – und dass sie ohne ihn nicht
+ * kaputtgeht, sondern eine Spalte weniger hat.
+ */
+describe('Die Quellspalte', () => {
+  it('zeigt den analysierten Text zum Nachschlagen', () => {
+    render(
+      <TextCandidateReview
+        candidates={candidates()}
+        context={CONTEXT}
+        onContextChange={vi.fn()}
+        dictionary={LEERES_WOERTERBUCH}
+        sourceText="Coastal erosion threatens the settlement."
+        onApply={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    const quelle = screen.getByRole('region', { name: 'Analysierter Text' });
+    expect(quelle).toHaveTextContent('Coastal erosion threatens the settlement.');
+  });
+
+  it('kommt ohne Quelltext aus, statt einen leeren Kasten zu zeigen', () => {
+    mount();
+    expect(screen.queryByRole('region', { name: 'Analysierter Text' })).not.toBeInTheDocument();
+    // Die Einstellungen stehen trotzdem da – die Spalte fällt nicht weg.
+    expect(screen.getByLabelText('Jahrgang')).toBeInTheDocument();
+  });
+
+  it('macht die Spaltenbreite verstellbar', () => {
+    mount();
+    expect(
+      screen.getByRole('separator', { name: 'Breite der Quellspalte' }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe('Der Schritt beginnt mit einer Entscheidung, nicht mit einer Liste', () => {
   it('zeigt zuerst die Einstellungen und noch keine Vokabeln', async () => {
     mount();

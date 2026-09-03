@@ -13,6 +13,33 @@ import { PWA_ASSETS, buildManifest } from './src/pwa/manifest';
  */
 const base = process.env['LEXIFLOW_BASE'] ?? '/';
 
+/**
+ * Ein Platzhalter für die Schülerlaufzeit – nur unter Vitest.
+ *
+ * `src/portable/studentRuntime.ts` importiert `virtual:lexiflow-student-runtime`
+ * dynamisch. Im **Build** ist das folgenlos: `__LEXIFLOW_PORTABLE__` ist dort
+ * `false`, der Zweig fällt vor der Auflösung weg, und die portable Datei bringt
+ * über `vite.portable.config.ts` ihr eigenes Plugin mit, das die Kennung
+ * wirklich auflöst.
+ *
+ * Vitest transformiert dagegen jede Datei einzeln und löst Importe auf, bevor
+ * irgendetwas wegfällt. Bis 4B.2 fiel das nicht auf, weil nur `PackEditorPage`
+ * an dieser Kette hing – und jeder Test dazu das Modul ohnehin ersetzte. Seit
+ * die Materialseite dieselben Downloads anbietet, hängt sie an vielen Tests,
+ * und jeder einzelne müsste sonst ein Modul ersetzen, das er gar nicht benutzt.
+ *
+ * Der Platzhalter liefert `undefined`. Das ist kein Trick, sondern genau die
+ * Wahrheit dieses Builds: keine Laufzeit, also kein Export – und die Oberfläche
+ * sagt das, statt einen wirkungslosen Knopf anzubieten.
+ */
+const RUNTIME_ID = 'virtual:lexiflow-student-runtime';
+const runtimeStub = {
+  name: 'lexiflow-student-runtime-stub',
+  apply: () => process.env['VITEST'] === 'true',
+  resolveId: (id: string) => (id === RUNTIME_ID ? `\0${RUNTIME_ID}` : null),
+  load: (id: string) => (id === `\0${RUNTIME_ID}` ? 'export default undefined;' : null),
+} as const;
+
 export default defineConfig({
   base,
   define: {
@@ -22,6 +49,7 @@ export default defineConfig({
     __LEXIFLOW_PORTABLE__: 'false',
   },
   plugins: [
+    runtimeStub,
     react(),
     VitePWA({
       registerType: 'autoUpdate',
