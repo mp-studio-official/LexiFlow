@@ -21,6 +21,39 @@ function entry(partial: Partial<DictionaryEntry> & Pick<DictionaryEntry, 'headwo
   };
 }
 
+/** `island`: Substantiv **und** Verb – der Musterfall globaler Mehrdeutigkeit. */
+const INSEL_NOMEN = entry({
+  headword: 'island',
+  senses: [
+    { sense: 'land surrounded by water', suggestions: [{ german: 'Insel', gender: 'f' }] },
+    { sense: 'entity surrounded by others', suggestions: [{ german: 'Insel', gender: 'f' }] },
+  ],
+});
+
+const INSEL_VERB = entry({
+  headword: 'island',
+  partOfSpeech: 'verb',
+  senses: [{ sense: 'isolate', suggestions: [{ german: 'isolieren' }] }],
+});
+
+/** `track`: eindeutig in der Wortart, mehrdeutig in der Bedeutung. */
+const TRACK_NOMEN = entry({
+  headword: 'track',
+  senses: [
+    { sense: 'mark left behind', suggestions: [{ german: 'Spur', gender: 'f' }] },
+    { sense: 'the rails', suggestions: [{ german: 'Gleis', gender: 'n' }] },
+  ],
+});
+
+const TRACK_VERB = entry({
+  headword: 'track',
+  partOfSpeech: 'verb',
+  senses: [
+    { sense: 'to follow', suggestions: [{ german: 'verfolgen' }] },
+    { sense: 'to locate', suggestions: [{ german: 'aufspüren' }] },
+  ],
+});
+
 const insel = entry({
   headword: 'island',
   senses: [{ sense: 'land surrounded by water', suggestions: [{ german: 'Insel', gender: 'f' }] }],
@@ -384,19 +417,210 @@ describe('Sichere Sammelübernahme', () => {
   it('trägt nichts ein, wenn die Wortart offen ist', () => {
     /*
       `island` ist Substantiv **und** Verb. Welche Wortart gemeint ist,
-      entscheidet der Satz. Selbst wenn die Substantivbedeutungen sich einig
-      wären, bliebe die Frage offen – und eine offene Frage ist keine Antwort.
+      entscheidet der Satz. Ohne ihn bleibt die Frage offen – und eine offene
+      Frage ist keine Antwort.
     */
-    const substantiv = entry({
-      headword: 'island',
-      senses: [{ sense: 'land', suggestions: [{ german: 'Insel', gender: 'f' }] }],
+    expect(safeAutoAnswer(summarizeLookup([INSEL_NOMEN, INSEL_VERB]))).toBe('');
+  });
+});
+
+/**
+ * Sprint 4B.5: Der Satz entscheidet vor dem Wörterbuch.
+ *
+ * Die Regel oben ist richtig und war trotzdem zu grob: Sie hielt „Insel“
+ * zurück, weil `island` auch ein Verb sein *kann* – auch dann, wenn im Text
+ * „the island“ steht und die Frage damit längst beantwortet ist.
+ *
+ * Welche Wortart an der Fundstelle steht, ermittelt `contextPartOfSpeech`; hier
+ * wird nur geprüft, was `safeAutoAnswer` damit anfängt. Der Kontext **wählt
+ * aus**, er fügt nichts hinzu: Gibt es zu seiner Wortart keinen Eintrag, ist
+ * das kein Freibrief für den nächstbesten.
+ */
+describe('Kontext vor Wörterbuchmehrdeutigkeit', () => {
+  it('trägt „Insel“ ein, wenn der Satz das Substantiv verlangt', () => {
+    expect(safeAutoAnswer(summarizeLookup([INSEL_NOMEN, INSEL_VERB]), 'noun')).toBe('Insel');
+  });
+
+  it('trägt die Verbbedeutung ein, wenn der Satz das Verb verlangt', () => {
+    expect(safeAutoAnswer(summarizeLookup([INSEL_NOMEN, INSEL_VERB]), 'verb')).toBe('isolieren');
+  });
+
+  it('trägt „bekannt“ ein, obwohl das Wörterbuch auch die Verbformen führt', () => {
+    /*
+      `known`: ein Adjektiveintrag und ein Verbeintrag über die Grundform
+      `know`. In „the best known example“ steht das Adjektiv, und die
+      Verbformen dürfen „bekannt“ nicht sperren.
+    */
+    const adjektiv = entry({
+      headword: 'known',
+      partOfSpeech: 'adj',
+      senses: [{ sense: 'renowned', suggestions: [{ german: 'bekannt' }] }],
     });
     const verb = entry({
-      headword: 'island',
+      headword: 'know',
       partOfSpeech: 'verb',
-      senses: [{ sense: 'to isolate', suggestions: [{ german: 'isolieren' }] }],
+      quality: 'lemma',
+      senses: [
+        { sense: 'be certain', suggestions: [{ german: 'wissen' }] },
+        { sense: 'be acquainted', suggestions: [{ german: 'kennen' }] },
+      ],
     });
-    expect(safeAutoAnswer(summarizeLookup([substantiv, verb]))).toBe('');
+    expect(safeAutoAnswer(summarizeLookup([adjektiv, verb]), 'adjective')).toBe('bekannt');
+    // Und ohne Kontext bleibt es beim Schweigen.
+    expect(safeAutoAnswer(summarizeLookup([adjektiv, verb]))).toBe('');
+  });
+
+  it('hilft nicht, wenn die gewählte Wortart selbst mehrdeutig ist', () => {
+    /*
+      `track` als Substantiv: *Spur*, *Bahn*, *Gleis*, *Titel* … Der Satz sagt,
+      dass ein Substantiv gemeint ist, aber nicht welches. Die Einigkeitsregel
+      gilt weiter – das Feld bleibt leer und die Bedeutungen stehen als Chips.
+    */
+    expect(safeAutoAnswer(summarizeLookup([TRACK_NOMEN, TRACK_VERB]), 'noun')).toBe('');
+    // Dasselbe für das Verb: *verfolgen* und *aufspüren* sind nicht dasselbe.
+    expect(safeAutoAnswer(summarizeLookup([TRACK_NOMEN, TRACK_VERB]), 'verb')).toBe('');
+  });
+
+  it('erfindet nichts, wenn es zur Wortart des Satzes keinen Eintrag gibt', () => {
+    // Der Satz sagt „Adjektiv“, das Wörterbuch kennt nur Substantiv und Verb.
+    // Dann gilt wieder die alte Regel – und die schweigt hier.
+    expect(safeAutoAnswer(summarizeLookup([INSEL_NOMEN, INSEL_VERB]), 'adjective')).toBe('');
+  });
+});
+
+/**
+ * Sprint 4B.5: Personenbezeichnungen nicht halbieren.
+ *
+ * Wer `doctor` lernt, lernt *der Arzt; die Ärztin*. Beide Formen stehen im
+ * Wörterbuch; nur eine davon einzutragen wäre eine Auswahl, die niemand
+ * getroffen hat.
+ */
+describe('Männliche und weibliche Personenbezeichnungen', () => {
+  it('behält beide belegten Formen samt Artikel', () => {
+    const teacher = entry({
+      headword: 'teacher',
+      senses: [
+        {
+          sense: 'person who teaches',
+          suggestions: [
+            { german: 'Lehrer', gender: 'm' },
+            { german: 'Lehrerin', gender: 'f' },
+          ],
+        },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([teacher]))).toBe('der Lehrer; die Lehrerin');
+  });
+
+  it('nimmt ein Paar auch aus einer längeren Aufzählung', () => {
+    /*
+      `doctor` liefert sechs Entsprechungen. Nach der Dreierregel bliebe nur
+      *Arzt* stehen. Ein Paar ist aber keine Aufzählung, sondern eine Antwort
+      in zwei Formen – und zwar die erste zusammengehörige.
+    */
+    const doctor = entry({
+      headword: 'doctor',
+      senses: [
+        {
+          sense: 'medical doctor',
+          suggestions: [
+            { german: 'Arzt', gender: 'm' },
+            { german: 'Ärztin', gender: 'f' },
+            { german: 'Mediziner', gender: 'm' },
+            { german: 'Medizinerin', gender: 'f' },
+          ],
+        },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([doctor]))).toBe('der Arzt; die Ärztin');
+  });
+
+  it('erkennt das Paar auch, wenn ein auslautendes -e wegfällt', () => {
+    const colleague = entry({
+      headword: 'colleague',
+      senses: [
+        {
+          sense: 'fellow member',
+          suggestions: [
+            { german: 'Kollege', gender: 'm' },
+            { german: 'Kollegin', gender: 'f' },
+          ],
+        },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([colleague]))).toBe('der Kollege; die Kollegin');
+  });
+
+  it('bildet keine weibliche Form, die nicht dasteht', () => {
+    /*
+      Der Kern der Regel: Es wird nichts gebildet. `Motor` bekommt kein
+      „Motorin“, und `Bürgermeister` ohne belegte weibliche Form bleibt allein.
+    */
+    const mayor = entry({
+      headword: 'mayor',
+      senses: [{ sense: 'head of a town', suggestions: [{ german: 'Bürgermeister', gender: 'm' }] }],
+    });
+    expect(safeAutoAnswer(summarizeLookup([mayor]))).toBe('Bürgermeister');
+  });
+
+  it('erklärt zwei verschiedene Wörter nicht zum Paar', () => {
+    /*
+      `nurse` → *Krankenschwester* und *Krankenpfleger*. Beides sind belegte
+      Personenbezeichnungen, aber es ist nicht dasselbe Wort in zwei Formen.
+      Sie kommen deshalb über die gewöhnliche Synonymregel mit – ohne Artikel,
+      weil die Zusammengehörigkeit nicht bewiesen ist.
+    */
+    const nurse = entry({
+      headword: 'nurse',
+      senses: [
+        {
+          sense: 'person trained to provide care',
+          suggestions: [
+            { german: 'Krankenpfleger', gender: 'm' },
+            { german: 'Krankenschwester', gender: 'f' },
+          ],
+        },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([nurse]))).toBe('Krankenpfleger; Krankenschwester');
+  });
+
+  it('übernimmt keine markierte Form, nur weil sie ins Paar passte', () => {
+    // Regel 3 bleibt: Markiertes wird nie automatisch zur Antwort.
+    const doktor = entry({
+      headword: 'quack',
+      senses: [
+        {
+          sense: 'bad doctor',
+          suggestions: [
+            { german: 'Pferdedoktor', gender: 'm', register: ['colloquial'] },
+            { german: 'Pferdedoktorin', gender: 'f', register: ['colloquial'] },
+          ],
+        },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([doktor]))).toBe('');
+  });
+
+  it('behält das Paar auch dann, wenn mehrere Bedeutungen sich einig sind', () => {
+    /*
+      Die Einigkeitsregel zieht sonst auf **ein** Wort zusammen. Ein belegtes
+      Paar darf sie nicht halbieren.
+    */
+    const teacher = entry({
+      headword: 'teacher',
+      senses: [
+        {
+          sense: 'person who teaches',
+          suggestions: [
+            { german: 'Lehrer', gender: 'm' },
+            { german: 'Lehrerin', gender: 'f' },
+          ],
+        },
+        { sense: 'instructor', suggestions: [{ german: 'Lehrer', gender: 'm' }] },
+      ],
+    });
+    expect(safeAutoAnswer(summarizeLookup([teacher]))).toBe('der Lehrer; die Lehrerin');
   });
 
   it('trägt nichts ein, wenn nur Markiertes vorliegt', () => {

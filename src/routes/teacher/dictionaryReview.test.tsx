@@ -287,6 +287,60 @@ describe('Was ohne Rückfrage eingetragen wird', () => {
     expect(meldung).toMatch(/bitte durchsehen/);
   });
 
+  it('nutzt den Satz, bevor eine fremde Wortart die Übernahme sperrt', async () => {
+    /*
+      Sprint 4B.5, Marcs Präzisierung: `island` ist im Wörterbuch Substantiv
+      **und** Verb. Ohne den Satz bliebe „Insel“ liegen, obwohl im Text „the
+      island“ steht und die Frage damit beantwortet ist.
+
+      Der Satz kommt hier aus der Analyse selbst – geprüft wird also die ganze
+      Kette: Fundstelle → Wortart im Satz → Auswahl der Bedeutungsgruppe.
+    */
+    const TEXT_MIT_INSEL = 'The island is quiet. Boats reach the island at noon.';
+    const bestand: Record<string, DictionaryEntry[]> = {
+      island: [
+        entry('island', [
+          { sense: 'land', suggestions: [{ german: 'Insel', gender: 'f' }] },
+          { sense: 'enclave', suggestions: [{ german: 'Insel', gender: 'f' }] },
+        ]),
+        entry('island', [{ sense: 'to isolate', suggestions: [{ german: 'isolieren' }] }], {
+          partOfSpeech: 'verb',
+        }),
+      ],
+    };
+
+    render(
+      <ProviderRegistry>
+        <TextCandidateReview
+          candidates={extractTextCandidates(TEXT_MIT_INSEL)}
+          context={CONTEXT}
+          onContextChange={vi.fn()}
+          sourceText={TEXT_MIT_INSEL}
+          dictionary={fakeDictionary({
+            async lookup(word) {
+              return bestand[word.toLowerCase()] ?? [];
+            },
+          })}
+          onApply={vi.fn()}
+          onBack={vi.fn()}
+        />
+      </ProviderRegistry>,
+    );
+
+    const user = userEvent.setup();
+    const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await user.selectOptions(screen.getByLabelText('Anzahl'), '20');
+    await user.click(knopf);
+
+    expect(answerField('island').value).toBe('Insel');
+    // Und die Wortart steht gleich mit da – wer die Antwort aus dem Kontext
+    // bekommt, hat die Wortart damit auch.
+    expect(
+      (screen.getByLabelText('Wortart für „island“') as HTMLSelectElement).value,
+    ).toBe('noun');
+  });
+
   it('bietet den alten Sammelknopf nicht mehr an', () => {
     // Er hätte nichts mehr zu tun – und ein Knopf ohne Wirkung ist schlimmer
     // als keiner.

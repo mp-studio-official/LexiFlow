@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Announcer, Badge, Button, Card, Field, Meter } from '../../ui/components';
 import { useTranslationProvider } from '../../providers/ProviderContext';
-import { segmentSentences, type TextCandidate } from '../../domain/textExtraction';
+import {
+  candidateLiteral,
+  segmentSentences,
+  type TextCandidate,
+} from '../../domain/textExtraction';
 import type { CandidateSelection } from '../../import/textDraft';
 import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
@@ -35,6 +39,7 @@ import { DictionarySuggestionList } from './DictionarySuggestionList';
 import { Disclosure } from '../../ui/Disclosure';
 import { mergeMultiwordTokens, tokenizeSource } from '../../import/sourceTokens';
 import { pickFromSource } from '../../import/sourcePick';
+import { contextPartOfSpeech } from '../../import/contextPartOfSpeech';
 import { SourceTextPane, type WordState } from './SourceTextPane';
 import { InfoDisclosure } from '../../ui/InfoDisclosure';
 import {
@@ -840,13 +845,37 @@ export function TextCandidateReview({
  *
  * Die Wortart kommt aus demselben Befund mit: Sie stand vorher schon in der
  * Zeile, nur eben unbenutzt.
+ *
+ * Und der **Satz** kommt mit: Ob `island` hier ein Substantiv ist, steht nicht
+ * im Wörterbuch, sondern im Text. Ohne diese Auskunft bliebe „Insel“ liegen,
+ * nur weil `island` auch ein Verb sein kann – siehe `contextPartOfSpeech`.
+ * Gefragt wird nach der Form, die **im Satz** steht (`islands`, nicht
+ * `island`): Nur zu ihr gibt es eine Fundstelle.
  */
 function applyDictionaryDefaults(rows: readonly CandidateRow[]): CandidateRow[] {
   return rows.map((row) => {
     if (hasAnswer(row)) return row;
-    const answer = safeAutoAnswer(row.dictionary);
+    const context = contextPartOfSpeech(
+      row.candidate.sourceSentence,
+      candidateLiteral(row.candidate),
+    );
+    const answer = safeAutoAnswer(row.dictionary, row.partOfSpeech || context);
     if (!answer) return row;
-    return { ...row, german: answer, suggestionSource: 'dictionary', translation: 'accepted' };
+    /*
+      Die Wortart mitschreiben, wenn der Satz sie geklärt hat.
+
+      Sie stand vorher oft auf „–“, weil das Wörterbuch mehrere kennt. Wer die
+      Antwort aus dem Kontext bekommt, hat die Wortart damit auch – sie noch
+      einmal von Hand wählen zu lassen wäre Arbeit ohne Erkenntnis. Eine
+      bereits gesetzte Wortart bleibt unangetastet.
+    */
+    return {
+      ...row,
+      german: answer,
+      ...(row.partOfSpeech ? {} : context ? { partOfSpeech: context } : {}),
+      suggestionSource: 'dictionary',
+      translation: 'accepted',
+    };
   });
 }
 

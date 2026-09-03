@@ -116,6 +116,32 @@ describe('Wirkung auf die sichere Sammelübernahme', () => {
     expect(safeAutoAnswer(drei)).toBe('Arzt');
   });
 
+  it('nimmt die belegte weibliche Form mit, wenn das Genus dabeisteht', () => {
+    /*
+      Sprint 4B.5. Derselbe Eintrag wie oben, nur mit den Genusangaben, die die
+      echte Quelle liefert – und damit ist *Arzt, Ärztin* kein Anfang einer
+      Aufzählung mehr, sondern eine Antwort in zwei Formen.
+
+      Das ist der Unterschied zum Test darüber: Ohne Genus ist nicht belegt,
+      dass die beiden zusammengehören, und dann bleibt es bei der Dreierregel.
+      Erfunden wird in keinem der beiden Fälle etwas.
+    */
+    const mitGenus = summarizeLookup([
+      entry('doctor', [
+        {
+          sense: 'medical doctor',
+          via: 'physician',
+          suggestions: [
+            { german: 'Arzt', gender: 'm' },
+            { german: 'Ärztin', gender: 'f' },
+            { german: 'Mediziner', gender: 'm' },
+          ],
+        },
+      ]),
+    ]);
+    expect(safeAutoAnswer(mitGenus)).toBe('der Arzt; die Ärztin');
+  });
+
   it('lässt jedes andere Stichwort mit erschlossenem Verweis leer', () => {
     const medic = summarizeLookup([
       entry('medic', [

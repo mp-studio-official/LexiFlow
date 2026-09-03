@@ -1,4 +1,9 @@
-import type { DictionaryEntry, DictionaryProvider } from '../dictionary/DictionaryProvider';
+import {
+  GENDER_ARTICLES,
+  type DictionaryEntry,
+  type DictionaryProvider,
+  type DictionarySuggestion,
+} from '../dictionary/DictionaryProvider';
 import { isQuestionable } from '../dictionary/ranking';
 import { isVerifiedReference } from '../dictionary/verifiedReferences';
 import type { PartOfSpeech } from '../domain/schema';
@@ -280,6 +285,83 @@ export const MAX_AUTO_SYNONYMS = 2;
  * Im Zweifel: gar nichts. Ein leeres Feld ist eine Aufgabe; eine falsche
  * Antwort ist ein Fehler, den jemand später glaubt.
  */
+/* ------------------------------------------------- Personenbezeichnungen */
+
+/**
+ * Umlaute abtragen – nur für den Vergleich, nie für die Anzeige.
+ *
+ * `Arzt` und `Ärztin` gehören zusammen, und das sieht man erst, wenn das `ä`
+ * für einen Moment ein `a` sein darf.
+ */
+function withoutUmlauts(word: string): string {
+  return word
+    .toLowerCase()
+    .replace(/ä/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/ü/g, 'u')
+    .replace(/ß/g, 'ss');
+}
+
+/**
+ * Gehören diese beiden belegten Formen als männliche und weibliche
+ * Personenbezeichnung zusammen?
+ *
+ * Es wird **nichts gebildet**. Beide Wörter stehen so im Wörterbuch; geprüft
+ * wird nur, ob sie dasselbe Wort in zwei Formen sind. Die Regel ist eng: Die
+ * weibliche Form ist die männliche plus `-in`, gegebenenfalls mit Umlaut und
+ * ohne ein auslautendes `-e`.
+ *
+ * - `Arzt` → `Ärztin` (Umlaut)
+ * - `Lehrer` → `Lehrerin`
+ * - `Kollege` → `Kollegin` (auslautendes `-e` fällt weg)
+ *
+ * Was sich damit nicht belegen lässt – `Krankenschwester` und
+ * `Krankenpfleger` etwa –, bleibt außen vor. Beide Formen kommen dort über
+ * die gewöhnliche Synonymregel mit; nur die Artikel fehlen, weil die
+ * Zusammengehörigkeit nicht bewiesen ist.
+ */
+function isFeminineCounterpart(masculine: string, feminine: string): boolean {
+  const f = withoutUmlauts(feminine);
+  const m = withoutUmlauts(masculine);
+  if (!f.endsWith('in') || f.length <= 2) return false;
+  const stem = f.slice(0, -2);
+  return stem === m || stem === m.replace(/e$/, '');
+}
+
+/**
+ * Das belegte Personenpaar unter den unmarkierten Entsprechungen – oder keins.
+ *
+ * Gesucht wird **eine** zusammengehörige Paarung, nicht alle: `doctor` liefert
+ * über die geprüfte Verweisbedeutung *Arzt, Ärztin, Mediziner, Medizinerin,
+ * Doktor, Doktorin*. Sechs Antworten sind keine Antwort mehr. Zwei sind eine –
+ * und zwar dieselbe, in beiden Formen.
+ *
+ * Die Artikel kommen mit, weil sie hier die Arbeit tun: Sie tragen das Genus
+ * und machen den Unterschied zwischen den beiden Formen sichtbar. Beim
+ * Antworten sind sie ohnehin freigestellt (siehe `lenientKey`).
+ */
+function personPair(
+  suggestions: readonly DictionarySuggestion[],
+): [DictionarySuggestion, DictionarySuggestion] | undefined {
+  for (const [index, masculine] of suggestions.entries()) {
+    if (masculine.gender !== 'm') continue;
+    const feminine = suggestions
+      .slice(index + 1)
+      .find(
+        (other) =>
+          other.gender === 'f' && isFeminineCounterpart(masculine.german, other.german),
+      );
+    if (feminine) return [masculine, feminine];
+  }
+  return undefined;
+}
+
+/** „der Arzt“ – der Artikel gehört zum Wort, wenn das Genus bekannt ist. */
+function withArticle(suggestion: DictionarySuggestion): string {
+  const article = suggestion.gender ? GENDER_ARTICLES[suggestion.gender] : undefined;
+  return article ? `${article} ${suggestion.german}` : suggestion.german;
+}
+
 /**
  * Die **eine** Bedeutung eines Wortes – oder gar keine.
  *
@@ -319,14 +401,33 @@ export const MAX_AUTO_SYNONYMS = 2;
  *
  * Erschlossene Verweise (`via`) sind hier nie dabei – Regel 4 gilt weiter.
  */
-function soleMeaning(entries: readonly DictionaryEntry[]): DictionaryEntry['senses'][number] | undefined {
-  const withContent = entries.filter((entry) =>
+function soleMeaning(
+  entries: readonly DictionaryEntry[],
+  context?: PartOfSpeech | undefined,
+): DictionaryEntry['senses'][number] | undefined {
+  const all = entries.filter((entry) =>
     entry.senses.some((sense) => !sense.via && sense.suggestions.length > 0),
   );
+
+  /*
+    Bedingung 1: eine Wortart – aber der Satz zählt mehr als das Wörterbuch.
+
+    Das Wörterbuch führt `island` als Substantiv **und** als Verb. Ohne den
+    Satz ist das mehrdeutig und es bleibt beim Schweigen. Steht im Text aber
+    „the island“, ist die Frage beantwortet, und die seltene Verbverwendung
+    darf „Insel“ nicht länger sperren.
+
+    Der Kontext **wählt** dabei nur aus; er fügt nichts hinzu. Gibt es zu
+    seiner Wortart keinen Eintrag, ist das kein Freibrief für den nächstbesten
+    – dann bleibt alles beim Alten, und das heißt in aller Regel: nichts.
+  */
+  const matching = context
+    ? all.filter((entry) => partOfSpeechOfSource(entry.partOfSpeech) === context)
+    : [];
+  const withContent = matching.length > 0 ? matching : all;
+
   const first = withContent[0];
   if (!first) return undefined;
-
-  // Bedingung 1: eine Wortart.
   if (withContent.some((entry) => entry.partOfSpeech !== first.partOfSpeech)) return undefined;
 
   const senses = withContent.flatMap((entry) =>
@@ -344,10 +445,20 @@ function soleMeaning(entries: readonly DictionaryEntry[]): DictionaryEntry['sens
   );
   if (!agreed) return undefined;
 
+  /*
+    Zusammengezogen wird auf das Wort, über das man sich einig war – und auf
+    seine belegte weibliche Form, falls es eine gibt. Aus `teacher` wird sonst
+    „der Lehrer“ allein, obwohl „die Lehrerin“ genauso im Wörterbuch steht.
+  */
+  const pair = personPair(lead.suggestions);
+  if (pair && pair[0] === head) return { ...lead, suggestions: pair };
   return { ...lead, suggestions: [head] };
 }
 
-export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined): string {
+export function safeAutoAnswer(
+  summary: DictionarySuggestionSummary | undefined,
+  context?: PartOfSpeech | undefined,
+): string {
   const entries = summary?.entries ?? [];
   if (!entries.length) return '';
 
@@ -364,7 +475,7 @@ export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined)
     Gruppe mit Inhalt ist.
   */
   const verified = withContent.find((candidate) => isVerifiedReference(headword, candidate.via));
-  const sense = verified ?? soleMeaning(entries);
+  const sense = verified ?? soleMeaning(entries, context);
   if (!sense) return '';
 
   // Regel 3: Markiertes und Bedingtes zählt nicht mit.
@@ -372,6 +483,21 @@ export function safeAutoAnswer(summary: DictionarySuggestionSummary | undefined)
     (suggestion) => !suggestion.register?.length && !suggestion.qualifier,
   );
   if (!safe.length || isQuestionable(sense)) return '';
+
+  /*
+    Regel 6 (Sprint 4B.5): Personenbezeichnungen nicht halbieren.
+
+    `doctor` liefert über die geprüfte Verweisbedeutung *Arzt, Ärztin,
+    Mediziner, Medizinerin, Doktor, Doktorin*. Nach Regel 2 wären das drei oder
+    mehr, also bliebe nur *Arzt* stehen – und damit stünde im Vokabelheft die
+    männliche Form allein, obwohl die weibliche im Wörterbuch danebensteht.
+
+    Das ist keine Frage der Vollständigkeit, sondern eine des Lernstoffs: Wer
+    `doctor` lernt, lernt *der Arzt; die Ärztin*. Erfunden wird dabei nichts –
+    beide Formen sind belegt, und geprüft wird nur, ob sie zusammengehören.
+  */
+  const pair = personPair(safe);
+  if (pair) return formatAnswers(pair.map(withArticle));
 
   // Regel 2: eins, zwei – oder bei dreien nur das erste.
   const take = safe.length <= MAX_AUTO_SYNONYMS ? safe.length : 1;
