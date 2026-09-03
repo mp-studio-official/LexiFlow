@@ -1081,3 +1081,56 @@ dass die Leiste danach nichts Offenes mehr meldet.
 
 **Safari:** weiterhin ausschließlich Chromium automatisiert. `position: sticky`
 ist dort alt; der manuelle Durchgang steht aus.
+
+## Die Größenschranke der Lernlaufzeit: 700 KiB → 1 MiB
+
+Eigener kleiner Commit, weil er nichts am Verhalten ändert und trotzdem eine
+Zusage verschiebt.
+
+### Warum
+
+Die alte Zahl stammte aus 4A.2 und war am damaligen Stand gemessen: 620,7 KiB
+vor dem Wörterbuch, die Schranke knapp darüber. Sie sollte anschlagen, sobald
+jemand versehentlich Wörterbuchdaten in den Lernpfad zieht.
+
+Das leistet sie weiterhin – aber inzwischen bekommt die Lernlaufzeit auch
+echte Funktionen dazu (zuletzt die druckbare Vokabelliste, +9,9 KiB), und eine
+Schranke, die zum Funktionsabbau zwingt, misst das Falsche. Sie ist ein
+**Warn- und Qualitäts-Gate**, kein Sparziel.
+
+Der Schutz bleibt derselbe: Das Offline-Wörterbuch ist 6,1 MB, die
+PDF-Bibliothek 1,3 MB. Beides schlägt bei 1 MiB genauso sofort an wie bei
+700 KiB – und zusätzlich prüfen Skript und Artefakttest weiterhin auf die
+Marker `WorkerMessageHandler`, `pdfjsWorker`, `InvalidPDFException` und
+`Offline-Wörterbuch`, also auf die **Sache** und nicht nur auf die Größe.
+
+### Eine Zahl statt vier
+
+Die Schranken standen an vier Stellen: im Prüfskript und in zwei
+Artefakttests, dazu in der Dokumentation. Vier Zahlen, die dasselbe meinen,
+driften auseinander – und eine Schranke, die an einer Stelle 700 und an einer
+anderen 1024 sagt, ist keine mehr.
+
+Sie stehen jetzt in `scripts/portableLimits.mjs`, mit `.d.mts` daneben (dasselbe
+Muster wie `scripts/dictionary/buildRuntime.mjs`), damit das Node-Skript und
+die TypeScript-Tests dieselbe Konstante lesen.
+
+### Was in den Verifikationstabellen oben stehen bleibt
+
+Die Zahl „700 KiB“ in den Tabellen der Phasen 2, 3, 4 und der Blöcke A und B
+bleibt unverändert. Das sind **Protokolle**: Sie halten fest, gegen welche
+Schranke damals gemessen wurde. Sie nachträglich auf 1 MiB zu ändern hieße,
+eine Messung zu behaupten, die so nie stattgefunden hat.
+
+### Verifikation
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | grün |
+| `npm run test` | grün |
+| `npm run build:portable` | grün |
+| `npm run verify:portable` | grün – meldet jetzt „die Schranke liegt bei 1024 KiB“ |
+
+Die gemessenen Größen sind unverändert: Lehrkraftdatei **9368,6 KiB**
+(Schranke 12 MiB), Lernlaufzeit **647,4 KiB** (Schranke jetzt 1024 KiB). Die
+Anhebung schafft Luft, sie verbraucht keine.

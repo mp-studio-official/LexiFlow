@@ -6,6 +6,7 @@ import { JSDOM } from 'jsdom';
 import { buildStudentHtml, readEmbeddedJson, studentFileName } from './studentExport';
 import { readEmbeddedPackFromDocument } from './embedded';
 import type { VocabPack } from '../domain/schema';
+import { RUNTIME_LIMIT_KIB } from '../../scripts/portableLimits.mjs';
 
 /**
  * Prüfungen an der **gebauten** Schülerlaufzeit.
@@ -245,16 +246,17 @@ describe('Gebaute Schülerdatei', () => {
     expect(html).not.toContain('Offline-Wörterbuch');
   });
 
-  it('hält die Schülerdatei in der bisherigen Größenordnung', () => {
+  it('hält die Lernlaufzeit unter der Schranke', () => {
     /*
-      Vor Sprint 4A.2 war die Schülerlaufzeit 620,7 KiB groß. Sie darf durch das
-      Wörterbuch nicht wachsen – der einzige zulässige Zuwachs ist das bisschen
-      CSS für die Vorschlagsanzeige im Lehrkraftbereich. Die Schranke liegt
-      bewusst knapp darüber: Sie soll anschlagen, sobald jemand versehentlich
-      Wörterbuchdaten in den Schülerpfad zieht.
+      Die Schranke ist ein **Warn-Gate**, kein Sparziel: Sie soll anschlagen,
+      sobald jemand versehentlich Wörterbuchdaten oder die PDF-Bibliothek in
+      den Lernpfad zieht. Beides sind Megabyte und schlägt bei jeder denkbaren
+      Marke an – die Zahl selbst darf deshalb Luft für echte Lernfunktionen
+      lassen. Sie steht in `scripts/portableLimits.mjs`, damit Prüfskript,
+      Tests und Dokumentation dieselbe Zahl meinen.
     */
     const kiB = Buffer.byteLength(runtime, 'utf8') / 1024;
-    expect(kiB).toBeLessThan(700);
+    expect(kiB, `Lernlaufzeit ${kiB.toFixed(1)} KiB`).toBeLessThan(RUNTIME_LIMIT_KIB);
   });
 
   it('trägt das Wörterbuch samt Quelle und Lizenz in der Lehrkraftdatei', () => {

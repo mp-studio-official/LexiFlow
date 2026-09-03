@@ -11,6 +11,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { startVitest } from 'vitest/node';
+import { RUNTIME_LIMIT_KIB, TEACHER_LIMIT_MIB } from './portableLimits.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, 'dist-portable');
@@ -144,18 +145,18 @@ for (const marker of ['WorkerMessageHandler', 'pdfjsWorker', 'InvalidPDFExceptio
  * Größenschranken.
  *
  * Kein Selbstzweck: Eine Datei, die per E-Mail nicht mehr durchgeht, ist keine
- * portable Datei mehr. Die Lehrkraftschranke stammt aus dem Sprintauftrag
- * 4B.2, die Schülerschranke aus 4A.2 (620,7 KiB vor dem Wörterbuch).
+ * portable Datei mehr. Die Zahlen stehen in `portableLimits.mjs` – **einmal**,
+ * damit Prüfskript, Artefakttests und Dokumentation nicht auseinanderdriften.
  */
 const teacherMiB = statSync(teacher).size / 1024 / 1024;
 check(
-  teacherMiB < 12,
-  `Lehrkraftdatei: ${teacherMiB.toFixed(2)} MiB – die Schranke liegt bei 12 MiB.`,
+  teacherMiB < TEACHER_LIMIT_MIB,
+  `Lehrkraftdatei: ${teacherMiB.toFixed(2)} MiB – die Schranke liegt bei ${TEACHER_LIMIT_MIB} MiB.`,
 );
 const runtimeKiB = statSync(runtime).size / 1024;
 check(
-  runtimeKiB < 700,
-  `Schülerlaufzeit: ${runtimeKiB.toFixed(1)} KiB – die Schranke liegt bei 700 KiB.`,
+  runtimeKiB < RUNTIME_LIMIT_KIB,
+  `Lernlaufzeit: ${runtimeKiB.toFixed(1)} KiB – die Schranke liegt bei ${RUNTIME_LIMIT_KIB} KiB.`,
 );
 
 console.log('\nGrößen:');

@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { RUNTIME_LIMIT_KIB } from '../../scripts/portableLimits.mjs';
 
 /**
  * Der Nachweis, dass der PDF-Import in der **gebauten** Lehrkraftdatei ohne
@@ -109,6 +110,6 @@ describe('PDF-Import in der gebauten Lehrkraftdatei', () => {
       expect(runtime.includes(marker), marker).toBe(false);
     }
     const kiB = statSync(runtimePath).size / 1024;
-    expect(kiB, `Schülerlaufzeit ${kiB.toFixed(1)} KiB`).toBeLessThan(700);
+    expect(kiB, `Lernlaufzeit ${kiB.toFixed(1)} KiB`).toBeLessThan(RUNTIME_LIMIT_KIB);
   });
 });
