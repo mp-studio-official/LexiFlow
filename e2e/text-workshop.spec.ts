@@ -241,6 +241,57 @@ test.describe('Textwerkstatt', () => {
     expect((await quelle.boundingBox())?.width ?? 0).toBeLessThan(nachher);
   });
 
+  /*
+    Sprint 4B.3, Block A: die vollständige englische Lernform – mit dem
+    **echten** Offline-Wörterbuch.
+
+    Die Komponententests arbeiten mit einem eingesetzten Miniwörterbuch; sie
+    prüfen die Regel. Ob der ausgelieferte Bestand sie trägt, prüft nur ein
+    Lauf im Browser: ob er `single out` wirklich als Mehrwortverb führt und
+    `depend on` wirklich nicht.
+  */
+  test('@smoke baut vollständige Lernformen und fragt, wo es nicht sicher ist', async ({
+    page,
+  }) => {
+    const QUELLE = [
+      'Communities along the shore depend on natural barriers to survive.',
+      'Planners often single out the cheapest option to save money.',
+      'Residents endure the noise of construction for years.',
+    ].join(' ');
+
+    await withoutBrowserModels(page);
+    await page.goto('/#/material/import?quelle=text');
+    await page.getByLabel('Englischer Text').fill(QUELLE);
+    await page.getByRole('button', { name: 'Text analysieren', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Empfehlungen generieren' })).toBeVisible();
+    await recommend(page);
+
+    const formen = page.locator('.candidate__word');
+
+    // Ein Verb bekommt seinen Infinitiv.
+    await expect(formen.filter({ hasText: /^to endure$/ })).toHaveCount(1);
+
+    // Ein vom Wörterbuch belegtes Phrasal Verb behält seine Partikel – ohne
+    // Rückfrage, weil Satz und Wörterbuch dasselbe sagen.
+    await expect(formen.filter({ hasText: /^to single out$/ })).toHaveCount(1);
+
+    /*
+      Und die Gegenprobe: `depend on` steht im Satz, aber nicht im Wörterbuch.
+      Die Rektion wird deshalb **nicht** stillschweigend gebaut – die Zeile
+      bleibt bei `to depend` und stellt die Frage.
+    */
+    await expect(formen.filter({ hasText: /^to depend$/ })).toHaveCount(1);
+    const frage = page.locator('.candidate__review');
+    await expect(frage).toContainText('Gehört „on“ zur Vokabel?');
+
+    // Ein Klick beantwortet sie – das ist die Entscheidung der Lehrkraft.
+    await page
+      .getByRole('button', { name: 'Lernform „to depend on sb./sth.“ übernehmen' })
+      .click();
+    await expect(formen.filter({ hasText: /^to depend on sb\.\/sth\.$/ })).toHaveCount(1);
+    await expect(page.locator('.candidate__review')).toHaveCount(0);
+  });
+
   test('@a11y Empfehlungsschritt ohne schwerwiegende Befunde', async ({ page }) => {
     await analyze(page);
     await recommend(page);

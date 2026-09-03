@@ -47,6 +47,17 @@ export interface RecommendationInput {
   candidate: TextCandidate;
   /** Was das Offline-Wörterbuch zu diesem Wort weiß, falls es etwas weiß. */
   dictionary?: DictionarySuggestionSummary | undefined;
+  /**
+   * Was es zu `Wort + Partikel` weiß – etwa zu `single out`, wenn im Satz
+   * hinter `single` ein `out` stand.
+   *
+   * Für die Empfehlung selbst ist das Feld ohne Bedeutung; es wird nur
+   * durchgereicht, damit die Ansicht daraus die vollständige Lernform bauen
+   * kann (siehe `learningFormProposal.ts`). Der zweite Nachschlag passiert im
+   * selben Durchlauf wie der erste – eine spätere Nachfrage je Zeile wäre ein
+   * Wörterbuchzugriff mitten im Tippen.
+   */
+  phrase?: DictionarySuggestionSummary | undefined;
 }
 
 export interface ScoredCandidate extends RecommendationInput {

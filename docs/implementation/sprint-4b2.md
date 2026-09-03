@@ -782,3 +782,88 @@ der Shell-Regel) ist ab Safari 15.4 verfügbar und wird im Projekt schon
 verwendet; `100dvh` ab Safari 15.4; `resize: vertical` und `position: sticky`
 sind alt. Das ist eine Einschätzung nach Verfügbarkeit, **keine Messung** – ein
 Durchgang durch Schiene, Paketblöcke und Werkbank in echtem Safari steht aus.
+
+## Block A – Grammatisch vollständige englische Lernformen
+
+Eigener Commit, bewusst getrennt vom Designblock: Der eine ändert, wie die
+Anwendung aussieht, der andere, was sie über eine Vokabel weiß.
+
+### Der Fehler, um den es geht
+
+Die Textanalyse findet Wörter so, wie sie im Text stehen: `depend`, `single`,
+`restraints`, `attainable`. Als Vokabel taugt davon keines. Ein Vokabelheft
+schreibt `to depend on sb./sth.` – weil die Rektion zur Vokabel gehört. Wer
+`depend` lernt, schreibt später `depend of`.
+
+### Zwei Seiten, und die zweite war die schlimmere
+
+**Erzeugen.** `src/import/learningFormProposal.ts` baut aus einem gefundenen
+Wort eine Lernform – aus belegten Quellen und sonst gar nicht. Verben bekommen
+`to`, ein vom Wörterbuch belegtes Phrasal Verb behält seine Partikel
+(`to single out`), ein über die Grundform gefundener Plural wird markiert
+(`restraints (pl.)`).
+
+**Prüfen.** Hier saß der eigentliche Fehler, und er war unsichtbar:
+`impliedAnswers` hat das **Lemma** als gültige Antwort mitgeliefert. Zu
+`to depend on sb./sth.` ist das Lemma `depend` – die Antwortprüfung hat also
+genau den Fehler durchgewunken, dessentwegen die Lernform überhaupt
+vollständig ist. Weglassbar sind jetzt nur noch das führende `to`, die
+Klammerzusätze und die Platzhalter; Partikel und Präpositionen sind es nicht.
+
+| Antwort | vorher | jetzt |
+| --- | --- | --- |
+| `to depend on` | falsch | **richtig** |
+| `depend` | **richtig** | falsch |
+| `to single out` | falsch | **richtig** |
+| `single` | **richtig** | falsch |
+| `to coin a phrase` | falsch | **richtig** |
+| `to coin` | falsch | falsch |
+
+### Die Grenze: `single out` ja, `depend on` nein
+
+Das ausgelieferte Wörterbuch führt `single out` als eigenes Mehrwortverb –
+Satz und Wörterbuch sagen dasselbe, das ist eine Auskunft, und die Form
+entsteht ohne Rückfrage.
+
+`depend on` steht **nicht** im Bestand. Dass im Satz hinter `depend` ein `on`
+folgt, ist ein Hinweis und kein Beweis: In „to arrive on Monday“ steht dort
+auch eine Präposition, und die gehört nicht zum Wort. Die Zeile bleibt deshalb
+bei `to depend` und stellt die Frage im Klartext – „Im Text steht ‚depend on‘.
+Gehört ‚on‘ zur Vokabel?“ – mit einem Knopf, der sie beantwortet. Ein Klick
+ist die Entscheidung der Lehrkraft und damit eine zulässige Quelle; eine
+Vermutung ist es nicht.
+
+Es gibt **keine** Tabelle „welches Verb hat welche Rektion“. Die wäre nach
+zwanzig Einträgen unvollständig und nach fünfzig falsch – und sie würde genau
+dort raten, wo Raten am teuersten ist: in dem Feld, das anschließend jemand
+auswendig lernt.
+
+### Eine Entscheidung, die zur Bestätigung ansteht
+
+Das Wortartkürzel (`attainability (n.)`, `attainable (adj.)`) wird **nur**
+gesetzt, wenn zwei Kandidaten derselben Wortfamilie in der Liste stehen – dort
+also, wo es tatsächlich unterscheidet. Ein allein stehendes Substantiv bleibt
+`erosion`, nicht `erosion (n.)`.
+
+Der Grund: Eine Liste, in der hinter jedem Wort die Wortart steht, liest sich
+wie ein Wörterbuchauszug, und die Wortart hat im Editor ihre eigene Spalte.
+Die Anforderung („Wortarten sichtbar markiert“) lässt beide Lesarten zu; wenn
+die durchgehende Markierung gewünscht ist, ist es eine Zeile
+(`markPartOfSpeech: true` in `toRow`).
+
+### Verifikation Block A
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | grün |
+| `npm run test` | **1657** grün / 93 Dateien |
+| `npm run build` | grün |
+| `npm run build:portable` | grün, **9346,3 KiB** / 636,8 KiB |
+| `npm run verify:portable` | grün, 25 Prüfungen |
+| `npm run e2e` | **122** grün (Chromium), davon 1 neu für die Lernformen |
+| `npm run e2e:portable` | **21** grün (Chromium, `file://`) |
+
+Neue Dateien: `src/import/learningFormProposal.ts` (+ Test),
+`src/import/learningFormChain.test.ts` – Letzterer ist das Akzeptanzkriterium:
+Er führt alle acht Beispiele der Anforderung durch Entwurf, gespeichertes
+Paket, Karten, Durchsehen, Selbsttest, Export und erneuten Import.

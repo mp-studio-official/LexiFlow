@@ -3060,3 +3060,20 @@ progress {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/*
+  Die offene Frage zur Lernform (Sprint 4B.3, Block A).
+
+  Sie steht nicht in einem Warnkasten: „Im Text steht ‚depend on‘“ ist keine
+  Störung, sondern eine Frage, die nur die Lehrkraft beantworten kann. Eine
+  ruhige Zeile mit dem Vorschlag daneben – und der Knopf ist die Antwort.
+*/
+.candidate__review {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+}

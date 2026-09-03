@@ -109,14 +109,65 @@ describe('Lemma aus einer Lernform lesen', () => {
 });
 
 describe('Was zusätzlich als Antwort gilt', () => {
-  it('lässt die Platzhalter weg', () => {
-    const answers = impliedAnswers({ english: 'to accuse sb. of sth.', lemma: 'accuse' });
-    expect(answers).toContain('accuse');
-    expect(answers).toContain('to accuse');
+  it('macht das führende „to“ freiwillig', () => {
+    expect(impliedAnswers({ english: 'to endure' })).toContain('endure');
   });
 
-  it('lässt den Zahlmarker weg', () => {
+  it('lässt die Platzhalter weg – aber nicht die Präposition', () => {
+    /*
+      Die Grenze dieses Moduls, an einem Beispiel.
+
+      `sb./sth.` ist eine Schreibkonvention des Vokabelhefts: Wer
+      `to depend on` schreibt, hat die Vokabel gekonnt. Das `on` ist etwas
+      anderes – es gehört zum Wort, und wer es nicht mitlernt, schreibt
+      später `depend of`. Bis 4B.3 hat die Prüfung genau das durchgewunken,
+      weil das **Lemma** (`depend`) als Antwort galt.
+    */
+    const answers = impliedAnswers({ english: 'to depend on sb./sth.' });
+
+    expect(answers).toContain('to depend on');
+    expect(answers).toContain('depend on');
+    expect(answers).toContain('depend on sb./sth.');
+
+    expect(answers).not.toContain('depend');
+    expect(answers).not.toContain('to depend');
+  });
+
+  it('behält die Partikel eines Phrasal Verbs', () => {
+    const answers = impliedAnswers({ english: 'to single out sb./sth.' });
+
+    expect(answers).toContain('to single out');
+    expect(answers).toContain('single out');
+
+    // „single“ allein ist ein anderes Wort.
+    expect(answers).not.toContain('single');
+    expect(answers).not.toContain('to single');
+  });
+
+  it('kennt die Platzhalter auch ausgeschrieben', () => {
+    const answers = impliedAnswers({ english: 'to depend on sb./sth.' });
+    expect(answers).toContain('to depend on somebody/something');
+  });
+
+  it('lässt beide Seiten einer Schrägstrich-Alternative gelten', () => {
+    const answers = impliedAnswers({ english: 'to coin a phrase / term' });
+    expect(answers).toContain('to coin a phrase');
+    expect(answers).toContain('to coin a term');
+    expect(answers).toContain('coin a phrase');
+
+    // Die feste Wendung bleibt fest: „to coin“ ist nicht die Vokabel.
+    expect(answers).not.toContain('to coin');
+  });
+
+  it('kürzt eine feste Wendung nicht auf ihr Verb', () => {
+    const answers = impliedAnswers({ english: 'to surmount obstacles' });
+    expect(answers).toEqual(['surmount obstacles']);
+  });
+
+  it('lässt Zahl- und Wortartmarker weg', () => {
     expect(impliedAnswers({ english: 'restraints (pl.)' })).toContain('restraints');
+    expect(impliedAnswers({ english: 'attainability (n.)' })).toContain('attainability');
+    expect(impliedAnswers({ english: 'attainable (adj.)' })).toContain('attainable');
   });
 
   it('erfindet nichts, wo es nichts zu verkürzen gibt', () => {
@@ -124,9 +175,15 @@ describe('Was zusätzlich als Antwort gilt', () => {
   });
 
   it('nennt die Lernform nicht noch einmal', () => {
-    expect(impliedAnswers({ english: 'to endeavor', lemma: 'endeavor' })).not.toContain(
-      'to endeavor',
-    );
+    expect(impliedAnswers({ english: 'to endeavor' })).not.toContain('to endeavor');
+  });
+
+  it('benutzt das Lemma nicht als Antwort', () => {
+    // Das Lemma ist für Suche und Dublettenprüfung da, nicht für die Prüfung.
+    const answers = impliedAnswers({ english: 'to depend on sb./sth.', lemma: 'depend' } as {
+      english: string;
+    });
+    expect(answers).not.toContain('depend');
   });
 });
 

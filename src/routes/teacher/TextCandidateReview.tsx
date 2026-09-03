@@ -37,6 +37,11 @@ import type { CefrLevel, Grade } from '../../domain/cefr';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
 import { DictionarySuggestionList } from './DictionarySuggestionList';
 import { Disclosure } from '../../ui/Disclosure';
+import {
+  particleAfter,
+  proposeLearningForm,
+  type LearningFormProposal,
+} from '../../import/learningFormProposal';
 import { SplitPane } from '../../ui/SplitPane';
 
 /**
@@ -124,6 +129,13 @@ interface CandidateRow {
   suggestionSource?: 'local' | 'model' | 'dictionary' | undefined;
   /** Alle Wörterbuchtreffer zu dieser Zeile – Vorschläge, nie Antworten. */
   dictionary?: DictionarySuggestionSummary | undefined;
+  /**
+   * Die vorgeschlagene **Lernform** samt Herkunft und offener Frage.
+   *
+   * Sie ist das, was die Zeile anzeigt und was ins Paket geht – nicht
+   * `candidate.english`, das die Textform ist (`depend`, `restraints`).
+   */
+  proposal: LearningFormProposal;
   suggestedSentence?: string | undefined;
   translation: RowTranslation;
   error?: string | undefined;
@@ -135,19 +147,59 @@ interface CandidateRow {
   baseFormHint?: string | undefined;
 }
 
-function toRow(input: RecommendationInput | ScoredCandidate): CandidateRow {
-  const { candidate, dictionary } = input;
+/**
+ * Die Wortarten, die in **dieser** Liste markiert werden.
+ *
+ * Das Kürzel `(n.)` / `(adj.)` ist dazu da, verwandte Formen auseinander-
+ * zuhalten – `attainability` neben `attainable`. Stehen zwei Kandidaten in
+ * derselben Wortfamilie, bekommen beide ihr Kürzel; ein Wort, das allein
+ * dasteht, bekommt keines. Eine Liste, in der hinter jedem Substantiv `(n.)`
+ * steht, liest sich wie ein Wörterbuchauszug.
+ */
+function familiesNeedingLabels(inputs: readonly (RecommendationInput | ScoredCandidate)[]): Set<string> {
+  const seen = new Map<string, number>();
+  for (const input of inputs) {
+    const key =
+      'family' in input ? input.family : familyKey(input.candidate.english, input.dictionary);
+    if (key) seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+  return new Set([...seen].filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function toRow(
+  input: RecommendationInput | ScoredCandidate,
+  markedFamilies: ReadonlySet<string> = new Set(),
+): CandidateRow {
+  const { candidate, dictionary, phrase } = input;
   const local = candidate.abbreviation?.german.trim() ?? '';
   const scored = 'families' in input ? input : undefined;
+  const family = scored?.family ?? familyKey(candidate.english, dictionary);
+
+  /*
+    Die Lernform entsteht **hier**, nicht erst beim Speichern.
+
+    Der Empfehlungsschritt ist die Stelle, an der die Lehrkraft die Vokabel
+    zum ersten Mal sieht – und wenn dort `depend` steht und im Paket später
+    `to depend`, hat sie etwas anderes geprüft als das, was entstanden ist.
+  */
+  const proposal = proposeLearningForm({
+    written: candidate.english,
+    sourceSentence: candidate.sourceSentence,
+    dictionary,
+    phrase,
+    markPartOfSpeech: markedFamilies.has(family),
+  });
+
   const base: CandidateRow = {
     candidate,
     german: '',
-    family: scored?.family ?? familyKey(candidate.english, dictionary),
+    family,
     // Eine ungeklärte Form beansprucht alle denkbaren Familien – siehe
     // `scoreCandidates`. Neu berechnen würde genau diesen Schutz verlieren.
     families: scored?.families ?? familyKeys(candidate.english, dictionary),
-    partOfSpeech: partOfSpeechOf(dictionary),
+    partOfSpeech: proposal.partOfSpeech || partOfSpeechOf(dictionary),
     dictionary,
+    proposal,
     translation: 'idle',
     ...(scored?.baseFormHint ? { baseFormHint: scored.baseFormHint } : {}),
   };
@@ -274,6 +326,10 @@ export function TextCandidateReview({
   const [lookups, setLookups] = useState<ReadonlyMap<string, DictionarySuggestionSummary>>(
     new Map(),
   );
+  /** Und was es zu `Wort + Partikel` weiß – der Beleg für ein Phrasal Verb. */
+  const [phrases, setPhrases] = useState<ReadonlyMap<string, DictionarySuggestionSummary>>(
+    new Map(),
+  );
   const [dictionaryState, setDictionaryState] = useState<'prueft' | 'laeuft' | 'fertig' | 'fehlt'>(
     'prueft',
   );
@@ -360,16 +416,35 @@ export function TextCandidateReview({
       setDictionaryState('laeuft');
 
       const found = new Map<string, DictionarySuggestionSummary>();
+      const phrases = new Map<string, DictionarySuggestionSummary>();
       for (const candidate of candidates) {
         try {
           const summary = summarizeLookup(await source.lookup(candidate.english));
           if (summary) found.set(candidate.id, summary);
+
+          /*
+            Der zweite Nachschlag: Steht im Belegsatz hinter dem Wort ein
+            Partikel, wird gefragt, ob das Wörterbuch `single out` kennt.
+
+            Er passiert **hier**, im selben Durchlauf – nicht später je Zeile.
+            Ein Wörterbuchzugriff mitten im Tippen wäre eine Verzögerung an
+            der schlechtesten Stelle, und er würde für jede Zeile einmal
+            passieren statt einmal überhaupt.
+          */
+          const particle = particleAfter(candidate.sourceSentence, candidate.english);
+          if (particle) {
+            const phrase = summarizeLookup(
+              await source.lookup(`${candidate.english} ${particle}`),
+            );
+            if (phrase) phrases.set(candidate.id, phrase);
+          }
         } catch {
           // Ein kaputtes Fach kostet dieses eine Wort, nicht den ganzen Lauf.
         }
       }
 
       if (!active) return;
+      setPhrases(phrases);
       setLookups(found);
       setDictionaryState('fertig');
       setStatus(
@@ -413,8 +488,13 @@ export function TextCandidateReview({
   /* --------------------------------------------------------- Empfehlen */
 
   const inputs = useMemo<RecommendationInput[]>(
-    () => candidates.map((candidate) => ({ candidate, dictionary: lookups.get(candidate.id) })),
-    [candidates, lookups],
+    () =>
+      candidates.map((candidate) => ({
+        candidate,
+        dictionary: lookups.get(candidate.id),
+        phrase: phrases.get(candidate.id),
+      })),
+    [candidates, lookups, phrases],
   );
 
   const update = useCallback((id: string, changes: Partial<CandidateRow>): void => {
@@ -438,6 +518,15 @@ export function TextCandidateReview({
    */
   const refill = useCallback(
     (options: { excludeShown: boolean; announce: (result: { added: number; requested: number }) => string }): void => {
+      /*
+        Welche Wortfamilien in dieser Liste mehrfach vorkommen, entscheidet
+        über die Wortartkürzel – und das lässt sich erst sagen, wenn die
+        Kandidaten beisammen sind. Gerechnet wird über **alle** Kandidaten,
+        nicht nur über die ausgewählten: Sonst bekäme dasselbe Wort mal ein
+        Kürzel und mal keines, je nachdem, wie viele gerade angezeigt werden.
+      */
+      const markedFamilies = familiesNeedingLabels(inputs);
+
       const result = replaceOpenRecommendations<CandidateRow>({
         inputs,
         rows: rowsRef.current,
@@ -447,7 +536,7 @@ export function TextCandidateReview({
         count,
         excludeShown: options.excludeShown,
         ...(publicationContext === undefined ? {} : { publicationContext }),
-        toRow,
+        toRow: (scored) => toRow(scored, markedFamilies),
       });
 
       setRows(result.rows);
@@ -758,6 +847,18 @@ export function TextCandidateReview({
       candidate: headwordOf(row),
       german: row.german,
       partOfSpeech: row.partOfSpeech,
+      /*
+        Die Lernform wandert mit – genau die, die in der Zeile stand.
+
+        Sie im Entwurf neu zu berechnen wäre die zweite Gelegenheit, etwas
+        anderes herauszubekommen als das, was die Lehrkraft geprüft hat.
+      */
+      learningForm: row.proposal.english,
+      lemma: row.proposal.lemma,
+      grammaticalNumber: row.proposal.grammaticalNumber,
+      complementPattern: row.proposal.complementPattern,
+      formNeedsReview: row.proposal.needsReview,
+      ...(row.proposal.reviewReason ? { formReviewReason: row.proposal.reviewReason } : {}),
       translationAccepted: row.translation === 'accepted' && row.suggestionSource === 'model',
       includeSentence: true,
       ...(row.suggestedSentence && row.translation === 'accepted'
@@ -1104,7 +1205,16 @@ export function TextCandidateReview({
           <ul className="candidates">
             {rows.map((row) => {
               const { candidate } = row;
-              const label = candidate.english;
+              /*
+                Die Zeile zeigt die **Lernform**, nicht die Textform.
+
+                Im Text steht `depend`, `restraints`, `single`. Als Vokabel
+                taugt davon keines – und wenn die Lehrkraft hier `depend`
+                prüft und im Paket später `to depend` steht, hat sie etwas
+                anderes freigegeben als das, was entstanden ist. Deshalb steht
+                die fertige Form schon hier, samt der Frage, wo eine offen ist.
+              */
+              const label = row.proposal.english || candidate.english;
               const inflections = describeCandidateInflections(candidate);
               const answered = hasAnswer(row);
               const sentence = candidate.sourceSentence;
@@ -1166,6 +1276,44 @@ export function TextCandidateReview({
                       ) : null}
                       {candidate.isLikelyProperNoun ? <Badge tone="warning">Eigenname?</Badge> : null}
                       {row.baseFormHint ? <Badge tone="warning">{row.baseFormHint}</Badge> : null}
+                    </p>
+                  ) : null}
+
+                  {/*
+                    Die offene Frage zur Lernform – und ihre Antwort gleich
+                    daneben.
+
+                    Steht im Text „depend on“ und kennt das Wörterbuch
+                    „depend on“ nicht, ist die Rektion eine Vermutung. Sie
+                    stillschweigend zu übernehmen wäre falsch; sie zu
+                    verschweigen aber auch, denn dann lernt jemand `to depend`
+                    und schreibt später `depend of`.
+
+                    Also steht die Frage da, wörtlich, mit einem Knopf, der
+                    sie beantwortet. Ein Klick ist die Entscheidung der
+                    Lehrkraft – und damit eine zulässige Quelle.
+                  */}
+                  {row.proposal.needsReview && row.proposal.reviewSuggestion ? (
+                    <p className="candidate__review">
+                      <Badge tone="warning">Bitte prüfen</Badge>{' '}
+                      <span>{row.proposal.reviewReason}</span>{' '}
+                      <Button
+                        small
+                        aria-label={`Lernform „${row.proposal.reviewSuggestion}“ übernehmen`}
+                        onClick={() =>
+                          update(candidate.id, {
+                            proposal: {
+                              ...row.proposal,
+                              english: row.proposal.reviewSuggestion ?? row.proposal.english,
+                              complementPattern: 'sb./sth.',
+                              needsReview: false,
+                              reviewReason: '',
+                            },
+                          })
+                        }
+                      >
+                        „{row.proposal.reviewSuggestion}“ übernehmen
+                      </Button>
                     </p>
                   ) : null}
 
@@ -1249,11 +1397,28 @@ export function TextCandidateReview({
                       <select
                         id={`pos-${candidate.id}`}
                         value={row.partOfSpeech}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          /*
+                            Die Wortart ändert die Lernform: Wer bei `coin`
+                            „Verb“ wählt, meint `to coin`. Die Form hier
+                            stehenzulassen hieße, die Auswahl entgegenzunehmen
+                            und zu ignorieren.
+                          */
+                          const partOfSpeech = event.target.value as PartOfSpeech | '';
                           update(candidate.id, {
-                            partOfSpeech: event.target.value as PartOfSpeech | '',
-                          })
-                        }
+                            partOfSpeech,
+                            proposal: proposeLearningForm({
+                              written: candidate.english,
+                              sourceSentence: candidate.sourceSentence,
+                              dictionary: row.dictionary,
+                              phrase: phrases.get(candidate.id),
+                              partOfSpeech,
+                              markPartOfSpeech: row.proposal.english !== candidate.english
+                                ? /\((?:n|adj|adv)\.\)$/.test(row.proposal.english)
+                                : false,
+                            }),
+                          });
+                        }}
                       >
                         <option value="">–</option>
                         {PART_OF_SPEECH.map((pos) => (

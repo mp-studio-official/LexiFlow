@@ -238,12 +238,15 @@ describe('buildTask', () => {
     expect(task?.expected).toEqual(['to apologise', 'to apologize', 'apologise']);
   });
 
-  it('nimmt die Platzhalter einer Valenzform aus der Lösung heraus', () => {
+  it('nimmt die Platzhalter aus der Lösung heraus, die Präposition nicht', () => {
     /*
       `to accuse sb. of sth.` ist die Lernform; `sb.` und `sth.` sind eine
-      Schreibkonvention des Vokabelhefts. Wer `to accuse` schreibt, hat die
-      Vokabel gekonnt – erfunden wird dabei nichts, es ist eine Verkürzung
-      der vorhandenen Form.
+      Schreibkonvention des Vokabelhefts und dürfen fehlen.
+
+      Bis 4B.3 galt hier zusätzlich das **Lemma** `accuse` als Lösung – und
+      damit war `accuse` eine richtige Antwort auf eine Vokabel, deren ganzer
+      Witz die Rektion ist. Wer nur `accuse` lernt, schreibt später
+      `accuse for sth.`. Das `of` gehört zum Wort und fällt nicht weg.
     */
     const entry = {
       ...pack.entries[2]!,
@@ -253,9 +256,15 @@ describe('buildTask', () => {
       acceptedEnglishAnswers: [],
     };
     const task = buildTask(entry, 'open-translation', 'de-en', pack.entries, rng());
+
     expect(task?.expected).toContain('to accuse sb. of sth.');
-    expect(task?.expected).toContain('accuse');
-    expect(task?.expected).toContain('to accuse');
+    expect(task?.expected).toContain('accuse sb. of sth.');
+    // Ausgeschrieben wird durchgehend, nicht gemischt: entweder alle
+    // Platzhalter abgekürzt oder alle ausgeschrieben.
+    expect(task?.expected).toContain('to accuse somebody of something');
+
+    expect(task?.expected).not.toContain('accuse');
+    expect(task?.expected).not.toContain('to accuse');
   });
 });
 

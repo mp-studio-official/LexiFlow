@@ -81,6 +81,20 @@ export interface DraftRow {
   grammaticalNumber: GrammaticalNumber | '';
   /** Verbindet verwandte Lernformen; leer heißt: steht für sich. */
   lexicalGroupId: string;
+  /**
+   * Ist an der **Lernform** noch etwas offen? (Sprint 4B.3, Block A)
+   *
+   * Gesetzt, wenn der Empfehlungsschritt eine Frage nicht abschließend
+   * beantworten konnte – etwa, ob das `on` in „depend on“ zur Vokabel gehört.
+   * Der Entwurf trägt sie weiter, statt sie beim Übergang zu verlieren: Wer
+   * die Empfehlungen überflogen hat, sieht die Frage sonst nie wieder.
+   *
+   * Es ist eine **Warnung**, kein Fehler. Die Zeile lässt sich speichern; sie
+   * sagt nur, dass jemand hinsehen sollte.
+   */
+  formNeedsReview?: boolean;
+  /** Warum – derselbe Satz, den schon der Empfehlungsschritt gezeigt hat. */
+  formReviewReason?: string;
   sentences: DraftSentence[];
   tags: string;
   notes: string;
@@ -294,6 +308,24 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
 
     if (meanings.length === 0) {
       issues.push({ level: 'error', field: 'german', message: 'Deutsche Übersetzung fehlt.' });
+    }
+
+    /*
+      Eine offene Frage zur Lernform überlebt die Übergabe.
+
+      Sie entsteht im Empfehlungsschritt („Gehört das `on` zur Vokabel?“) und
+      wäre hier ohne dieses Feld verschwunden – dieselbe Zeile, dieselbe
+      Unsicherheit, nur ohne Hinweis. Warnung und nicht Fehler: Speichern
+      bleibt möglich, aber die Zeile sagt „Bitte prüfen“.
+    */
+    if (draft.formNeedsReview && english) {
+      issues.push({
+        level: 'warning',
+        field: 'english',
+        message:
+          draft.formReviewReason?.trim() ||
+          'An der englischen Lernform ist etwas offen. Bitte prüfen.',
+      });
     }
 
     if (english && meanings.some((meaning) => normalizeAnswer(meaning) === normalizeAnswer(english))) {
