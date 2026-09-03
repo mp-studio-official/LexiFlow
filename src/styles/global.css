@@ -1048,6 +1048,103 @@ a {
   drei auf einem breiten Bildschirm – ohne Bruchstelle, an der jemand denken
   müsste.
 */
+/* ================================================== Lernbereiche (4B.7) */
+
+/*
+  Zwei Listen nebeneinander: was drin ist, und was es sonst gibt.
+
+  Auf schmalen Fenstern untereinander, und in dieser Reihenfolge – erst die
+  Auswahl, dann der Vorrat. Wer auf einem Telefon ein Paket hinzufügt, will
+  danach sehen, wo es gelandet ist; stünde der Vorrat oben, müsste man dafür
+  jedes Mal scrollen.
+*/
+.area-picker {
+  display: grid;
+  gap: var(--space-6);
+}
+@media (min-width: 62rem) {
+  .area-picker {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+    align-items: start;
+  }
+}
+.area-picker__column {
+  min-inline-size: 0;
+}
+
+.area-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+  /* Die Nummern der geordneten Liste zählt `counter-reset` weiter unten. */
+  counter-reset: bereich;
+}
+
+/*
+  Eine Zeile, die trotzdem ein Block ist – dieselbe Haltung wie beim
+  Paketblock: Motiv, Text, Werkzeuge in einer Reihe, und der Text darf
+  schrumpfen, die Werkzeuge nicht.
+*/
+.area-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+}
+.area-item__art {
+  flex: 0 0 auto;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  overflow: hidden;
+  border-radius: var(--radius-control);
+}
+.area-item__art .packart {
+  inline-size: 100%;
+  block-size: 100%;
+  display: block;
+}
+.area-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  /* `min-inline-size: 0` – ohne das schiebt ein langer Titel die Knöpfe raus. */
+  min-inline-size: 0;
+  flex: 1 1 auto;
+}
+.area-item__title {
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+.area-item__tools {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/*
+  Die Nummer vor einem gewählten Paket.
+
+  Sie steht nur in der linken Liste, weil nur dort eine Reihenfolge gilt. Der
+  Vorrat rechts ist eine Menge und keine Folge – eine Nummer davor wäre eine
+  Ordnung, die niemand gemeint hat.
+*/
+ol.area-list .area-item::before {
+  counter-increment: bereich;
+  content: counter(bereich) '.';
+  flex: 0 0 auto;
+  min-inline-size: 1.4rem;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
 .packgrid {
   display: grid;
   gap: var(--space-4);
@@ -1469,6 +1566,19 @@ textarea {
   resize: vertical;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+}
+/*
+  Ein Textfeld für **Sätze** und nicht für Listen.
+
+  Textfelder sind hier standardmäßig dicktengleich, und das ist richtig: In
+  ihnen stehen eingefügte Vokabellisten, bei denen die Spalten untereinander
+  stehen müssen. Eine Beschreibung ist kein Datensatz – dicktengleich gesetzt
+  sieht sie aus wie Quelltext, den man nicht anfassen soll.
+*/
+textarea.prose {
+  font-family: inherit;
+  font-size: var(--text-base);
+  min-height: 0;
 }
 input[type='file'] {
   font: inherit;

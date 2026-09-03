@@ -87,7 +87,14 @@ describe('Migration von Schema-Version 1', () => {
 
     const db = new LexiFlowDatabase(name);
     await db.open();
+    /*
+      `areas` kam mit Version 4 (Sprint 4B.7) dazu. Die Liste steht hier
+      vollständig und nicht als „enthält mindestens“: Sie ist die Prüfung
+      darauf, dass die **alten** Tabellen weg sind – eine Liste, die neue
+      Namen durchwinkt, winkt auch `entries` wieder durch.
+    */
     expect(db.tables.map((table) => table.name).sort()).toEqual([
+      'areas',
       'directionProgress',
       'packEntries',
       'packProgress',
@@ -141,8 +148,10 @@ describe('Migration von Schema-Version 1', () => {
   it('legt eine frische Datenbank direkt im neuen Schema an', async () => {
     const db = new LexiFlowDatabase('lexiflow-migration-fresh');
     await db.open();
-    expect(db.verno).toBe(3);
+    // Version 4 seit Sprint 4B.7: die Tabelle der Lernbereiche.
+    expect(db.verno).toBe(4);
     expect(await db.packEntries.count()).toBe(0);
+    expect(await db.areas.count()).toBe(0);
     db.close();
   });
 });

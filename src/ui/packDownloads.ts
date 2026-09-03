@@ -1,5 +1,6 @@
 import { serializePack, suggestFilename } from '../domain/vocabpack';
-import { buildStudentHtml } from '../portable/studentExport';
+import { areaBlockers, type LearningArea } from '../domain/learningArea';
+import { buildLearningAreaHtml, buildStudentHtml } from '../portable/studentExport';
 import { loadStudentRuntime } from '../portable/studentRuntime';
 import { downloadText } from './download';
 import type { VocabPack } from '../domain/schema';
@@ -55,4 +56,45 @@ export async function downloadStudentFile(pack: VocabPack): Promise<PackDownload
 
   downloadText(result.filename, result.html, 'text/html');
   return { ok: true, filename: result.filename, message: `Einzeldatei erstellt: ${result.filename}` };
+}
+
+/**
+ * Ein **Lernbereich** als eigenständige Lerndatei – mehrere Pakete, eine Datei.
+ *
+ * Derselbe Weg wie beim einzelnen Paket, mit einem Unterschied, der in der
+ * Reihenfolge steckt: Erst wird geprüft, ob überhaupt etwas auszugeben ist,
+ * **dann** wird gebaut. Eine Datei mit null Paketen ließe sich technisch
+ * erzeugen; sie wäre bei achtundzwanzig Lernenden eine leere Startseite und
+ * bei der Lehrkraft eine Rückfrage am nächsten Morgen.
+ *
+ * Die Pakete kommen als Parameter und werden hier nicht nachgeladen: Was in
+ * die Datei kommt, hat die aufrufende Seite bereits vor Augen – und ein
+ * zweiter Lesevorgang könnte etwas anderes finden als das, was dort steht.
+ */
+export async function downloadLearningAreaFile(
+  area: Pick<LearningArea, 'id' | 'title' | 'description'>,
+  packs: readonly VocabPack[],
+): Promise<PackDownloadOutcome> {
+  const blockers = areaBlockers({ title: area.title, packIds: packs.map((pack) => pack.meta.id) });
+  if (blockers.length > 0) return { ok: false, message: blockers.join(' ') };
+
+  const runtime = await loadStudentRuntime();
+  if (!runtime) {
+    return {
+      ok: false,
+      message:
+        'Lerndateien lassen sich in der portablen Datei „LexiFlow-Lehrkraft.html“ erzeugen.',
+    };
+  }
+
+  const result = buildLearningAreaHtml(runtime, area, packs);
+  if (!result.ok) {
+    return {
+      ok: false,
+      message: `Die Lerndatei konnte nicht erzeugt werden: ${result.errors.join(' · ')}`,
+    };
+  }
+
+  downloadText(result.filename, result.html, 'text/html');
+  return { ok: true, filename: result.filename, message: `Lerndatei erstellt: ${result.filename}` };
 }

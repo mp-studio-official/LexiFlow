@@ -2,6 +2,7 @@ import Dexie, { type Table, type Transaction } from 'dexie';
 import type { EntryProgress, PackMeta, PackProgress, VocabEntry } from '../domain/schema';
 import { activeDirections } from '../domain/schema';
 import { progressKey } from '../domain/ids';
+import type { LearningArea } from '../domain/learningArea';
 
 /** Eintrag im Speicher – identisch zum Datei-Eintrag plus Paketzuordnung. */
 export interface StoredEntry extends VocabEntry {
@@ -41,6 +42,7 @@ export class LexiFlowDatabase extends Dexie {
   declare packEntries: Table<StoredEntry, [string, string]>;
   declare directionProgress: Table<EntryProgress, string>;
   declare packProgress: Table<PackProgress, string>;
+  declare areas: Table<LearningArea, string>;
 
   constructor(name = 'lexiflow') {
     super(name);
@@ -70,6 +72,26 @@ export class LexiFlowDatabase extends Dexie {
       packEntries: '[packId+id], packId, position, english',
       directionProgress: 'key, packId, entryId, direction, [packId+entryId], dueAt, box',
       packProgress: 'packId, lastPracticedAt',
+    });
+
+    /*
+      **Version 4** (Sprint 4B.7) – die Lernbereiche.
+
+      Eine reine Erweiterung: eine Tabelle kommt dazu, keine bestehende ändert
+      sich, und es gibt nichts zu migrieren. Dexie legt beim Öffnen einer
+      Datenbank auf Version 3 nur den neuen Speicher an; Pakete und Lernstände
+      werden dabei nicht angefasst.
+
+      Der Bereich hält **Kennungen** und nicht die Pakete selbst – siehe
+      `domain/learningArea.ts`. Der Index auf `updatedAt` ist derselbe wie bei
+      den Paketen: Die Übersicht zeigt das zuletzt Bearbeitete zuerst.
+    */
+    this.version(4).stores({
+      packs: 'id, updatedAt, grade, title',
+      packEntries: '[packId+id], packId, position, english',
+      directionProgress: 'key, packId, entryId, direction, [packId+entryId], dueAt, box',
+      packProgress: 'packId, lastPracticedAt',
+      areas: 'id, updatedAt, title',
     });
   }
 }
@@ -150,12 +172,14 @@ export async function clearAllLocalData(): Promise<void> {
     db.packEntries,
     db.directionProgress,
     db.packProgress,
+    db.areas,
     async () => {
       await Promise.all([
         db.packs.clear(),
         db.packEntries.clear(),
         db.directionProgress.clear(),
         db.packProgress.clear(),
+        db.areas.clear(),
       ]);
     },
   );

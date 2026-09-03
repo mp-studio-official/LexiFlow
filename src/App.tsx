@@ -33,6 +33,15 @@ const FreePracticeSetupPage = lazy(() => import('./routes/student/FreePracticeSe
 const PackListPage = lazy(() => import('./routes/PackListPage'));
 
 /**
+ * Die Lernbereiche laden erst beim Aufruf.
+ *
+ * Sie gehören in die Lehrkraftanwendung und nur dorthin – eine große Funktion,
+ * die eine Lehrkraft ein paarmal im Halbjahr braucht. Sie soll die Startseite
+ * nicht vergrößern.
+ */
+const LearningAreaPage = lazy(() => import('./routes/teacher/LearningAreaPage'));
+
+/**
  * `HashRouter` statt `BrowserRouter`: Die App wird statisch ausgeliefert
  * (z. B. GitHub Pages) und muss auch beim direkten Aufruf einer Unterseite
  * funktionieren – ohne Server-Rewrite.
@@ -48,6 +57,27 @@ export function App() {
 
           <Route path="material" element={<TeacherHomePage />} />
           <Route path="material/import" element={<ImportWizardPage />} />
+          {/*
+            Die Lernbereiche liegen **vor** `material/:packId` – sonst läse
+            der Router „lernbereiche“ als Paketkennung und zeigte einen
+            Paketeditor für ein Paket, das es nicht gibt.
+          */}
+          <Route
+            path="material/lernbereiche/neu"
+            element={
+              <Suspense fallback={<p className="muted">Lernbereich wird geladen …</p>}>
+                <LearningAreaPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="material/lernbereiche/:areaId"
+            element={
+              <Suspense fallback={<p className="muted">Lernbereich wird geladen …</p>}>
+                <LearningAreaPage />
+              </Suspense>
+            }
+          />
           <Route path="material/:packId" element={<PackEditorPage />} />
           <Route
             path="material/:packId/liste"

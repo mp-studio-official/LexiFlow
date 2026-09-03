@@ -40,6 +40,9 @@ const FORM_LIST = [
   'to coin a phrase / term\teinen Begriff, eine Redewendung prägen',
 ].join('\n');
 
+/** Das zweite Paket eines Lernbereichs – bewusst kurz und klar unterscheidbar. */
+const AREA_SECOND_LIST = ['tide\tdie Flut', 'cliff\tdie Klippe'].join('\n');
+
 /** Liest einen Download vollständig als Bytes – für die BOM-Prüfung. */
 async function downloadBytes(download: import('@playwright/test').Download): Promise<Buffer> {
   const stream = await download.createReadStream();
@@ -182,6 +185,58 @@ async function exportStudentFile(
   const target = join(mkdtempSync(join(tmpdir(), 'lexiflow-')), download.suggestedFilename());
   await download.saveAs(target);
   return pathToFileURL(target).href;
+}
+
+
+/**
+ * Legt zwei Pakete an, stellt daraus einen Lernbereich zusammen und gibt die
+ * Datei aus. Der Rückgabewert ist ihre `file://`-Adresse.
+ *
+ * Der Ablauf ist der echte Weg einer Lehrkraft und nicht ein abgekürzter: über
+ * die Materialseite, den Knopf „Lernbereich anlegen“, die beiden Listen. Was
+ * hier durchläuft, läuft auch auf ihrem Rechner durch.
+ */
+async function exportLearningArea(page: Page): Promise<{ url: string; filename: string }> {
+  async function makePack(title: string, list: string): Promise<void> {
+    await page.goto(`${TEACHER_URL}#/material/import`);
+    await page.getByLabel('Vokabelliste einfügen').fill(list);
+    await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
+    await page.getByLabel('Titel', { exact: true }).fill(title);
+    await page.getByLabel('Jahrgang').selectOption('9');
+    await page.getByRole('button', { name: /Paket speichern/ }).click();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+  }
+
+  await makePack('Unit 7 – Coastal erosion', FORM_LIST);
+  await makePack('Unit 8 – At the coast', AREA_SECOND_LIST);
+
+  await page.goto(`${TEACHER_URL}#/material`);
+  await page.getByRole('link', { name: 'Lernbereich anlegen' }).click();
+  await expect(page.getByRole('heading', { name: 'Neuer Lernbereich' })).toBeVisible();
+
+  await page.getByLabel('Titel').fill('Englisch 9b – Halbjahr 1');
+
+  /*
+    Jedes Paket über **seine** Zeile und nicht über „die erste Schaltfläche“:
+    Die Bibliothek steht nach Bearbeitungsdatum sortiert, und ein Test, der
+    sich darauf verlässt, prüft am Ende die Sortierung der Bibliothek statt
+    die Reihenfolge, die hier zusammengestellt wird.
+  */
+  for (const titel of ['Unit 7 – Coastal erosion', 'Unit 8 – At the coast']) {
+    await page
+      .locator('ul.area-list .area-item', { hasText: titel })
+      .getByRole('button', { name: 'Hinzufügen' })
+      .click();
+  }
+  await expect(page.locator('ol.area-list .area-item')).toHaveCount(2);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Lerndatei erzeugen/ }).click();
+  const download = await downloadPromise;
+
+  const target = join(mkdtempSync(join(tmpdir(), 'lexiflow-')), download.suggestedFilename());
+  await download.saveAs(target);
+  return { url: pathToFileURL(target).href, filename: download.suggestedFilename() };
 }
 
 test.beforeAll(() => {
@@ -474,7 +529,16 @@ test.describe('Exportierte Schülerdatei', () => {
 
     await expect(page).toHaveTitle('Unit 3 – City life – LexiFlow');
     await expect(page.getByRole('heading', { level: 1, name: 'Unit 3 – City life' })).toBeVisible();
-    await expect(page.getByText(/Klasse 8 · .* · 4 Vokabeln/)).toBeVisible();
+    /*
+      Seit 4B.7 zeigt auch die Einzeldatei ihre Pakete als Kartenwand – eine
+      Wand mit genau einer Karte. Ein zweites Layout für den Sonderfall wäre
+      ein Sonderfall zu viel; die Zeile darunter sagt dasselbe wie vorher, nur
+      in der Reihenfolge der Karte.
+    */
+    const karte = page.locator('.pack-card');
+    await expect(karte).toHaveCount(1);
+    await expect(karte).toContainText('4 Vokabeln');
+    await expect(karte).toContainText('Klasse 8');
 
     // Keine Lehrkraftnavigation, kein Weg ins Material.
     await expect(page.getByRole('link', { name: 'Erstellen' })).toHaveCount(0);
@@ -620,5 +684,112 @@ test.describe('Exportierte Schülerdatei', () => {
       }
       await expectNoSeriousViolations(page, 'Schülerdatei auf 390 px');
     });
+  });
+});
+
+/* ============================================ Lernbereich (Sprint 4B.7) */
+
+test.describe('Lernbereich mit mehreren Paketen', () => {
+  /*
+    Der Weg, um den es Marc ging: aus dem Lehrkraftportal heraus **eine** Datei
+    für die Lerngruppe, mit mehreren vorbereiteten Paketen darin. Geprüft wird
+    er hier von einem Ende zum anderen – anlegen, ausgeben, per `file://`
+    öffnen, benutzen.
+  */
+  test('@smoke vom Lehrkraftportal in eine Datei für die Lerngruppe', async ({ page }) => {
+    const external = watchExternalRequests(page);
+    const errors = watchPageErrors(page);
+
+    const { url, filename } = await exportLearningArea(page);
+
+    // Der Dateiname trägt den Lernbereich, nicht ein einzelnes Paket.
+    expect(filename).toBe('englisch-9b-halbjahr-1-lexiflow.html');
+
+    await page.goto(url);
+
+    // Der Titel des Bereichs steht als Überschrift der Datei.
+    await expect(page.getByRole('heading', { level: 1, name: 'Englisch 9b – Halbjahr 1' })).toBeVisible();
+
+    // Und beide Pakete stehen darin, in der gewählten Reihenfolge.
+    const karten = page.locator('.packgrid .pack-card');
+    await expect(karten).toHaveCount(2);
+    await expect(karten.nth(0)).toContainText('Unit 7 – Coastal erosion');
+    await expect(karten.nth(1)).toContainText('Unit 8 – At the coast');
+
+    expect(errors).toEqual([]);
+    expect(external).toEqual([]);
+  });
+
+  test('@smoke beide Pakete lassen sich darin wirklich öffnen und üben', async ({ page }) => {
+    const external = watchExternalRequests(page);
+    const { url } = await exportLearningArea(page);
+    await page.goto(url);
+
+    for (const [titel, vokabel] of [
+      ['Unit 7 – Coastal erosion', 'to depend on sb./sth.'],
+      ['Unit 8 – At the coast', 'tide'],
+    ] as const) {
+      await page.goto(url);
+      const karte = page.locator('.pack-card', { hasText: titel });
+      await karte.getByRole('link', { name: 'Paket öffnen' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: titel })).toBeVisible();
+
+      // Bis in die Vokabelliste hinein – das ist der Beweis, dass die Daten da sind.
+      await page.getByRole('link', { name: 'Vokabelliste' }).click();
+      await expect(page.locator('.sheet__list')).toContainText(vokabel);
+    }
+
+    expect(external).toEqual([]);
+  });
+
+  test('@smoke der Rückweg heißt „Alle Pakete“ und führt auf die Startseite', async ({ page }) => {
+    /*
+      Bei einer Datei mit **einem** Paket heißt er „Start“, weil eine Liste mit
+      einer Zeile keine Liste ist. Hier gibt es wirklich etwas zurückzugehen –
+      und es liegt auf `/`, weil es die Route `/lernen` in dieser Datei nicht
+      gibt.
+    */
+    const { url } = await exportLearningArea(page);
+    await page.goto(url);
+
+    await page.locator('.pack-card').first().getByRole('link', { name: 'Paket öffnen' }).click();
+    const zurueck = page.getByRole('link', { name: 'Alle Pakete' });
+    await expect(zurueck).toBeVisible();
+    await zurueck.click();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Englisch 9b – Halbjahr 1' })).toBeVisible();
+  });
+
+  test('@smoke enthält kein Wörterbuch und keinen Lehrkraftbereich', async ({ page }) => {
+    const { url } = await exportLearningArea(page);
+    const html = readFileSync(fileURLToPath(url), 'utf8');
+
+    expect(html).not.toContain('4c27d202e875550c2cc7ea93a4d21ddf80440e5030606d3edbb8b0e65dc64006');
+    expect(html).not.toContain('Offline-Wörterbuch');
+
+    await page.goto(url);
+    // Jede Lehrkraftadresse endet auf der Startseite.
+    await page.goto(`${url}#/material/import`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Englisch 9b – Halbjahr 1' })).toBeVisible();
+  });
+
+  test('@smoke behält den Lernstand über ein Neuladen – für jedes Paket getrennt', async ({
+    page,
+  }) => {
+    const { url } = await exportLearningArea(page);
+    await page.goto(url);
+
+    const karte = page.locator('.pack-card', { hasText: 'Unit 8 – At the coast' });
+    await karte.getByRole('link', { name: 'Paket öffnen' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Unit 8 – At the coast' })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1, name: 'Unit 8 – At the coast' })).toBeVisible();
+  });
+
+  test('@a11y Startseite des Lernbereichs ohne schwerwiegende Befunde', async ({ page }) => {
+    const { url } = await exportLearningArea(page);
+    await page.goto(url);
+    await expectNoSeriousViolations(page, 'Lernbereich – Startseite');
   });
 });

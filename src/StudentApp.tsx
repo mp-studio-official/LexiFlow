@@ -6,6 +6,7 @@ import { PackDetailPage } from './routes/student/PackDetailPage';
 import { SessionPage } from './routes/student/SessionPage';
 import { savePack } from './data/packRepo';
 import { checkStorage, type StorageState } from './portable/storage';
+import type { LearningAreaFile } from './domain/learningArea';
 import type { VocabPack } from './domain/schema';
 
 const VocabBrowsePage = lazy(() => import('./routes/student/VocabBrowsePage'));
@@ -25,8 +26,20 @@ const PackListPage = lazy(() => import('./routes/PackListPage'));
  *
  * Alles Übrige ist dieselbe Anwendung: dieselben Routen, dieselben Komponenten,
  * dieselbe Domänenlogik. Der Schülerteil ist kein reduzierter Nachbau.
+ *
+ * ## Ein Lernbereich statt eines Pakets (Sprint 4B.7)
+ *
+ * In der Datei liegt seit 4B.7 ein **Lernbereich** – ein Titel und ein bis
+ * vierzig Pakete. Eine Datei mit einem Paket ist derselbe Fall mit einer
+ * kürzeren Liste; es gibt keinen zweiten Weg dafür.
  */
-export function StudentApp({ pack }: { pack: VocabPack }) {
+export function StudentApp({
+  area,
+  packs,
+}: {
+  area: Pick<LearningAreaFile, 'id' | 'title' | 'description'>;
+  packs: readonly VocabPack[];
+}) {
   const [ready, setReady] = useState(false);
   const [storage, setStorage] = useState<StorageState>('unbekannt');
 
@@ -39,13 +52,18 @@ export function StudentApp({ pack }: { pack: VocabPack }) {
 
       if (check.state === 'verfuegbar') {
         /*
-          Das eingebettete Paket in die lokale Datenbank legen – damit laufen
+          Die eingebetteten Pakete in die lokale Datenbank legen – damit laufen
           alle bestehenden Seiten unverändert weiter. `savePack` gleicht ab
           statt zu überschreiben: Bei einer erneut geöffneten Datei bleiben die
           Lernstände unveränderter Vokabeln erhalten.
+
+          Nacheinander und nicht nebeneinander: `savePack` liest, vergleicht
+          und schreibt in derselben Datenbank. Vierzig davon gleichzeitig
+          hieße vierzig Transaktionen, die sich gegenseitig anstehen – ohne
+          dass es schneller würde.
         */
         try {
-          await savePack(pack);
+          for (const pack of packs) await savePack(pack);
         } catch {
           if (active) setStorage('gesperrt');
         }
@@ -55,7 +73,14 @@ export function StudentApp({ pack }: { pack: VocabPack }) {
     return () => {
       active = false;
     };
-  }, [pack]);
+    /*
+      Die Pakete kommen aus dem Dokument und ändern sich innerhalb einer
+      Sitzung nie. Die Kennung des Bereichs als Abhängigkeit sagt genau das –
+      das Array selbst wäre bei jedem Rendern ein neues und der Effekt liefe
+      endlos.
+    */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [area.id]);
 
   if (!ready) return <p className="muted">LexiFlow wird vorbereitet …</p>;
 
@@ -65,7 +90,7 @@ export function StudentApp({ pack }: { pack: VocabPack }) {
         <div className="app-body">
           <main className="app-main" id="inhalt">
             <div className="stack">
-              <h1>{pack.meta.title}</h1>
+              <h1>{area.title}</h1>
               <div className="alert alert--warning" role="status">
                 <strong>Kein dauerhafter Speicher</strong>
                 <p style={{ margin: '0.4rem 0 0' }}>
@@ -85,13 +110,22 @@ export function StudentApp({ pack }: { pack: VocabPack }) {
     );
   }
 
-  const packId = pack.meta.id;
+  const packIds = packs.map((pack) => pack.meta.id);
 
   return (
     <HashRouter>
       <Routes>
-        <Route element={<StudentShell title="Vokabeltrainer" storage={storage} />}>
-          <Route index element={<PortableHomePage packId={packId} />} />
+        <Route element={<StudentShell title={area.title} storage={storage} />}>
+          <Route
+            index
+            element={
+              <PortableHomePage
+                title={area.title}
+                {...(area.description ? { description: area.description } : {})}
+                packIds={packIds}
+              />
+            }
+          />
           <Route path="lernen/:packId" element={<PackDetailPage />} />
           <Route path="lernen/:packId/uebung" element={<SessionPage />} />
           <Route

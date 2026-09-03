@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Alert, Badge, Button, EmptyState } from '../../ui/components';
 import { PackCard } from '../../ui/PackCard';
+import { PackArt } from '../../ui/PackArt';
 import { IconButton } from '../../ui/IconButton';
 import { Icon } from '../../ui/Icon';
 import { PackUpdateConfirm } from '../../ui/PackUpdateConfirm';
 import { usePackImport } from '../../ui/usePackImport';
 import { deletePack, getPack, listPacks } from '../../data/packRepo';
+import { listAreas } from '../../data/areaRepo';
 import { db } from '../../data/db';
 import { downloadPackFile, downloadStudentFile } from '../../ui/packDownloads';
 import { GRADE_LABELS } from '../../domain/cefr';
@@ -74,6 +76,7 @@ export function TeacherHomePage() {
   });
 
   const packs = useLiveQuery(() => listPacks(), [], undefined);
+  const areas = useLiveQuery(() => listAreas(), [], undefined);
   const counts = useLiveQuery(
     async () => {
       const rows = await db.packEntries.toArray();
@@ -280,6 +283,61 @@ export function TeacherHomePage() {
               />
             ))}
           </div>
+        )}
+      </section>
+
+      {/*
+        Die Lernbereiche stehen **unter** dem Material und nicht darüber.
+
+        Sie sind der zweite Schritt: Man stellt zusammen, was schon da ist. Ein
+        leerer Lernbereich über einer leeren Bibliothek wäre eine Aufforderung,
+        die man noch gar nicht befolgen kann.
+      */}
+      <section aria-labelledby="lernbereiche">
+        <div className="section-head">
+          <div className="section-head__title">
+            <h2 id="lernbereiche" className="display display--section">
+              Lernbereiche
+            </h2>
+            <p className="small muted">
+              Mehrere Pakete in einer Datei für die Lerngruppe – ohne Konto und ohne Internet.
+            </p>
+          </div>
+          <Link className="btn btn--small" to="/material/lernbereiche/neu">
+            <Icon name="stack" size={16} />
+            Lernbereich anlegen
+          </Link>
+        </div>
+
+        {areas === undefined ? (
+          <p className="muted">Lernbereiche werden geladen …</p>
+        ) : areas.length === 0 ? (
+          <p className="muted">
+            Noch keiner angelegt. Ein Lernbereich bündelt mehrere Pakete zu einer einzigen Datei –
+            praktisch für ein Halbjahr, in dem sonst sechs Dateien im Umlauf wären.
+          </p>
+        ) : (
+          <ul className="area-list">
+            {areas.map((area) => (
+              <li className="area-item" key={area.id}>
+                <span className="area-item__art" aria-hidden="true">
+                  <PackArt seed={area.title} />
+                </span>
+                <span className="area-item__text">
+                  <strong className="area-item__title">{area.title}</strong>
+                  <span className="small muted">
+                    {area.packIds.length} {area.packIds.length === 1 ? 'Paket' : 'Pakete'}
+                    {formatChanged(area.updatedAt) ? ` · ${formatChanged(area.updatedAt)}` : ''}
+                  </span>
+                </span>
+                <span className="area-item__tools">
+                  <Link className="btn btn--small" to={`/material/lernbereiche/${area.id}`}>
+                    Öffnen
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

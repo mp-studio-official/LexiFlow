@@ -22,7 +22,17 @@ import type { SVGProps } from 'react';
  * herunterladen“.
  */
 
-export type IconName = 'download' | 'package' | 'upload' | 'print' | 'table' | 'arrow-right';
+export type IconName =
+  | 'download'
+  | 'package'
+  | 'upload'
+  | 'print'
+  | 'table'
+  | 'arrow-right'
+  | 'arrow-up'
+  | 'arrow-down'
+  | 'plus'
+  | 'stack';
 
 /** Die Pfade, gezeichnet auf einem 24er-Raster mit 1,7 px Strich. */
 const PATHS: Record<IconName, readonly string[]> = {
@@ -32,6 +42,14 @@ const PATHS: Record<IconName, readonly string[]> = {
   print: ['M7 8V3h10v5', 'M7 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2', 'M7 15h10v6H7z'],
   table: ['M3.5 5.5h17v13h-17z', 'M3.5 10h17', 'M9.5 10v8.5'],
   'arrow-right': ['M5 12h13', 'm12.5 6.5 5.5 5.5-5.5 5.5'],
+  'arrow-up': ['M12 19V6', 'm6.5 11.5 5.5-5.5 5.5 5.5'],
+  'arrow-down': ['M12 5v13', 'm6.5 12.5 5.5 5.5 5.5-5.5'],
+  plus: ['M12 5.5v13', 'M5.5 12h13'],
+  /*
+    Der Lernbereich: mehrere Blätter übereinander. Dieselbe Bildidee wie die
+    Sache selbst – eine Datei, in der mehrere Pakete liegen.
+  */
+  stack: ['M12 3 3.5 7 12 11l8.5-4z', 'm3.5 12 8.5 4 8.5-4', 'm3.5 16.5 8.5 4 8.5-4'],
 };
 
 export interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {

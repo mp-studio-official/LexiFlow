@@ -3,8 +3,14 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- jsdom bringt keine eigenen Typen mit; hier reicht der Konstruktor.
 import { JSDOM } from 'jsdom';
-import { buildStudentHtml, readEmbeddedJson, studentFileName } from './studentExport';
-import { readEmbeddedPackFromDocument } from './embedded';
+import {
+  buildLearningAreaHtml,
+  buildStudentHtml,
+  readEmbeddedJson,
+  studentFileName,
+} from './studentExport';
+import { readEmbeddedAreaFromDocument } from './embedded';
+import { learningAreaFileName } from '../domain/learningArea';
 import type { VocabPack } from '../domain/schema';
 import { RUNTIME_LIMIT_KIB } from '../../scripts/portableLimits.mjs';
 
@@ -55,7 +61,16 @@ function build(input: VocabPack = pack): string {
 
 function embedded(html: string) {
   const dom = new JSDOM(html);
-  return readEmbeddedPackFromDocument(dom.window.document);
+  return readEmbeddedAreaFromDocument(dom.window.document);
+}
+
+/** Das eine Paket einer Einzeldatei – der Bereich hat genau eines. */
+function onlyPack(html: string) {
+  const result = embedded(html);
+  if (!result.ok) throw new Error(result.errors.join(' · '));
+  const [first] = result.area.packs;
+  if (!first) throw new Error('Der Lernbereich enthält kein Paket.');
+  return first;
 }
 
 describe('Gebaute Schülerdatei', () => {
@@ -64,8 +79,18 @@ describe('Gebaute Schülerdatei', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.pack.meta.id).toBe('pack-portable');
-    expect(result.pack.entries.map((item) => item.english)).toEqual(['crowded', 'litter']);
+    /*
+      Seit 4B.7 steht in der Datei ein Lernbereich. Bei einer Einzeldatei ist
+      das einer mit genau einem Paket – und seine Kennung ist die des Pakets,
+      damit eine Neuausgabe den Lernstand der vorigen Datei wiederfindet.
+    */
+    expect(result.area.id).toBe('pack-portable');
+    expect(result.area.packs).toHaveLength(1);
+    expect(result.area.packs[0]?.meta.id).toBe('pack-portable');
+    expect(result.area.packs[0]?.entries.map((item) => item.english)).toEqual([
+      'crowded',
+      'litter',
+    ]);
   });
 
   it('enthält kein zweites Paket und keinen Lernstand', () => {
@@ -124,12 +149,10 @@ describe('Gebaute Schülerdatei', () => {
     expect(title).toContain('Größe');
 
     // Trotzdem kommt inhaltlich alles unverändert an.
-    const result = embedded(html);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.pack.entries[0]?.english).toBe('</script><img src=x onerror=alert(1)>');
-    expect(result.pack.entries[1]?.germanAnswers[0]).toBe('Zeilen\numbruch & Ampersand');
-    expect(result.pack.meta.title).toContain('🇬🇧');
+    const drin = onlyPack(html);
+    expect(drin.entries[0]?.english).toBe('</script><img src=x onerror=alert(1)>');
+    expect(drin.entries[1]?.germanAnswers[0]).toBe('Zeilen\numbruch & Ampersand');
+    expect(drin.meta.title).toContain('🇬🇧');
   });
 
   it('meldet beschädigte Daten verständlich', () => {
@@ -279,6 +302,74 @@ describe('Gebaute Schülerdatei', () => {
     };
     writeFileSync(resolve(root, 'dist-portable/Beispiel-klein.html'), build(), 'utf8');
     writeFileSync(resolve(root, 'dist-portable/Beispiel-100-Vokabeln.html'), build(big), 'utf8');
+    writeFileSync(
+      resolve(root, 'dist-portable/Beispiel-Lernbereich.html'),
+      buildArea().html,
+      'utf8',
+    );
     expect(true).toBe(true);
+  });
+});
+
+/* ------------------------------------------------ Lernbereich (Sprint 4B.7) */
+
+const zweitesPaket: VocabPack = {
+  meta: { ...pack.meta, id: 'pack-zwei', title: 'Unit 4 – At the coast' },
+  entries: [entry('z1', 'tide', 'die Flut'), entry('z2', 'cliff', 'die Klippe')],
+};
+
+function buildArea(): { html: string; filename: string } {
+  const result = buildLearningAreaHtml(
+    runtime,
+    { id: 'bereich-9b', title: 'Englisch 9b – Halbjahr 1' },
+    [pack, zweitesPaket],
+  );
+  if (!result.ok) throw new Error(result.errors.join(' · '));
+  return { html: result.html, filename: result.filename };
+}
+
+describe('Gebaute Datei mit mehreren Paketen', () => {
+  it('trägt alle Pakete in der gewählten Reihenfolge', () => {
+    const result = embedded(buildArea().html);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.area.id).toBe('bereich-9b');
+    expect(result.area.title).toBe('Englisch 9b – Halbjahr 1');
+    expect(result.area.packs.map((item) => item.meta.id)).toEqual(['pack-portable', 'pack-zwei']);
+  });
+
+  it('bleibt eine einzige Datei mit einer einzigen Datenstelle', () => {
+    /*
+      Zwei Pakete heißen nicht zwei `<script>`-Elemente. Eine zweite Stelle
+      wäre ein zweiter Leseweg – und der erste, der beim Erweitern vergessen
+      wird.
+    */
+    const html = buildArea().html;
+    expect(html.split('id="lexiflow-pack"')).toHaveLength(2);
+  });
+
+  it('trägt weder Lernstand noch Wörterbuch', () => {
+    const html = buildArea().html;
+    for (const forbidden of ['directionProgress', 'packProgress', 'lastAnsweredAt', 'dueAt']) {
+      expect(html.includes(`"${forbidden}"`), forbidden).toBe(false);
+    }
+    expect(html).not.toContain('Offline-Wörterbuch');
+  });
+
+  it('benennt die Datei nach dem Bereich und nicht nach einem Paket', () => {
+    expect(buildArea().filename).toBe(learningAreaFileName('Englisch 9b – Halbjahr 1'));
+    expect(buildArea().filename).toBe('englisch-9b-halbjahr-1-lexiflow.html');
+  });
+
+  it('setzt den Titel des Bereichs ins Fenster', () => {
+    const html = buildArea().html;
+    const title = html.slice(html.indexOf('<title>') + 7, html.indexOf('</title>'));
+    expect(title).toBe('Englisch 9b – Halbjahr 1 – LexiFlow');
+  });
+
+  it('lehnt einen Bereich ohne Pakete ab, statt eine leere Datei auszuliefern', () => {
+    const result = buildLearningAreaHtml(runtime, { id: 'b', title: 'Leer' }, []);
+    expect(result.ok).toBe(false);
   });
 });

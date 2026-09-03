@@ -147,7 +147,11 @@ describe('Eingebettetes Paket wieder lesen', () => {
 
     expect(back.ok).toBe(true);
     if (!back.ok) return;
-    expect(back.pack.meta.title).toBe('Halong Bay');
+    // Seit 4B.7 steht dort ein Lernbereich – bei einer Einzeldatei einer mit
+    // genau einem Paket, dessen Kennung die des Pakets ist.
+    expect(back.area.packs).toHaveLength(1);
+    expect(back.area.packs[0]?.meta.title).toBe('Halong Bay');
+    expect(back.area.title).toBe('Halong Bay');
   });
 
   it('meldet eine leere, unveränderte oder beschädigte Datei verständlich', () => {

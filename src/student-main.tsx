@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { readEmbeddedPackFromDocument, studentDatabaseName } from './portable/embedded';
+import { readEmbeddedAreaFromDocument, studentDatabaseName } from './portable/embedded';
+import { areaPacks } from './domain/learningArea';
 import './styles/global.css';
 
 /**
@@ -9,9 +10,9 @@ import './styles/global.css';
  * Zwei Dinge müssen **vor** der Anwendung passieren, deshalb ist dieser Datei
  * die Reihenfolge wichtiger als die Kürze:
  *
- * 1. Das eingebettete Paket wird gelesen und gegen das Schema geprüft. Ist es
- *    beschädigt oder fehlt es, erscheint eine verständliche Seite statt eines
- *    weißen Fensters.
+ * 1. Der eingebettete Lernbereich wird gelesen und gegen das Schema geprüft.
+ *    Ist er beschädigt oder fehlt er, erscheint eine verständliche Seite statt
+ *    eines weißen Fensters.
  * 2. Erst danach wird der Datenbankname gesetzt und die App **dynamisch**
  *    geladen. Ein statischer Import würde `data/db.ts` zuerst auswerten – dann
  *    stünde der Name schon fest (siehe dort).
@@ -55,23 +56,40 @@ function renderProblem(root: Root, title: string, lines: readonly string[]): voi
 }
 
 const root = mountRoot();
-const embedded = readEmbeddedPackFromDocument();
+const embedded = readEmbeddedAreaFromDocument();
 
 if (!embedded.ok) {
   renderProblem(root, 'Diese Datei lässt sich nicht öffnen', embedded.errors);
 } else {
-  const pack = { meta: embedded.pack.meta, entries: embedded.pack.entries };
-  const flags = globalThis as { __LEXIFLOW_DB__?: string; __LEXIFLOW_SINGLE_PACK__?: boolean };
-  flags.__LEXIFLOW_DB__ = studentDatabaseName(pack.meta.id);
-  // Diese Datei kennt genau ein Paket – die Oberfläche darf keine Bibliothek
-  // versprechen, die es hier nicht gibt.
-  flags.__LEXIFLOW_SINGLE_PACK__ = true;
+  const packs = areaPacks(embedded.area);
+  const flags = globalThis as {
+    __LEXIFLOW_DB__?: string;
+    __LEXIFLOW_SINGLE_PACK__?: boolean;
+    __LEXIFLOW_PORTABLE_AREA__?: boolean;
+  };
+  /*
+    Der Lernstand hängt am **Bereich** und nicht am Paket. Für eine Datei mit
+    einem einzigen Paket ist das dieselbe Kennung wie früher – deshalb findet
+    eine Neuausgabe den Stand der vorigen Datei wieder.
+  */
+  flags.__LEXIFLOW_DB__ = studentDatabaseName(embedded.area.id);
+  /*
+    Zwei Kennzeichnungen, weil es zwei verschiedene Fragen sind:
+
+    - `SINGLE_PACK`: Gibt es hier überhaupt etwas zum Zurückgehen? Bei einem
+      Paket ist eine Liste „Alle Pakete“ eine Seite mit einer Zeile.
+    - `PORTABLE_AREA`: Wo liegt diese Liste? In der Lehrkraftanwendung unter
+      `/lernen`, in dieser Datei auf der Startseite – `/lernen` gibt es hier
+      gar nicht.
+  */
+  flags.__LEXIFLOW_SINGLE_PACK__ = packs.length === 1;
+  flags.__LEXIFLOW_PORTABLE_AREA__ = true;
 
   void import('./StudentApp')
     .then(({ StudentApp }) => {
       root.render(
         <StrictMode>
-          <StudentApp pack={pack} />
+          <StudentApp area={embedded.area} packs={packs} />
         </StrictMode>,
       );
     })

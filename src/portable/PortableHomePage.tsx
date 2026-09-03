@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Card, Meter } from '../ui/components';
+import { Meter } from '../ui/components';
+import { PackCard } from '../ui/PackCard';
 import { getEntries, getPackMeta } from '../data/packRepo';
 import { getProgressIndex } from '../data/progressRepo';
 import { countMastered } from '../domain/leitner';
@@ -8,106 +9,179 @@ import { countReady } from '../domain/exercises';
 import { directionKey } from '../domain/ids';
 import { GRADE_LABELS } from '../domain/cefr';
 import { APP_CLAIM } from '../pwa/manifest';
-import {
-  activeDirections,
-  LEITNER_BOX_MAX,
-  TASK_DIRECTION_LABELS,
-  type TaskDirection,
-} from '../domain/schema';
+import { activeDirections, LEITNER_BOX_MAX, type TaskDirection } from '../domain/schema';
 
 /**
- * Die Startseite der Schülerdatei: genau ein Paket.
+ * Die Startseite der Lerndatei: die Pakete **dieses** Lernbereichs.
  *
- * Sie liest bewusst **nicht** `listPacks()`, sondern nur die eine Paket-Id,
- * die in dieser Datei steckt. Selbst wenn im Browser Daten einer anderen
- * Schülerdatei lägen, kämen sie hier nicht zum Vorschein.
+ * Sie liest bewusst **nicht** `listPacks()`, sondern nur die Kennungen, die in
+ * dieser Datei stecken. Selbst wenn im Browser Daten einer anderen Lerndatei
+ * lägen, kämen sie hier nicht zum Vorschein – und genau das ist auch der
+ * Grund, warum sie eine Liste von Kennungen bekommt und sie sich nicht selbst
+ * zusammensucht.
+ *
+ * ## Ein Paket oder sechs – dieselbe Seite
+ *
+ * Bis 4B.7 zeigte diese Seite ein einzelnes Paket in einem großen Kasten mit
+ * eigener Überschrift. Mit mehreren Paketen wäre daraus ein zweites Layout
+ * geworden, das dasselbe tut. Jetzt ist es dieselbe Kartenwand wie im
+ * Lernbereich der Anwendung, auch bei einem Paket: Eine Wand mit einer Karte
+ * sieht aus wie eine Wand mit einer Karte – ein Sonderfall dafür ist ein
+ * Sonderfall zu viel.
+ *
+ * Was bleibt, ist die Beschriftung der Aktion: **„Paket öffnen“**, nicht
+ * „Öffnen“. In einer Datei, in der außer Paketen nichts liegt, ist das die
+ * Auskunft, die zählt.
  */
-export function PortableHomePage({ packId }: { packId: string }) {
-  const overview = useLiveQuery(async () => {
-    const meta = await getPackMeta(packId);
-    if (!meta) return null;
 
-    const entries = await getEntries(packId);
-    const progress = await getProgressIndex(packId);
-    const directions = activeDirections(meta.direction);
-    const entryIds = entries.map((entry) => entry.id);
+interface PackOverview {
+  id: string;
+  title: string;
+  topic: string;
+  gradeLabel: string;
+  cefrLevel: string;
+  total: number;
+  mastered: number;
+  due: number;
+  perDirection: { direction: TaskDirection; mastered: number }[];
+}
 
-    return {
-      meta,
-      total: entries.length,
-      mastered: countMastered(entryIds, progress, directions),
-      // Dieselbe Regel wie die Rundenplanung – die Zahl bleibt ehrlich.
-      due: countReady(entries, progress, meta.direction, new Date()),
-      perDirection: directions.map((direction: TaskDirection) => ({
-        direction,
-        mastered: entryIds.filter(
-          (entryId) => (progress.get(directionKey(entryId, direction))?.box ?? 0) >= LEITNER_BOX_MAX,
-        ).length,
-      })),
-    };
-  }, [packId]);
+export interface PortableHomePageProps {
+  /** Der Titel des Lernbereichs – die Überschrift dieser Datei. */
+  title: string;
+  description?: string;
+  /** Die Pakete in der Reihenfolge, die die Lehrkraft gewählt hat. */
+  packIds: readonly string[];
+}
 
-  if (overview === undefined) return <p className="muted">Paket wird geladen …</p>;
-  if (overview === null) {
+export function PortableHomePage({ title, description, packIds }: PortableHomePageProps) {
+  /*
+    `packIds.join()` als Abhängigkeit und nicht das Feld selbst: Die Liste
+    kommt bei jedem Rendern als neues Array an, und `useLiveQuery` verglich
+    dann jedes Mal ungleich und fragte neu ab.
+  */
+  const key = packIds.join('|');
+
+  const overview = useLiveQuery<PackOverview[]>(async () => {
+    const now = new Date();
+    const found = await Promise.all(
+      packIds.map(async (packId): Promise<PackOverview | null> => {
+        const meta = await getPackMeta(packId);
+        if (!meta) return null;
+
+        const entries = await getEntries(packId);
+        const progress = await getProgressIndex(packId);
+        const directions = activeDirections(meta.direction);
+        const entryIds = entries.map((entry) => entry.id);
+
+        return {
+          id: meta.id,
+          title: meta.title,
+          topic: meta.topic,
+          gradeLabel: GRADE_LABELS[meta.grade],
+          cefrLevel: meta.cefrLevel,
+          total: entries.length,
+          mastered: countMastered(entryIds, progress, directions),
+          // Dieselbe Regel wie die Rundenplanung – die Zahl bleibt ehrlich.
+          due: countReady(entries, progress, meta.direction, now),
+          perDirection: directions.map((direction: TaskDirection) => ({
+            direction,
+            mastered: entryIds.filter(
+              (entryId) => (progress.get(directionKey(entryId, direction))?.box ?? 0) >= LEITNER_BOX_MAX,
+            ).length,
+          })),
+        };
+      }),
+    );
+    // Die Reihenfolge ist die der Lehrkraft; fehlende Pakete fallen still weg.
+    return found.filter((pack): pack is PackOverview => pack !== null);
+  }, [key]);
+
+  if (overview === undefined) return <p className="muted">Vokabeln werden geladen …</p>;
+
+  if (overview.length === 0) {
     return (
       <div className="stack">
-        <h1>Paket nicht gefunden</h1>
-        <p className="muted">Diese Datei konnte ihr Vokabelpaket nicht öffnen.</p>
+        <h1>Keine Vokabeln gefunden</h1>
+        <p className="muted">Diese Datei konnte ihre Vokabelpakete nicht öffnen.</p>
       </div>
     );
   }
 
-  const { meta, total, mastered, due, perDirection } = overview;
+  const dueTotal = overview.reduce((sum, pack) => sum + pack.due, 0);
+  const duePacks = overview.filter((pack) => pack.due > 0);
 
   return (
     <div className="stack stack--editorial">
-      <section className="hero" style={{ paddingBottom: 0 }}>
-        <p className="claim">{APP_CLAIM}</p>
-        <h1 className="display">{meta.title}</h1>
-        <p className="lede">
-          {due > 0 ? (
+      {/*
+        Derselbe schlanke Kopf wie im Lernbereich der Anwendung: eine Zeile
+        Identität, eine Zeile Stand. Die Überschrift ist der Titel des
+        Bereichs – das ist das, was die Lehrkraft ausgegeben hat, und das
+        Erste, woran man die Datei wiedererkennt.
+      */}
+      <section className="learnbar">
+        <div>
+          <p className="claim" style={{ margin: 0 }}>
+            {APP_CLAIM}
+          </p>
+          <h1 className="learnbar__title">{title}</h1>
+        </div>
+
+        <p className="learnbar__stand">
+          {dueTotal > 0 ? (
             <>
-              <strong>
-                {due} {due === 1 ? 'Vokabel ist' : 'Vokabeln sind'} dran
-              </strong>{' '}
-              – was du übst und wie lange, sieht niemand außer dir.
+              <strong>{dueTotal}</strong> {dueTotal === 1 ? 'Vokabel ist dran' : 'Vokabeln sind dran'}
+              {duePacks.length > 1 ? ` · ${duePacks.length} Pakete` : null}
             </>
           ) : (
-            <>
-              Gerade ist nichts fällig. Du kannst trotzdem jederzeit üben – das ändert deinen
-              Lernplan nicht.
-            </>
+            <>Gerade ist nichts fällig – freies Üben geht trotzdem.</>
           )}
         </p>
       </section>
 
-      <Card>
-        <h2 style={{ marginTop: 0 }}>{meta.title}</h2>
-        <p className="muted small">
-          {GRADE_LABELS[meta.grade]} · {meta.cefrLevel}
-          {meta.topic ? ` · ${meta.topic}` : ''} · {total}{' '}
-          {total === 1 ? 'Vokabel' : 'Vokabeln'}
-        </p>
-        {meta.description ? <p>{meta.description}</p> : null}
+      {description ? <p className="lede">{description}</p> : null}
 
-        <Meter value={mastered} max={Math.max(total, 1)} label="Sicher gelernte Vokabeln" />
-        <p className="small muted">
-          {mastered} von {total} sicher · {due} zum Üben bereit
-        </p>
-        <ul className="small muted" style={{ margin: '0 0 1rem', paddingLeft: '1.1rem' }}>
-          {perDirection.map((stand) => (
-            <li key={stand.direction}>
-              {TASK_DIRECTION_LABELS[stand.direction]}: {stand.mastered} von {total}
-            </li>
-          ))}
-        </ul>
+      <div className="packgrid">
+        {overview.map((pack) => (
+          <PackCard
+            key={pack.id}
+            title={pack.title}
+            art={pack.title}
+            to={`/lernen/${pack.id}`}
+            {...(pack.due > 0
+              ? { flag: `${pack.due} ${pack.due === 1 ? 'Vokabel' : 'Vokabeln'} dran` }
+              : {})}
+            meta={[
+              `${pack.total} ${pack.total === 1 ? 'Vokabel' : 'Vokabeln'}`,
+              pack.gradeLabel,
+              pack.cefrLevel,
+              ...(pack.topic ? [pack.topic] : []),
+            ]}
+            actions={
+              <Link className="btn btn--primary btn--small" to={`/lernen/${pack.id}`}>
+                Paket öffnen
+              </Link>
+            }
+          >
+            <div className="pack-card__stat">
+              <Meter
+                value={pack.mastered}
+                max={Math.max(pack.total, 1)}
+                label={`Sicher gelernt in ${pack.title}`}
+              />
+              <p className="pack-card__stat-text">
+                <strong>{pack.mastered}</strong> von {pack.total} sicher
+                {pack.due > 0 ? ` · ${pack.due} bereit` : null}
+              </p>
+            </div>
+          </PackCard>
+        ))}
+      </div>
 
-        <div className="row">
-          <Link className="btn btn--primary" to={`/lernen/${packId}`}>
-            Paket öffnen
-          </Link>
-        </div>
-      </Card>
+      <p className="small muted">
+        Was du übst und wie lange, bleibt auf diesem Gerät. Es wird nichts gesendet und niemand
+        sieht deinen Lernstand.
+      </p>
     </div>
   );
 }

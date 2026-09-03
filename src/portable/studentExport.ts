@@ -1,19 +1,32 @@
+import { APP_NAME, APP_VERSION, describeZodErrors, toPackFile } from '../domain/vocabpack';
 import {
-  APP_NAME,
-  APP_VERSION,
-  describeZodErrors,
-  parsePackFile,
-  toPackFile,
-} from '../domain/vocabpack';
-import { vocabPackFileSchema, type PackMeta, type VocabPack, type VocabPackFile } from '../domain/schema';
+  learningAreaDocumentTitle,
+  learningAreaFileName,
+  learningAreaFileSchema,
+  parseLearningArea,
+  singlePackArea,
+  toLearningAreaFile,
+  type LearningArea,
+  type LearningAreaFile,
+} from '../domain/learningArea';
+import { type PackMeta, type VocabPack, type VocabPackFile } from '../domain/schema';
 
 /**
- * Schülerdatei erzeugen – ein Paket, eine HTML-Datei, kein Server.
+ * Schülerdatei erzeugen – ein Lernbereich, eine HTML-Datei, kein Server.
  *
  * Diese Datei ist rein: kein React, kein IndexedDB, kein `document`. Sie nimmt
  * die generische Schülerlaufzeit (eine vollständige HTML-Datei mit
- * eingebettetem JavaScript, CSS und Schriften) und setzt genau ein Paket
+ * eingebettetem JavaScript, CSS und Schriften) und setzt einen Lernbereich
  * hinein.
+ *
+ * ## Warum immer ein Lernbereich, auch bei einem Paket
+ *
+ * Seit 4B.7 kann eine Lehrkraft mehrere Pakete in **eine** Datei geben. Der
+ * naheliegende Weg wäre gewesen, das neben dem Einzelpaket-Export
+ * einzurichten – zwei Wege, zwei Datenformen, zwei Leseroutinen. Der Weg hier
+ * ist der andere: Es gibt nur noch Lernbereiche, und ein einzelnes Paket ist
+ * einer mit genau einem Paket. Warum das für den Lernstand entscheidend ist,
+ * steht in `domain/learningArea.ts`.
  *
  * ## Warum die Daten in einem `application/json`-Script-Tag stehen
  *
@@ -31,7 +44,7 @@ import { vocabPackFileSchema, type PackMeta, type VocabPack, type VocabPackFile 
  *    Schema geprüft. Kein `eval`, kein `document.write`, kein `innerHTML`.
  */
 
-/** Markierung in der Laufzeitdatei, an deren Stelle das Paket kommt. */
+/** Markierung in der Laufzeitdatei, an deren Stelle der Lernbereich kommt. */
 export const PACK_PLACEHOLDER = '"__LEXIFLOW_PACK__"';
 /** Markierung für den Fenstertitel. */
 export const TITLE_PLACEHOLDER = '<!--LEXIFLOW_TITLE-->';
@@ -95,7 +108,7 @@ export function studentDocumentTitle(meta: Pick<PackMeta, 'title'>): string {
 }
 
 /**
- * Genau das übergebene Paket – und sonst nichts.
+ * Genau die übergebenen Pakete – und sonst nichts.
  *
  * Bewusst über `toPackFile` statt über eine eigene Struktur: Was in der
  * Schülerdatei landet, ist Zeichen für Zeichen dasselbe wie in einer
@@ -108,48 +121,74 @@ export function toStudentPayload(pack: VocabPack): VocabPackFile {
 }
 
 /**
- * Setzt ein Paket in die Schülerlaufzeit ein.
+ * Setzt einen Lernbereich in die Schülerlaufzeit ein.
  *
- * Vor dem Einsetzen wird gegen dasselbe Schema geprüft wie beim Import einer
- * `.vocabpack.json`. Was hier nicht durchkommt, wird nicht ausgeliefert – eine
- * kaputte Datei bei 28 Lernenden ist teurer als eine Fehlermeldung bei einer
- * Lehrkraft.
+ * Vor dem Einsetzen wird gegen dasselbe Schema geprüft, mit dem die fertige
+ * Datei ihn beim Öffnen wieder liest. Was hier nicht durchkommt, wird nicht
+ * ausgeliefert – eine kaputte Datei bei 28 Lernenden ist teurer als eine
+ * Fehlermeldung bei einer Lehrkraft.
+ */
+export function buildLearningAreaHtml(
+  runtime: string,
+  area: Pick<LearningArea, 'id' | 'title' | 'description'>,
+  packs: readonly VocabPack[],
+): StudentExportResult {
+  return embed(runtime, toLearningAreaFile(area, packs), learningAreaFileName(area.title));
+}
+
+/**
+ * Setzt ein einzelnes Paket in die Schülerlaufzeit ein.
+ *
+ * Derselbe Weg wie oben, nur mit einem Bereich aus einem Paket – und mit dem
+ * gewohnten Dateinamen, der die Klassenstufe trägt. Die Kennung des Bereichs
+ * ist die des Pakets; daran hängt, dass eine erneut ausgegebene Datei den
+ * Lernstand der vorigen wiederfindet.
  */
 export function buildStudentHtml(runtime: string, pack: VocabPack): StudentExportResult {
-  const payload = toStudentPayload(pack);
-  const parsed = vocabPackFileSchema.safeParse(payload);
+  return embed(runtime, singlePackArea(pack), studentFileName(pack.meta));
+}
+
+/** Der gemeinsame Weg: prüfen, einsetzen, benennen. */
+function embed(runtime: string, area: LearningAreaFile, filename: string): StudentExportResult {
+  const parsed = learningAreaFileSchema.safeParse(area);
   if (!parsed.success) return { ok: false, errors: describeZodErrors(parsed.error) };
 
   if (!runtime.includes(PACK_PLACEHOLDER)) {
     return {
       ok: false,
-      errors: ['Die Schülerlaufzeit enthält keine Stelle für das Paket. Der Build ist unvollständig.'],
+      errors: [
+        'Die Schülerlaufzeit enthält keine Stelle für den Lernbereich. Der Build ist unvollständig.',
+      ],
     };
   }
 
   const html = runtime
-    .replace(PACK_PLACEHOLDER, encodeEmbeddedJson(payload))
-    .replace(TITLE_PLACEHOLDER, studentDocumentTitle(pack.meta));
+    .replace(PACK_PLACEHOLDER, encodeEmbeddedJson(area))
+    .replace(TITLE_PLACEHOLDER, learningAreaDocumentTitle(area.title));
 
-  return { ok: true, html, filename: studentFileName(pack.meta) };
+  return { ok: true, html, filename };
 }
 
 /**
- * Liest das eingebettete Paket wieder aus – der Weg, den die Schülerdatei
- * beim Öffnen geht, und zugleich der Weg, auf dem Tests einen Export prüfen.
+ * Liest den eingebetteten Lernbereich wieder aus – der Weg, den die
+ * Schülerdatei beim Öffnen geht, und zugleich der Weg, auf dem Tests einen
+ * Export prüfen.
+ *
+ * `parseLearningArea` nimmt auch eine Datei aus der Zeit vor den
+ * Lernbereichen an, in der ein nacktes Paket steht.
  */
-export type EmbeddedPackResult =
-  | { ok: true; pack: VocabPackFile }
+export type EmbeddedAreaResult =
+  | { ok: true; area: LearningAreaFile }
   | { ok: false; errors: string[] };
 
-export function readEmbeddedJson(text: string | null | undefined): EmbeddedPackResult {
+export function readEmbeddedJson(text: string | null | undefined): EmbeddedAreaResult {
   const raw = (text ?? '').trim();
   if (!raw || raw === PACK_PLACEHOLDER || raw === 'null') {
-    return { ok: false, errors: ['In dieser Datei ist kein Vokabelpaket enthalten.'] };
+    return { ok: false, errors: ['In dieser Datei sind keine Vokabeln enthalten.'] };
   }
   // Derselbe Weg wie beim Dateiimport: JSON lesen, migrieren, gegen das Schema
   // prüfen. Eine zweite, laxere Prüfung gäbe es damit nirgends.
-  return parsePackFile(raw);
+  return parseLearningArea(raw);
 }
 
 /** Kennzeichnung der Datei – für Kopfzeile und Fehlerseite. */
