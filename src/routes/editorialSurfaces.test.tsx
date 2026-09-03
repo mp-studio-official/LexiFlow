@@ -180,6 +180,12 @@ describe('Lernen – Feed statt Dashboard', () => {
   it('fragt nach einer Runde, nicht nach Auswertung', async () => {
     renderPage(<StudentHomePage />);
 
+    /*
+      Die Überschrift steht seit 4B.6 in einer schlanken Kopfzeile statt in
+      einem Hero: Claim, sehr große Überschrift und zwei Zeilen Fließtext waren
+      zusammen eine halbe Bildschirmhöhe, bevor das erste Paket zu sehen war.
+      Die Frage ist geblieben – die Seite fragt nach einer Runde.
+    */
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Bereit für eine kurze Runde?' }),
     ).toBeInTheDocument();
@@ -209,13 +215,19 @@ describe('Lernen – Feed statt Dashboard', () => {
     renderPage(<StudentHomePage />);
 
     // Drei neue Vokabeln sind sofort dran.
-    expect(await screen.findByText(/3 Vokabeln sind dran/)).toBeInTheDocument();
+    expect(await screen.findByText(/Vokabeln sind dran/)).toBeInTheDocument();
 
     const card = (await screen.findByRole('heading', { name: 'Unit 3 – City life' })).closest(
       'article',
     ) as HTMLElement;
-    expect(within(card).getByText('3 Vokabeln zum Üben bereit')).toBeInTheDocument();
-    expect(within(card).getByText('0 von 3 sicher · 3 zum Üben bereit')).toBeInTheDocument();
+    expect(within(card).getByText('3 Vokabeln dran')).toBeInTheDocument();
+    /*
+      Der Erfolg **des Pakets** – die Zahl, die hier zählt. Es gibt vorerst
+      nur ein Fach, und ein Lernstand über alle Pakete hinweg wäre eine Zahl
+      ohne Gegenstand.
+    */
+    expect(within(card).getByText(/von 3 sicher/)).toBeInTheDocument();
+    expect(within(card).getByText(/3 bereit/)).toBeInTheDocument();
     expect(within(card).getByRole('link', { name: 'Öffnen' })).toHaveAttribute(
       'href',
       '/lernen/pack-1',
@@ -227,9 +239,17 @@ describe('Lernen – Feed statt Dashboard', () => {
     renderPage(<StudentHomePage />);
 
     await waitFor(() => expect(screen.getByRole('link', { name: 'Öffnen' })).toBeInTheDocument());
-    expect(screen.getByText(/freies Üben/i)).toBeInTheDocument();
-    // Die Hauptaktion bleibt das Öffnen des Pakets.
+    /*
+      Seit 4B.6 steht der Hinweis nur noch dort, wo er etwas erklärt: wenn
+      nichts fällig ist. Bei einem frischen Paket ist etwas fällig, und dann
+      ist „Freies Üben ist jederzeit möglich“ eine Fußnote zu einer Frage, die
+      niemand gestellt hat.
+
+      Die Zusage dieses Tests bleibt: Die Hauptaktion ist das Öffnen des
+      Pakets, und freies Üben drängt sich nicht davor.
+    */
     expect(screen.queryByRole('link', { name: /Frei üben/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Öffnen' })).toBeInTheDocument();
   });
 
   it('behält den Lernstand je Richtung bei zweisprachigen Paketen', async () => {
@@ -239,7 +259,8 @@ describe('Lernen – Feed statt Dashboard', () => {
     });
     renderPage(<StudentHomePage />);
 
-    expect(await screen.findByText(/verstehen \(EN→DE\): 0 von 2/)).toBeInTheDocument();
-    expect(screen.getByText(/anwenden \(DE→EN\): 0 von 2/)).toBeInTheDocument();
+    // Kompakter seit 4B.6 – dieselbe Auskunft, eine Zeile statt einer Liste.
+    expect(await screen.findByText(/verstehen \(EN→DE\): 0\/2/)).toBeInTheDocument();
+    expect(screen.getByText(/anwenden \(DE→EN\): 0\/2/)).toBeInTheDocument();
   });
 });

@@ -95,25 +95,47 @@ export function StudentHomePage() {
 
   return (
     <div className="stack stack--editorial">
-      <section className="hero" style={{ paddingBottom: 0 }}>
-        <p className="claim">{APP_CLAIM}</p>
-        <h1 className="display">Bereit für eine kurze Runde?</h1>
-        {overview === undefined ? (
-          <p className="lede">Deine Pakete werden geladen …</p>
-        ) : dueTotal > 0 ? (
-          <p className="lede">
-            <strong>
-              {dueTotal} {dueTotal === 1 ? 'Vokabel ist' : 'Vokabeln sind'} dran
-            </strong>{' '}
-            – verteilt auf {duePacks.length} {duePacks.length === 1 ? 'Paket' : 'Pakete'}. Was du
-            übst und wie lange, sieht niemand außer dir.
+      {/*
+        Der Kopf ist schlank geworden (Sprint 4B.6).
+
+        Vorher standen hier Claim, eine sehr große Überschrift und zwei Zeilen
+        Fließtext – zusammen eine halbe Bildschirmhöhe, bevor das erste Paket
+        zu sehen war. Auf einem Telefon musste man scrollen, um an die Sache zu
+        kommen, wegen derer man die App geöffnet hat.
+
+        Geblieben ist die eine Zahl, die zählt, und der Satz, der das
+        Versprechen trägt. Beides in einer Zeile.
+      */}
+      <section className="learnbar">
+        <div>
+          <p className="claim" style={{ margin: 0 }}>
+            {APP_CLAIM}
           </p>
-        ) : (
-          <p className="lede">
-            Gerade ist nichts fällig. Du kannst trotzdem frei üben – das ändert deinen Lernplan
-            nicht.
+          {/*
+            Die Überschrift bleibt stehen, was auch immer der Stand ist.
+
+            Sie ist die Identität der Seite, nicht ihr Zustand. Eine
+            Überschrift, die zwischen „Bereit für eine kurze Runde?“ und
+            „Gerade ist nichts fällig“ wechselt, lässt jemanden beim
+            Zurückkommen erst einmal prüfen, wo er eigentlich ist. Den Zustand
+            trägt die Zeile daneben.
+          */}
+          <h1 className="learnbar__title">Bereit für eine kurze Runde?</h1>
+        </div>
+
+        {overview !== undefined ? (
+          <p className="learnbar__stand">
+            {dueTotal > 0 ? (
+              <>
+                <strong>{dueTotal}</strong>{' '}
+                {dueTotal === 1 ? 'Vokabel ist dran' : 'Vokabeln sind dran'}
+                {duePacks.length > 1 ? ` · ${duePacks.length} Pakete` : null}
+              </>
+            ) : overview.length > 0 ? (
+              <>Gerade ist nichts fällig – freies Üben geht trotzdem.</>
+            ) : null}
           </p>
-        )}
+        ) : null}
       </section>
 
       {importer.message ? (
@@ -171,15 +193,24 @@ export function StudentHomePage() {
             </p>
           </EmptyState>
         ) : (
-          <div className="feed">
+          /*
+            Ein Raster statt einer Liste – und zwar erst hier.
+
+            Für die Lehrkraft ist die Paketliste ein Arbeitsmittel: fünfzig
+            Zeilen, in denen gesucht wird, und da ist eine Leserichtung besser
+            als zwei. Im Lernbereich stehen eine Handvoll Pakete, und die
+            sollen aussehen wie etwas, das man aufschlägt.
+          */
+          <div className="packgrid">
             {overview.map((pack) => (
               <PackCard
                 key={pack.id}
                 title={pack.title}
+                art={pack.title}
                 to={`/lernen/${pack.id}`}
                 {...(pack.due > 0
                   ? {
-                      flag: `${pack.due} ${pack.due === 1 ? 'Vokabel' : 'Vokabeln'} zum Üben bereit`,
+                      flag: `${pack.due} ${pack.due === 1 ? 'Vokabel' : 'Vokabeln'} dran`,
                     }
                   : {})}
                 meta={[
@@ -189,16 +220,18 @@ export function StudentHomePage() {
                   ...(pack.topic ? [pack.topic] : []),
                 ]}
                 actions={
-                  <>
-                    <Link className="btn btn--primary btn--small" to={`/lernen/${pack.id}`}>
-                      Öffnen
-                    </Link>
-                    <span className="small muted">
-                      {pack.due > 0 ? 'Lernplan oder freies Üben' : 'Freies Üben ist jederzeit möglich'}
-                    </span>
-                  </>
+                  <Link className="btn btn--primary btn--small" to={`/lernen/${pack.id}`}>
+                    Öffnen
+                  </Link>
                 }
               >
+                {/*
+                  Der Erfolg **des Pakets** – die eine Zahl, die hier zählt.
+
+                  Es gibt vorerst nur ein Fach, und ein Lernstand über alle
+                  Pakete hinweg wäre eine Zahl ohne Gegenstand. Was jemanden
+                  interessiert, ist: Wie weit bin ich mit *diesem* Paket?
+                */}
                 <div className="pack-card__stat">
                   <Meter
                     value={pack.mastered}
@@ -206,17 +239,18 @@ export function StudentHomePage() {
                     label={`Sicher gelernt in ${pack.title}`}
                   />
                   <p className="pack-card__stat-text">
-                    {pack.mastered} von {pack.total} sicher · {pack.due} zum Üben bereit
+                    <strong>{pack.mastered}</strong> von {pack.total} sicher
+                    {pack.due > 0 ? ` · ${pack.due} bereit` : null}
                   </p>
                 </div>
                 {pack.direction === 'both' ? (
-                  <ul className="small muted" style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                  <p className="pack-card__split small muted">
                     {pack.perDirection.map((stand) => (
-                      <li key={stand.direction}>
-                        {DIRECTION_SHORT[stand.direction]}: {stand.mastered} von {pack.total}
-                      </li>
+                      <span key={stand.direction}>
+                        {DIRECTION_SHORT[stand.direction]}: {stand.mastered}/{pack.total}
+                      </span>
                     ))}
-                  </ul>
+                  </p>
                 ) : null}
               </PackCard>
             ))}

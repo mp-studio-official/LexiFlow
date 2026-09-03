@@ -130,8 +130,13 @@ describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
     await seed(4);
     renderDetail();
 
-    // Direktstart: voreingestellter Umfang, keine Übungsformen in der URL.
-    const direct = await screen.findByRole('link', { name: 'Direkt starten' });
+    /*
+      Direktstart: voreingestellter Umfang, keine Übungsformen in der URL.
+
+      Seit 4B.6 ist der Kartentitel selbst der Direktstart – die Bildkarte ist
+      der Weg, nicht ein Knopf darin. „Runde anpassen“ steht klein darunter.
+    */
+    const direct = await screen.findByRole('link', { name: 'Frei üben' });
     expect(direct).toHaveAttribute('href', expect.stringContaining('mode=free'));
     expect(direct).toHaveAttribute('href', expect.stringContaining('length=15'));
     expect(direct.getAttribute('href')).not.toContain('kinds=');
@@ -152,7 +157,7 @@ describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
     await scheduleAllLater(4);
     renderDetail();
 
-    expect(await screen.findByRole('link', { name: 'Direkt starten' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Frei üben' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Runde anpassen' })).toBeInTheDocument();
     expect(screen.getByText(/Gerade ist nichts fällig/)).toBeInTheDocument();
     expect(screen.getByText(/Die nächste Wiederholung/)).toBeInTheDocument();
@@ -164,8 +169,9 @@ describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
     renderDetail();
 
     expect(
-      await screen.findByText(/Diese vier Wege verändern deinen Lernstand nicht/),
+      await screen.findByRole('heading', { name: 'Auf eigene Weise lernen' }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Verändert deinen Lernstand nicht/)).toBeInTheDocument();
     expect(screen.getByText(/Rückmeldung sofort nach jeder Antwort/)).toBeInTheDocument();
     expect(screen.getByText(/Rückmeldung erst am Ende/)).toBeInTheDocument();
     expect(screen.getByText(/verändert deinen Lernstand und berücksichtigt Fälligkeiten/))
@@ -190,7 +196,13 @@ describe('Paketansicht – ein einziger Einstieg ins freie Üben', () => {
     expect(
       await screen.findByText(/Dafür ist bisher nichts freigeschaltet/),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Direkt starten' })).not.toBeInTheDocument();
+    /*
+      Ohne freigeschaltete Aufgaben ist der Kartentitel kein Link – die Karte
+      steht da und sagt, warum sie nicht führt. Ein Weg ins Leere wäre
+      schlimmer als keiner.
+    */
+    expect(screen.queryByRole('link', { name: 'Frei üben' })).not.toBeInTheDocument();
+    expect(screen.getByText('Frei üben')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Runde anpassen' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
   });

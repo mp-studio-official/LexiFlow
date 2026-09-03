@@ -59,6 +59,22 @@ async function seedPack(page: Page, title: string, direction: 'en-de' | 'both'):
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 }
 
+/**
+ * Den Lernstand aufklappen.
+ *
+ * Seit 4B.6 steht er als schlanke Zeile da: die Zahl, der Balken, und die
+ * Fächer einen Klick tief hinter dem **i**. Vorher war das eine ganze Karte
+ * mit einem Säulendiagramm je Richtung – bei einem frischen Paket fünf leere
+ * Säulen für eine Auskunft, die in vier Wörtern passt.
+ *
+ * Diese Tests handeln von den Zahlen dahinter, nicht von der Zeile davor.
+ */
+async function openLernstand(page: Page): Promise<void> {
+  await page
+    .getByRole('button', { name: 'Wie sich der Lernstand auf die Fächer verteilt' })
+    .click();
+}
+
 test.describe('Barrierefreiheit – Axe', () => {
   test('@a11y Startseite', async ({ page }) => {
     await page.goto('/');
@@ -82,8 +98,11 @@ test.describe('Barrierefreiheit – Axe', () => {
 
   test('@a11y Paketdetail mit Lernstand', async ({ page }) => {
     await seedPack(page, 'A11y Lernstand', 'both');
-    await expect(page.getByRole('heading', { name: 'Englisch → Deutsch (rezeptiv)' })).toBeVisible();
+    // Zugeklappt **und** aufgeklappt: Der Kasten hinter dem i ist neuer Inhalt.
     await expectNoSeriousViolations(page, 'Paketdetail');
+    await openLernstand(page);
+    await expect(page.getByRole('heading', { name: 'Englisch → Deutsch (rezeptiv)' })).toBeVisible();
+    await expectNoSeriousViolations(page, 'Paketdetail mit aufgeklapptem Lernstand');
   });
 
   test('@a11y laufende Übung und sichtbares Feedback', async ({ page }) => {

@@ -106,7 +106,8 @@ describe('PackDetailPage – Leerzustand', () => {
     // freiwilligen Lernweisen darüber bleiben offen.
     expect(screen.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
     expect(screen.queryByRole('option', { name: /Alle bereiten/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Direkt starten' })).toBeInTheDocument();
+    // Seit 4B.6 ist der Kartentitel der Direktstart.
+    expect(screen.getByRole('link', { name: 'Frei üben' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Runde anpassen' })).toBeInTheDocument();
   });
 

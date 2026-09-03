@@ -148,8 +148,11 @@ test.describe('Vokabelliste', () => {
     /*
       Die Liste ist kein fünfter Lernweg. Sie steht als ruhige Zeile unter den
       vier Wegen – erreichbar, aber nicht so groß wie „Mit Karten lernen“.
+
+      Seit 4B.6 sind die vier Wege Bildkarten (`.mode-card`); die Liste hat
+      bewusst keine bekommen.
     */
-    const wege = page.locator('.study-option');
+    const wege = page.locator('.mode-card');
     await expect(wege).toHaveCount(4);
 
     const liste = page.getByRole('link', { name: 'Vokabelliste' });

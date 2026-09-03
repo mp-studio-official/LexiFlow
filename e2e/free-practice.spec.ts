@@ -142,6 +142,18 @@ async function seedNothingDue(page: Page, title = 'Frei üben'): Promise<void> {
   await expect(page.getByText(/Gerade ist nichts fällig/)).toBeVisible();
 }
 
+/**
+ * Den Lernstand aufklappen.
+ *
+ * Seit 4B.6 steht er als schlanke Zeile da: die Zahl, der Balken, und die
+ * Fächer einen Klick tief hinter dem **i**.
+ */
+async function openLernstand(page: Page): Promise<void> {
+  await page
+    .getByRole('button', { name: 'Wie sich der Lernstand auf die Fächer verteilt' })
+    .click();
+}
+
 test.describe('Freies Üben', () => {
   test('@smoke ohne fällige Aufgaben frei üben, ohne den Lernplan zu ändern', async ({ page }) => {
     const externalRequests: string[] = [];
@@ -155,14 +167,20 @@ test.describe('Freies Üben', () => {
 
     // Der Lernplan ist gesperrt – der freiwillige Weg bleibt offen, der Termin sichtbar.
     await expect(page.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
-    await expect(page.getByRole('link', { name: 'Direkt starten' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Frei üben' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Runde anpassen' })).toBeVisible();
     await expect(page.getByText('4 Aufgaben sind verfügbar.')).toBeVisible();
     await expect(page.getByText(/morgen|in 1 Tag/).first()).toBeVisible();
 
-    // Lernstand vor der freien Runde.
+    // Lernstand vor der freien Runde – die Zahl steht hinter dem i.
+    await openLernstand(page);
     await expect(page.getByText(/0 von 4 Vokabeln sicher/)).toBeVisible();
-    await expect(page.getByText(/1 Übungsrunden bisher/)).toBeVisible();
+    /*
+      „1 Übungsrunden“ stand hier bis 4B.6 – die Zeile kannte keinen Singular.
+      Der schlanke Lernstand zählt jetzt richtig, und die Zahl steht vor dem
+      i, nicht dahinter.
+    */
+    await expect(page.getByText(/1 Runde bisher/)).toBeVisible();
     const boxesBefore = await page.locator('.stand .mono').first().innerText();
 
     await startFreeFlashcards(page);
@@ -189,8 +207,9 @@ test.describe('Freies Üben', () => {
 
     // Zurück im Paket: Fächer, Termin und Rundenzahl sind unverändert.
     await page.getByRole('link', { name: 'Zurück zum Paket' }).click();
+    await expect(page.getByText(/1 Runde bisher/)).toBeVisible();
+    await openLernstand(page);
     await expect(page.getByText(/0 von 4 Vokabeln sicher/)).toBeVisible();
-    await expect(page.getByText(/1 Übungsrunden bisher/)).toBeVisible();
     await expect(page.getByText(/Gerade ist nichts fällig/)).toBeVisible();
     expect(await page.locator('.stand .mono').first().innerText()).toBe(boxesBefore);
 
@@ -232,7 +251,7 @@ test.describe('Freies Üben', () => {
     await expect(page.getByRole('radio', { name: 'Lernplan' })).toHaveCount(0);
     await expect(page.getByRole('radio', { name: 'Frei üben' })).toHaveCount(0);
 
-    await page.getByRole('link', { name: 'Direkt starten' }).click();
+    await page.getByRole('link', { name: 'Frei üben' }).click();
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
   });
 
@@ -379,7 +398,7 @@ test.describe('Freies Üben', () => {
     await page.goBack();
 
     // Der Direktstart ebenso.
-    await page.getByRole('link', { name: 'Direkt starten' }).focus();
+    await page.getByRole('link', { name: 'Frei üben' }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
     await expectNoSeriousViolations(page, 'laufende freie Runde');

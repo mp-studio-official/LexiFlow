@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const VOCAB_LIST = [
   'crowded\tüberfüllt, voll',
@@ -6,6 +6,22 @@ const VOCAB_LIST = [
   'litter\tMüll',
   'quiet\truhig, leise',
 ].join('\n');
+
+/**
+ * Den Lernstand aufklappen.
+ *
+ * Seit 4B.6 steht er als schlanke Zeile da: die Zahl, der Balken, und die
+ * Fächer einen Klick tief hinter dem **i**. Vorher war das eine ganze Karte
+ * mit einem Säulendiagramm je Richtung – bei einem frischen Paket fünf leere
+ * Säulen für eine Auskunft, die in vier Wörtern passt.
+ *
+ * Diese Tests handeln von den Zahlen dahinter, nicht von der Zeile davor.
+ */
+async function openLernstand(page: Page): Promise<void> {
+  await page
+    .getByRole('button', { name: 'Wie sich der Lernstand auf die Fächer verteilt' })
+    .click();
+}
 
 test.describe('LexiFlow – Grundablauf', () => {
   test('@smoke Material erstellen, speichern und üben', async ({ page }) => {
@@ -67,6 +83,7 @@ test.describe('LexiFlow – Grundablauf', () => {
 
     // 7. Schülerbereich: getrennte Lernstände, neue Vokabeln als eigene Kategorie
     await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
+    await openLernstand(page);
     await expect(page.getByText(/0 von 4 Vokabeln sicher/)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Englisch → Deutsch (rezeptiv)' })).toBeVisible();
     await expect(page.getByText('Neu: 4 · Fach 1: 0 · Fach 2: 0 · Fach 3: 0 · Fach 4: 0 · Fach 5: 0')).toBeVisible();
@@ -155,7 +172,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     // Seit Sprint 3B.2b führt dorthin genau eine Karte – mit zwei Wegen:
     // sofort loslegen oder die Runde vorher anpassen.
     await expect(page.getByRole('button', { name: 'Lernrunde starten' })).toBeDisabled();
-    await expect(page.getByRole('link', { name: 'Direkt starten' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Frei üben' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Runde anpassen' })).toBeVisible();
   });
 

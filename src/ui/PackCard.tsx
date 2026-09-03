@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
+import { PackArt } from './PackArt';
+
 /**
  * Das gemeinsame Paketmuster – ab Sprint 4B.3 als **Block** (Entwurfsroute B).
  *
@@ -22,10 +24,27 @@ import type { ReactNode } from 'react';
  * ganzen Block auf; `tools`, `actions` und `children` liegen mit `z-index`
  * darüber. So gibt es keine verschachtelten interaktiven Elemente und
  * trotzdem eine große Trefferfläche.
+ *
+ * ## Mit Motiv (Sprint 4B.6)
+ *
+ * Mit `art` bekommt der Block einen Bildkopf und wird zur redaktionellen
+ * Karte. Das ist der Lernbereich: Dort steht eine Handvoll Pakete, und sie
+ * sollen aussehen wie etwas, das man aufschlägt.
+ *
+ * Der Materialbereich der Lehrkraft bleibt ohne. Dort ist die Liste ein
+ * Arbeitsmittel; ein Bildkopf je Zeile machte aus fünfzig Paketen eine
+ * Bildergalerie, durch die man scrollt, statt einer Liste, in der man sucht.
  */
 
 export interface PackCardProps {
   title: string;
+  /**
+   * Der Text, aus dem das Motiv entsteht – meistens der Titel.
+   *
+   * Fehlt er, gibt es keinen Bildkopf. Das ist kein Sonderfall, sondern die
+   * zweite Bauform derselben Karte.
+   */
+  art?: string;
   /** Ziel des Titel-Links – der Block selbst ist damit anklickbar. */
   to: string;
   /** Kurze, präzise Metadaten. Wenige, gezielte – kein Badge-Salat. */
@@ -46,10 +65,34 @@ export interface PackCardProps {
   actions?: ReactNode;
 }
 
-export function PackCard({ title, to, meta, flag, count, tools, children, actions }: PackCardProps) {
+export function PackCard({
+  title,
+  art,
+  to,
+  meta,
+  flag,
+  count,
+  tools,
+  children,
+  actions,
+}: PackCardProps) {
   return (
-    <article className="pack-card">
-      {flag ? <p className="pack-card__flag">{flag}</p> : null}
+    <article className={art ? 'pack-card pack-card--art' : 'pack-card'}>
+      {art ? (
+        <div className="pack-card__art">
+          <PackArt seed={art} />
+          {/*
+            Der Hinweis liegt **auf** dem Motiv, nicht darunter.
+
+            „5 Vokabeln sind dran“ ist die eine Auskunft, wegen der jemand die
+            Liste überfliegt. Über dem Bild hat sie Platz und kostet keine
+            Zeile; darunter schöbe sie den Titel nach unten.
+          */}
+          {flag ? <p className="pack-card__flag pack-card__flag--on-art">{flag}</p> : null}
+        </div>
+      ) : flag ? (
+        <p className="pack-card__flag">{flag}</p>
+      ) : null}
 
       <h3 className="pack-card__title">
         <Link className="pack-card__link" to={to}>

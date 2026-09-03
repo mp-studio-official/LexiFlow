@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Field, Meter } from '../../ui/components';
+import { InfoDisclosure } from '../../ui/InfoDisclosure';
+import { PackArt } from '../../ui/PackArt';
 import { getPack } from '../../data/packRepo';
 import { getPackProgress, getProgressIndex, resetPackProgress } from '../../data/progressRepo';
 import {
@@ -261,94 +263,124 @@ export function PackDetailPage() {
         ) : null}
       </div>
 
-      <Card>
-        <h2>Dein Lernstand</h2>
-        <Meter value={mastered} max={pack.entries.length} label="Sicher gelernte Vokabeln" />
-        <p className="small muted" style={{ marginTop: '0.4rem' }}>
-          {mastered} von {pack.entries.length} Vokabeln sicher
-          {bothDirections ? ' (in beiden Richtungen in Fach 5)' : ` (Fach ${LEITNER_BOX_MAX})`} ·{' '}
-          {plan.readyCount} Aufgaben jetzt bereit · {sessionCount} Übungsrunden bisher
+      {/*
+        Der Lernstand, schlank (Sprint 4B.6).
+
+        Vorher stand hier eine ganze Karte: Balken, ein Säulendiagramm je
+        Richtung, eine Zeile in Schreibmaschinenschrift mit sechs Fächern und
+        zwei Zeilen Erklärung dazu. Bei einem frischen Paket sagte das
+        Diagramm „Neu: 6, Fach 1–5: 0“ – fünf leere Säulen für eine Auskunft,
+        die in vier Wörtern passt.
+
+        Geblieben ist die Zahl, um die es geht: Wie weit bin ich mit **diesem**
+        Paket? Die Fächer sind nicht weg, sie liegen einen Klick tief. Wer
+        wissen will, wie sich das verteilt, findet es; wer lernen will, kommt
+        daran vorbei.
+      */}
+      <section className="standbar">
+        <p className="standbar__figure">
+          <strong>{mastered}</strong>
+          <span>von {pack.entries.length} sicher</span>
         </p>
 
-        <div className="stands">
-          {stands.map((stand) => {
-            // „Neu“ ist eine eigene Säule vor Fach 1 – noch nie geübte Vokabeln
-            // sind nicht dasselbe wie zurückgestufte.
-            const columns = [
-              { label: 'Neu', count: stand.breakdown.fresh, isNew: true },
-              ...stand.breakdown.boxes.map((count, index) => ({
-                label: `Fach ${index + 1}`,
-                count,
-                isNew: false,
-              })),
-            ];
-            const peak = Math.max(1, ...columns.map((column) => column.count));
-            const notStarted =
-              stand.breakdown.locked > 0 &&
-              stand.breakdown.fresh === 0 &&
-              stand.breakdown.boxes.every((count) => count === 0);
-
-            return (
-              <div key={stand.direction} className="stand">
-                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.35rem' }}>
-                  {TASK_DIRECTION_LABELS[stand.direction]}
-                </h3>
-                {notStarted ? (
-                  <p className="small muted" style={{ margin: 0 }}>
-                    Produktiv noch nicht begonnen – wird nach der ersten erfolgreichen
-                    rezeptiven Wiederholung freigeschaltet.
-                  </p>
-                ) : (
-                  <>
-                    <div
-                      className="boxes"
-                      role="img"
-                      aria-label={`${TASK_DIRECTION_LABELS[stand.direction]}: ${columns
-                        .map((column) => `${column.label}: ${column.count}`)
-                        .join(', ')}${
-                        stand.breakdown.locked > 0
-                          ? `, noch nicht freigeschaltet: ${stand.breakdown.locked}`
-                          : ''
-                      }`}
-                    >
-                      {columns.map((column) => (
-                        <div
-                          key={column.label}
-                          className={`boxes__bar${column.isNew ? ' boxes__bar--new' : ''}`}
-                          style={{ height: `${Math.max(4, (column.count / peak) * 100)}%` }}
-                        />
-                      ))}
-                    </div>
-                    <p className="small muted mono" style={{ margin: '0.3rem 0 0' }}>
-                      {columns.map((column) => `${column.label}: ${column.count}`).join(' · ')}
-                    </p>
-                    <p className="small muted" style={{ margin: '0.15rem 0 0' }}>
-                      {stand.mastered} von {pack.entries.length} in Fach {LEITNER_BOX_MAX} ·{' '}
-                      {stand.ready} bereit
-                      {stand.breakdown.locked > 0
-                        ? ` · ${stand.breakdown.locked} noch nicht freigeschaltet`
-                        : ''}
-                    </p>
-                  </>
-                )}
-              </div>
-            );
-          })}
+        <div className="standbar__meter">
+          <Meter value={mastered} max={pack.entries.length} label="Sicher gelernte Vokabeln" />
+          <p className="standbar__meta">
+            {plan.readyCount} {plan.readyCount === 1 ? 'Aufgabe' : 'Aufgaben'} bereit ·{' '}
+            {sessionCount} {sessionCount === 1 ? 'Runde' : 'Runden'} bisher
+          </p>
         </div>
 
-        <p className="small muted" style={{ marginTop: '0.5rem' }}>
-          „Neu“ = in dieser Richtung noch nie geübt · Wiederholung der Fächer 1–5 nach{' '}
-          {Object.values(BOX_INTERVAL_DAYS)
-            .map((days) => (days === 0 ? 'sofort' : `${days} T`))
-            .join(' · ')}
-        </p>
-        {bothDirections ? (
-          <p className="small muted" style={{ margin: 0 }}>
-            Beide Richtungen werden getrennt gezählt. Eine Vokabel gilt erst als sicher, wenn
-            du sie in beiden Richtungen beherrschst.
+        <InfoDisclosure
+          className="info--end"
+          label="Wie sich der Lernstand auf die Fächer verteilt"
+          title="Deine Fächer"
+        >
+          <p style={{ margin: 0 }}>
+            {mastered} von {pack.entries.length} Vokabeln sicher
+            {bothDirections ? ' (in beiden Richtungen in Fach 5)' : ` (Fach ${LEITNER_BOX_MAX})`}.
           </p>
-        ) : null}
-      </Card>
+
+          <div className="stands">
+            {stands.map((stand) => {
+              // „Neu“ ist eine eigene Säule vor Fach 1 – noch nie geübte Vokabeln
+              // sind nicht dasselbe wie zurückgestufte.
+              const columns = [
+                { label: 'Neu', count: stand.breakdown.fresh, isNew: true },
+                ...stand.breakdown.boxes.map((count, index) => ({
+                  label: `Fach ${index + 1}`,
+                  count,
+                  isNew: false,
+                })),
+              ];
+              const peak = Math.max(1, ...columns.map((column) => column.count));
+              const notStarted =
+                stand.breakdown.locked > 0 &&
+                stand.breakdown.fresh === 0 &&
+                stand.breakdown.boxes.every((count) => count === 0);
+
+              return (
+                <div key={stand.direction} className="stand">
+                  <h3 style={{ fontSize: '0.95rem', marginBottom: '0.35rem' }}>
+                    {TASK_DIRECTION_LABELS[stand.direction]}
+                  </h3>
+                  {notStarted ? (
+                    <p className="small muted" style={{ margin: 0 }}>
+                      Produktiv noch nicht begonnen – wird nach der ersten erfolgreichen
+                      rezeptiven Wiederholung freigeschaltet.
+                    </p>
+                  ) : (
+                    <>
+                      <div
+                        className="boxes"
+                        role="img"
+                        aria-label={`${TASK_DIRECTION_LABELS[stand.direction]}: ${columns
+                          .map((column) => `${column.label}: ${column.count}`)
+                          .join(', ')}${
+                          stand.breakdown.locked > 0
+                            ? `, noch nicht freigeschaltet: ${stand.breakdown.locked}`
+                            : ''
+                        }`}
+                      >
+                        {columns.map((column) => (
+                          <div
+                            key={column.label}
+                            className={`boxes__bar${column.isNew ? ' boxes__bar--new' : ''}`}
+                            style={{ height: `${Math.max(4, (column.count / peak) * 100)}%` }}
+                          />
+                        ))}
+                      </div>
+                      <p className="small muted mono" style={{ margin: '0.3rem 0 0' }}>
+                        {columns.map((column) => `${column.label}: ${column.count}`).join(' · ')}
+                      </p>
+                      <p className="small muted" style={{ margin: '0.15rem 0 0' }}>
+                        {stand.mastered} von {pack.entries.length} in Fach {LEITNER_BOX_MAX} ·{' '}
+                        {stand.ready} bereit
+                        {stand.breakdown.locked > 0
+                          ? ` · ${stand.breakdown.locked} noch nicht freigeschaltet`
+                          : ''}
+                      </p>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="small muted" style={{ margin: 0 }}>
+            „Neu“ = in dieser Richtung noch nie geübt · Wiederholung der Fächer 1–5 nach{' '}
+            {Object.values(BOX_INTERVAL_DAYS)
+              .map((days) => (days === 0 ? 'sofort' : `${days} T`))
+              .join(' · ')}
+          </p>
+          {bothDirections ? (
+            <p className="small muted" style={{ margin: 0 }}>
+              Beide Richtungen werden getrennt gezählt. Eine Vokabel gilt erst als sicher, wenn
+              du sie in beiden Richtungen beherrschst.
+            </p>
+          ) : null}
+        </InfoDisclosure>
+      </section>
 
       {/*
         Vier freiwillige Wege, gleichrangig nebeneinander. Sie hängen an keiner
@@ -359,75 +391,118 @@ export function PackDetailPage() {
         frühere Modusauswahl in der Lernplan-Karte war ein zweiter Weg zur
         selben Sache und damit eine Einladung zur Verwechslung.
       */}
-      <Card>
-        <h2>Auf eigene Weise lernen</h2>
-        <p className="muted small">
-          Diese vier Wege verändern deinen Lernstand nicht. Du kannst sie jederzeit nutzen.
-        </p>
+      <section aria-labelledby="eigene-wege">
+        <div className="section-head">
+          <h2 id="eigene-wege" className="display display--section">
+            Auf eigene Weise lernen
+          </h2>
+          <p className="muted small" style={{ margin: 0 }}>
+            Verändert deinen Lernstand nicht.
+          </p>
+        </div>
 
-        <ul className="study-options">
-          <li className="study-option">
-            <h3 className="study-option__title">Vokabeln durchsehen</h3>
-            <p className="study-option__text">
-              Alle Wörter in Ruhe ansehen und Übersetzungen selbst aufdecken.
-            </p>
-            <Link className="btn" to={`/lernen/${packId}/durchsehen`}>
-              Vokabeln durchsehen
-            </Link>
+        {/*
+          Vier Wege als Bildkarten (Sprint 4B.6).
+
+          Vorher waren es vier beige Kästen mit je einer Überschrift, zwei
+          Zeilen Text und einem Knopf – gleich groß, gleich still, und beim
+          Überfliegen nicht auseinanderzuhalten. Ein Motiv je Weg gibt jedem
+          ein Gesicht: Man erkennt „Karten“ am Bild, bevor man das Wort liest.
+
+          Die Motive kommen aus demselben Verfahren wie die der Pakete, nur mit
+          festen Saaten. Der Weg „Karten“ sieht deshalb in jedem Paket gleich
+          aus – er ist ja auch überall derselbe.
+        */}
+        <ul className="modes">
+          <li className="mode-card">
+            <div className="mode-card__art">
+              <PackArt seed="lexiflow:durchsehen" />
+            </div>
+            <div className="mode-card__body">
+              <h3 className="mode-card__title">
+                <Link className="mode-card__link" to={`/lernen/${packId}/durchsehen`}>
+                  Vokabeln durchsehen
+                </Link>
+              </h3>
+              <p className="mode-card__text">
+                Alle Wörter in Ruhe ansehen und Übersetzungen selbst aufdecken.
+              </p>
+            </div>
           </li>
 
-          <li className="study-option">
-            <h3 className="study-option__title">Mit Karten lernen</h3>
-            <p className="study-option__text">
-              Vorderseite ansehen, Lösung aufdecken und im eigenen Tempo weitergehen.
-            </p>
-            <Link className="btn" to={`/lernen/${packId}/karten`}>
-              Mit Karten lernen
-            </Link>
+          <li className="mode-card">
+            <div className="mode-card__art">
+              <PackArt seed="lexiflow:karteikarten" />
+            </div>
+            <div className="mode-card__body">
+              <h3 className="mode-card__title">
+                <Link className="mode-card__link" to={`/lernen/${packId}/karten`}>
+                  Mit Karten lernen
+                </Link>
+              </h3>
+              <p className="mode-card__text">
+                Vorderseite ansehen, Lösung aufdecken und im eigenen Tempo weitergehen.
+              </p>
+            </div>
           </li>
 
-          <li className="study-option">
-            <h3 className="study-option__title">Selbsttest</h3>
-            <p className="study-option__text">
-              Rückmeldung erst am Ende, als Ergebnis mit Fehlerübersicht. Kein Lernstand.
-            </p>
-            <Link className="btn" to={`/lernen/${packId}/selbsttest`}>
-              Selbsttest starten
-            </Link>
+          <li className="mode-card">
+            <div className="mode-card__art">
+              <PackArt seed="lexiflow:selbsttest" />
+            </div>
+            <div className="mode-card__body">
+              <h3 className="mode-card__title">
+                <Link className="mode-card__link" to={`/lernen/${packId}/selbsttest`}>
+                  Selbsttest starten
+                </Link>
+              </h3>
+              <p className="mode-card__text">
+                Rückmeldung erst am Ende, als Ergebnis mit Fehlerübersicht. Kein Lernstand.
+              </p>
+            </div>
           </li>
 
-          <li className="study-option">
-            <h3 className="study-option__title">Frei üben</h3>
-            <p className="study-option__text">
-              Rückmeldung sofort nach jeder Antwort, ohne Ergebnisdruck. Kein Lernstand.{' '}
+          <li className="mode-card">
+            <div className="mode-card__art">
+              <PackArt seed="lexiflow:frei ueben" />
+            </div>
+            <div className="mode-card__body">
+              <h3 className="mode-card__title">
+                {freePossible ? (
+                  <Link
+                    className="mode-card__link"
+                    to={`/lernen/${packId}/uebung?mode=free&length=${FREE_ROUND_LENGTH}&seed=${seed}`}
+                  >
+                    Frei üben
+                  </Link>
+                ) : (
+                  'Frei üben'
+                )}
+              </h3>
+              <p className="mode-card__text">
+                Rückmeldung sofort nach jeder Antwort, ohne Ergebnisdruck. Kein Lernstand.{' '}
+                {freePossible ? (
+                  <>
+                    {freePlan.availableCount}{' '}
+                    {freePlan.availableCount === 1 ? 'Aufgabe ist' : 'Aufgaben sind'} verfügbar.
+                  </>
+                ) : (
+                  <>Dafür ist bisher nichts freigeschaltet.</>
+                )}
+              </p>
+              {/*
+                „Runde anpassen“ steht klein darunter, der Titel selbst startet
+                sofort. Ohne freigeschaltete Aufgaben führt nichts ins Leere –
+                dann ist der Titel kein Link, und der Grund steht darüber.
+              */}
               {freePossible ? (
-                <>
-                  {freePlan.availableCount}{' '}
-                  {freePlan.availableCount === 1 ? 'Aufgabe ist' : 'Aufgaben sind'} verfügbar.
-                </>
-              ) : (
-                <>Dafür ist bisher nichts freigeschaltet.</>
-              )}
-            </p>
-            {/*
-              Zwei Wege, bewusst unterschiedlich schnell: Der erste startet
-              sofort mit sinnvollen Voreinstellungen, der zweite führt auf die
-              Einrichtung. Ohne freigeschaltete Aufgaben liefe beides leer –
-              statt Knöpfen ins Nichts steht dort der ehrliche Grund.
-            */}
-            {freePossible ? (
-              <div className="study-option__actions">
-                <Link
-                  className="btn"
-                  to={`/lernen/${packId}/uebung?mode=free&length=${FREE_ROUND_LENGTH}&seed=${seed}`}
-                >
-                  Direkt starten
-                </Link>
-                <Link className="btn btn--quiet" to={`/lernen/${packId}/frei`}>
-                  Runde anpassen
-                </Link>
-              </div>
-            ) : null}
+                <p className="mode-card__aside">
+                  <Link className="btn btn--small btn--quiet" to={`/lernen/${packId}/frei`}>
+                    Runde anpassen
+                  </Link>
+                </p>
+              ) : null}
+            </div>
           </li>
         </ul>
 
@@ -450,7 +525,7 @@ export function PackDetailPage() {
             herunterladen.
           </span>
         </p>
-      </Card>
+      </section>
 
       <Card>
         <h2>Nach Lernplan üben</h2>

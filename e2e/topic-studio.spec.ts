@@ -216,7 +216,7 @@ test.describe('Themenwerkstatt', () => {
 
     // Paket öffnen: alles ist da, auch ohne jedes Modell.
     await receiver.getByRole('link', { name: 'Öffnen' }).click();
-    await expect(receiver.getByText(/0 von 9 Vokabeln sicher/)).toBeVisible();
+    await expect(receiver.getByText(/von 9 sicher/)).toBeVisible();
 
     await receiver.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(receiver.getByText('Aufgabe 1 von 9')).toBeVisible();

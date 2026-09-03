@@ -201,7 +201,12 @@ test.describe('Textwerkstatt', () => {
 
     // Schülerbereich funktioniert unverändert.
     await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
-    await expect(page.getByText(new RegExp(`0 von ${zahl} Vokabeln sicher`))).toBeVisible();
+    /*
+      Seit 4B.6 steht der Lernstand als schlanke Zeile da: die Zahl vorne, die
+      Fächer hinter dem i. Hier reicht die Zeile – dieser Test handelt vom Weg
+      vom Text bis ins Üben, nicht von der Verteilung auf die Fächer.
+    */
+    await expect(page.getByText(new RegExp(`von ${zahl} sicher`))).toBeVisible();
     await page.getByRole('button', { name: 'Lernrunde starten' }).click();
     await expect(page.getByText(`Aufgabe 1 von ${zahl}`)).toBeVisible();
     await page.getByRole('button', { name: 'Lösung anzeigen' }).click();

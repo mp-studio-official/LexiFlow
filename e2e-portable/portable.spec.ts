@@ -435,7 +435,7 @@ test.describe('Exportierte Schülerdatei', () => {
     await page.getByRole('link', { name: 'Paket öffnen' }).click();
 
     // Erreichbar, aber kein fünfter Lernweg: eine Zeile unter den vier Wegen.
-    await expect(page.locator('.study-option')).toHaveCount(4);
+    await expect(page.locator('.mode-card')).toHaveCount(4);
     await page.getByRole('link', { name: 'Vokabelliste' }).click();
 
     await expectVocabList(page, external);
@@ -496,7 +496,7 @@ test.describe('Exportierte Schülerdatei', () => {
     await page.getByRole('link', { name: 'Zurück zum Paket' }).click();
 
     // Freie Runde – ohne Wirkung auf den Lernstand
-    await page.getByRole('link', { name: 'Direkt starten' }).click();
+    await page.getByRole('link', { name: 'Frei üben' }).click();
     await expect(page.getByText(/Frei üben · Aufgabe 1 von 4/)).toBeVisible();
     await page.goBack();
 

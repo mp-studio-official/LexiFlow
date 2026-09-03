@@ -170,7 +170,8 @@ describe('Rückfrage vor dem Verlassen', () => {
     expect(screen.getByText('Runde wirklich verlassen?')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Ja, verlassen' }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Dein Lernstand' })).toBeInTheDocument();
+    // Seit 4B.6 steht der Lernstand als schlanke Zeile ohne eigene Überschrift.
+    expect(await screen.findByRole('heading', { level: 2, name: 'Auf eigene Weise lernen' })).toBeInTheDocument();
   });
 
   it('fragt im laufenden Selbsttest nach', async () => {
@@ -200,7 +201,8 @@ describe('Rückfrage vor dem Verlassen', () => {
       .toBeInTheDocument();
     // Ergebnisansicht: echte Links, keine Rückfrage.
     await user.click(within(header()).getByRole('link', { name: 'Zurück zum Paket' }));
-    expect(await screen.findByRole('heading', { level: 2, name: 'Dein Lernstand' })).toBeInTheDocument();
+    // Seit 4B.6 steht der Lernstand als schlanke Zeile ohne eigene Überschrift.
+    expect(await screen.findByRole('heading', { level: 2, name: 'Auf eigene Weise lernen' })).toBeInTheDocument();
   });
 
   it('fragt in der Einrichtung nicht nach', async () => {
@@ -211,7 +213,8 @@ describe('Rückfrage vor dem Verlassen', () => {
     await screen.findByRole('heading', { level: 2, name: 'Runde anpassen' });
     await user.click(within(header()).getByRole('link', { name: 'Zurück zum Paket' }));
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Dein Lernstand' })).toBeInTheDocument();
+    // Seit 4B.6 steht der Lernstand als schlanke Zeile ohne eigene Überschrift.
+    expect(await screen.findByRole('heading', { level: 2, name: 'Auf eigene Weise lernen' })).toBeInTheDocument();
   });
 });
 
