@@ -239,73 +239,60 @@ export function CardStudyPage() {
       </div>
       <Meter value={index} max={cards.length} label="Fortschritt im Kartensatz" />
 
-      {/*
-        Ein Stapel, keine Fläche (Sprint 4B.6).
+      <div
+        className="card-deck"
+        ref={deckRef}
+        tabIndex={0}
+        role="group"
+        aria-roledescription="Lernkarte"
+        aria-label={`Karte ${index + 1} von ${cards.length}: ${card.prompt}`}
+        onKeyDown={handleKeyDown}
+      >
+        {/*
+          Der Kopf der Karte trägt das Motiv des Pakets.
 
-        Vorher war die Karte ein großes weißes Rechteck mit einem Wort in der
-        Mitte – funktional richtig und kein Gegenstand. Der Rahmen legt jetzt
-        zwei angedeutete Blätter dahinter: Man sieht, dass man in einem Stapel
-        steht und dass es weitergeht.
+          Es ist derselbe Streifen wie auf der Paketkarte, nur schmal: Wer
+          zwischen zwei Paketen wechselt, sieht am Bild, in welchem er ist,
+          bevor er den Titel oben liest.
+        */}
+        <div className="card-deck__art">
+          <PackArt seed={pack.meta.title} />
+        </div>
 
-        Die Blätter sind `::before` und `::after` des Rahmens, keine Elemente.
-        Sie tragen nichts vor und stehen deshalb in keinem Baum.
-      */}
-      <div className="deck">
-        <div
-          className="card-deck"
-          ref={deckRef}
-          tabIndex={0}
-          role="group"
-          aria-roledescription="Lernkarte"
-          aria-label={`Karte ${index + 1} von ${cards.length}: ${card.prompt}`}
-          onKeyDown={handleKeyDown}
-        >
-          {/*
-            Der Kopf der Karte trägt das Motiv des Pakets.
+        <span className="card-deck__index" aria-hidden="true">
+          {index + 1}/{cards.length}
+        </span>
 
-            Es ist derselbe Streifen wie auf der Paketkarte, nur schmal: Wer
-            zwischen zwei Paketen wechselt, sieht am Bild, in welchem er ist,
-            bevor er den Titel oben liest.
-          */}
-          <div className="card-deck__art">
-            <PackArt seed={pack.meta.title} />
-          </div>
+        <p className="card-deck__prompt">{card.prompt}</p>
 
-          <span className="card-deck__index" aria-hidden="true">
-            {index + 1}/{cards.length}
-          </span>
+        {/* Verdeckt heißt verdeckt – auch für Screenreader. */}
+        <div className="card-deck__answer" id="karte-antwort" hidden={!flipped}>
+          <p className="card-deck__solution">{card.answer}</p>
 
-          <p className="card-deck__prompt">{card.prompt}</p>
-
-          {/* Verdeckt heißt verdeckt – auch für Screenreader. */}
-          <div className="card-deck__answer" id="karte-antwort" hidden={!flipped}>
-            <p className="card-deck__solution">{card.answer}</p>
-
-            {hasExtras(card) ? (
-              <div className="card-deck__extras">
-                {card.alternatives.length > 0 ? (
-                  <p className="small muted">Auch richtig: {formatAnswers(card.alternatives)}</p>
-                ) : null}
-                {card.partOfSpeech ? <Badge>{card.partOfSpeech}</Badge> : null}
-                {card.example ? (
-                  <p className="card-deck__example">
-                    „{card.example}“
-                    {card.exampleTranslation ? (
-                      <span className="small muted"> – {card.exampleTranslation}</span>
-                    ) : null}
-                  </p>
-                ) : null}
-                {card.notes ? <p className="small muted">{card.notes}</p> : null}
-              </div>
-            ) : null}
-          </div>
-
-          {!flipped ? (
-            <p className="small muted card-deck__hint">
-              Überlege in Ruhe – decke die Lösung erst dann auf.
-            </p>
+          {hasExtras(card) ? (
+            <div className="card-deck__extras">
+              {card.alternatives.length > 0 ? (
+                <p className="small muted">Auch richtig: {formatAnswers(card.alternatives)}</p>
+              ) : null}
+              {card.partOfSpeech ? <Badge>{card.partOfSpeech}</Badge> : null}
+              {card.example ? (
+                <p className="card-deck__example">
+                  „{card.example}“
+                  {card.exampleTranslation ? (
+                    <span className="small muted"> – {card.exampleTranslation}</span>
+                  ) : null}
+                </p>
+              ) : null}
+              {card.notes ? <p className="small muted">{card.notes}</p> : null}
+            </div>
           ) : null}
         </div>
+
+        {!flipped ? (
+          <p className="small muted card-deck__hint">
+            Überlege in Ruhe – decke die Lösung erst dann auf.
+          </p>
+        ) : null}
       </div>
 
       <div className="row card-deck__controls">

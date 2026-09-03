@@ -1,5 +1,6 @@
 import {
   LOGO_ASPECT,
+  LOGO_BLACK_AND_WHITE,
   LOGO_LAYERS,
   LOGO_SHAPES,
   LOGO_VARIANTS,
@@ -42,16 +43,30 @@ import {
  * dann ist der Markenname sonst nirgends zu lesen.
  */
 
-export type LogoTone = 'brand' | 'on-dark' | 'mono';
+/**
+ * Vier Fassungen, und die letzten beiden sind nicht dasselbe:
+ *
+ * - `brand` / `on-dark`: die beiden Markenfassungen, nach Untergrund.
+ * - `mono`: eine Farbe in drei Deckkraftstufen. Sie nimmt die Farbe des
+ *   Textes an – für Schaltflächen und für den Modus mit erzwungenen Farben,
+ *   wo eine feste Farbe unsichtbar werden kann.
+ * - `bw`: die **gelieferte** Schwarzweiß-Fassung mit festen Grauwerten. Sie
+ *   gehört aufs Papier, wo der Untergrund bekannt ist: ein weißes Blatt.
+ */
+export type LogoTone = 'brand' | 'on-dark' | 'mono' | 'bw';
 
 /**
  * Die einfarbige Fassung trennt die drei Flächen über die Deckkraft.
  *
- * Sie muss in `forced-colors`, im Schwarz-Weiß-Druck und als Faxvorlage
- * verständlich bleiben. Der Durchblick kann dort **nicht** einfach transparent
+ * Sie muss in `forced-colors` verständlich bleiben, wo eine feste Farbe
+ * überschrieben wird. Der Durchblick kann dort **nicht** einfach transparent
  * sein: Er liegt innerhalb der vorderen Fläche, ein Loch wäre also nur ein
- * heller Fleck auf ihr. Drei Abstufungen derselben Farbe halten die Form
- * zusammen.
+ * heller Fleck auf ihr.
+ *
+ * Für Papier ist sie seit 4B.7 nicht mehr zuständig – dort ist der Untergrund
+ * bekannt, und `bw` zeichnet die gelieferte Fassung deckend. Der Grund steht
+ * bei `LOGO_BLACK_AND_WHITE`: Aus einem Durchblick mit 35 % auf voll deckender
+ * Fläche wird kein heller Durchblick, sondern gar keiner.
  */
 const MONO_OPACITY: Readonly<Record<(typeof LOGO_LAYERS)[number], number>> = {
   back: 0.45,
@@ -60,8 +75,13 @@ const MONO_OPACITY: Readonly<Record<(typeof LOGO_LAYERS)[number], number>> = {
 };
 
 function Mark({ tone }: { tone: LogoTone }) {
-  const colours = tone === 'brand' ? LOGO_VARIANTS.onParchment : LOGO_VARIANTS.onAubergine;
   const mono = tone === 'mono';
+  const colours =
+    tone === 'brand'
+      ? LOGO_VARIANTS.onParchment
+      : tone === 'bw'
+        ? LOGO_BLACK_AND_WHITE
+        : LOGO_VARIANTS.onAubergine;
 
   return (
     <>

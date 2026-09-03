@@ -6,9 +6,16 @@ import { clearAllLocalData } from '../data/db';
 import { getPack, savePack } from '../data/packRepo';
 import { makeEntry, makeMeta } from '../test/fixtures';
 import { CSV_BOM } from '../domain/vocabTable';
+import { COPYRIGHT_NOTICE } from './Copyright';
+import { LOGO_BLACK_AND_WHITE } from './logoPaths';
 
 /**
  * Sprint 4B.3, Block B: die Vokabelliste als Ansicht.
+ *
+ * Seit 4B.7 ist sie eine **Liste** und keine Tabelle mehr: Wort, Satz,
+ * Übersetzung untereinander statt in vier Spalten. Warum, steht in
+ * `PrintablePackView.tsx`; hier wird die Reihenfolge festgehalten, weil sie
+ * die eigentliche Auskunft der Ansicht ist.
  *
  * Was das Papier daraus macht, prüft `styles/print.test.ts` (die Regeln) und
  * der E2E-Lauf (die berechneten Werte). Hier geht es um das, was jsdom
@@ -83,14 +90,21 @@ function setup() {
   return userEvent.setup();
 }
 
-/** Die englischen Lernformen in der Reihenfolge, in der sie auf dem Blatt stehen. */
+/** Die Einträge des Blattes, in der Reihenfolge, in der sie darauf stehen. */
+function entriesOnSheet(): HTMLElement[] {
+  return within(screen.getByRole('list')).getAllByRole('listitem');
+}
+
+/** Nur die englischen Lernformen – die erste, fette Zeile jedes Eintrags. */
 function formsOnSheet(): string[] {
-  const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
-  return rows.map((row) => within(row).getAllByRole('cell')[0]?.textContent ?? '');
+  // `.sheet__form` und nicht `.sheet__word`: In derselben Zeile steht auch die
+  // Wortart, und die gehört nicht zur Lernform.
+  return entriesOnSheet().map((entry) => entry.querySelector('.sheet__form')?.textContent ?? '');
 }
 
 beforeEach(async () => {
   downloads.length = 0;
+  window.localStorage.clear();
   await clearAllLocalData();
 });
 
@@ -108,7 +122,7 @@ describe('Das Blatt', () => {
   it('zeigt die vollständigen Lernformen, nicht die Lemmata', async () => {
     await seed();
     setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
 
     expect(formsOnSheet()).toEqual([
       'to depend on sb./sth.',
@@ -120,14 +134,14 @@ describe('Das Blatt', () => {
   it('schreibt mehrere Bedeutungen mit Semikolon', async () => {
     await seed();
     setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
     expect(screen.getByText('die Beschränkungen; die Auflagen')).toBeInTheDocument();
   });
 
   it('nennt die Wortart ausgeschrieben', async () => {
     await seed();
     setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
     expect(screen.getByText('Substantiv, Plural')).toBeInTheDocument();
   });
 });
@@ -136,17 +150,17 @@ describe('Was auf das Blatt kommt', () => {
   it('lässt die Beispielsätze abwählen', async () => {
     await seed();
     const user = setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
 
-    expect(screen.getByRole('columnheader', { name: 'Beispielsatz' })).toBeInTheDocument();
+    expect(screen.getByText(/Communities depend on barriers\./)).toBeInTheDocument();
     await user.click(screen.getByRole('checkbox', { name: /Beispielsätze mitdrucken/ }));
-    expect(screen.queryByRole('columnheader', { name: 'Beispielsatz' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Communities depend on barriers\./)).not.toBeInTheDocument();
   });
 
   it('sortiert auf Wunsch alphabetisch', async () => {
     await seed();
     const user = setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
 
     await user.selectOptions(screen.getByLabelText(/Reihenfolge/), 'alphabetical');
     expect(formsOnSheet()).toEqual([
@@ -159,7 +173,7 @@ describe('Was auf das Blatt kommt', () => {
   it('stellt die Zeilenhöhe um', async () => {
     await seed();
     const user = setup();
-    const blatt = (await screen.findByRole('table')).closest('.sheet') as HTMLElement;
+    const blatt = (await screen.findByRole('list')).closest('.sheet') as HTMLElement;
 
     expect(blatt).toHaveAttribute('data-density', 'compact');
     await user.selectOptions(screen.getByLabelText(/Zeilenhöhe/), 'roomy');
@@ -177,7 +191,7 @@ describe('Was auf das Blatt kommt', () => {
       entries: [makeEntry({ id: 'x', english: 'shore', exampleSentences: [] })],
     });
     setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
 
     const kasten = screen.getByRole('checkbox', { name: /Beispielsätze mitdrucken/ });
     expect(kasten).toBeDisabled();
@@ -185,11 +199,101 @@ describe('Was auf das Blatt kommt', () => {
   });
 });
 
+describe('Der Aufbau eines Eintrags', () => {
+  it('stellt Wort, Satz und Übersetzung in genau diese Reihenfolge', async () => {
+    /*
+      Die Reihenfolge ist die ganze Auskunft dieser Ansicht: Erst das Wort,
+      fett, dann der Satz, in dem es vorkommt, dann die Bedeutung. Wer die
+      Bedeutung vor den Satz stellte, nähme dem Satz seine Aufgabe – man liest
+      ihn dann nicht mehr, weil die Antwort schon dasteht.
+    */
+    await seed();
+    setup();
+    await screen.findByRole('list');
+
+    const [erster] = entriesOnSheet();
+    const zeilen = [...(erster?.querySelectorAll('p') ?? [])].map((p) => p.className);
+    expect(zeilen).toEqual(['sheet__word', 'sheet__example', 'sheet__german']);
+  });
+
+  it('lässt die Satzzeile weg, wo es keinen Satz gibt', async () => {
+    // Nicht leer, sondern gar nicht: Eine leere Zeile sieht aus wie ein Fehler.
+    await seed();
+    setup();
+    await screen.findByRole('list');
+
+    const ohneSatz = entriesOnSheet()[1];
+    expect(ohneSatz?.querySelector('.sheet__example')).toBeNull();
+    expect(ohneSatz?.querySelector('.sheet__german')).not.toBeNull();
+  });
+
+  it('nutzt für das Zeichen die gelieferte Schwarzweiß-Fassung', async () => {
+    /*
+      Die Fassung `mono` legte den Durchblick mit 35 % Deckkraft auf eine voll
+      deckende Fläche – das „F“ wurde dadurch nicht heller, sondern
+      verschwand. Auf Papier gilt die gelieferte Fassung mit festen Grauwerten.
+    */
+    await seed();
+    setup();
+    await screen.findByRole('list');
+
+    const fills = [...document.querySelectorAll('.sheet__brand svg path')].map((path) =>
+      path.getAttribute('fill'),
+    );
+    expect(fills).toEqual([
+      LOGO_BLACK_AND_WHITE.back,
+      LOGO_BLACK_AND_WHITE.front,
+      LOGO_BLACK_AND_WHITE.inner,
+    ]);
+  });
+
+  it('trägt den Vermerk am Fuß des Blattes', async () => {
+    await seed();
+    setup();
+    await screen.findByRole('list');
+    /*
+      Am `textContent` und nicht über `getByText`: Zwischen Zeichen und Kürzel
+      steht ein geschütztes Leerzeichen, und die Textsuche normalisiert es zu
+      einem gewöhnlichen – der Test ginge dann auch durch, wenn es fehlte.
+    */
+    expect(document.querySelector('.sheet__foot')?.textContent).toBe(COPYRIGHT_NOTICE);
+  });
+});
+
+describe('Die Kurszeile oben links', () => {
+  it('erscheint erst auf dem Blatt, wenn etwas darin steht', async () => {
+    await seed();
+    const user = setup();
+    await screen.findByRole('list');
+
+    expect(document.querySelector('.sheet__course-line')).toBeNull();
+    await user.type(screen.getByLabelText('Kopfzeile'), 'E | GK | Q1 | Ohm');
+    expect(document.querySelector('.sheet__course-line')?.textContent).toBe('E | GK | Q1 | Ohm');
+  });
+
+  it('merkt sie sich für das nächste Paket – aber nicht im Paket', async () => {
+    /*
+      Ein Paket wandert zwischen Lehrkräften, Klassen und Halbjahren; der Kurs
+      tut das nicht. Stünde die Zeile im Paket, trüge jede weitergegebene
+      Datei den Kurs desjenigen, der sie zuletzt gedruckt hat.
+    */
+    await seed();
+    const vorher = await getPack(PACK_ID);
+    const user = setup();
+    await screen.findByRole('list');
+
+    await user.type(screen.getByLabelText('Kopfzeile'), 'E | LK | Q2 | Ohm');
+
+    expect(window.localStorage.getItem('lexiflow.print.course')).toBe('E | LK | Q2 | Ohm');
+    expect(await getPack(PACK_ID)).toEqual(vorher);
+  });
+});
+
 describe('Die Tabellendatei', () => {
   it('lädt sie mit Inhalt und passendem Namen herunter', async () => {
     await seed();
     const user = setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
 
     await user.click(screen.getByRole('button', { name: 'Als Tabelle herunterladen (.csv)' }));
 
@@ -205,7 +309,7 @@ describe('Die Tabellendatei', () => {
   it('folgt der eingestellten Reihenfolge', async () => {
     await seed();
     const user = setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
 
     await user.selectOptions(screen.getByLabelText(/Reihenfolge/), 'alphabetical');
     await user.click(screen.getByRole('button', { name: 'Als Tabelle herunterladen (.csv)' }));
@@ -223,7 +327,7 @@ describe('Die Tabellendatei', () => {
     await seed();
     const vorher = await getPack(PACK_ID);
     const user = setup();
-    await screen.findByRole('table');
+    await screen.findByRole('list');
 
     await user.selectOptions(screen.getByLabelText(/Reihenfolge/), 'alphabetical');
     await user.click(screen.getByRole('button', { name: 'Als Tabelle herunterladen (.csv)' }));
@@ -234,7 +338,7 @@ describe('Die Tabellendatei', () => {
 });
 
 describe('Fehlende Pakete', () => {
-  it('sagt es, statt eine leere Tabelle zu zeigen', async () => {
+  it('sagt es, statt eine leere Liste zu zeigen', async () => {
     setup();
     expect(await screen.findByRole('heading', { name: 'Paket nicht gefunden' })).toBeInTheDocument();
   });

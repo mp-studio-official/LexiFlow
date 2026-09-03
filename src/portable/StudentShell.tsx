@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 import { Alert } from '../ui/components';
+import { Copyright } from '../ui/Copyright';
 import { Logo } from '../ui/Logo';
 import { storageNotice, type StorageState } from './storage';
 
@@ -53,6 +54,7 @@ export function StudentShell({
           <p className="small muted" style={{ margin: 0 }}>
             {storage === 'gesperrt' ? storageNotice('gesperrt') : storageNotice('verfuegbar')}
           </p>
+          <Copyright />
         </div>
       </footer>
     </div>

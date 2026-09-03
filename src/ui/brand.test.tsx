@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Logo, LogoAppIcon, LogoMark } from './Logo';
 import {
   LOGO_ASPECT,
+  LOGO_BLACK_AND_WHITE,
   LOGO_LAYERS,
   LOGO_SHAPES,
   LOGO_VARIANTS,
@@ -112,6 +113,35 @@ describe('Wortmarke und Signet', () => {
     expect(html).toContain('currentColor');
     for (const color of ['#2F092D', '#FF2E2D', '#F8EFE3']) {
       expect(html).not.toContain(color);
+    }
+  });
+
+  it('zeichnet die Schwarzweiß-Fassung deckend und in drei Stufen', () => {
+    /*
+      Der Fehler, den diese Prüfung festhält: `mono` legte den Durchblick mit
+      35 % Deckkraft auf eine voll deckende Fläche. Aus einem hellen „F“ wurde
+      dadurch kein helles „F“, sondern gar keines – und dort, wo die vordere
+      Fläche über der hinteren liegt, addierten sich zwei halbdurchlässige
+      Schichten zu einem dritten Ton, den es im Entwurf nicht gibt.
+
+      `bw` nimmt die drei Werte aus der gelieferten Datei und deckt.
+    */
+    const { container } = render(<LogoMark tone="bw" />);
+    const paths = [...container.querySelectorAll('path')];
+
+    expect(paths.map((path) => path.getAttribute('fill'))).toEqual([
+      LOGO_BLACK_AND_WHITE.back,
+      LOGO_BLACK_AND_WHITE.front,
+      LOGO_BLACK_AND_WHITE.inner,
+    ]);
+    for (const path of paths) expect(path.getAttribute('fill-opacity')).toBeNull();
+  });
+
+  it('hält die Schwarzweiß-Fassung von den Markenfarben getrennt', () => {
+    // Sie ist dieselbe Form für Papier, keine dritte Markenfarbe.
+    const werte: string[] = Object.values(LOGO_BLACK_AND_WHITE);
+    for (const color of ['#2F092D', '#FF2E2D', '#F8EFE3']) {
+      expect(werte).not.toContain(color);
     }
   });
 

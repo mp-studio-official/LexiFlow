@@ -12,6 +12,9 @@ import { expect, test, type Page } from '@playwright/test';
  * 2. Ob die heruntergeladene `.csv` den Inhalt hat, den sie haben soll.
  * 3. Ob die Liste in **beiden** Bereichen erreichbar ist – und im Lernbereich
  *    erreichbar, ohne die Lernwege zu verdrängen.
+ *
+ * Seit 4B.7 ist das Blatt eine Liste und keine Tabelle mehr: Wort, Satz,
+ * Übersetzung untereinander. Der Grund steht in `PrintablePackView.tsx`.
  */
 
 const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
@@ -34,31 +37,161 @@ async function makePack(page: Page): Promise<string> {
   return new URL(page.url()).hash.split('/')[2] ?? '';
 }
 
+/** Die Vokabelliste auf dem Blatt – nicht irgendeine Liste der Seite. */
+function sheetList(page: Page) {
+  return page.locator('.sheet__list');
+}
+
 test.describe('Vokabelliste', () => {
   test('@smoke der Weg aus dem Paket auf das Blatt', async ({ page }) => {
     await makePack(page);
 
     await page.getByRole('link', { name: 'Vokabelliste drucken / als PDF speichern' }).click();
-    await expect(page.getByRole('table')).toBeVisible();
+    await expect(sheetList(page)).toBeVisible();
 
-    // Die vollständigen Lernformen und die Übersetzungen stehen in der Tabelle.
-    const tabelle = page.getByRole('table');
-    await expect(tabelle).toContainText('to depend on sb./sth.');
-    await expect(tabelle).toContainText('von jdm./etw. abhängen');
-    await expect(tabelle).toContainText('restraints (pl.)');
-    await expect(tabelle).toContainText('die Beschränkungen; die Auflagen');
-    await expect(tabelle).toContainText('attainable (adj.)');
-    await expect(tabelle).toContainText('to coin a phrase / term');
+    // Die vollständigen Lernformen und die Übersetzungen stehen auf dem Blatt.
+    const liste = sheetList(page);
+    await expect(liste).toContainText('to depend on sb./sth.');
+    await expect(liste).toContainText('von jdm./etw. abhängen');
+    await expect(liste).toContainText('restraints (pl.)');
+    await expect(liste).toContainText('die Beschränkungen; die Auflagen');
+    await expect(liste).toContainText('attainable (adj.)');
+    await expect(liste).toContainText('to coin a phrase / term');
 
     // Und der Kopf sagt, worum es geht.
     await expect(page.getByRole('heading', { name: 'Unit 7 – Coastal erosion' })).toBeVisible();
     await expect(page.getByText(/4 Vokabeln · Klasse 9/)).toBeVisible();
   });
 
+  test('@smoke stellt Wort, Satz und Übersetzung untereinander', async ({ page }) => {
+    /*
+      Der Aufbau ist die eigentliche Auskunft dieser Ansicht, und er ist der
+      Grund, warum aus der Tabelle eine Liste wurde: Eine Lernform wie
+      `to depend on sb./sth.` und ein ganzer Beispielsatz teilen sich in einer
+      28-%-Spalte nichts – beide brechen um, und aus einer Zeile werden vier,
+      die man nicht mehr als eine Vokabel liest.
+
+      Gemessen wird deshalb, dass das Wort **breiter** stehen darf als eine
+      Spalte es zuließe, und dass es fett über seiner Übersetzung steht.
+    */
+    const id = await makePack(page);
+    await page.goto(`/#/material/${id}/liste`);
+    await expect(sheetList(page)).toBeVisible();
+
+    const ersterEintrag = page.locator('.sheet__entry').first();
+    await expect(ersterEintrag.locator('.sheet__form')).toHaveText('to depend on sb./sth.');
+    await expect(ersterEintrag.locator('.sheet__german')).toHaveText('von jdm./etw. abhängen');
+
+    const gemessen = await ersterEintrag.evaluate((entry) => {
+      const word = entry.querySelector('.sheet__word') as HTMLElement;
+      const german = entry.querySelector('.sheet__german') as HTMLElement;
+      return {
+        gewicht: Number(getComputedStyle(word).fontWeight),
+        wortOben: word.getBoundingClientRect().bottom <= german.getBoundingClientRect().top + 1,
+        gleicheBreite:
+          Math.abs(word.getBoundingClientRect().width - german.getBoundingClientRect().width) < 2,
+      };
+    });
+
+    expect(gemessen.gewicht).toBeGreaterThanOrEqual(600);
+    expect(gemessen.wortOben).toBe(true);
+    // Beide Zeilen haben dieselbe volle Breite – keine Spalten mehr.
+    expect(gemessen.gleicheBreite).toBe(true);
+  });
+
+  test('@smoke die Kopfzeile oben links lässt sich beschreiben', async ({ page }) => {
+    /*
+      „E | GK | Q1 | Ohm“: der Kurs, zu dem das Blatt gehört. Am Bildschirm ein
+      Feld, auf Papier eine Zeile – und leer bleibt sie auch auf Papier leer,
+      statt einen Rahmen zu hinterlassen.
+    */
+    const id = await makePack(page);
+    await page.goto(`/#/material/${id}/liste`);
+    await expect(sheetList(page)).toBeVisible();
+
+    await expect(page.locator('.sheet__course-line')).toHaveCount(0);
+
+    await page.getByLabel('Kopfzeile').fill('E | GK | Q1 | Ohm');
+    await expect(page.locator('.sheet__course-line')).toHaveText('E | GK | Q1 | Ohm');
+
+    // Am Bildschirm zeigt das Feld die Zeile, auf Papier das Element.
+    await expect(page.locator('.sheet__course-line')).toBeHidden();
+    await page.emulateMedia({ media: 'print' });
+    const imDruck = await page.evaluate(() => ({
+      zeile: getComputedStyle(document.querySelector('.sheet__course-line') as HTMLElement).display,
+      feld: getComputedStyle(document.querySelector('.sheet__course-field') as HTMLElement).display,
+    }));
+    expect(imDruck.zeile).toBe('block');
+    expect(imDruck.feld).toBe('none');
+    await page.emulateMedia({ media: 'screen' });
+
+    // Und sie überlebt den Wechsel auf ein anderes Paket.
+    await page.reload();
+    await expect(page.getByLabel('Kopfzeile')).toHaveValue('E | GK | Q1 | Ohm');
+  });
+
+  test('@smoke im Druck bleibt nur das Blatt', async ({ page }) => {
+    const id = await makePack(page);
+    await page.goto(`/#/material/${id}/liste`);
+    await expect(sheetList(page)).toBeVisible();
+
+    await page.emulateMedia({ media: 'print' });
+
+    const gemessen = await page.evaluate(() => {
+      const entry = document.querySelector('.sheet__entry') as HTMLElement;
+      const word = document.querySelector('.sheet__word') as HTMLElement;
+      const title = document.querySelector('.sheet__title') as HTMLElement;
+      const foot = document.querySelector('.sheet__foot') as HTMLElement;
+      const nav = document.querySelector('.app-nav') as HTMLElement;
+      const tools = document.querySelector('.print-hidden') as HTMLElement;
+      return {
+        eintragBleibtGanz: getComputedStyle(entry).breakInside,
+        wortBleibtBeiDerBedeutung: getComputedStyle(word).breakAfter,
+        balken: getComputedStyle(title).borderBottomColor,
+        balkenbreite: Number.parseFloat(getComputedStyle(title).borderBottomWidth),
+        fussImFluss: getComputedStyle(foot).position,
+        fussText: foot.textContent,
+        navigation: getComputedStyle(nav).display,
+        werkzeuge: getComputedStyle(tools).display,
+      };
+    });
+
+    // Keine Vokabel wird über zwei Seiten verteilt.
+    expect(gemessen.eintragBleibtGanz).toBe('avoid');
+    expect(gemessen.wortBleibtBeiDerBedeutung).toBe('avoid');
+
+    /*
+      Der Balken unter dem Titel ist eine Rahmenlinie und keine Fläche: Browser
+      drucken Hintergründe standardmäßig nicht mit, Rahmen dagegen schon. Und
+      er ist Tomate – die einzige Farbe, die dieses Blatt trägt.
+    */
+    expect(gemessen.balken).toBe('rgb(255, 46, 45)');
+    expect(gemessen.balkenbreite).toBeGreaterThan(2);
+
+    /*
+      Der Vermerk steht im Fluss am Ende des Blattes.
+
+      `position: fixed` war der erste Versuch und ist gescheitert: Chrome
+      wiederholt eine solche Fußzeile im Druck nicht je Seite, sondern setzt
+      sie einmal – gemessen an einem erzeugten PDF landete der Vermerk oben
+      auf Seite 2 statt unten auf Seite 1.
+    */
+    expect(gemessen.fussImFluss).toBe('static');
+    // Geschütztes Leerzeichen zwischen Zeichen und Kürzel – „©“ am Zeilenende
+    // und „OHM“ auf der nächsten Zeile wäre kein Vermerk mehr.
+    expect(gemessen.fussText).toBe('©\u00a0OHM');
+
+    // Nichts Bedienbares auf dem Papier.
+    expect(gemessen.navigation).toBe('none');
+    expect(gemessen.werkzeuge).toBe('none');
+
+    await page.emulateMedia({ media: 'screen' });
+  });
+
   test('@smoke lädt die Tabelle als .csv mit dem erwarteten Inhalt', async ({ page }) => {
     const id = await makePack(page);
     await page.goto(`/#/material/${id}/liste`);
-    await expect(page.getByRole('table')).toBeVisible();
+    await expect(sheetList(page)).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Als Tabelle herunterladen (.csv)' }).click();
@@ -84,58 +217,13 @@ test.describe('Vokabelliste', () => {
     expect(text).toContain('"Klasse 9"');
   });
 
-  test('@smoke im Druck bleibt nur das Blatt', async ({ page }) => {
-    const id = await makePack(page);
-    await page.goto(`/#/material/${id}/liste`);
-    await expect(page.getByRole('table')).toBeVisible();
-
-    await page.emulateMedia({ media: 'print' });
-
-    const gemessen = await page.evaluate(() => {
-      const cell = document.querySelector('.sheet .sheet__table tbody td') as HTMLElement;
-      const head = document.querySelector('.sheet .sheet__table thead') as HTMLElement;
-      const row = document.querySelector('.sheet .sheet__table tbody tr') as HTMLElement;
-      const nav = document.querySelector('.app-nav') as HTMLElement;
-      const tools = document.querySelector('.print-hidden') as HTMLElement;
-      return {
-        kopfWiederholt: getComputedStyle(head).display,
-        zeileBleibtGanz: getComputedStyle(row).breakInside,
-        navigation: getComputedStyle(nav).display,
-        werkzeuge: getComputedStyle(tools).display,
-        linienfarbe: getComputedStyle(cell).borderBottomColor,
-        linienbreite: getComputedStyle(cell).borderBottomWidth,
-      };
-    });
-
-    // Der Tabellenkopf wiederholt sich auf jeder Seite – sonst rät, wer
-    // Seite 3 in der Hand hält, welche Spalte welche ist.
-    expect(gemessen.kopfWiederholt).toBe('table-header-group');
-    expect(gemessen.zeileBleibtGanz).toBe('avoid');
-
-    // Nichts Bedienbares auf dem Papier.
-    expect(gemessen.navigation).toBe('none');
-    expect(gemessen.werkzeuge).toBe('none');
-
-    /*
-      Und die Linie ist grau, nicht sandfarben: Weiter oben im Stylesheet steht
-      eine Regel für die Entwurfstabelle, die jede Tabelle trifft und genug
-      Gewicht hat, um eine Klasse zu schlagen. Diese Messung ist der Wächter
-      darüber, dass die Vokabelliste ihr entkommt.
-    */
-    expect(gemessen.linienfarbe).toBe('rgb(153, 153, 153)');
-    expect(gemessen.linienbreite).toBe('1px');
-
-    await page.emulateMedia({ media: 'screen' });
-  });
-
   test('@smoke die Einstellungen wirken auf Blatt und Datei', async ({ page }) => {
     const id = await makePack(page);
     await page.goto(`/#/material/${id}/liste`);
-    await expect(page.getByRole('table')).toBeVisible();
+    await expect(sheetList(page)).toBeVisible();
 
     await page.getByLabel(/Reihenfolge/).selectOption('alphabetical');
-    const ersteZelle = page.locator('.sheet__table tbody tr').first().locator('td').first();
-    await expect(ersteZelle).toHaveText('attainable (adj.)');
+    await expect(page.locator('.sheet__form').first()).toHaveText('attainable (adj.)');
 
     await page.getByLabel(/Zeilenhöhe/).selectOption('roomy');
     await expect(page.locator('.sheet')).toHaveAttribute('data-density', 'roomy');
@@ -159,7 +247,7 @@ test.describe('Vokabelliste', () => {
     await expect(liste).toBeVisible();
     await liste.click();
 
-    await expect(page.getByRole('table')).toContainText('to depend on sb./sth.');
+    await expect(sheetList(page)).toContainText('to depend on sb./sth.');
     await expect(
       page.getByRole('button', { name: 'Als Tabelle herunterladen (.csv)' }),
     ).toBeVisible();
@@ -168,7 +256,7 @@ test.describe('Vokabelliste', () => {
   test('@a11y die Vokabelliste ohne schwerwiegende Befunde', async ({ page }) => {
     const id = await makePack(page);
     await page.goto(`/#/material/${id}/liste`);
-    await expect(page.getByRole('table')).toBeVisible();
+    await expect(sheetList(page)).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -184,10 +272,10 @@ test.describe('Vokabelliste', () => {
   test.describe('Smartphone-Breite', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test('@a11y die Tabelle sprengt das Fenster nicht', async ({ page }) => {
+    test('@a11y das Blatt sprengt das Fenster nicht', async ({ page }) => {
       const id = await makePack(page);
       await page.goto(`/#/material/${id}/liste`);
-      await expect(page.getByRole('table')).toBeVisible();
+      await expect(sheetList(page)).toBeVisible();
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

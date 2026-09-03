@@ -56,16 +56,24 @@ async function downloadBytes(download: import('@playwright/test').Download): Pro
  * einer Stelle zu ändern und an der anderen zu vergessen.
  */
 async function expectVocabList(page: Page, external: string[]): Promise<void> {
-  const tabelle = page.getByRole('table');
-  await expect(tabelle).toBeVisible();
+  /*
+    Seit 4B.7 ist das Blatt eine Liste und keine Tabelle mehr – Wort, Satz,
+    Übersetzung untereinander. Der Grund steht in `PrintablePackView.tsx`.
+  */
+  const liste = page.locator('.sheet__list');
+  await expect(liste).toBeVisible();
 
   // Die vollständigen Lernformen **und** die Übersetzungen stehen da.
-  await expect(tabelle).toContainText('to depend on sb./sth.');
-  await expect(tabelle).toContainText('von jdm./etw. abhängen');
-  await expect(tabelle).toContainText('restraints (pl.)');
-  await expect(tabelle).toContainText('die Beschränkungen; die Auflagen');
-  await expect(tabelle).toContainText('attainable (adj.)');
-  await expect(tabelle).toContainText('to coin a phrase / term');
+  await expect(liste).toContainText('to depend on sb./sth.');
+  await expect(liste).toContainText('von jdm./etw. abhängen');
+  await expect(liste).toContainText('restraints (pl.)');
+  await expect(liste).toContainText('die Beschränkungen; die Auflagen');
+  await expect(liste).toContainText('attainable (adj.)');
+  await expect(liste).toContainText('to coin a phrase / term');
+
+  // Die Kopfzeile oben links lässt sich beschreiben – auch hier, ohne Server.
+  await page.getByLabel('Kopfzeile').fill('E | GK | Q1 | Ohm');
+  await expect(page.locator('.sheet__course-line')).toHaveText('E | GK | Q1 | Ohm');
 
   // Die Tabellendatei – heruntergeladen und im Inhalt geprüft.
   const downloadPromise = page.waitForEvent('download');
@@ -83,17 +91,23 @@ async function expectVocabList(page: Page, external: string[]): Promise<void> {
   // Und im Druckmedium bleibt nur das Blatt.
   await page.emulateMedia({ media: 'print' });
   const gemessen = await page.evaluate(() => {
-    const head = document.querySelector('.sheet .sheet__table thead') as HTMLElement;
-    const row = document.querySelector('.sheet .sheet__table tbody tr') as HTMLElement;
+    const entry = document.querySelector('.sheet__entry') as HTMLElement;
+    const foot = document.querySelector('.sheet__foot') as HTMLElement;
+    const feld = document.querySelector('.sheet__course-field') as HTMLElement;
+    const zeile = document.querySelector('.sheet__course-line') as HTMLElement;
     const tools = document.querySelector('.print-hidden') as HTMLElement;
     return {
-      kopfWiederholt: getComputedStyle(head).display,
-      zeileBleibtGanz: getComputedStyle(row).breakInside,
+      eintragBleibtGanz: getComputedStyle(entry).breakInside,
+      kursZeile: getComputedStyle(zeile).display,
+      kursFeld: getComputedStyle(feld).display,
+      vermerk: foot.textContent,
       werkzeuge: getComputedStyle(tools).display,
     };
   });
-  expect(gemessen.kopfWiederholt).toBe('table-header-group');
-  expect(gemessen.zeileBleibtGanz).toBe('avoid');
+  expect(gemessen.eintragBleibtGanz).toBe('avoid');
+  expect(gemessen.kursZeile).toBe('block');
+  expect(gemessen.kursFeld).toBe('none');
+  expect(gemessen.vermerk).toBe('\u00a9\u00a0OHM');
   expect(gemessen.werkzeuge).toBe('none');
   await page.emulateMedia({ media: 'screen' });
 

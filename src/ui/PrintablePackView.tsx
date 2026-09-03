@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { LogoMark } from './Logo';
 import { Button } from './components';
+import { COPYRIGHT_NOTICE } from './Copyright';
 import { downloadText } from './download';
 import { getPack } from '../data/packRepo';
 import { csvFileName, packToCsv, tableHeader, tableRows, type TableOrder } from '../domain/vocabTable';
@@ -22,6 +23,24 @@ import type { VocabPack } from '../domain/schema';
  * Der Nebeneffekt ist der eigentliche Gewinn: Wer den Ausdruck ändern will,
  * ändert CSS. Wer ein PDF anders haben will, ändert eine Bibliothek.
  *
+ * ## Warum eine Liste und keine Tabelle mehr (Sprint 4B.7)
+ *
+ * Bis 4B.6 war das Blatt eine vierspaltige Tabelle. Auf dem Bildschirm sah das
+ * ordentlich aus; auf Papier zerfiel es. Eine englische Lernform wie
+ * `to depend on sb./sth.` und ein ganzer Beispielsatz teilen sich in einer
+ * 28-%-Spalte nichts – sie brechen beide um, und aus einer Zeile werden vier
+ * Zeilen, die man nicht mehr als eine Vokabel liest.
+ *
+ * Die gelieferte Vorlage macht es anders und richtig: **untereinander** statt
+ * nebeneinander. Zuerst das Wort, fett. Darunter der Satz. Darunter die
+ * Übersetzung. Drei Zeilen, die zusammen ein Ding sind – und die volle
+ * Blattbreite für jede davon.
+ *
+ * Was dabei verloren geht, ist der wiederholte Tabellenkopf auf Seite 2 und 3.
+ * Er war ein echter Gewinn, solange es Spalten gab, deren Bedeutung man raten
+ * musste. Ohne Spalten gibt es nichts zu raten: Fett ist das Wort, in
+ * Anführungszeichen der Satz, darunter das Deutsche.
+ *
  * ## Was auf dem Papier **nicht** landet
  *
  * Navigation, Schaltflächen, Einstellungen – alles, was man anklicken kann,
@@ -29,7 +48,7 @@ import type { VocabPack } from '../domain/schema';
  *
  * ## Warum die Ansicht nichts verändert
  *
- * Sie liest das Paket und rechnet daraus eine Tabelle. Kein Speichern, kein
+ * Sie liest das Paket und rechnet daraus eine Liste. Kein Speichern, kein
  * Lernstand, keine Sortierung im Speicher (siehe `vocabTable.ts`). Eine
  * Vokabelliste auszudrucken ist keine Bearbeitung.
  */
@@ -45,6 +64,44 @@ export interface PrintablePackViewProps {
 
 type Density = 'compact' | 'roomy';
 
+/**
+ * Der Schlüssel, unter dem die Kurszeile liegt.
+ *
+ * Sie gehört **nicht** ins Paket. Ein Paket wandert zwischen Lehrkräften,
+ * Klassen und Halbjahren; „E | GK | Q1 | Ohm“ tut das nicht. Stünde die Zeile
+ * im Paket, trüge jede weitergegebene Datei den Kurs desjenigen, der sie
+ * zuletzt gedruckt hat.
+ *
+ * Sie gehört aber auch nicht in den Zustand einer Seite: Wer zwanzig Pakete
+ * druckt, tippt sie sonst zwanzigmal. Der Kurs ist eine Eigenschaft des
+ * Geräts, an dem gedruckt wird – dort liegt sie, und nur dort.
+ */
+const COURSE_KEY = 'lexiflow.print.course';
+
+/**
+ * Lesen und Schreiben in einem Speicher, den es vielleicht nicht gibt.
+ *
+ * Im privaten Fenster und bei gesperrtem Speicher wirft schon der **Zugriff**
+ * auf `localStorage`, nicht erst der Aufruf. Eine Vokabelliste, die deswegen
+ * gar nicht erst erscheint, wäre der schlechteste denkbare Tausch für eine
+ * Bequemlichkeit.
+ */
+function readCourse(): string {
+  try {
+    return window.localStorage.getItem(COURSE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeCourse(value: string): void {
+  try {
+    window.localStorage.setItem(COURSE_KEY, value);
+  } catch {
+    /* Kein Speicher – dann gilt die Zeile für diesen Ausdruck und sonst nichts. */
+  }
+}
+
 export function PrintablePackView({ backTo, backLabel }: PrintablePackViewProps) {
   const { packId = '' } = useParams();
   const [pack, setPack] = useState<VocabPack | null>(null);
@@ -53,6 +110,7 @@ export function PrintablePackView({ backTo, backLabel }: PrintablePackViewProps)
   const [showExamples, setShowExamples] = useState(true);
   const [order, setOrder] = useState<TableOrder>('pack');
   const [density, setDensity] = useState<Density>('compact');
+  const [course, setCourse] = useState(readCourse);
 
   useEffect(() => {
     let active = true;
@@ -84,16 +142,22 @@ export function PrintablePackView({ backTo, backLabel }: PrintablePackViewProps)
   const header = tableHeader(pack.meta, rows.length);
   /*
     Ein Beispielsatz ist optional – und wenn keine Zeile einen hat, wäre die
-    Spalte eine leere Spalte. Die Einstellung bleibt trotzdem sichtbar; sie
+    Zeile eine leere Zeile. Die Einstellung bleibt trotzdem sichtbar; sie
     verschwinden zu lassen hieße, die Erklärung mitzunehmen, warum es hier
     nichts einzustellen gibt.
   */
   const anyExample = rows.some((row) => row.exampleEnglish);
   const withExamples = showExamples && anyExample;
+  const courseLine = course.trim();
 
   function handleCsv(): void {
     if (!pack) return;
     downloadText(csvFileName(pack.meta), packToCsv(pack, { order }), 'text/csv');
+  }
+
+  function handleCourse(value: string): void {
+    setCourse(value);
+    writeCourse(value);
   }
 
   return (
@@ -151,19 +215,43 @@ export function PrintablePackView({ backTo, backLabel }: PrintablePackViewProps)
         </p>
       </div>
 
-      {/* ------------------------------------------------ Blatt und Tabelle */}
+      {/* ------------------------------------------------ Blatt und Liste */}
       <div className="sheet" data-density={density}>
         <header className="sheet__head">
+          {/*
+            Die Kurszeile steht ganz oben links – vor Marke und Titel.
+
+            Auf dem Bildschirm ist sie ein Feld, auf Papier eine Zeile. Beides
+            aus **einem** Wert: Ein Feld, das man im Druck nur entkleidet,
+            hinterlässt je nach Browser einen Rahmen, einen Platzhaltertext
+            oder eine abgeschnittene Zeile – ein leeres Feld sogar eine leere
+            Zeile mit Rahmen. Zwei Elemente, von denen immer genau eines
+            sichtbar ist, haben keines dieser Probleme.
+          */}
+          <div className="sheet__course">
+            <label className="sheet__course-field print-hidden">
+              <span className="sheet__course-label">Kopfzeile</span>
+              <input
+                type="text"
+                value={course}
+                placeholder="E | GK | Q1 | Ohm"
+                onChange={(event) => handleCourse(event.target.value)}
+              />
+            </label>
+            {courseLine ? <p className="sheet__course-line">{courseLine}</p> : null}
+          </div>
+
           <div className="sheet__brand">
             {/*
-              Die einfarbige Fassung: Ein Ausdruck ist meistens schwarzweiß,
-              und ein Zeichen, das nur in Farbe funktioniert, ist dort ein
-              grauer Klecks.
+              Die gelieferte Schwarzweiß-Fassung. Ein Ausdruck ist meistens
+              schwarzweiß, und ein Zeichen, das nur in Farbe funktioniert, ist
+              dort ein grauer Klecks.
             */}
-            <LogoMark size={26} tone="mono" />
+            <LogoMark size={26} tone="bw" />
             <span className="sheet__wordmark">LexiFlow</span>
           </div>
-          <div>
+
+          <div className="sheet__titles">
             <h1 className="sheet__title">{header.title}</h1>
             <p className="sheet__meta">{header.summary}</p>
             {header.description ? (
@@ -172,43 +260,57 @@ export function PrintablePackView({ backTo, backLabel }: PrintablePackViewProps)
           </div>
         </header>
 
-        <table className="sheet__table">
-          {/*
-            `<thead>` ist nicht Kosmetik: Nur ein echter Tabellenkopf wird beim
-            Seitenumbruch wiederholt. Auf Seite 3 ohne Spaltenüberschriften zu
-            stehen ist genau der Fehler, den man erst nach dem Drucken sieht.
-          */}
-          <thead>
-            <tr>
-              <th scope="col">Englisch</th>
-              <th scope="col">Deutsch</th>
-              <th scope="col">Wortart</th>
-              {withExamples ? <th scope="col">Beispielsatz</th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td className="sheet__english">{row.english}</td>
-                <td>{row.german}</td>
-                <td className="sheet__pos">{row.partOfSpeech}</td>
-                {withExamples ? (
-                  <td className="sheet__example">
-                    {row.exampleEnglish}
-                    {row.exampleGerman ? (
-                      <>
-                        <br />
-                        <span className="sheet__example-de">{row.exampleGerman}</span>
-                      </>
-                    ) : null}
-                  </td>
+        {/*
+          Eine Liste, keine Tabelle – und eine **nummerierte**.
+
+          Die Nummer ist kein Schmuck: Sie ist der kürzeste Weg, im Unterricht
+          auf eine Vokabel zu zeigen („Nummer 14“), ohne sie vorzulesen. Sie
+          folgt der eingestellten Reihenfolge, weil sie sich auf das Blatt
+          bezieht, das in der Hand liegt, und nicht auf das Paket.
+        */}
+        <ol className="sheet__list">
+          {rows.map((row) => (
+            <li className="sheet__entry" key={row.id}>
+              {/*
+                Die Lernform steht in einem eigenen Element und nicht als
+                nackter Text neben der Wortart. Ohne es klebte beides
+                zusammen – sichtbar hielte der Abstand sie auseinander, aber
+                vorgelesen und beim Kopieren stünde da
+                „to depend on sb./sth.Verb“.
+              */}
+              <p className="sheet__word">
+                <span className="sheet__form">{row.english}</span>
+                {row.partOfSpeech ? (
+                  <span className="sheet__pos">
+                    {' '}
+                    {row.partOfSpeech}
+                  </span>
                 ) : null}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </p>
+              {withExamples && row.exampleEnglish ? (
+                <p className="sheet__example">
+                  „{row.exampleEnglish}“
+                  {row.exampleGerman ? (
+                    <span className="sheet__example-de"> – {row.exampleGerman}</span>
+                  ) : null}
+                </p>
+              ) : null}
+              <p className="sheet__german">{row.german}</p>
+            </li>
+          ))}
+        </ol>
 
         {rows.length === 0 ? <p className="muted">Dieses Paket enthält keine Vokabeln.</p> : null}
+
+        {/*
+          Der Vermerk steht auf jedem Blatt, nicht nur auf dem ersten.
+
+          Ein Ausdruck wird auseinandergerissen, kopiert und weitergereicht;
+          eine Herkunft, die nur auf Seite 1 steht, ist ab Seite 2 keine. Die
+          Wiederholung leistet die Druckregel (`position: fixed` im Druck ist
+          eine Kopf-/Fußzeile), nicht das Markup.
+        */}
+        <p className="sheet__foot">{COPYRIGHT_NOTICE}</p>
       </div>
     </div>
   );

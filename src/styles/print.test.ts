@@ -67,20 +67,13 @@ describe('Das Blatt', () => {
   });
 });
 
-describe('Die Tabelle bricht sauber um', () => {
-  it('wiederholt den Kopf auf jeder Seite', () => {
+describe('Die Liste bricht sauber um', () => {
+  it('schneidet keine Vokabel mitten durch', () => {
     /*
-      `display: table-header-group` ist die Regel, die das auslöst. Ohne sie
-      steht der Kopf einmal auf Seite 1, und wer Seite 3 in der Hand hält,
-      rät, welche Spalte welche ist.
+      Am Listeneintrag **und** an seinen Absätzen: Manche Engines beachten die
+      Regel nur am einen, manche nur am anderen.
     */
-    expect(block).toMatch(/\.sheet__table thead\s*\{[^}]*display:\s*table-header-group/);
-  });
-
-  it('schneidet keine Zeile mitten durch', () => {
-    // An `tr` **und** an der Zelle: Manche Engines beachten die Regel nur an
-    // der einen, manche nur an der anderen.
-    expect(block).toMatch(/\.sheet__table tr[^{]*\{[^}]*break-inside:\s*avoid/s);
+    expect(block).toMatch(/\.sheet__entry[^{]*\{[^}]*break-inside:\s*avoid/s);
     expect(block).toMatch(/page-break-inside:\s*avoid/);
   });
 
@@ -89,31 +82,51 @@ describe('Die Tabelle bricht sauber um', () => {
     expect(block).toMatch(/widows:\s*[2-9]/);
   });
 
-  it('hält die Kopfzeile des Blattes bei der ersten Tabellenzeile', () => {
-    expect(block).toMatch(/\.sheet__head\s*\{[^}]*break-after:\s*avoid/);
+  it('hält das Wort bei seiner Übersetzung', () => {
+    /*
+      Ohne diese Regel steht auf Seite 1 unten das fette englische Wort und
+      auf Seite 2 oben, ohne Zusammenhang, ein deutscher Ausdruck.
+    */
+    expect(block).toMatch(/\.sheet__word,\s*\n?\s*\.sheet__example\s*\{[^}]*break-after:\s*avoid/s);
   });
 
-  it('behält border-collapse – sonst wiederholt kein Browser den Kopf', () => {
-    expect(block).toMatch(/border-collapse:\s*collapse/);
+  it('hält die Kopfzeile des Blattes bei der ersten Vokabel', () => {
+    expect(block).toMatch(/\.sheet__head\s*\{[^}]*break-after:\s*avoid/s);
+  });
+});
+
+describe('Die Kopfzeile und der Fuß', () => {
+  it('zeigt die Kurszeile auf Papier und das Eingabefeld nicht', () => {
+    /*
+      Am Bildschirm ist die Kurszeile ein Feld, auf Papier eine Zeile. Das
+      Feld trägt `print-hidden`, die Zeile steht erst hier im Fluss – ein
+      leeres Feld hinterlässt so keine leere Zeile mit Rahmen.
+    */
+    expect(block).toMatch(/\.sheet__course-line\s*\{[^}]*display:\s*block/s);
+  });
+
+  it('stellt den Vermerk ans Ende des Blattes und nicht als Fußzeile', () => {
+    /*
+      Der Versuch war `position: fixed` – im Druck angeblich die Fußzeile. Er
+      ist gescheitert: Chrome wiederholt sie nicht je Seite, sondern setzt sie
+      einmal, und gemessen landete der Vermerk **oben auf Seite 2**. Diese
+      Prüfung hält fest, dass er nicht zurückkommt.
+    */
+    expect(block).toMatch(/\.sheet__foot\s*\{[^}]*margin-top/s);
+    expect(block).not.toMatch(/\.sheet__foot\s*\{[^}]*position:\s*fixed/s);
+  });
+
+  it('behält die Farbe des Balkens unter dem Titel', () => {
+    /*
+      Er ist eine Rahmenlinie, keine Fläche – sonst wäre er im Druck weg,
+      weil Browser Hintergründe standardmäßig nicht mitdrucken.
+    */
+    expect(css).toMatch(/\.sheet__title\s*\{[^}]*border-bottom:[^;]*var\(--brand-tomato\)/s);
+    expect(block).toMatch(/print-color-adjust:\s*exact/);
   });
 });
 
 describe('Die Regeln setzen sich auch durch', () => {
-  it('sticht die allgemeine Tabellenregel aus', () => {
-    /*
-      Weiter oben im Stylesheet steht `tbody tr:not([hidden]) > td`. Die Regel
-      gehört zur Entwurfstabelle und trifft trotzdem jede Tabelle – mit genug
-      Gewicht, um eine Regel mit einer einzigen Klasse zu schlagen. Die
-      Vokabelliste bekam davon 2 px in Sandfarbe, auch im Druck.
-
-      Zwei Klassen im Selektor sind die Antwort. Diese Prüfung hält fest,
-      dass sie dort stehen bleiben.
-    */
-    expect(css).toContain('tbody tr:not([hidden]) > td');
-    expect(block).toMatch(/\.sheet \.sheet__table td/);
-    expect(css).toMatch(/\.sheet \.sheet__table th,\s*\.sheet \.sheet__table td/);
-  });
-
   it('gibt der Linie eine Breite, die nicht auf null rundet', () => {
     // `0.4pt` rundet je nach Engine auf 0, und die Linie verschwindet ganz.
     expect(block).not.toMatch(/border-bottom:\s*0\.\d+pt/);

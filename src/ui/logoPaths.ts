@@ -81,6 +81,40 @@ export const LOGO_VARIANTS = {
   onAubergine: { back: '#F8EFE3', front: '#FF2E2D', inner: '#2F092D' },
 } as const;
 
+/**
+ * Die gelieferte Schwarzweiß-Fassung („LexiFlow Logo – S:W“).
+ *
+ * Sie steht **absichtlich nicht** in `LOGO_VARIANTS`: Dort stehen die beiden
+ * Markenfassungen, aus denen die Assets unter `public/` entstehen. Dies hier
+ * ist keine dritte Markenfarbe, sondern dieselbe Form für Papier.
+ *
+ * ## Warum feste Grauwerte und nicht `currentColor`
+ *
+ * Der bisherige Weg – eine Farbe mit drei Deckkraftstufen – war falsch, und
+ * zwar sichtbar: Der Durchblick lag mit 35 % auf einer voll deckenden Fläche
+ * und wurde dadurch nicht heller, sondern dunkler. Das „F“ verschwand. Und wo
+ * die vordere Fläche über der hinteren liegt, addierten sich zwei
+ * halbdurchlässige Schichten zu einem dritten, dunkleren Ton, den es im
+ * Entwurf nicht gibt.
+ *
+ * Die drei Werte sind deshalb aus der gelieferten Datei ausgelesen, nicht
+ * gewählt: hintere Fläche 20/20/20, vordere 92/92/92, Durchblick weiß. Sie
+ * decken vollständig und liegen sauber übereinander.
+ *
+ * `currentColor` bleibt der Fassung `mono` vorbehalten – die gehört in
+ * Schaltflächen und in den Modus mit erzwungenen Farben, wo das Zeichen die
+ * Farbe des Textes annehmen **muss**.
+ */
+export const LOGO_BLACK_AND_WHITE = {
+  back: '#141414',
+  front: '#5C5C5C',
+  /*
+    Die Vorlage exportiert 254/255/255. Das ist ein Rundungsrest des
+    Zeichenprogramms und keine Farbe; auf Papier ist der Durchblick das Blatt.
+  */
+  inner: '#FFFFFF',
+} as const;
+
 /** Die Dateinamen der beiden Projektassets unter `public/`. */
 export const LOGO_ASSETS = {
   onAubergine: 'lexiflow-mark-on-aubergine.svg',

@@ -1,4 +1,5 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import { Copyright } from './Copyright';
 import { Logo, LogoMark } from './Logo';
 import { APP_CLAIM } from '../pwa/manifest';
 
@@ -117,6 +118,7 @@ export function AppShell() {
               <p style={{ margin: 0 }}>
                 Keine Konten, keine Auswertung durch Lehrkräfte, keine Werbung.
               </p>
+              <Copyright />
             </div>
           </footer>
         </div>
