@@ -430,6 +430,26 @@ export function PackDetailPage() {
             ) : null}
           </li>
         </ul>
+
+        {/*
+          Die Vokabelliste steht **unter** den Lernwegen und ist bewusst kein
+          fünfter Weg.
+
+          Sie ist nützlich – manche lernen besser vom Papier, und vor einer
+          Arbeit will man den Zettel in der Hand haben. Aber sie ist kein
+          Lernweg, und als gleich großer Kasten neben „Mit Karten lernen“
+          stünde sie da wie einer. Eine ruhige Zeile darunter ist erreichbar,
+          ohne die vier Wege zu verdrängen.
+        */}
+        <p className="study-aside">
+          <Link className="btn btn--small btn--quiet" to={`/lernen/${packId}/liste`}>
+            Vokabelliste
+          </Link>{' '}
+          <span className="small muted">
+            Alle Wörter als Tabelle – zum Ausdrucken, als PDF sichern oder als .csv
+            herunterladen.
+          </span>
+        </p>
       </Card>
 
       <Card>

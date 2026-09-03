@@ -92,8 +92,15 @@ describe('Die Referenzliste aus dem Auftrag', () => {
   });
 
   it('macht aus zwei markierten Formen zwei Einträge mit gemeinsamer Gruppe', () => {
-    const substantiv = find('attainability');
-    const adjektiv = find('attainable');
+    /*
+      Seit 4B.3 bleibt das geschriebene Kürzel stehen – wie `(pl.)` es immer
+      schon tat. Wer `attainable (adj.)` einfügt, hat die Form so gemeint;
+      sie in `attainable` plus ein Feld „Adjektiv“ zu zerlegen verliert keine
+      Information, ändert aber stillschweigend die Vokabel auf der Karte.
+      Hinzugefügt wird ein Kürzel dabei nie.
+    */
+    const substantiv = find('attainability (n.)');
+    const adjektiv = find('attainable (adj.)');
     expect(substantiv?.partOfSpeech).toBe('noun');
     expect(adjektiv?.partOfSpeech).toBe('adjective');
     expect(substantiv?.groupKey).toBeDefined();
@@ -177,14 +184,17 @@ describe('Kopfzeilen, Seitenzahlen und andere Reste', () => {
     // Wer sie aufzählt, meint sie als Vokabel, auch ohne Übersetzung.
     const result = parseStructuredList('• attainability (n.)\n• enduring\ntranslation: dauerhaft');
 
-    expect(result.entries.map((entry) => entry.english)).toEqual(['attainability', 'enduring']);
+    expect(result.entries.map((entry) => entry.english)).toEqual([
+      'attainability (n.)',
+      'enduring',
+    ]);
     expect(result.unassigned).toEqual([]);
   });
 
   it('behält eine Kopfzeile mit Wortartklammer – die ist auch gemeint', () => {
     const result = parseStructuredList('crowded (adj.)\n\n• enduring\ntranslation: dauerhaft');
 
-    expect(result.entries.map((entry) => entry.english)).toContain('crowded');
+    expect(result.entries.map((entry) => entry.english)).toContain('crowded (adj.)');
     expect(result.unassigned).toEqual([]);
   });
 
@@ -229,8 +239,8 @@ describe('Aus gelesenen Vokabeln werden Entwurfszeilen', () => {
     expect(single?.lemma).toBe('single out');
     expect(single?.complementPattern).toBe('sb./sth.');
 
-    const attainability = drafts.find((draft) => draft.english === 'attainability');
-    const attainable = drafts.find((draft) => draft.english === 'attainable');
+    const attainability = drafts.find((draft) => draft.english === 'attainability (n.)');
+    const attainable = drafts.find((draft) => draft.english === 'attainable (adj.)');
     expect(attainability?.lexicalGroupId).toBeTruthy();
     expect(attainability?.lexicalGroupId).toBe(attainable?.lexicalGroupId);
   });

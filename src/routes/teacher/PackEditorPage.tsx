@@ -206,6 +206,14 @@ export function PackEditorPage() {
           <Link className="btn" to={`/lernen/${packId}`}>
             Im Lernbereich ansehen
           </Link>
+          {/*
+            Der Ausdruck gehört hierher, zu den anderen Wegen aus dem Paket
+            heraus: Eine Vokabelliste auf Papier ist Weitergabe wie jede
+            andere – nur ohne Gerät auf der anderen Seite.
+          */}
+          <Link className="btn" to={`/material/${packId}/liste`}>
+            Vokabelliste drucken / als PDF speichern
+          </Link>
         </div>
         <p className="small muted" style={{ marginBottom: 0 }}>
           Das LexiFlow-Paket ist die Datei zum Weiterbearbeiten – in LexiFlow wieder zu öffnen,

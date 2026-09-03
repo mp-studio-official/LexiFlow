@@ -867,3 +867,131 @@ Neue Dateien: `src/import/learningFormProposal.ts` (+ Test),
 `src/import/learningFormChain.test.ts` – Letzterer ist das Akzeptanzkriterium:
 Er führt alle acht Beispiele der Anforderung durch Entwurf, gespeichertes
 Paket, Karten, Durchsehen, Selbsttest, Export und erneuten Import.
+
+## Block B – Das Paket als druckbare Vokabeltabelle
+
+Eigener Commit. Zwei Aktionen, vier Fassungen, keine neue Abhängigkeit.
+
+### Warum hier keine PDF-Bibliothek steht
+
+Sie wäre ein zweiter Satz Schriften, ein zweites Layoutmodell und ein Megabyte,
+das in **jeder** portablen Datei mitreist – für eine Aufgabe, die jeder Browser
+seit zwanzig Jahren beherrscht. Der Ausdruck ist deshalb eine ganz normale
+Seite mit einem `@media print`-Block, und `window.print()` öffnet den Dialog des
+Systems. „Als PDF sichern“ steht dort in Safari genauso wie in Chrome.
+
+Der Nebeneffekt ist der eigentliche Gewinn: Wer den Ausdruck ändern will,
+ändert CSS. Wer ein PDF anders haben will, ändert eine Bibliothek.
+
+### Die vier Fassungen
+
+| Fassung | Weg dorthin |
+| --- | --- |
+| normale Lehrkraftanwendung | Paketseite → „Vokabelliste drucken / als PDF speichern“ |
+| portable Lehrkraftdatei | derselbe Knopf, dieselbe Ansicht |
+| normaler Lernbereich | Paketseite → Zeile „Vokabelliste“ unter den vier Lernwegen |
+| exportierte Lerndatei | derselbe Weg |
+
+Im Lernbereich ist die Liste bewusst **kein fünfter Lernweg**: Sie steht als
+ruhige Zeile unter den vier Kästen, nicht als fünfter daneben. Nützlich ist sie
+– manche lernen vom Papier, und vor einer Arbeit will man den Zettel in der
+Hand haben –, aber ein Lernweg ist sie nicht.
+
+### Was auf dem Papier passiert
+
+`@page size: A4 portrait` mit 16 mm Rand; viele Drucker können die äußersten
+Millimeter nicht, und eine abgeschnittene letzte Spalte macht die Liste
+wertlos. Navigation, Schaltflächen und Einstellungen sind im Druck
+`display: none` – ein ausgedruckter Knopf ist ein Fleck.
+
+Drei Regeln tragen den Umbruch, und jede einzelne sieht man erst nach dem
+Drucken:
+
+- `thead { display: table-header-group }` – **nur** damit wiederholt ein
+  Browser den Tabellenkopf. Ohne sie steht er einmal auf Seite 1, und wer
+  Seite 3 in der Hand hält, rät, welche Spalte welche ist.
+- `break-inside: avoid` an `tr` **und** an der Zelle – manche Engines beachten
+  die Regel nur an der einen, manche nur an der anderen.
+- `orphans`/`widows` – keine einzelne Zeile allein auf einer Seite.
+
+Weil diese Regeln einzeln unscheinbar sind und beim Aufräumen als Erste
+gelöscht werden, hält `src/styles/print.test.ts` sie fest, und der E2E-Lauf
+misst sie im Druckmedium an den **berechneten** Werten.
+
+### Ein Fehler, den erst die Messung gezeigt hat
+
+Der Ausdruck hatte sandfarbene 2-px-Linien statt feiner grauer. Ursache: Weit
+oben im Stylesheet steht `tbody tr:not([hidden]) > td { border-bottom: 2px … }`.
+Die Regel gehört zur Entwurfstabelle, trifft aber **jede** Tabelle im Dokument
+und hat durch `:not(…)` genug Gewicht, um eine Regel mit einer einzigen Klasse
+zu schlagen – auch im Druck. Am Bildschirm fällt das nicht auf, auf Papier
+schon.
+
+Behoben mit zwei Klassen im Selektor (`.sheet .sheet__table td`). Die leckende
+Regel bleibt stehen: Sie einzuschränken hieße, alle Tabellen des Projekts
+umzustellen, und das ist eine eigene Aufgabe. Eine E2E-Messung wacht darüber,
+dass die Vokabelliste ihr entkommt.
+
+### Die Tabellendatei
+
+UTF-8 **mit BOM** – ohne die drei Bytes liest Excel unter Windows die Datei als
+Windows-1252, und aus „überfüllt“ wird „Ã¼berfÃ¼llt“. Trennzeichen ist das
+Semikolon, weil ein Komma im deutschen Excel auf das Dezimaltrennzeichen
+träfe und die ganze Datei in Spalte A landete. Zeilenende `\r\n` nach RFC 4180.
+
+**Jedes** Feld steht in Anführungszeichen, nicht nur die, die es brauchen: In
+diesen Daten kommen Semikolon, Komma, Anführungszeichen und Zeilenumbrüche
+alle vor, und ein Feld, das immer gequotet ist, kann keines davon falsch
+machen. Ein `"` im Inhalt wird verdoppelt.
+
+Spalten: Englisch · Deutsch · Wortart · Beispielsatz Englisch · Beispielsatz
+Deutsch · Thema · Jahrgang · GeR-Niveau. Mehrere Bedeutungen stehen mit
+Semikolon **in einer Zelle** – „einen Begriff, eine Redewendung prägen“ bleibt
+eine Bedeutung mit einem Komma darin.
+
+Weder Ausdruck noch Tabelle verändern etwas: `tableRows` sortiert mit
+`toSorted`, nicht mit `sort`, damit das Umstellen der Reihenfolge beim Drucken
+nicht die Reihenfolge im Speicher ändert. Ein Test hält das fest.
+
+### Nebenbefund: eine Fixture, die Felder verschluckt hat
+
+`makeEntry` hat `lemma`, `complementPattern`, `grammaticalNumber` und
+`lexicalGroupId` stillschweigend weggelassen. Ein Test, der
+`grammaticalNumber: 'plural'` übergibt und ein Objekt ohne dieses Feld
+zurückbekommt, prüft anschließend etwas anderes als das, was er zu prüfen
+glaubt. Aufgefallen an einer Wortart, die „Substantiv“ statt „Substantiv,
+Plural“ meldete.
+
+### Ebenfalls geändert: geschriebene Wortartkürzel bleiben stehen
+
+Wer `attainable (adj.)` einfügt, bekam bisher `attainable` plus ein Feld
+„Adjektiv“. Es ging dabei keine Information verloren, aber die Vokabel auf der
+Karte änderte sich stillschweigend – und `restraints (pl.)` behielt seine
+Klammer, `(adj.)` nicht. Jetzt bleibt beides stehen. **Hinzugefügt** wird ein
+Kürzel weiterhin nie: Aus `erosion` mit erkannter Wortart wird kein
+`erosion (n.)`.
+
+### Verifikation Block B
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | grün |
+| `npm run test` | **1698** grün / 96 Dateien |
+| `npm run build` | grün |
+| `npm run build:portable` | grün, **9366,4 KiB** (Schranke 12 MiB) / **646,7 KiB** (Schranke 700 KiB) |
+| `npm run verify:portable` | grün, 25 Prüfungen |
+| `npm run e2e` | **130** grün (Chromium), davon 7 neu in `e2e/vocab-list.spec.ts` |
+| `npm run e2e:portable` | **23** grün (Chromium, `file://`), davon 2 neu |
+
+Die beiden neuen portablen Prüfungen sind das geforderte Abnahmekriterium: In
+der **Lehrkraftdatei** und in einer **exportierten Lerndatei** wird das Paket
+geöffnet, die Druckansicht aufgerufen, die vollständigen Lernformen und
+Übersetzungen in der Tabelle gefunden, die `.csv` heruntergeladen und ihr
+Inhalt geprüft – jeweils über `file://`, ohne Server, mit der Zusicherung,
+dass **keine** fremde Anfrage das Gerät verlässt.
+
+**Safari:** Automatisiert geprüft ist ausschließlich Chromium. Der Ausdruck
+benutzt nur `@page`, `display: table-header-group`, `break-inside` und
+`window.print()` – alles seit Jahren in Safari vorhanden. Ob „Als PDF sichern“
+im Safari-Druckdialog das erwartete Blatt liefert, ist damit **plausibel, aber
+nicht gemessen**; ein Durchgang in echtem Safari steht aus.

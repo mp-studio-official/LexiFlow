@@ -25,6 +25,82 @@ const VOCAB_LIST = [
   'quiet\truhig',
 ].join('\n');
 
+/**
+ * Eine Liste mit vollständigen Lernformen – für die Vokabelliste (Block B).
+ *
+ * Sie enthält absichtlich die schwierigen Fälle: eine Rektion mit Platzhaltern,
+ * einen markierten Plural, ein Wortartkürzel und eine Bedeutung **mit Komma**.
+ * Genau daran zeigt sich, ob Ausdruck und `.csv` die Vokabel unversehrt
+ * weitergeben.
+ */
+const FORM_LIST = [
+  'to depend on sb./sth.\tvon jdm./etw. abhängen',
+  'restraints (pl.)\tdie Beschränkungen; die Auflagen',
+  'attainable (adj.)\terreichbar',
+  'to coin a phrase / term\teinen Begriff, eine Redewendung prägen',
+].join('\n');
+
+/** Liest einen Download vollständig als Bytes – für die BOM-Prüfung. */
+async function downloadBytes(download: import('@playwright/test').Download): Promise<Buffer> {
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+
+/**
+ * Prüft eine Vokabelliste dort, wo sie gerade offen ist.
+ *
+ * Dieselbe Zusage gilt in der Lehrkraftdatei und in der exportierten
+ * Lerndatei – und sie zweimal auszuschreiben hieße, sie beim nächsten Mal an
+ * einer Stelle zu ändern und an der anderen zu vergessen.
+ */
+async function expectVocabList(page: Page, external: string[]): Promise<void> {
+  const tabelle = page.getByRole('table');
+  await expect(tabelle).toBeVisible();
+
+  // Die vollständigen Lernformen **und** die Übersetzungen stehen da.
+  await expect(tabelle).toContainText('to depend on sb./sth.');
+  await expect(tabelle).toContainText('von jdm./etw. abhängen');
+  await expect(tabelle).toContainText('restraints (pl.)');
+  await expect(tabelle).toContainText('die Beschränkungen; die Auflagen');
+  await expect(tabelle).toContainText('attainable (adj.)');
+  await expect(tabelle).toContainText('to coin a phrase / term');
+
+  // Die Tabellendatei – heruntergeladen und im Inhalt geprüft.
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Als Tabelle herunterladen (.csv)' }).click();
+  const bytes = await downloadBytes(await downloadPromise);
+
+  expect(bytes.subarray(0, 3)).toEqual(Buffer.from([0xef, 0xbb, 0xbf]));
+  const text = bytes.toString('utf8');
+  expect(text).toContain('"Englisch";"Deutsch";"Wortart"');
+  expect(text).toContain('"to depend on sb./sth."');
+  expect(text).toContain('"die Beschränkungen; die Auflagen"');
+  // Das Komma in einer Bedeutung überlebt; getrennt wird am Semikolon.
+  expect(text).toContain('"einen Begriff, eine Redewendung prägen"');
+
+  // Und im Druckmedium bleibt nur das Blatt.
+  await page.emulateMedia({ media: 'print' });
+  const gemessen = await page.evaluate(() => {
+    const head = document.querySelector('.sheet .sheet__table thead') as HTMLElement;
+    const row = document.querySelector('.sheet .sheet__table tbody tr') as HTMLElement;
+    const tools = document.querySelector('.print-hidden') as HTMLElement;
+    return {
+      kopfWiederholt: getComputedStyle(head).display,
+      zeileBleibtGanz: getComputedStyle(row).breakInside,
+      werkzeuge: getComputedStyle(tools).display,
+    };
+  });
+  expect(gemessen.kopfWiederholt).toBe('table-header-group');
+  expect(gemessen.zeileBleibtGanz).toBe('avoid');
+  expect(gemessen.werkzeuge).toBe('none');
+  await page.emulateMedia({ media: 'screen' });
+
+  // Nichts davon hat das Gerät verlassen.
+  expect(external).toEqual([]);
+}
+
 const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
 
 async function expectNoSeriousViolations(page: Page, label: string): Promise<void> {
@@ -71,9 +147,13 @@ function watchPageErrors(page: Page): string[] {
 }
 
 /** Legt in der Lehrkraftdatei ein Paket an und exportiert die Schülerdatei. */
-async function exportStudentFile(page: Page, title = 'Unit 3 – City life'): Promise<string> {
+async function exportStudentFile(
+  page: Page,
+  title = 'Unit 3 – City life',
+  list = VOCAB_LIST,
+): Promise<string> {
   await page.goto(`${TEACHER_URL}#/material/import`);
-  await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);
+  await page.getByLabel('Vokabelliste einfügen').fill(list);
   await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
   await page.getByLabel('Titel', { exact: true }).fill(title);
   await page.getByLabel('Jahrgang').selectOption('8');
@@ -99,6 +179,29 @@ test.beforeAll(() => {
 });
 
 test.describe('Portable Lehrkraftdatei', () => {
+  /*
+    Block B in der **portablen Lehrkraftdatei** – die Fassung, mit der eine
+    Lehrkraft ohne Installation arbeitet. Ausdruck und Tabellendatei müssen
+    auch hier ohne Netz und ohne Server entstehen.
+  */
+  test('@smoke druckbare Vokabelliste und .csv aus dem Paket heraus', async ({ page }) => {
+    const external = watchExternalRequests(page);
+
+    await page.goto(`${TEACHER_URL}#/material/import`);
+    await page.getByLabel('Vokabelliste einfügen').fill(FORM_LIST);
+    await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
+    await page.getByLabel('Titel', { exact: true }).fill('Unit 7 – Coastal erosion');
+    await page.getByLabel('Jahrgang').selectOption('9');
+    await page.getByRole('button', { name: /Paket speichern/ }).click();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Unit 7 – Coastal erosion' }),
+    ).toBeVisible();
+
+    await page.getByRole('link', { name: 'Vokabelliste drucken / als PDF speichern' }).click();
+
+    await expectVocabList(page, external);
+  });
+
   test('@smoke öffnet sich per file:// und lädt nichts nach', async ({ page }) => {
     const external = watchExternalRequests(page);
     const errors = watchPageErrors(page);
@@ -301,6 +404,29 @@ test.describe('Exportierte Schülerdatei', () => {
       expect(html.toLowerCase(), `Schülerdatei enthält noch ${alt}`).not.toContain(alt);
     }
     expect(external).toEqual([]);
+  });
+
+  /*
+    Sprint 4B.3, Block B: die Vokabelliste in der **exportierten Lerndatei**.
+
+    Das ist die schwierigste der vier Fassungen: eine einzelne HTML-Datei,
+    geöffnet über `file://`, ohne Server und ohne Netz. Wenn Ausdruck und
+    Tabellendatei hier funktionieren, funktionieren sie überall.
+  */
+  test('@smoke trägt die Vokabelliste samt Ausdruck und .csv', async ({ page }) => {
+    const external = watchExternalRequests(page);
+    const fileUrl = await exportStudentFile(page, 'Unit 7 – Coastal erosion', FORM_LIST);
+    await page.goto(fileUrl);
+
+    // Die Startseite der Lerndatei zeigt genau ein Paket; von dort geht es
+    // auf die Paketseite.
+    await page.getByRole('link', { name: 'Paket öffnen' }).click();
+
+    // Erreichbar, aber kein fünfter Lernweg: eine Zeile unter den vier Wegen.
+    await expect(page.locator('.study-option')).toHaveCount(4);
+    await page.getByRole('link', { name: 'Vokabelliste' }).click();
+
+    await expectVocabList(page, external);
   });
 
   test('@smoke enthält kein Wörterbuch', async ({ page }) => {

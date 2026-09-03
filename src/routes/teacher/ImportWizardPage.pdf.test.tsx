@@ -147,7 +147,9 @@ describe('Eine gegliederte Liste beim Einfügen', () => {
     expect(await screen.findByRole('table')).toBeInTheDocument();
     expect(screen.getByLabelText('Englisch, Zeile 1')).toHaveValue('to coin a phrase / term');
     expect(screen.getByLabelText('Deutsch, Zeile 1')).toHaveValue('eine Wendung prägen');
-    expect(screen.getByLabelText('Englisch, Zeile 2')).toHaveValue('crowded');
+    // 4B.3: Ein geschriebenes Wortartkürzel bleibt in der Lernform stehen –
+    // die Quelle sagt „crowded (adj.)“, und genau das gehört auf die Karte.
+    expect(screen.getByLabelText('Englisch, Zeile 2')).toHaveValue('crowded (adj.)');
     expect(screen.getByLabelText('Deutsch, Zeile 2')).toHaveValue('überfüllt, voll');
   });
 

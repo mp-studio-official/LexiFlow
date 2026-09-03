@@ -3077,3 +3077,313 @@ progress {
   font-size: var(--text-sm);
   color: var(--ink-secondary);
 }
+
+/* ====================================================== Die Vokabelliste */
+
+/*
+  Der Ausdruck (Sprint 4B.3, Block B).
+
+  Ein Blatt Papier, kein Bildschirm. Was hier steht, ist zweimal zu lesen:
+  einmal am Monitor als Vorschau, einmal im Druck – und der Druckteil unten
+  entscheidet, ob die Liste auf A4 wirklich brauchbar wird.
+*/
+
+.print-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+  background: var(--surface-sunken);
+}
+.print-settings legend {
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+.print-settings label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* Am Bildschirm sieht das Blatt aus wie eines: weiß, mit Rand, mit Schatten. */
+.sheet {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-1);
+}
+.sheet__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-5);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 2px solid var(--ink);
+}
+.sheet__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink);
+}
+.sheet__wordmark {
+  font-family: var(--font-display);
+  font-weight: var(--weight-black);
+  font-size: var(--text-lg);
+  letter-spacing: -0.03em;
+}
+.sheet__title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  letter-spacing: var(--tracking-tight);
+}
+.sheet__meta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-secondary);
+}
+.sheet__description {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  max-inline-size: 60ch;
+}
+
+.sheet__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+/*
+  `.sheet .sheet__table` statt `.sheet__table` – und das ist kein Zufall.
+
+  Weiter oben steht `tbody tr:not([hidden]) > td { border-bottom: 2px solid … }`.
+  Die Regel gehört zur Entwurfstabelle, wo eine kräftige Linie zwischen
+  Englisch und Deutsch eine echte Frage beantwortet – aber sie trifft **jede**
+  Tabelle im Dokument und hat mit `:not(...)` genug Gewicht, um eine Regel mit
+  einer einzigen Klasse zu schlagen. Die Vokabelliste bekam davon 2 px in
+  Sandfarbe, auch im Druck, und keine der hier gesetzten Farben.
+
+  Zwei Klassen genügen, um das zu klären. Die leckende Regel bleibt stehen:
+  Sie an dieser Stelle einzuschränken hieße, alle Tabellen des Projekts in
+  einem Aufwasch umzustellen – das ist eine eigene Aufgabe und kein Nebeneffekt
+  der Vokabelliste.
+*/
+.sheet .sheet__table th,
+.sheet .sheet__table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.4rem 0.6rem 0.4rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sheet[data-density='roomy'] .sheet__table th,
+.sheet[data-density='roomy'] .sheet__table td {
+  padding-block: 0.7rem;
+}
+.sheet .sheet__table th {
+  border-bottom: 1px solid var(--ink);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+  background: transparent;
+}
+.sheet__english {
+  font-weight: var(--weight-semibold);
+  white-space: normal;
+}
+.sheet__pos {
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+.sheet__example {
+  font-family: var(--font-quote);
+  color: var(--ink-secondary);
+}
+.sheet__example-de {
+  color: var(--ink-muted);
+}
+
+/* ------------------------------------------------------------ Auf Papier */
+
+@media print {
+  /*
+    A4 mit 16 mm Rand. Der Rand ist nicht Geschmack: Viele Drucker können die
+    äußersten Millimeter gar nicht, und eine Tabelle, deren letzte Spalte
+    abgeschnitten wird, ist wertlos.
+  */
+  @page {
+    size: A4 portrait;
+    margin: 16mm 14mm;
+  }
+
+  /*
+    Alles weg, was man anklicken kann.
+
+    Ein ausgedruckter Knopf ist ein Fleck: Er sieht aus wie Inhalt, tut nichts
+    und kostet Platz. Navigation, Kopf- und Fußzeile der Anwendung und die
+    Einstellungen über der Liste sind deshalb im Druck nicht vorhanden – nicht
+    bloß unsichtbar, sondern ohne Layout.
+  */
+  .app-header,
+  .app-nav,
+  .bottom-nav,
+  .app-footer,
+  .skip-link,
+  .print-hidden {
+    display: none !important;
+  }
+
+  /* Die Werkbank-Raster gelten auf Papier nicht – dort gibt es eine Spalte. */
+  .app,
+  .app-body,
+  .app-work {
+    display: block !important;
+  }
+  .app-main {
+    max-inline-size: none;
+    padding: 0;
+  }
+
+  /*
+    Schwarz auf Weiß, und zwar wirklich.
+
+    Standardmäßig drucken Browser Hintergründe nicht mit. Eine Gestaltung, die
+    sich auf Flächen verlässt, verliert damit ihre Bedeutung – deshalb trägt
+    hier alles Wichtige Linien und Schriftschnitte, keine Farbflächen.
+  */
+  body,
+  .sheet {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .sheet__head {
+    border-bottom: 1.5pt solid #000;
+  }
+  .sheet__brand,
+  .sheet__title,
+  .sheet__english {
+    color: #000;
+  }
+  .sheet__meta,
+  .sheet__pos,
+  .sheet__example,
+  .sheet__example-de {
+    color: #333;
+  }
+
+  .sheet__table {
+    font-size: 10pt;
+    /*
+      `border-collapse: collapse` ist Voraussetzung dafür, dass Browser den
+      Tabellenkopf über Seiten hinweg überhaupt wiederholen.
+    */
+    border-collapse: collapse;
+    inline-size: 100%;
+  }
+
+  /*
+    Der Kopf wiederholt sich auf jeder Seite.
+
+    `display: table-header-group` ist die Regel, die das auslöst – ohne sie
+    steht der Kopf einmal auf Seite 1 und danach nie wieder, und wer Seite 3
+    in der Hand hält, rät, welche Spalte welche ist.
+  */
+  .sheet__table thead {
+    display: table-header-group;
+  }
+  .sheet__table tfoot {
+    display: table-footer-group;
+  }
+
+  /*
+    Keine Zeile wird mitten durchgeschnitten.
+
+    `break-inside: avoid` auf `tr` **und** `td`: Manche Engines beachten die
+    Regel nur an der Zelle, andere nur an der Zeile. Beide zu setzen kostet
+    nichts und deckt beide Fälle ab. `orphans`/`widows` verhindern zusätzlich,
+    dass eine einzelne Zeile allein auf einer Seite landet.
+  */
+  .sheet__table tr,
+  .sheet__table td,
+  .sheet__table th {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .sheet__table tbody tr {
+    orphans: 2;
+    widows: 2;
+  }
+
+  /* Die Kopfzeile des Blattes bleibt bei der ersten Tabellenzeile. */
+  .sheet__head {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .sheet .sheet__table th,
+  .sheet .sheet__table td {
+    padding: 1.5mm 3mm 1.5mm 0;
+    /*
+      In Pixeln, nicht in Punkt: `0.4pt` rundet je nach Engine auf 0 und die
+      Linie verschwindet ganz. 1 px ist auf Papier eine feine Linie und
+      überall dieselbe.
+    */
+    border-bottom: 1px solid #999;
+  }
+  .sheet .sheet__table th {
+    border-bottom: 2px solid #000;
+    color: #000;
+  }
+  .sheet[data-density='roomy'] .sheet__table th,
+  .sheet[data-density='roomy'] .sheet__table td {
+    padding-block: 3mm;
+  }
+
+  /* Spaltenbreiten, damit Englisch und Deutsch den Platz bekommen. */
+  .sheet__table th:nth-child(1),
+  .sheet__table td:nth-child(1) {
+    inline-size: 28%;
+  }
+  .sheet__table th:nth-child(2),
+  .sheet__table td:nth-child(2) {
+    inline-size: 30%;
+  }
+  .sheet__table th:nth-child(3),
+  .sheet__table td:nth-child(3) {
+    inline-size: 14%;
+  }
+}
+
+/*
+  Die Vokabelliste im Lernbereich: erreichbar, aber untergeordnet.
+
+  Sie steht unter den vier Lernwegen, nicht neben ihnen – eine Zeile, kein
+  Kasten. Der Abstand nach oben trennt sie von der Liste der Wege; die
+  Haarlinie sagt, dass hier etwas anderes anfängt.
+*/
+.study-aside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}

@@ -123,7 +123,9 @@ test.describe('Eine gegliederte Liste beim Einfügen', () => {
 
     await expect(page.getByLabel('Englisch, Zeile 1')).toHaveValue('to coin a phrase / term');
     await expect(page.getByLabel('Deutsch, Zeile 1')).toHaveValue('eine Wendung prägen');
-    await expect(page.getByLabel('Englisch, Zeile 2')).toHaveValue('crowded');
+    // 4B.3: Ein geschriebenes Wortartkürzel bleibt in der Lernform stehen –
+    // wie `(pl.)` es immer schon tat. Die Quelle sagt „crowded (adj.)“.
+    await expect(page.getByLabel('Englisch, Zeile 2')).toHaveValue('crowded (adj.)');
     /*
       Die Zusage aus Phase 1 am ganzen Weg: „überfüllt, voll“ ist **eine**
       Antwort. Getrennt wird ausschließlich am Semikolon.

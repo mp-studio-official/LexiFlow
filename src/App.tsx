@@ -24,6 +24,15 @@ const SelfTestPage = lazy(() => import('./routes/student/SelfTestPage'));
 const FreePracticeSetupPage = lazy(() => import('./routes/student/FreePracticeSetupPage'));
 
 /**
+ * Die Vokabelliste lädt erst, wenn jemand sie aufruft.
+ *
+ * Sie ist eine Nebenfunktion – wichtig, wenn man sie braucht, und sonst
+ * Gewicht. Vor allem aber wandert sie in **jede** portable Datei; dort zählt
+ * jedes Kilobyte doppelt, weil die Datei per E-Mail weitergegeben wird.
+ */
+const PackListPage = lazy(() => import('./routes/PackListPage'));
+
+/**
  * `HashRouter` statt `BrowserRouter`: Die App wird statisch ausgeliefert
  * (z. B. GitHub Pages) und muss auch beim direkten Aufruf einer Unterseite
  * funktionieren – ohne Server-Rewrite.
@@ -40,9 +49,25 @@ export function App() {
           <Route path="material" element={<TeacherHomePage />} />
           <Route path="material/import" element={<ImportWizardPage />} />
           <Route path="material/:packId" element={<PackEditorPage />} />
+          <Route
+            path="material/:packId/liste"
+            element={
+              <Suspense fallback={<p className="muted">Vokabelliste wird geladen …</p>}>
+                <PackListPage area="teacher" />
+              </Suspense>
+            }
+          />
 
           <Route path="lernen" element={<StudentHomePage />} />
           <Route path="lernen/:packId" element={<PackDetailPage />} />
+          <Route
+            path="lernen/:packId/liste"
+            element={
+              <Suspense fallback={<p className="muted">Vokabelliste wird geladen …</p>}>
+                <PackListPage area="student" />
+              </Suspense>
+            }
+          />
           <Route path="lernen/:packId/uebung" element={<SessionPage />} />
           <Route
             path="lernen/:packId/durchsehen"

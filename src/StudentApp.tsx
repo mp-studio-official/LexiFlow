@@ -12,6 +12,7 @@ const VocabBrowsePage = lazy(() => import('./routes/student/VocabBrowsePage'));
 const CardStudyPage = lazy(() => import('./routes/student/CardStudyPage'));
 const SelfTestPage = lazy(() => import('./routes/student/SelfTestPage'));
 const FreePracticeSetupPage = lazy(() => import('./routes/student/FreePracticeSetupPage'));
+const PackListPage = lazy(() => import('./routes/PackListPage'));
 
 /**
  * Die portable Schüleranwendung.
@@ -93,6 +94,14 @@ export function StudentApp({ pack }: { pack: VocabPack }) {
           <Route index element={<PortableHomePage packId={packId} />} />
           <Route path="lernen/:packId" element={<PackDetailPage />} />
           <Route path="lernen/:packId/uebung" element={<SessionPage />} />
+          <Route
+            path="lernen/:packId/liste"
+            element={
+              <Suspense fallback={<p className="muted">Vokabelliste wird geladen …</p>}>
+                <PackListPage area="student" />
+              </Suspense>
+            }
+          />
           <Route
             path="lernen/:packId/durchsehen"
             element={

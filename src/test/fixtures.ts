@@ -13,6 +13,19 @@ export function makeEntry(partial: Partial<VocabEntry> = {}): VocabEntry {
     topicTags: partial.topicTags ?? [],
     sourceType: partial.sourceType ?? 'import',
     ...(partial.partOfSpeech ? { partOfSpeech: partial.partOfSpeech } : {}),
+    /*
+      Die strukturierten Anteile der Lernform (Sprint 4B.2/4B.3).
+
+      Sie fehlten hier bis 4B.3 – die Fixture hat sie stillschweigend
+      geschluckt. Ein Test, der `grammaticalNumber: 'plural'` übergibt und ein
+      Objekt ohne dieses Feld zurückbekommt, prüft anschließend etwas anderes
+      als das, was er zu prüfen glaubt; aufgefallen ist es an einer Wortart,
+      die „Substantiv“ statt „Substantiv, Plural“ meldete.
+    */
+    ...(partial.lemma ? { lemma: partial.lemma } : {}),
+    ...(partial.complementPattern ? { complementPattern: partial.complementPattern } : {}),
+    ...(partial.grammaticalNumber ? { grammaticalNumber: partial.grammaticalNumber } : {}),
+    ...(partial.lexicalGroupId ? { lexicalGroupId: partial.lexicalGroupId } : {}),
     ...(partial.notes ? { notes: partial.notes } : {}),
     ...(partial.difficulty ? { difficulty: partial.difficulty } : {}),
   };

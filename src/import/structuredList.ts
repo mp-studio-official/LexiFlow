@@ -231,7 +231,13 @@ function readHeadline(rawLine: string): StructuredEntry[] {
 
   return [
     {
-      ...buildEntry(base, marker?.parts[0], marker?.grammaticalNumber),
+      ...buildEntry(
+        base,
+        marker?.parts[0],
+        marker?.grammaticalNumber,
+        // Das Kürzel stand geschrieben da – dann bleibt es stehen.
+        marker?.parts[0] !== undefined,
+      ),
       ...(review ? { needsReview: review } : {}),
     },
   ];
@@ -263,6 +269,18 @@ function buildEntry(
   base: string,
   partOfSpeech: PartOfSpeech | undefined,
   grammaticalNumber: GrammaticalNumber | undefined,
+  /**
+   * Stand das Wortartkürzel **geschrieben** in der Quelle?
+   *
+   * Dann bleibt es stehen. Wer `attainable (adj.)` eintippt oder aus seinem
+   * Vokabelheft einfügt, hat die Form so gemeint; sie in `attainable` plus
+   * ein Feld „Adjektiv“ zu zerlegen verliert zwar keine Information, ändert
+   * aber die Vokabel, die auf der Karte steht – und zwar stillschweigend.
+   *
+   * Umgekehrt wird nie eines **hinzugefügt**: Aus `erosion` mit erkannter
+   * Wortart wird nicht `erosion (n.)`.
+   */
+  markPartOfSpeech = false,
 ): StructuredEntry {
   const startsWithTo = /^to\s+\S/i.test(base);
   const proper = looksLikeProperNoun(base);
@@ -291,6 +309,7 @@ function buildEntry(
           lemma: withoutTo,
           ...(part ? { partOfSpeech: part } : {}),
           ...(grammaticalNumber ? { grammaticalNumber } : {}),
+          ...(markPartOfSpeech ? { markPartOfSpeech: true } : {}),
         });
 
   return {
