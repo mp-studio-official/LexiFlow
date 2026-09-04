@@ -3864,6 +3864,20 @@ progress {
 }
 
 /*
+  Die Legende über der Liste.
+
+  Sie steht einmal da und ist absichtlich klein: Wer das Blatt zum zweiten Mal
+  in der Hand hält, soll darüber hinweglesen können. Auf Papier bekommt sie
+  eine Haarlinie darunter – dort trennt sie den Kopf von der Liste, und ein
+  Absatz ohne Kante sähe aus wie eine erste, kaputte Vokabel.
+*/
+.sheet__legend {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+/*
   Die Vokabeln: untereinander, nicht nebeneinander (Sprint 4B.7).
 
   Warum keine Tabelle mehr, steht in `PrintablePackView.tsx`. Hier steht, was
@@ -4046,6 +4060,17 @@ progress {
     border-bottom-color: #ff2e2d;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  .sheet__legend {
+    margin-bottom: 5mm;
+    padding-bottom: 2mm;
+    border-bottom: 1px solid #999;
+    font-size: 9pt;
+    color: #333;
+    /* Die Legende gehört zur ersten Vokabel, nicht ans Ende einer Seite. */
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   .sheet__list {

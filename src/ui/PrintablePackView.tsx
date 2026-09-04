@@ -261,6 +261,29 @@ export function PrintablePackView({ backTo, backLabel }: PrintablePackViewProps)
         </header>
 
         {/*
+          Die Legende: **einmal** oben, nie je Vokabel.
+
+          Die gelieferte Vorlage schrieb vor jede Zeile `context/example:` und
+          `translation:`. Bei dreißig Vokabeln sind das neunzig Wörter, die
+          niemand liest – und sie stehen genau dort, wo das Auge die Vokabel
+          sucht.
+
+          Was die drei Zeilen unterscheidet, trägt die Typografie: fett das
+          Wort, in Anführungszeichen der Satz, darunter das Deutsche. Diese
+          eine Zeile sagt es einmal für alle, für die, die es beim ersten
+          Blatt noch nicht wissen.
+
+          Sie nennt den Beispielsatz nur, wenn welche gedruckt werden. Eine
+          Legende, die etwas erklärt, das auf dem Blatt gar nicht vorkommt,
+          lässt jemanden danach suchen.
+        */}
+        <p className="sheet__legend">
+          {withExamples
+            ? 'Je Eintrag: englische Lernform, darunter der Beispielsatz, darunter die deutsche Bedeutung.'
+            : 'Je Eintrag: englische Lernform, darunter die deutsche Bedeutung.'}
+        </p>
+
+        {/*
           Eine Liste, keine Tabelle – und eine **nummerierte**.
 
           Die Nummer ist kein Schmuck: Sie ist der kürzeste Weg, im Unterricht

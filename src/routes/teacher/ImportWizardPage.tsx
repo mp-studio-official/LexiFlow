@@ -35,6 +35,7 @@ import {
 } from '../../import/draft';
 import { parseCsv, parsePastedText } from '../../import/csv';
 import { attestCognates, attestationKey } from '../../import/attestCognates';
+import { cognateFingerprint } from '../../import/cognates';
 import { createOfflineDictionary } from '../../dictionary/offlineDictionary';
 import type { DictionaryProvider } from '../../dictionary/DictionaryProvider';
 import {
@@ -298,11 +299,41 @@ export function ImportWizardPage() {
         const source = (sharedDictionary ??= createOfflineDictionary());
         const geprueft = await attestCognates(drafts, source);
         if (!active) return;
-        // Nur schreiben, wenn wirklich etwas belegt wurde – sonst rendert die
-        // Tabelle bei jedem Lauf neu, ohne dass sich etwas geändert hat.
-        if (geprueft.some((row, index) => row !== drafts[index])) {
-          setDrafts(validateDrafts(geprueft));
-        }
+
+        /*
+          Zurückgeschrieben wird **auf den aktuellen Stand**, nicht der
+          Schnappschuss von vorhin.
+
+          Das ist kein Feinschliff, sondern die Regel des Projekts: Eine
+          asynchrone Antwort darf eine Eingabe der Lehrkraft niemals
+          überschreiben. Zwischen dem Start dieses Nachschlagens und seiner
+          Antwort liegt der Weg durch ein 6-MB-Archiv – genug Zeit, um zwei
+          Felder auszufüllen. `setDrafts(validateDrafts(geprueft))` hätte
+          beide verworfen, und zwar lautlos.
+
+          Gesetzt wird deshalb **ein einziges Feld**, und nur dort, wo der
+          Beleg noch zum jetzigen Stand der Zeile passt: Wer inzwischen die
+          Lernform geändert hat, hat einen anderen Fall vor sich.
+        */
+        const belege = new Map(
+          geprueft
+            .filter((row) => row.cognateAttestedFor)
+            .map((row) => [row.id, row.cognateAttestedFor as string]),
+        );
+        if (belege.size === 0) return;
+
+        setDrafts((current) => {
+          let geaendert = false;
+          const next = current.map((row) => {
+            const beleg = belege.get(row.id);
+            if (!beleg || row.cognateAttestedFor === beleg) return row;
+            // Passt der Beleg noch zu dieser Zeile, so wie sie jetzt dasteht?
+            if (cognateFingerprint(row.english, row.partOfSpeech) !== beleg) return row;
+            geaendert = true;
+            return { ...row, cognateAttestedFor: beleg };
+          });
+          return geaendert ? validateDrafts(next) : current;
+        });
       })();
     }, 500);
     return () => {

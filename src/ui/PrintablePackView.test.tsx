@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -196,6 +198,68 @@ describe('Was auf das Blatt kommt', () => {
     const kasten = screen.getByRole('checkbox', { name: /Beispielsätze mitdrucken/ });
     expect(kasten).toBeDisabled();
     expect(screen.getByText(/keine im Paket/)).toBeInTheDocument();
+  });
+});
+
+describe('Die Legende', () => {
+  it('erklärt den Aufbau einmal oben – und nicht bei jeder Vokabel', async () => {
+    /*
+      Die gelieferte Vorlage schrieb vor jede Zeile `context/example:` und
+      `translation:`. Bei dreißig Vokabeln sind das neunzig Wörter, die genau
+      dort stehen, wo das Auge die Vokabel sucht.
+    */
+    await seed();
+    setup();
+    await screen.findByRole('list');
+
+    const legenden = document.querySelectorAll('.sheet__legend');
+    expect(legenden).toHaveLength(1);
+    expect(legenden[0]?.textContent).toBe(
+      'Je Eintrag: englische Lernform, darunter der Beispielsatz, darunter die deutsche Bedeutung.',
+    );
+  });
+
+  it('steht über der Liste und nicht darin', async () => {
+    await seed();
+    setup();
+    const liste = await screen.findByRole('list');
+    const legende = document.querySelector('.sheet__legend');
+
+    expect(legende).not.toBeNull();
+    expect(liste.contains(legende)).toBe(false);
+    // `compareDocumentPosition`: 4 heißt „das andere folgt“.
+    expect(legende?.compareDocumentPosition(liste)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('nennt den Beispielsatz nicht, wenn keiner gedruckt wird', async () => {
+    /*
+      Eine Legende, die etwas erklärt, das auf dem Blatt gar nicht vorkommt,
+      lässt jemanden danach suchen.
+    */
+    await seed();
+    const user = setup();
+    await screen.findByRole('list');
+
+    await user.click(screen.getByRole('checkbox', { name: /Beispielsätze mitdrucken/ }));
+    expect(document.querySelector('.sheet__legend')?.textContent).toBe(
+      'Je Eintrag: englische Lernform, darunter die deutsche Bedeutung.',
+    );
+  });
+
+  it('wiederholt keine Feldbezeichnung im Eintrag', () => {
+    /*
+      Der Gegentest zur Legende: Was oben einmal steht, darf unten nicht
+      dreißigmal stehen.
+    */
+    const quelle = readFileSync(
+      resolve(import.meta.dirname, 'PrintablePackView.tsx'),
+      'utf8',
+    );
+    const markup = quelle.slice(quelle.indexOf('<ol className="sheet__list">'));
+
+    for (const bezeichnung of ['context/example', 'translation:', 'Übersetzung:', 'Beispiel:']) {
+      expect(markup, bezeichnung).not.toContain(bezeichnung);
+    }
   });
 });
 

@@ -261,6 +261,31 @@ test.describe('Prüfen & Speichern', () => {
       );
     });
 
+    test('@smoke überschreibt keine Eingabe, die während des Nachschlagens entsteht', async ({
+      page,
+    }) => {
+      /*
+        Der Fehler, den dieser Test festhält – und er ist wirklich passiert:
+
+        Der Kognaten-Pass schrieb sein Ergebnis mit `setDrafts(…geprueft)`
+        zurück, also den Schnappschuss von vor dem Nachschlagen. Zwischen
+        Start und Antwort liegt der Weg durch ein 6-MB-Archiv – genug Zeit,
+        um zwei Felder auszufüllen. Beide waren danach lautlos weg.
+
+        Aufgefallen ist es in `topic-studio.spec.ts` an einer Übersetzung, die
+        im gespeicherten Paket fehlte. Hier steht der Fall direkt.
+      */
+      await toReview(page, ['erosion\tErosion', 'tide\t'].join('\n'));
+
+      // Sofort tippen – das Nachschlagen läuft dabei im Hintergrund an.
+      await page.getByLabel('Deutsch, Zeile 2', { exact: true }).fill('die Flut');
+
+      // Der Beleg für Zeile 1 kommt an … und die Eingabe in Zeile 2 steht noch.
+      await expect(offenePruefungen(page)).toHaveCount(0, { timeout: 20_000 });
+      await expect(page.getByLabel('Deutsch, Zeile 2', { exact: true })).toHaveValue('die Flut');
+      await expect(page.getByLabel('Deutsch, Zeile 1', { exact: true })).toHaveValue('Erosion');
+    });
+
     test('@smoke ein ausgetauschtes Stichwort holt den Befund zurück', async ({ page }) => {
       /*
         Der Beleg gilt für einen Sachverhalt. Wer nach dem Beleg die Lernform
