@@ -195,7 +195,18 @@ export function LearningAreaPage() {
         { id, title: title.trim(), ...(description.trim() ? { description: description.trim() } : {}) },
         packs,
       );
-      setMessage({ tone: outcome.ok ? 'success' : 'warning', text: outcome.message });
+      /*
+        Drei Ausgänge, nicht zwei: erstellt; erstellt, aber ungewöhnlich groß;
+        gar nicht erstellt. Der mittlere ist kein Fehler – die Datei liegt im
+        Downloadordner –, aber er soll auffallen, bevor sie verteilt ist.
+      */
+      setMessage({
+        tone: !outcome.ok ? 'warning' : outcome.warning ? 'warning' : 'success',
+        text:
+          outcome.ok && outcome.warning
+            ? `${outcome.message} ${outcome.warning}`
+            : outcome.message,
+      });
     } finally {
       setBusy(false);
     }

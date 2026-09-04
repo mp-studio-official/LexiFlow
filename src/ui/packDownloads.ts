@@ -1,5 +1,10 @@
 import { serializePack, suggestFilename } from '../domain/vocabpack';
-import { areaBlockers, type LearningArea } from '../domain/learningArea';
+import {
+  areaBlockers,
+  describeFileSize,
+  sizeAdvice,
+  type LearningArea,
+} from '../domain/learningArea';
 import { buildLearningAreaHtml, buildStudentHtml } from '../portable/studentExport';
 import { loadStudentRuntime } from '../portable/studentRuntime';
 import { downloadText } from './download';
@@ -22,8 +27,40 @@ import type { VocabPack } from '../domain/schema';
  */
 
 export type PackDownloadOutcome =
-  | { ok: true; message: string; filename: string }
+  | {
+      ok: true;
+      message: string;
+      filename: string;
+      /**
+       * Ein Satz, der neben dem Erfolg steht – heute nur zur Dateigröße.
+       *
+       * Getrennt von `message` und nicht darin: Die Datei **ist** erstellt.
+       * Beides in einen Satz zu packen hieße, einen Erfolg wie ein halbes
+       * Scheitern klingen zu lassen.
+       */
+      warning?: string;
+    }
   | { ok: false; message: string };
+
+/**
+ * Wie groß die erzeugte Datei wirklich ist – in Bytes.
+ *
+ * `TextEncoder` und nicht `html.length`: Eine Zeichenkette zählt Zeichen, eine
+ * Datei zählt Bytes, und „überfüllt“ ist in UTF-8 länger als es aussieht. Der
+ * Unterschied ist bei einer deutschen Vokabelliste keine Rundung.
+ *
+ * Kein `Blob`: Der existiert unter `file://` zwar auch, aber `TextEncoder`
+ * kostet keine Objektzuweisung und ist in jedem Zielbrowser vorhanden.
+ */
+function byteSize(html: string): number {
+  return new TextEncoder().encode(html).length;
+}
+
+/** Der Hinweis zur Größe – als Feld, das es nur gibt, wenn es etwas zu sagen gibt. */
+function advice(bytes: number): { warning?: string } {
+  const text = sizeAdvice(bytes);
+  return text ? { warning: text } : {};
+}
 
 /** Das Paket als weiterbearbeitbare LexiFlow-Datei. Läuft in jedem Build. */
 export function downloadPackFile(pack: VocabPack): PackDownloadOutcome {
@@ -58,7 +95,13 @@ export async function downloadStudentFile(pack: VocabPack): Promise<PackDownload
   }
 
   downloadText(result.filename, result.html, 'text/html');
-  return { ok: true, filename: result.filename, message: `Lerndatei erstellt: ${result.filename}` };
+  const bytes = byteSize(result.html);
+  return {
+    ok: true,
+    filename: result.filename,
+    message: `Lerndatei erstellt: ${result.filename} (${describeFileSize(bytes)})`,
+    ...advice(bytes),
+  };
 }
 
 /**
@@ -99,5 +142,16 @@ export async function downloadLearningAreaFile(
   }
 
   downloadText(result.filename, result.html, 'text/html');
-  return { ok: true, filename: result.filename, message: `Lerndatei erstellt: ${result.filename}` };
+  /*
+    Die Größe wird **gemessen** und nicht geschätzt: Erst hier steht die Datei
+    fertig da. Eine Vorhersage aus der Vokabelzahl wäre ein Modell, und ein
+    Modell weicht ab, sobald jemand längere Beispielsätze schreibt.
+  */
+  const bytes = byteSize(result.html);
+  return {
+    ok: true,
+    filename: result.filename,
+    message: `Lerndatei erstellt: ${result.filename} (${describeFileSize(bytes)})`,
+    ...advice(bytes),
+  };
 }

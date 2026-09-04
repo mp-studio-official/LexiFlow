@@ -16,7 +16,12 @@ export interface PendingPackUpdate {
 }
 
 export interface ImportMessage {
-  tone: 'success' | 'error';
+  /*
+    `warning` kam mit 4B.8 dazu: Eine ungewöhnlich große Lerndatei ist weder
+    ein Erfolg zum Abhaken noch ein Fehler – sie ist erstellt, und trotzdem
+    soll jemand hinsehen, bevor sie an achtundzwanzig Personen geht.
+  */
+  tone: 'success' | 'warning' | 'error';
   text: string;
 }
 

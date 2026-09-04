@@ -149,7 +149,12 @@ export function PackEditorPage() {
       setError(outcome.message);
       return;
     }
-    setStatus(outcome.message);
+    /*
+      Der Größenhinweis steht **hinter** der Erfolgsmeldung und nicht statt
+      ihrer: Die Datei ist erstellt. Er sagt nur, dass sie ungewöhnlich groß
+      geworden ist – ein Satz zum Weitergeben, kein Fehler.
+    */
+    setStatus(outcome.warning ? `${outcome.message} ${outcome.warning}` : outcome.message);
   }
 
   async function handleDelete(): Promise<void> {

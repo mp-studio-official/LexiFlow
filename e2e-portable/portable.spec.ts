@@ -705,6 +705,12 @@ test.describe('Lernbereich mit mehreren Paketen', () => {
     // Der Dateiname trägt den Lernbereich, nicht ein einzelnes Paket.
     expect(filename).toBe('englisch-9b-halbjahr-1-lexiflow.html');
 
+    /*
+      Und die Meldung nennt die **gemessene** Größe der fertigen Datei. Eine
+      Vorhersage aus der Vokabelzahl wäre ein Modell; hier steht die Datei.
+    */
+    await expect(page.getByText(/Lerndatei erstellt: .* \(\d+([,.]\d+)? (KB|MB)\)/)).toBeVisible();
+
     await page.goto(url);
 
     // Der Titel des Bereichs steht als Überschrift der Datei.

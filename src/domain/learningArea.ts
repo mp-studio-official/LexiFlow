@@ -268,6 +268,61 @@ export function learningAreaDocumentTitle(title: string): string {
   return `${clean || 'Lernbereich'} – LexiFlow`;
 }
 
+/**
+ * Ab welcher Dateigröße ein Wort dazugehört: **2 MiB**.
+ *
+ * Keine Grenze, sondern ein Hinweis – und die Zahl ist gemessen, nicht
+ * geschätzt. Aus der fertigen Lernlaufzeit (666,9 KiB) und Paketen mit
+ * vollständigen Lernformen, zwei Bedeutungen und einem Beispielsatz je Vokabel:
+ *
+ * | Inhalt | Vokabeln | Datei |
+ * | --- | --- | --- |
+ * | 1 Paket × 60 | 60 | 690,7 KiB |
+ * | 6 Pakete × 60 | 360 | 808,5 KiB |
+ * | 20 Pakete × 60 | 1200 | 1141,0 KiB |
+ * | 40 Pakete × 60 | 2400 | 1617,2 KiB |
+ * | 40 Pakete × 100 | 4000 | 2240,7 KiB |
+ *
+ * Die Obergrenze von 40 Paketen ist damit **kein** Größenproblem: Selbst
+ * ausgereizt bleibt die Datei kleiner als ein Foto aus einem Telefon. Der
+ * Hinweis greift erst dort, wo ein Bereich ungewöhnlich viel Inhalt trägt –
+ * und er redet nicht vom Browser, der 2 MB mühelos öffnet, sondern vom Weg
+ * dorthin: Moodle-Grenzen, Mobilfunk, achtundzwanzig Downloads im
+ * Schulnetz.
+ *
+ * ## Warum keine harte Schranke
+ *
+ * Weil es dafür keine Messung auf den Zielgeräten gibt. Eine Zahl, ab der die
+ * Ausgabe verweigert würde, wäre geraten – und sie stünde einer Lehrkraft im
+ * Weg, deren Halbjahresbereich nun einmal groß ist. Wer die Datei trotzdem
+ * verteilen will, soll das können; er soll es nur nicht versehentlich tun.
+ */
+export const LEARNING_AREA_SIZE_HINT_BYTES = 2 * 1024 * 1024;
+
+/** Eine Dateigröße, wie sie eine Lehrkraft lesen würde: `1,4 MB`. */
+export function describeFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kib = bytes / 1024;
+  if (kib < 1000) return `${kib.toFixed(0).replace('.', ',')} KB`;
+  return `${(kib / 1024).toFixed(1).replace('.', ',')} MB`;
+}
+
+/**
+ * Der Satz zur Größe einer fertigen Lerndatei – oder keiner.
+ *
+ * `undefined` heißt „unauffällig", und dann steht auch nichts da. Ein Hinweis,
+ * der immer erscheint, ist nach dem dritten Mal keiner mehr.
+ */
+export function sizeAdvice(bytes: number): string | undefined {
+  if (bytes < LEARNING_AREA_SIZE_HINT_BYTES) return undefined;
+  return (
+    `Diese Datei ist mit ${describeFileSize(bytes)} ungewöhnlich groß. ` +
+    'Sie funktioniert – aber prüfe, ob deine Plattform sie annimmt, und bedenke, ' +
+    'dass die Lerngruppe sie herunterladen muss. Ein Bereich mit weniger Paketen ' +
+    'wäre leichter zu verteilen.'
+  );
+}
+
 /** Ein Lernbereich ohne Pakete lässt sich nicht ausgeben – und warum. */
 export function areaBlockers(area: { title: string; packIds: readonly string[] }): string[] {
   const blockers: string[] = [];

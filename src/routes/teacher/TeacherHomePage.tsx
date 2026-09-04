@@ -107,7 +107,14 @@ export function TeacherHomePage() {
     const pack = await getPack(packId);
     if (!pack) return;
     const outcome = await downloadStudentFile(pack);
-    importer.setMessage({ tone: outcome.ok ? 'success' : 'error', text: outcome.message });
+    /*
+      Ein Größenhinweis macht aus dem Erfolg eine Warnung im Ton, aber keine
+      Fehlermeldung: Die Datei liegt im Downloadordner.
+    */
+    importer.setMessage({
+      tone: !outcome.ok ? 'error' : outcome.warning ? 'warning' : 'success',
+      text: outcome.ok && outcome.warning ? `${outcome.message} ${outcome.warning}` : outcome.message,
+    });
   }
 
   async function handleDelete(packId: string): Promise<void> {
