@@ -83,8 +83,24 @@ export function parseCsv(text: string, delimiter?: Delimiter): string[][] {
   rows.push(row);
 
   return rows
-    .map((cells) => cells.map((cell) => cell.trim()))
+    .map((cells) => cells.map((cell) => denormalizeFormula(cell.trim())))
     .filter((cells) => cells.some((cell) => cell.length > 0));
+}
+
+/**
+ * Das Apostroph zurücknehmen, das der eigene Export gesetzt hat.
+ *
+ * `vocabTable.ts` stellt jeder Zelle, die mit `=`, `+`, `-`, `@`, Tabulator
+ * oder Wagenrücklauf beginnt, ein `'` voran – sonst liest Excel sie als
+ * Formel. Ohne diese Gegenrichtung wüchse bei jedem Aus- und Wiedereinlesen
+ * ein Apostroph dazu: aus `-los` würde `'-los`, dann `''-los`.
+ *
+ * Entfernt wird es **nur**, wenn eines dieser Zeichen folgt – also genau in
+ * dem Muster, das der Export erzeugen kann. Eine Bedeutung, die tatsächlich
+ * mit einem Apostroph anfängt (`'ne Menge`), bleibt unangetastet.
+ */
+function denormalizeFormula(cell: string): string {
+  return /^'[=+\-@\t\r]/.test(cell) ? cell.slice(1) : cell;
 }
 
 /**

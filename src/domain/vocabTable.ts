@@ -146,7 +146,45 @@ export const CSV_COLUMNS = [
  * Ein `"` im Inhalt wird nach RFC 4180 verdoppelt.
  */
 function csvField(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
+  return `"${neutralizeFormula(value).replace(/"/g, '""')}"`;
+}
+
+/**
+ * Zeichen, mit denen eine Tabellenkalkulation eine **Formel** anfängt.
+ *
+ * `=` und `@` sind offensichtlich, `+` und `-` sind es nicht: Excel liest
+ * `-1+1` als Rechnung und `+A1` als Bezug. Tabulator und Wagenrücklauf stehen
+ * mit auf der Liste, weil ältere Excel-Fassungen sie als Zellenanfang
+ * behandeln und die Prüfung damit umgehen ließen.
+ */
+const FORMULA_STARTERS = /^[=+\-@\t\r]/;
+
+/**
+ * Formula Injection – der Angriff, den eine Vokabelliste ermöglicht.
+ *
+ * Eine Zelle, die mit `=` beginnt, ist für Excel, Numbers und LibreOffice
+ * keine Zeichenkette, sondern eine **Rechnung**. Anführungszeichen helfen
+ * dabei nicht: Sie gehören zur CSV-Syntax und sind beim Öffnen der Datei
+ * längst weg. `"=cmd|' /C calc'!A0"` wird in Excel zu einem Aufruf, den die
+ * Anwenderin nur noch bestätigen muss – in einer Datei, die aussieht wie eine
+ * Vokabelliste ihrer Kollegin.
+ *
+ * Der Weg hierher ist kurz und ganz ohne Angreifer denkbar: Eine Lehrkraft
+ * fügt einen Text ein, in dem so etwas steht, exportiert die Liste als `.csv`
+ * und schickt sie weiter.
+ *
+ * ## Warum ein vorangestelltes Apostroph
+ *
+ * Es ist das Zeichen, mit dem alle drei Programme „das ist Text" meinen. Die
+ * Alternative – solche Werte zu verwerfen oder zu verstümmeln – verlöre
+ * Inhalt, den jemand eingetragen hat, und zwar still.
+ *
+ * Das Apostroph ist sichtbar, und das ist der Preis. Er wird beim Wiedereinlesen
+ * zurückgenommen: `csv.ts` entfernt es genau dann, wenn eines der obigen
+ * Zeichen folgt – also genau dort, wo diese Funktion es gesetzt haben kann.
+ */
+export function neutralizeFormula(value: string): string {
+  return FORMULA_STARTERS.test(value) ? `'${value}` : value;
 }
 
 /**
