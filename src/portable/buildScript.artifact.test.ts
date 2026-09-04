@@ -67,13 +67,13 @@ describe('scripts/build-portable.mjs', () => {
       expect(Date.now() - started).toBeLessThan(240_000);
 
       expect(existsSync(resolve(outDir, 'LexiFlow-Lehrkraft.html'))).toBe(true);
-      expect(existsSync(resolve(outDir, 'LexiFlow-Schuelerlaufzeit.html'))).toBe(true);
+      expect(existsSync(resolve(outDir, 'LexiFlow-Lernlaufzeit.html'))).toBe(true);
       // Die Zwischenordner sind weg.
       expect(existsSync(resolve(outDir, 'student'))).toBe(false);
       expect(existsSync(resolve(outDir, 'teacher'))).toBe(false);
 
       // Der Fortschritt steht in der Ausgabe, in der richtigen Reihenfolge.
-      const first = stdout.indexOf('[1/2] Schülerlaufzeit');
+      const first = stdout.indexOf('[1/2] Lernlaufzeit');
       const second = stdout.indexOf('[2/2] Lehrkraftdatei');
       expect(first).toBeGreaterThanOrEqual(0);
       expect(second).toBeGreaterThan(first);
@@ -102,7 +102,7 @@ describe('scripts/build-portable.mjs', () => {
         '  await runBuildPipeline({',
         '    outDir: out,',
         '    steps: [',
-        `      { label: 'Schülerlaufzeit', run: () => { throw new Error('Rollup mag das nicht'); } },`,
+        `      { label: 'Lernlaufzeit', run: () => { throw new Error('Rollup mag das nicht'); } },`,
         `      { label: 'Lehrkraftdatei', run: () => { zweiterLief = true; } },`,
         '    ],',
         `    outputs: [{ from: out + '/x', to: out + '/LexiFlow-Lehrkraft.html' }],`,
@@ -127,7 +127,7 @@ describe('scripts/build-portable.mjs', () => {
 
         expect(failed.code).toBe(1);
         expect(`${failed.stdout ?? ''}`).toContain('ABGEBROCHEN');
-        expect(`${failed.stderr ?? ''}`).toMatch(/Schülerlaufzeit.*Rollup mag das nicht/);
+        expect(`${failed.stderr ?? ''}`).toMatch(/Lernlaufzeit.*Rollup mag das nicht/);
         expect(existsSync(resolve(brokenOut, 'LexiFlow-Lehrkraft.html'))).toBe(false);
       } finally {
         rmSync(brokenOut, { recursive: true, force: true });

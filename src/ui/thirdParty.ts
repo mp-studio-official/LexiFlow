@@ -4,7 +4,7 @@
  * Diese Liste ist keine Fleißarbeit für den Rechtsordner. Sie steht in der
  * Anwendung selbst sichtbar (unter **Daten & Datenschutz**), weil dort ohnehin
  * die Frage beantwortet wird, was in dieser Datei drinsteckt. Wer eine
- * portable Einzeldatei weitergibt, gibt diese Bestandteile mit weiter – und
+ * portable Lerndatei weitergibt, gibt diese Bestandteile mit weiter – und
  * soll das ohne Repository nachlesen können.
  *
  * Das **Wörterbuch fehlt hier bewusst**: Es hat eine eigene Karte mit Quelle,

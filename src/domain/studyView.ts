@@ -164,7 +164,7 @@ export function browseDirectionsFor(packDirection: LearningDirection): TaskDirec
   return packDirection === 'both' ? ['en-de', 'de-en'] : [packDirection];
 }
 
-/** Beschriftung der Auswahl – dieselbe Sprache wie im übrigen Schülerbereich. */
+/** Beschriftung der Auswahl – dieselbe Sprache wie im übrigen Lernbereich. */
 export const BROWSE_DIRECTION_LABELS = DIRECTION_CHOICE_LABELS;
 
 // ---------------------------------------------------------------------------

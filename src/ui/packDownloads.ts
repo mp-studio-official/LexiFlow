@@ -45,17 +45,20 @@ export async function downloadStudentFile(pack: VocabPack): Promise<PackDownload
     return {
       ok: false,
       message:
-        'Die Einzeldatei lässt sich in der portablen Datei „LexiFlow-Lehrkraft.html“ erzeugen.',
+        'Lerndateien lassen sich in der portablen Datei „LexiFlow-Lehrkraft.html“ erzeugen.',
     };
   }
 
   const result = buildStudentHtml(runtime, pack);
   if (!result.ok) {
-    return { ok: false, message: `Die Einzeldatei konnte nicht erzeugt werden: ${result.errors.join(' · ')}` };
+    return {
+      ok: false,
+      message: `Die Lerndatei konnte nicht erzeugt werden: ${result.errors.join(' · ')}`,
+    };
   }
 
   downloadText(result.filename, result.html, 'text/html');
-  return { ok: true, filename: result.filename, message: `Einzeldatei erstellt: ${result.filename}` };
+  return { ok: true, filename: result.filename, message: `Lerndatei erstellt: ${result.filename}` };
 }
 
 /**

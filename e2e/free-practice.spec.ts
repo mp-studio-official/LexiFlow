@@ -38,7 +38,7 @@ async function expectNoSeriousViolations(page: Page, label: string): Promise<voi
   ).toEqual([]);
 }
 
-/** Legt ein Paket an und öffnet es im Schülerbereich. */
+/** Legt ein Paket an und öffnet es im Lernbereich. */
 async function seedPack(page: Page, title: string, direction = 'en-de'): Promise<void> {
   await page.goto('/#/material/import');
   await page.getByLabel('Vokabelliste einfügen').fill(VOCAB_LIST);

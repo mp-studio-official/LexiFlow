@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Baut die beiden portablen Einzeldateien.
+ * Baut die beiden portablen Dateien.
  *
- * Reihenfolge ist Pflicht: Erst die Schülerlaufzeit, dann die Lehrkraftdatei –
+ * Reihenfolge ist Pflicht: Erst die Lernlaufzeit, dann die Lehrkraftdatei –
  * die trägt die Laufzeit als Zeichenkette bei sich. Zwei getrennte Vite-Läufe
  * statt eines Builds mit zwei Einstiegspunkten, weil beide vollständig
  * eigenständige Dokumente sind und `inlineDynamicImports` je Ausgabe gilt.
@@ -64,21 +64,21 @@ try {
   const results = await runBuildPipeline({
     outDir,
     steps: [
-      viteStep('Schülerlaufzeit', 'vite.student.config.ts'),
+      viteStep('Lernlaufzeit', 'vite.student.config.ts'),
       viteStep('Lehrkraftdatei', 'vite.portable.config.ts'),
     ],
     outputs: [
-      { from: resolve(outDir, 'student/student.html'), to: resolve(outDir, 'LexiFlow-Schuelerlaufzeit.html') },
+      { from: resolve(outDir, 'student/student.html'), to: resolve(outDir, 'LexiFlow-Lernlaufzeit.html') },
       { from: resolve(outDir, 'teacher/index.html'), to: resolve(outDir, 'LexiFlow-Lehrkraft.html') },
     ],
     tempDirs: [resolve(outDir, 'student'), resolve(outDir, 'teacher')],
   });
 
-  const runtimeFile = resolve(outDir, 'LexiFlow-Schuelerlaufzeit.html');
+  const runtimeFile = resolve(outDir, 'LexiFlow-Lernlaufzeit.html');
   // Eine erste, harte Zusicherung direkt im Build: Ohne die Einsetzstelle wäre
-  // die Lehrkraftdatei nicht in der Lage, je eine Schülerdatei zu erzeugen.
+  // die Lehrkraftdatei nicht in der Lage, je eine Lerndatei zu erzeugen.
   if (!readFileSync(runtimeFile, 'utf8').includes('"__LEXIFLOW_PACK__"')) {
-    throw new Error('In der Schülerlaufzeit fehlt die Stelle für das Paket.');
+    throw new Error('In der Lernlaufzeit fehlt die Stelle für das Paket.');
   }
 
   process.stdout.write(`\nPortable Dateien in ${relative(root, outDir)}/:\n`);

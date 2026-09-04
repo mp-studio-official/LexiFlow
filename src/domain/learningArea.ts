@@ -50,7 +50,7 @@ import { migrateToCurrent, UnsupportedFormatVersionError } from './migrations';
  * Leseroutinen und zwei Stellen, an denen ein Lernstand verlorengehen kann.
  *
  * Dass die Kennung dabei die Paket-Id ist, ist kein Detail: Es ist der Grund,
- * warum eine Einzeldatei, die vor 4B.7 verteilt wurde, nach einer Neuausgabe
+ * warum eine Lerndatei, die vor 4B.7 verteilt wurde, nach einer Neuausgabe
  * denselben Lernstand wiederfindet.
  */
 
@@ -124,7 +124,7 @@ export function toLearningAreaFile(
  * Ein einzelnes Paket als Lernbereich mit genau einem Paket.
  *
  * Die Kennung ist die des Pakets – siehe oben: Daran hängt, dass eine erneut
- * ausgegebene Einzeldatei den Lernstand der vorigen wiederfindet.
+ * ausgegebene Lerndatei den Lernstand der vorigen wiederfindet.
  */
 export function singlePackArea(pack: VocabPack): LearningAreaFile {
   return toLearningAreaFile(

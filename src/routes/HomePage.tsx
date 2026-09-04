@@ -13,7 +13,7 @@ import { APP_CLAIM } from '../pwa/manifest';
 const PROMISES: readonly { term: string; text: string }[] = [
   {
     term: 'Ohne Konto',
-    text: 'Keine Anmeldung, keine Schülerkonten, keine Klassenverwaltung.',
+    text: 'Keine Anmeldung, keine Konten, keine Klassenverwaltung.',
   },
   {
     term: 'Ohne Einsicht',

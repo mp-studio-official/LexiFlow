@@ -190,7 +190,7 @@ export function linesFromItems(items: readonly unknown[]): string[] {
  * ```
  *
  * Das ist zur **Laufzeit** eine Anfrage an eine URL. Unter `file://` gibt es
- * die nicht, in der portablen Einzeldatei erst recht nicht – die Funktion
+ * die nicht, in der portablen Lerndatei erst recht nicht – die Funktion
  * schlüge dort mit „Setting up fake worker failed“ fehl, und zwar erst dann,
  * wenn jemand eine PDF auswählt.
  *
@@ -203,7 +203,7 @@ export function linesFromItems(items: readonly unknown[]): string[] {
 async function loadPdfjs() {
   /*
     Beide Importe sind dynamisch: Im normalen Build wird daraus ein eigener
-    Chunk, den nur der Lehrkraftbereich anfordert. Die Schülerlaufzeit
+    Chunk, den nur der Lehrkraftbereich anfordert. Die Lernlaufzeit
     importiert dieses Modul nirgends und trägt die Bibliothek deshalb nicht.
   */
   ensurePromiseTry();

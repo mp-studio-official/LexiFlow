@@ -58,7 +58,7 @@ describe('Markenfarben', () => {
     /*
       `student.html` stand bis 4B.1c **nicht** in dieser Liste – und trug
       deshalb als einzige Datei noch die alte Theme-Farbe, sichtbar erst in der
-      exportierten Schülerdatei. Eine zweite Einstiegsdatei ist leicht zu
+      exportierten Lerndatei. Eine zweite Einstiegsdatei ist leicht zu
       übersehen; die Liste ist es jetzt nicht mehr.
     */
     const files = [
@@ -95,7 +95,7 @@ describe('index.html', () => {
   it('setzt die Theme-Farbe auf die Navigationsfarbe – in beiden Einstiegsdateien', () => {
     /*
       Die Statusleiste sitzt über der Kopfzeile, und die ist Aubergine.
-      `student.html` steht hier mit, weil die Schülerlaufzeit ihre eigene
+      `student.html` steht hier mit, weil die Lernlaufzeit ihre eigene
       Einstiegsdatei hat: Bis 4B.1c prüfte dieser Test nur `index.html`, und
       die alte Theme-Farbe überlebte genau dort.
     */

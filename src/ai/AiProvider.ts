@@ -15,7 +15,7 @@ import type { PartOfSpeech, SourceType } from '../domain/schema';
  *
  * Weitere Regeln, die gelten sollen:
  * - Ein Anbieter wird ausschließlich im Lehrkraft-Bereich zur Materialerstellung
- *   genutzt, nie im Schülerbereich und nie mit Lernständen.
+ *   genutzt, nie im Lernbereich und nie mit Lernständen.
  * - Es werden keine personenbezogenen Daten und keine Lernstände übergeben.
  * - Ohne aktiv konfigurierten Anbieter bleibt die App vollständig funktionsfähig.
  */

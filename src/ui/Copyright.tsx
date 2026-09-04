@@ -1,7 +1,7 @@
 /**
  * Das Zeichen ganz unten: **© OHM**.
  *
- * Es steht in der App, in der portablen Schülerdatei und auf dem Ausdruck –
+ * Es steht in der App, in der portablen Lerndatei und auf dem Ausdruck –
  * deshalb an genau einer Stelle im Quelltext. Ein Vermerk, den man an drei
  * Orten pflegen muss, ist an zweien falsch, sobald sich einer ändert.
  *

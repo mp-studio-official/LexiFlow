@@ -213,7 +213,7 @@ describe('Die dunkle Hülle trägt die Aubergine-Variante', () => {
 
   it('lädt das Zeichen nicht als externe Datei', () => {
     /*
-      Entscheidend für die portablen Einzeldateien: Ein `<img src="…svg">`
+      Entscheidend für die portablen Lerndateien: Ein `<img src="…svg">`
       wäre offline und unter `file://` ein leerer Kasten. Das Zeichen steht
       deshalb als Pfad im Dokument.
     */

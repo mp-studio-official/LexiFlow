@@ -108,7 +108,7 @@ export interface OfflineDictionaryOptions {
  * Der Standardlader.
  *
  * Ein dynamischer Import: Das Wörterbuch wird ein eigener Chunk und landet
- * **nicht** im Startbündel. Für die Schülerlaufzeit ist das entscheidend – dort
+ * **nicht** im Startbündel. Für die Lernlaufzeit ist das entscheidend – dort
  * importiert niemand dieses Modul, also enthält sie auch keine Wörterbuchdaten.
  */
 async function loadBundledDictionary(): Promise<DictionaryPayload> {

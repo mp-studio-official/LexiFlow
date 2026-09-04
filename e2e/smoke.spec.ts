@@ -81,7 +81,7 @@ test.describe('LexiFlow – Grundablauf', () => {
     // 6. Paket ist gespeichert und bearbeitbar
     await expect(page.getByRole('heading', { level: 1, name: 'Unit 3 – City life' })).toBeVisible();
 
-    // 7. Schülerbereich: getrennte Lernstände, neue Vokabeln als eigene Kategorie
+    // 7. Lernbereich: getrennte Lernstände, neue Vokabeln als eigene Kategorie
     await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
     await openLernstand(page);
     await expect(page.getByText(/0 von 4 Vokabeln sicher/)).toBeVisible();

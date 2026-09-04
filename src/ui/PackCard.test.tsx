@@ -6,7 +6,7 @@ import { Button, EmptyState } from './components';
 
 /**
  * Sprint 3A: Das gemeinsame Kartenmuster und der gemeinsame Leerzustand.
- * Beide werden im Lehrkraft- wie im Schülerbereich verwendet.
+ * Beide werden im Lehrkraft- wie im Lernbereich verwendet.
  */
 
 function renderCard(props: Partial<Parameters<typeof PackCard>[0]> = {}) {

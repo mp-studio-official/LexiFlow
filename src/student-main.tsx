@@ -5,7 +5,7 @@ import { areaPacks } from './domain/learningArea';
 import './styles/global.css';
 
 /**
- * Einstiegspunkt der portablen Schülerdatei.
+ * Einstiegspunkt der portablen Lerndatei.
  *
  * Zwei Dinge müssen **vor** der Anwendung passieren, deshalb ist dieser Datei
  * die Reihenfolge wichtiger als die Kürze:

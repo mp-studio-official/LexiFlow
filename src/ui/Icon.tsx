@@ -18,7 +18,7 @@ import type { SVGProps } from 'react';
  * Ein Pfeil nach unten heißt „herunterladen“ – aber welche Datei? Deshalb
  * trägt jedes Zeichen hier `aria-hidden`, und der Name kommt von der
  * Schaltfläche darum herum (`IconButton` verlangt ihn). Wer mit den Augen
- * arbeitet, sieht ein Zeichen; wer hört, hört „Unit 7 als Einzeldatei
+ * arbeitet, sieht ein Zeichen; wer hört, hört „Unit 7 als Lerndatei
  * herunterladen“.
  */
 

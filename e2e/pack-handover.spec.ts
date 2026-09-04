@@ -145,7 +145,7 @@ test.describe('Weitergeben an die Lerngruppe', () => {
     await expect(karte).toBeVisible();
 
     await expect(
-      karte.getByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
+      karte.getByRole('button', { name: 'Als Lerndatei herunterladen (.html)' }),
     ).toBeVisible();
     await expect(
       karte.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' }),

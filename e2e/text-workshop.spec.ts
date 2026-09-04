@@ -199,7 +199,7 @@ test.describe('Textwerkstatt', () => {
     expect(content).not.toContain(TEXT);
     expect(content).toContain('The neighbourhood is crowded today.');
 
-    // Schülerbereich funktioniert unverändert.
+    // Lernbereich funktioniert unverändert.
     await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
     /*
       Seit 4B.6 steht der Lernstand als schlanke Zeile da: die Zahl vorne, die

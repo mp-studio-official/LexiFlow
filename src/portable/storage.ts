@@ -58,7 +58,7 @@ export async function checkStorage(): Promise<StorageCheck> {
   }
 }
 
-/** Der Satz, der in der Schülerdatei über dem Lernstand steht. */
+/** Der Satz, der in der Lerndatei über dem Lernstand steht. */
 export function storageNotice(state: StorageState): string {
   if (state === 'gesperrt') {
     return 'Dein Lernstand kann in dieser Datei nicht gespeichert werden. Du kannst weiterüben – beim Schließen geht der Fortschritt aber verloren.';

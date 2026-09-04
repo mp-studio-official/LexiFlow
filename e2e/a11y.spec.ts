@@ -47,7 +47,7 @@ async function openPreview(page: Page): Promise<void> {
   await expect(page.getByText('4 Zeilen ·')).toBeVisible();
 }
 
-/** Legt ein Paket an und liefert dessen Detailseite im Schülerbereich. */
+/** Legt ein Paket an und liefert dessen Detailseite im Lernbereich. */
 async function seedPack(page: Page, title: string, direction: 'en-de' | 'both'): Promise<void> {
   await openPreview(page);
   await page.getByLabel('Titel', { exact: true }).fill(title);
@@ -279,7 +279,7 @@ test.describe('Barrierefreiheit – Smartphone-Breite', () => {
     );
   }
 
-  test('@a11y Startseite und Schülerbereich ohne horizontalen Überlauf', async ({ page }) => {
+  test('@a11y Startseite und Lernbereich ohne horizontalen Überlauf', async ({ page }) => {
     await page.goto('/');
     await expectNoPageOverflow(page, 'Startseite');
 

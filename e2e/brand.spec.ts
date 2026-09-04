@@ -63,7 +63,7 @@ test.describe('Marke – Auslieferung', () => {
 
     /*
       Satoshi steht im Stack an erster Stelle, wird aber nicht mitgeliefert –
-      die Lizenzlage für die Weitergabe in einer portablen Einzeldatei ließ
+      die Lizenzlage für die Weitergabe in einer portablen Lerndatei ließ
       sich nicht zweifelsfrei klären. Was hier gilt: Es darf keine
       Satoshi-Datei in der Auslieferung liegen und keine angefragt werden.
     */
@@ -128,12 +128,12 @@ test.describe('Marke – Kontrast im Moment des Erscheinens', () => {
     ).toEqual([]);
   }
 
-  test('@brand Startseite, Schülerbereich und Material direkt nach der Navigation', async ({
+  test('@brand Startseite, Lernbereich und Material direkt nach der Navigation', async ({
     page,
   }) => {
     for (const [route, label] of [
       ['/', 'Startseite'],
-      ['/#/lernen', 'Schülerbereich'],
+      ['/#/lernen', 'Lernbereich'],
       ['/#/material', 'Material'],
       ['/#/datenschutz', 'Datenschutz'],
     ] as const) {

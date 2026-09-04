@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
  * Ein `<link rel="icon" href="favicon.svg">` wäre in einer portablen Datei ein
  * Verweis ins Leere: Unter `file://` liegt daneben keine `favicon.svg`, und der
  * Browser zeigte ein leeres Tab-Symbol. Die Datei ist klein genug, um sie
- * mitzunehmen – so sieht die Schülerdatei auch im Tab wie LexiFlow aus.
+ * mitzunehmen – so sieht die Lerndatei auch im Tab wie LexiFlow aus.
  */
 export function inlineFavicon(root) {
   return {

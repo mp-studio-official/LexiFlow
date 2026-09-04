@@ -6,11 +6,11 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Sprint 4A.1: Die portablen Einzeldateien, geprüft wie in freier Wildbahn –
+ * Sprint 4A.1: Die portablen Lerndateien, geprüft wie in freier Wildbahn –
  * über `file://`, ohne Server, ohne Netz.
  *
  * Der Ablauf ist der echte: Die Lehrkraftdatei legt ein Paket an, exportiert
- * daraus eine Schülerdatei, und diese Schülerdatei wird anschließend als
+ * daraus eine Lerndatei, und diese Lerndatei wird anschließend als
  * eigenes Dokument geöffnet und benutzt.
  */
 
@@ -163,7 +163,7 @@ function watchPageErrors(page: Page): string[] {
   return errors;
 }
 
-/** Legt in der Lehrkraftdatei ein Paket an und exportiert die Schülerdatei. */
+/** Legt in der Lehrkraftdatei ein Paket an und exportiert die Lerndatei. */
 async function exportStudentFile(
   page: Page,
   title = 'Unit 3 – City life',
@@ -179,7 +179,7 @@ async function exportStudentFile(
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }).click();
+  await page.getByRole('button', { name: 'Als Lerndatei herunterladen (.html)' }).click();
   const download = await downloadPromise;
 
   const target = join(mkdtempSync(join(tmpdir(), 'lexiflow-')), download.suggestedFilename());
@@ -285,14 +285,14 @@ test.describe('Portable Lehrkraftdatei', () => {
     expect(external).toEqual([]);
   });
 
-  test('@smoke erzeugt aus einem Paket eine Schülerdatei', async ({ page }) => {
+  test('@smoke erzeugt aus einem Paket eine Lerndatei', async ({ page }) => {
     const external = watchExternalRequests(page);
     const fileUrl = await exportStudentFile(page);
 
     expect(fileUrl).toContain('unit-3-city-life-8-lexiflow.html');
-    // 4B.3: Aus „Schülerdatei“ ist „Einzeldatei“ geworden – die Oberfläche
+    // 4B.3: Aus „Lerndatei“ ist „Lerndatei“ geworden – die Oberfläche
     // spricht von Lernenden und Lerngruppen, nicht von Schülern.
-    await expect(page.getByText(/Einzeldatei erstellt/).last()).toBeVisible();
+    await expect(page.getByText(/Lerndatei erstellt/).last()).toBeVisible();
     // Der bestehende JSON-Export steht unverändert daneben.
     await expect(page.getByRole('button', { name: 'Als LexiFlow-Paket herunterladen (.vocabpack.json)' })).toBeVisible();
     expect(external).toEqual([]);
@@ -429,12 +429,12 @@ test.describe('Portable Lehrkraftdatei', () => {
     await page.getByRole('button', { name: /Paket speichern/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'A11y Export' })).toBeVisible();
 
-    await expect(page.getByText(/Die Einzeldatei enthält dieses Vokabelpaket/)).toBeVisible();
+    await expect(page.getByText(/Die Lerndatei enthält dieses Vokabelpaket/)).toBeVisible();
     await expectNoSeriousViolations(page, 'Lehrkraft-Paketseite (portabel)');
   });
 });
 
-test.describe('Exportierte Schülerdatei', () => {
+test.describe('Exportierte Lerndatei', () => {
   /*
     Sprint 4B.3: Die Marke muss auf **breiten** Fenstern da sein.
 
@@ -465,7 +465,7 @@ test.describe('Exportierte Schülerdatei', () => {
   test('@smoke trägt das Logo als Pfad, nicht als Datei', async ({ page }) => {
     /*
       Sprint 4B.1c: Ein `<img src="lexiflow-mark-….svg">` wäre unter `file://`
-      ein leerer Kasten – die Datei liegt nirgends neben der Einzeldatei. Das
+      ein leerer Kasten – die Datei liegt nirgends neben der Lerndatei. Das
       Zeichen steht deshalb als Pfad im Dokument, und die Prüfung sieht beides:
       keine Anfrage nach außen und ein `path` in der Kopfzeile.
     */
@@ -482,7 +482,7 @@ test.describe('Exportierte Schülerdatei', () => {
     expect(html).not.toContain('lexiflow-mark-on-parchment.svg');
     expect(html).toContain('#F8EFE3');
     for (const alt of ['#ff8a3d', '#e63946', '#3b0f3f']) {
-      expect(html.toLowerCase(), `Schülerdatei enthält noch ${alt}`).not.toContain(alt);
+      expect(html.toLowerCase(), `Lerndatei enthält noch ${alt}`).not.toContain(alt);
     }
     expect(external).toEqual([]);
   });
@@ -530,7 +530,7 @@ test.describe('Exportierte Schülerdatei', () => {
     await expect(page).toHaveTitle('Unit 3 – City life – LexiFlow');
     await expect(page.getByRole('heading', { level: 1, name: 'Unit 3 – City life' })).toBeVisible();
     /*
-      Seit 4B.7 zeigt auch die Einzeldatei ihre Pakete als Kartenwand – eine
+      Seit 4B.7 zeigt auch die Lerndatei ihre Pakete als Kartenwand – eine
       Wand mit genau einer Karte. Ein zweites Layout für den Sonderfall wäre
       ein Sonderfall zu viel; die Zeile darunter sagt dasselbe wie vorher, nur
       in der Reihenfolge der Karte.
@@ -660,9 +660,9 @@ test.describe('Exportierte Schülerdatei', () => {
     const fileUrl = await exportStudentFile(page);
     await page.goto(fileUrl);
 
-    await expectNoSeriousViolations(page, 'Schülerdatei – Startseite');
+    await expectNoSeriousViolations(page, 'Lerndatei – Startseite');
     await page.getByRole('link', { name: 'Paket öffnen' }).click();
-    await expectNoSeriousViolations(page, 'Schülerdatei – Paketseite');
+    await expectNoSeriousViolations(page, 'Lerndatei – Paketseite');
   });
 
   test.describe('Smartphone-Breite', () => {
@@ -682,7 +682,7 @@ test.describe('Exportierte Schülerdatei', () => {
         expect(overflow.scrollWidth, step).toBeLessThanOrEqual(overflow.clientWidth + 1);
         expect(overflow.bodyScrollWidth, step).toBeLessThanOrEqual(overflow.clientWidth + 1);
       }
-      await expectNoSeriousViolations(page, 'Schülerdatei auf 390 px');
+      await expectNoSeriousViolations(page, 'Lerndatei auf 390 px');
     });
   });
 });

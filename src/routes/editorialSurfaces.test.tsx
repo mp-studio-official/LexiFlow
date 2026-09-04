@@ -64,7 +64,7 @@ describe('Startseite', () => {
   it('nennt die vier Datenschutzversprechen unverändert', () => {
     renderPage(<HomePage />);
 
-    expect(screen.getByText(/Keine Anmeldung, keine Schülerkonten/)).toBeInTheDocument();
+    expect(screen.getByText(/Keine Anmeldung, keine Konten/)).toBeInTheDocument();
     expect(
       screen.getByText(/Lehrkräfte sehen keine Lernstände, Antworten oder Lernzeiten/),
     ).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe('Material – Creator-Studio', () => {
     ).toBeInTheDocument();
     expect(
       within(card).getByRole('button', {
-        name: 'Unit 3 – City life als Einzeldatei herunterladen (.html)',
+        name: 'Unit 3 – City life als Lerndatei herunterladen (.html)',
       }),
     ).toBeInTheDocument();
   });

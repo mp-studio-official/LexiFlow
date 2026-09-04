@@ -185,7 +185,7 @@ export function PackEditorPage() {
       <Card quiet>
         <h2 style={{ fontSize: '1rem', marginTop: 0 }}>Weitergeben an die Lerngruppe</h2>
         <p className="small muted">
-          Die Einzeldatei enthält dieses Vokabelpaket und den vollständigen Lerntrainer. Sie
+          Die Lerndatei enthält dieses Vokabelpaket und den vollständigen Lerntrainer. Sie
           funktioniert ohne Konto und ohne Internet. Lernstände und andere Pakete wandern nicht
           mit. Personenbezogene Daten stehen nur darin, wenn du selbst welche in Titel, Thema,
           Beschreibung oder Notizen geschrieben hast.
@@ -198,7 +198,7 @@ export function PackEditorPage() {
         </p>
         <div className="row">
           <Button variant="primary" onClick={() => void handleStudentExport()}>
-            Als Einzeldatei herunterladen (.html)
+            Als Lerndatei herunterladen (.html)
           </Button>
           <Button onClick={handleExport}>
             Als LexiFlow-Paket herunterladen (.vocabpack.json)

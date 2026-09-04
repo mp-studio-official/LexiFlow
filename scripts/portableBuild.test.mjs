@@ -67,7 +67,7 @@ describe('Bau-Orchestrierung', () => {
 
     await run({
       steps: [
-        { label: 'Schülerlaufzeit', run: async () => void order.push('erst') },
+        { label: 'Lernlaufzeit', run: async () => void order.push('erst') },
         { label: 'Lehrkraftdatei', run: async () => void order.push('dann') },
       ],
     });
@@ -81,13 +81,13 @@ describe('Bau-Orchestrierung', () => {
 
     await harness.run({
       steps: [
-        { label: 'Schülerlaufzeit', run: () => void seen.push([...harness.log]) },
+        { label: 'Lernlaufzeit', run: () => void seen.push([...harness.log]) },
         { label: 'Lehrkraftdatei', run: () => void seen.push([...harness.log]) },
       ],
     });
 
-    expect(seen[0]).toEqual(['[1/2] Schülerlaufzeit …']);
-    expect(seen[1]).toEqual(['[1/2] Schülerlaufzeit …', '[2/2] Lehrkraftdatei …']);
+    expect(seen[0]).toEqual(['[1/2] Lernlaufzeit …']);
+    expect(seen[1]).toEqual(['[1/2] Lernlaufzeit …', '[2/2] Lehrkraftdatei …']);
   });
 
   it('legt beide Enddateien an und räumt die Zwischenordner weg', async () => {
@@ -95,7 +95,7 @@ describe('Bau-Orchestrierung', () => {
 
     const results = await harness.run({
       steps: [
-        { label: 'Schülerlaufzeit', run: () => undefined },
+        { label: 'Lernlaufzeit', run: () => undefined },
         { label: 'Lehrkraftdatei', run: () => undefined },
       ],
     });
@@ -126,7 +126,7 @@ describe('Bau-Orchestrierung', () => {
       harness.run({
         steps: [
           {
-            label: 'Schülerlaufzeit',
+            label: 'Lernlaufzeit',
             run: () => {
               throw new Error('Rollup mag das nicht');
             },
@@ -162,7 +162,7 @@ describe('Bau-Orchestrierung', () => {
     await expect(
       harness.run({
         steps: [
-          { label: 'Schülerlaufzeit', run: () => undefined },
+          { label: 'Lernlaufzeit', run: () => undefined },
           {
             label: 'Lehrkraftdatei',
             run: () => {
@@ -184,7 +184,7 @@ describe('Bau-Orchestrierung', () => {
     await expect(
       harness.run({
         steps: [
-          { label: 'Schülerlaufzeit', run: () => undefined },
+          { label: 'Lernlaufzeit', run: () => undefined },
           { label: 'Lehrkraftdatei', run: () => undefined },
         ],
       }),

@@ -10,7 +10,7 @@ import { RUNTIME_LIMIT_KIB } from '../../scripts/portableLimits.mjs';
  * ## Warum dieser Test außerhalb von `npm run test` steht
  *
  * Was hier geprüft wird, ist keine Eigenschaft des Quelltexts, sondern des
- * Bündels. Im Quelltext steht ein `import()`; ob daraus in der Einzeldatei ein
+ * Bündels. Im Quelltext steht ein `import()`; ob daraus in der Lerndatei ein
  * eingebetteter Block oder ein Verweis auf eine zweite Datei wird, entscheidet
  * der Bundler. Genau dort lag der Fehler, den dieser Test verhindern soll –
  * und er wäre in jedem Unit-Test unsichtbar geblieben.
@@ -25,7 +25,7 @@ import { RUNTIME_LIMIT_KIB } from '../../scripts/portableLimits.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
 const teacherPath = resolve(root, 'dist-portable/LexiFlow-Lehrkraft.html');
-const runtimePath = resolve(root, 'dist-portable/LexiFlow-Schuelerlaufzeit.html');
+const runtimePath = resolve(root, 'dist-portable/LexiFlow-Lernlaufzeit.html');
 
 const teacher = readFileSync(teacherPath, 'utf8');
 const runtime = readFileSync(runtimePath, 'utf8');
@@ -99,7 +99,7 @@ describe('PDF-Import in der gebauten Lehrkraftdatei', () => {
     expect(mib, `Lehrkraftdatei ${mib.toFixed(2)} MiB`).toBeLessThan(12);
   });
 
-  it('lässt die Schülerlaufzeit von alldem unberührt', () => {
+  it('lässt die Lernlaufzeit von alldem unberührt', () => {
     /*
       Die eigentliche Zusage an die Lernenden: Der PDF-Import ist eine Funktion
       des Lehrkraftbereichs. Drei Megabyte Bibliothek in einer Datei, die an

@@ -17,7 +17,7 @@ const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, 'dist-portable');
 
 const teacher = resolve(out, 'LexiFlow-Lehrkraft.html');
-const runtime = resolve(out, 'LexiFlow-Schuelerlaufzeit.html');
+const runtime = resolve(out, 'LexiFlow-Lernlaufzeit.html');
 
 const problems = [];
 
@@ -62,7 +62,7 @@ const report = [];
 
 for (const [label, file] of [
   ['LexiFlow-Lehrkraft.html', teacher],
-  ['LexiFlow-Schuelerlaufzeit.html', runtime],
+  ['LexiFlow-Lernlaufzeit.html', runtime],
 ]) {
   const html = readFileSync(file, 'utf8');
   report.push({ label, bytes: statSync(file).size });
@@ -85,21 +85,21 @@ for (const [label, file] of [
 const runtimeHtml = readFileSync(runtime, 'utf8');
 check(
   runtimeHtml.includes('"__LEXIFLOW_PACK__"'),
-  'Schülerlaufzeit: die Einsetzstelle für das Paket fehlt.',
+  'Lernlaufzeit: die Einsetzstelle für das Paket fehlt.',
 );
 check(
   runtimeHtml.includes('<!--LEXIFLOW_TITLE-->'),
-  'Schülerlaufzeit: die Einsetzstelle für den Titel fehlt.',
+  'Lernlaufzeit: die Einsetzstelle für den Titel fehlt.',
 );
 check(
   !/id="lexiflow-pack"[^>]*type="application\/json"[^>]*>\s*\{/.test(runtimeHtml),
-  'Schülerlaufzeit: enthält bereits ein Paket – die Vorlage muss leer sein.',
+  'Lernlaufzeit: enthält bereits ein Paket – die Vorlage muss leer sein.',
 );
 
 const teacherHtml = readFileSync(teacher, 'utf8');
 check(
   teacherHtml.includes('__LEXIFLOW_PACK__'),
-  'Lehrkraftdatei: die Schülerlaufzeit ist nicht einkompiliert – der Export könnte nichts erzeugen.',
+  'Lehrkraftdatei: die Lernlaufzeit ist nicht einkompiliert – der Export könnte nichts erzeugen.',
 );
 
 /*
@@ -132,13 +132,13 @@ check(
 );
 
 /*
- * … und die Schülerdatei darf davon nichts abbekommen.
+ * … und die Lerndatei darf davon nichts abbekommen.
  *
  * Der PDF-Import ist eine Funktion des Lehrkraftbereichs. Drei Megabyte
  * Bibliothek in einer Datei, die an eine ganze Klasse geht, wären reine Last.
  */
 for (const marker of ['WorkerMessageHandler', 'pdfjsWorker', 'InvalidPDFException']) {
-  check(!runtimeHtml.includes(marker), `Schülerlaufzeit: enthält pdf.js-Code (${marker}).`);
+  check(!runtimeHtml.includes(marker), `Lernlaufzeit: enthält pdf.js-Code (${marker}).`);
 }
 
 /*

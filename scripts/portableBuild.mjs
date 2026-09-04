@@ -2,7 +2,7 @@
  * Eine kleine, allgemeine Bau-Orchestrierung.
  *
  * Bewusst **ohne LexiFlow-Fachwissen**: Dieses Modul weiß nichts von
- * Vokabelpaketen, Schülerdateien oder Vite. Es kennt nur „führe Schritte der
+ * Vokabelpaketen, Lerndateien oder Vite. Es kennt nur „führe Schritte der
  * Reihe nach aus, lege danach genau diese Enddateien an, räume die
  * Zwischenordner weg – und hinterlasse bei einem Fehler nichts, was wie ein
  * fertiges Ergebnis aussieht“.

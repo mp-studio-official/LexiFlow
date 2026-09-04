@@ -85,7 +85,7 @@ let sharedDictionary: DictionaryProvider | undefined;
 
 /**
  * Die Vorschlagswerkstatt lädt erst, wenn eine Vorschau geöffnet wird. Der
- * Schülerbereich bekommt davon nichts ab.
+ * Lernbereich bekommt davon nichts ab.
  */
 const EnrichmentPanel = lazy(() => import('./EnrichmentPanel'));
 

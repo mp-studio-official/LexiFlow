@@ -12,10 +12,10 @@ import {
 import { type PackMeta, type VocabPack, type VocabPackFile } from '../domain/schema';
 
 /**
- * Schülerdatei erzeugen – ein Lernbereich, eine HTML-Datei, kein Server.
+ * Lerndatei erzeugen – ein Lernbereich, eine HTML-Datei, kein Server.
  *
  * Diese Datei ist rein: kein React, kein IndexedDB, kein `document`. Sie nimmt
- * die generische Schülerlaufzeit (eine vollständige HTML-Datei mit
+ * die generische Lernlaufzeit (eine vollständige HTML-Datei mit
  * eingebettetem JavaScript, CSS und Schriften) und setzt einen Lernbereich
  * hinein.
  *
@@ -101,7 +101,7 @@ export function studentFileName(meta: Pick<PackMeta, 'title' | 'grade'>): string
   return `${base}${grade ? `-${grade}` : ''}-lexiflow.html`;
 }
 
-/** Der Fenstertitel der Schülerdatei – ohne HTML-Sonderzeichen. */
+/** Der Fenstertitel der Lerndatei – ohne HTML-Sonderzeichen. */
 export function studentDocumentTitle(meta: Pick<PackMeta, 'title'>): string {
   const clean = meta.title.replace(/[<>&"]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
   return `${clean || 'Vokabelpaket'} – LexiFlow`;
@@ -111,7 +111,7 @@ export function studentDocumentTitle(meta: Pick<PackMeta, 'title'>): string {
  * Genau die übergebenen Pakete – und sonst nichts.
  *
  * Bewusst über `toPackFile` statt über eine eigene Struktur: Was in der
- * Schülerdatei landet, ist Zeichen für Zeichen dasselbe wie in einer
+ * Lerndatei landet, ist Zeichen für Zeichen dasselbe wie in einer
  * `.vocabpack.json`. Lernstände, andere Pakete, Entwurfszustände, KI-Prompts
  * und Providerdaten kommen dort nicht vor, weil `VocabPackFile` sie gar nicht
  * kennt.
@@ -121,7 +121,7 @@ export function toStudentPayload(pack: VocabPack): VocabPackFile {
 }
 
 /**
- * Setzt einen Lernbereich in die Schülerlaufzeit ein.
+ * Setzt einen Lernbereich in die Lernlaufzeit ein.
  *
  * Vor dem Einsetzen wird gegen dasselbe Schema geprüft, mit dem die fertige
  * Datei ihn beim Öffnen wieder liest. Was hier nicht durchkommt, wird nicht
@@ -137,7 +137,7 @@ export function buildLearningAreaHtml(
 }
 
 /**
- * Setzt ein einzelnes Paket in die Schülerlaufzeit ein.
+ * Setzt ein einzelnes Paket in die Lernlaufzeit ein.
  *
  * Derselbe Weg wie oben, nur mit einem Bereich aus einem Paket – und mit dem
  * gewohnten Dateinamen, der die Klassenstufe trägt. Die Kennung des Bereichs
@@ -157,7 +157,7 @@ function embed(runtime: string, area: LearningAreaFile, filename: string): Stude
     return {
       ok: false,
       errors: [
-        'Die Schülerlaufzeit enthält keine Stelle für den Lernbereich. Der Build ist unvollständig.',
+        'Die Lernlaufzeit enthält keine Stelle für den Lernbereich. Der Build ist unvollständig.',
       ],
     };
   }
@@ -171,7 +171,7 @@ function embed(runtime: string, area: LearningAreaFile, filename: string): Stude
 
 /**
  * Liest den eingebetteten Lernbereich wieder aus – der Weg, den die
- * Schülerdatei beim Öffnen geht, und zugleich der Weg, auf dem Tests einen
+ * Lerndatei beim Öffnen geht, und zugleich der Weg, auf dem Tests einen
  * Export prüfen.
  *
  * `parseLearningArea` nimmt auch eine Datei aus der Zeit vor den

@@ -147,8 +147,8 @@ async function migrateV1ToV2(tx: Transaction): Promise<void> {
  *
  * Grund ist `file://`: Chromium behandelt **alle** lokalen Dateien als
  * denselben Ursprung. Ohne eigenen Namen läge der Lernstand einer portablen
- * Schülerdatei in derselben Datenbank wie die der Lehrkraftdatei und aller
- * anderen Schülerdateien. Der Einstiegspunkt der Schülerdatei setzt deshalb
+ * Lerndatei in derselben Datenbank wie die der Lehrkraftdatei und aller
+ * anderen Lerndateien. Der Einstiegspunkt der Lerndatei setzt deshalb
  * `globalThis.__LEXIFLOW_DB__`, **bevor** dieses Modul geladen wird (er lädt die
  * App dynamisch nach). Im normalen Web-Build ist die Variable nicht gesetzt und
  * es bleibt bei `lexiflow`.

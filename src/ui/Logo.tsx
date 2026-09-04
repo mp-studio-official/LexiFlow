@@ -32,7 +32,7 @@ import {
  * ## Warum keine Bitmap
  *
  * Alles sind Pfade mit einer sauberen `viewBox`: beliebig skalierbar,
- * monochrom verständlich (`tone="mono"`) und in der portablen Einzeldatei ohne
+ * monochrom verständlich (`tone="mono"`) und in der portablen Lerndatei ohne
  * einen einzigen externen Request. Eine Rasterdatei wäre dort zusätzlich teuer
  * und würde auf dem Display der Lehrkraft ausfransen.
  *

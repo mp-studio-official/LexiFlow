@@ -14,7 +14,7 @@ import { makeEntry, makeMeta } from '../test/fixtures';
 import type { VocabPack } from '../domain/schema';
 
 /**
- * Sprint 4A.1: Die Erzeugung der Schülerdatei – ohne Browser und ohne Build.
+ * Sprint 4A.1: Die Erzeugung der Lerndatei – ohne Browser und ohne Build.
  *
  * Hier steht die Fachlogik: Was kommt in die Datei, was auf keinen Fall, und
  * was passiert mit Vokabeln, die aussehen wie HTML. Die Prüfungen an der
@@ -59,7 +59,7 @@ describe('Sichere Einbettung', () => {
   });
 });
 
-describe('Schülerdatei erzeugen', () => {
+describe('Lerndatei erzeugen', () => {
   it('setzt genau ein Paket und den Titel ein', () => {
     const result = buildStudentHtml(RUNTIME, packWith({ title: 'Unit 3' }));
 
@@ -147,7 +147,7 @@ describe('Eingebettetes Paket wieder lesen', () => {
 
     expect(back.ok).toBe(true);
     if (!back.ok) return;
-    // Seit 4B.7 steht dort ein Lernbereich – bei einer Einzeldatei einer mit
+    // Seit 4B.7 steht dort ein Lernbereich – bei einer Lerndatei einer mit
     // genau einem Paket, dessen Kennung die des Pakets ist.
     expect(back.area.packs).toHaveLength(1);
     expect(back.area.packs[0]?.meta.title).toBe('Halong Bay');
@@ -163,8 +163,8 @@ describe('Eingebettetes Paket wieder lesen', () => {
   });
 });
 
-describe('Datenbankname der Schülerdatei', () => {
-  it('trennt sie von der Lehrkraftdatei und von anderen Schülerdateien', () => {
+describe('Datenbankname der Lerndatei', () => {
+  it('trennt sie von der Lehrkraftdatei und von anderen Lerndateien', () => {
     expect(studentDatabaseName('pack-1')).toBe('lexiflow-schueler-pack-1');
     expect(studentDatabaseName('pack-2')).not.toBe(studentDatabaseName('pack-1'));
     expect(studentDatabaseName('pack-1')).not.toBe('lexiflow');

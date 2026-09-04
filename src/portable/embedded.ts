@@ -17,12 +17,12 @@ export function readEmbeddedAreaFromDocument(doc: Document = document): Embedded
 }
 
 /**
- * Der Datenbankname dieser Schülerdatei.
+ * Der Datenbankname dieser Lerndatei.
  *
  * Unter `file://` teilen sich in Chromium **alle** lokalen Dateien denselben
- * Ursprung. Ohne eigenen Namen läge der Lernstand einer Schülerdatei in
+ * Ursprung. Ohne eigenen Namen läge der Lernstand einer Lerndatei in
  * derselben Datenbank wie die der Lehrkraftdatei und aller anderen
- * Schülerdateien. Ein Name je Lernbereich trennt sie sauber: Die Datei sieht
+ * Lerndateien. Ein Name je Lernbereich trennt sie sauber: Die Datei sieht
  * weder fremde Pakete noch fremde Lernstände.
  *
  * ## Warum die Bereichskennung und nicht die Paketkennung
@@ -31,7 +31,7 @@ export function readEmbeddedAreaFromDocument(doc: Document = document): Embedded
  * Jetzt liegen dort mehrere, und sie teilen sich einen Lernstand – der hängt
  * am Bereich.
  *
- * Für eine Einzeldatei ändert sich dabei **nichts**: Die Kennung eines
+ * Für eine Lerndatei ändert sich dabei **nichts**: Die Kennung eines
  * Bereichs mit einem Paket ist die des Pakets (siehe
  * `domain/learningArea.ts`). Eine vor 4B.7 verteilte Datei und ihre
  * Neuausgabe landen deshalb in derselben Datenbank, und niemand fängt von

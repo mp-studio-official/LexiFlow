@@ -5,7 +5,7 @@ import { Logo } from '../ui/Logo';
 import { storageNotice, type StorageState } from './storage';
 
 /**
- * Die Hülle der portablen Schülerdatei.
+ * Die Hülle der portablen Lerndatei.
  *
  * Bewusst **nicht** die `AppShell`: Diese Datei hat keine Lehrkraft-Bereiche,
  * die man verstecken müsste – sie enthält sie gar nicht. Eine Navigation mit

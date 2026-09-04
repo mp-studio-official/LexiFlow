@@ -75,7 +75,7 @@ describe('Ein Lernbereich als Datei', () => {
 describe('Ein einzelnes Paket ist ein Bereich mit einem Paket', () => {
   it('übernimmt die Paket-Kennung als Bereichskennung', () => {
     /*
-      Das ist der Grund, warum eine erneut ausgegebene Einzeldatei den
+      Das ist der Grund, warum eine erneut ausgegebene Lerndatei den
       Lernstand der vorigen wiederfindet: Der Datenbankname hängt an dieser
       Kennung. Eine neu erzeugte Bereichskennung wäre für die Lernenden ein
       leerer Anfang – und niemand fände heraus, warum.

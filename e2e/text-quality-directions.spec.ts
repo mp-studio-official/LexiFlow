@@ -186,7 +186,7 @@ test.describe('Textqualität und Lernrichtungen', () => {
       page.getByRole('heading', { level: 1, name: 'Halong Bay – aus einem Text' }),
     ).toBeVisible();
 
-    // 8. Schülerbereich: die Richtung ist eine Wahl, keine Vorschrift.
+    // 8. Lernbereich: die Richtung ist eine Wahl, keine Vorschrift.
     await page.getByRole('link', { name: 'Im Lernbereich ansehen' }).click();
     await expect(page.getByRole('radio', { name: 'Gemischt' })).toBeChecked();
 

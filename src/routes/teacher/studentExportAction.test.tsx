@@ -11,7 +11,7 @@ import { PACK_PLACEHOLDER, TITLE_PLACEHOLDER } from '../../portable/studentExpor
  * Sprint 4A.1: Die Exportaktion auf der Lehrkraft-Paketseite.
  *
  * Zwei Fassungen werden geprüft: die portable Lehrkraftdatei, die die
- * Schülerlaufzeit mitbringt, und der normale Web-Build, der sie bewusst nicht
+ * Lernlaufzeit mitbringt, und der normale Web-Build, der sie bewusst nicht
  * mitbringt und das auch sagt, statt einen wirkungslosen Knopf anzubieten.
  */
 
@@ -73,13 +73,13 @@ beforeEach(async () => {
   await clearAllLocalData();
 });
 
-describe('Als Einzeldatei herunterladen', () => {
+describe('Als Lerndatei herunterladen', () => {
   it('erklärt vorab, was in der Datei steht – und was nicht', async () => {
     await seed();
     renderEditor();
 
     expect(
-      await screen.findByText(/Die Einzeldatei enthält dieses Vokabelpaket und den vollständigen/),
+      await screen.findByText(/Die Lerndatei enthält dieses Vokabelpaket und den vollständigen/),
     ).toBeInTheDocument();
     expect(screen.getByText(/ohne Konto und ohne Internet/)).toBeInTheDocument();
     expect(screen.getByText(/Lernstände und andere Pakete wandern nicht mit/)).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe('Als Einzeldatei herunterladen', () => {
       .closest('div') as HTMLElement;
 
     expect(
-      within(karte).getByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
+      within(karte).getByRole('button', { name: 'Als Lerndatei herunterladen (.html)' }),
     ).toBeInTheDocument();
     expect(
       within(karte).getByRole('button', {
@@ -116,7 +116,7 @@ describe('Als Einzeldatei herunterladen', () => {
     renderEditor();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
+      await screen.findByRole('button', { name: 'Als Lerndatei herunterladen (.html)' }),
     );
 
     expect(downloads).toHaveLength(1);
@@ -126,9 +126,9 @@ describe('Als Einzeldatei herunterladen', () => {
     expect(file?.text).toContain('<title>Unit 3 – City life – LexiFlow</title>');
     expect(file?.text).toContain('crowded');
     expect(file?.text).not.toContain(PACK_PLACEHOLDER);
-    // 4B.3: „Schülerdatei“ ist raus – die Datei ist eine Einzeldatei, und die
+    // 4B.3: „Lerndatei“ ist raus – die Datei ist eine Lerndatei, und die
     // Oberfläche spricht von Lernenden, nicht von Schülern.
-    expect((await screen.findAllByText(/Einzeldatei erstellt/)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/Lerndatei erstellt/)).length).toBeGreaterThan(0);
   });
 
   it('lässt den bestehenden JSON-Export unverändert', async () => {
@@ -151,12 +151,12 @@ describe('Als Einzeldatei herunterladen', () => {
     renderEditor();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
+      await screen.findByRole('button', { name: 'Als Lerndatei herunterladen (.html)' }),
     );
 
     expect(downloads).toHaveLength(0);
     expect(
-      await screen.findByText(/lässt sich in der portablen Datei „LexiFlow-Lehrkraft.html“ erzeugen/),
+      await screen.findByText(/in der portablen Datei „LexiFlow-Lehrkraft.html“ erzeugen/),
     ).toBeInTheDocument();
   });
 
@@ -167,7 +167,7 @@ describe('Als Einzeldatei herunterladen', () => {
     renderEditor();
 
     await user.click(
-      await screen.findByRole('button', { name: 'Als Einzeldatei herunterladen (.html)' }),
+      await screen.findByRole('button', { name: 'Als Lerndatei herunterladen (.html)' }),
     );
 
     expect(downloads).toHaveLength(0);

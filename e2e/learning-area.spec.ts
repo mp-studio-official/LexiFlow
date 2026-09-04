@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
  * Sprint 4B.7: Lernbereiche im Lehrkraftbereich.
  *
  * Der vollständige Weg – anlegen, ausgeben, per `file://` öffnen – steht in
- * `e2e-portable/portable.spec.ts`; nur dort gibt es die Schülerlaufzeit, die
+ * `e2e-portable/portable.spec.ts`; nur dort gibt es die Lernlaufzeit, die
  * in die Datei kommt.
  *
  * Hier geht es um das, was sich nur im echten Browser zeigt: dass die beiden
@@ -98,7 +98,7 @@ test.describe('Lernbereich zusammenstellen', () => {
 
   test('@smoke sagt im Web-Build, wo die Datei entsteht', async ({ page }) => {
     /*
-      Die Schülerlaufzeit steckt nur in der portablen Lehrkraftdatei. Ein Knopf,
+      Die Lernlaufzeit steckt nur in der portablen Lehrkraftdatei. Ein Knopf,
       der hier still nichts täte, wäre schlimmer als einer, der den Grund nennt.
     */
     await openPicker(page);

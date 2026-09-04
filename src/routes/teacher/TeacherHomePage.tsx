@@ -248,7 +248,7 @@ export function TeacherHomePage() {
                   <>
                     <IconButton
                       icon="download"
-                      label={`${meta.title} als Einzeldatei herunterladen (.html)`}
+                      label={`${meta.title} als Lerndatei herunterladen (.html)`}
                       onClick={() => void handleStudentDownload(meta.id)}
                     />
                     <IconButton

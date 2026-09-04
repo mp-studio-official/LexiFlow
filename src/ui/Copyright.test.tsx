@@ -10,7 +10,7 @@ import { StudentShell } from '../portable/StudentShell';
  * Der Vermerk „© OHM“ steht **unten**, und zwar überall.
  *
  * Drei Orte, an denen dieses Projekt eine Seite ausliefert: die Anwendung, die
- * portable Schülerdatei und das gedruckte Blatt. Das Blatt prüft
+ * portable Lerndatei und das gedruckte Blatt. Das Blatt prüft
  * `PrintablePackView.test.tsx`, die Druckregel `styles/print.test.ts`; hier
  * stehen die beiden Hüllen.
  *
@@ -57,7 +57,7 @@ describe('Er steht in beiden Hüllen', () => {
     expect(notice()).toBe(COPYRIGHT_NOTICE);
   });
 
-  it('in der portablen Schülerdatei', () => {
+  it('in der portablen Lerndatei', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <Routes>

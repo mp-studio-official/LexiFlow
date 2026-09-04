@@ -11,7 +11,7 @@ import type { VocabPack } from '../domain/schema';
  *
  * Sie ist ein kleines Feld, und genau deshalb geht sie leicht verloren: Ein
  * Schema, das sie kennt, garantiert nicht, dass sie durch Speichern, Export,
- * Wiedereinlesen und die Schülerdatei kommt. Diese Datei geht den Weg einmal
+ * Wiedereinlesen und die Lerndatei kommt. Diese Datei geht den Weg einmal
  * ganz ab.
  *
  * Und den wichtigsten Fall dazu: ein altes Paket **ohne** Beschreibung. Es
@@ -118,9 +118,9 @@ describe('Export, Re-Import und portable Datei', () => {
     expect(wiederDatei.meta.description).toBe(BESCHREIBUNG);
   });
 
-  it('gilt für die Schülerdatei genauso – sie ist dieselbe Datei', () => {
+  it('gilt für die Lerndatei genauso – sie ist dieselbe Datei', () => {
     /*
-      Die portable Schülerdatei ist keine zweite Sorte Paket: Es ist dasselbe
+      Die portable Lerndatei ist keine zweite Sorte Paket: Es ist dasselbe
       `.vocabpack.json`, das die Lehrkraft exportiert. Was hier durchgeht,
       geht dort durch.
     */

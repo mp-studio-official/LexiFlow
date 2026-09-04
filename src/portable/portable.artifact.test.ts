@@ -15,16 +15,16 @@ import type { VocabPack } from '../domain/schema';
 import { RUNTIME_LIMIT_KIB } from '../../scripts/portableLimits.mjs';
 
 /**
- * Prüfungen an der **gebauten** Schülerlaufzeit.
+ * Prüfungen an der **gebauten** Lernlaufzeit.
  *
  * Diese Datei läuft nicht in `npm run test`, sondern in `npm run verify:portable`
  * – sie setzt `npm run build:portable` voraus. Geprüft wird nicht die Absicht
- * des Codes, sondern das Ergebnis: eine echte Schülerdatei, erzeugt aus der
+ * des Codes, sondern das Ergebnis: eine echte Lerndatei, erzeugt aus der
  * echten Laufzeit, wieder eingelesen.
  */
 
 const root = resolve(import.meta.dirname, '../..');
-const runtime = readFileSync(resolve(root, 'dist-portable/LexiFlow-Schuelerlaufzeit.html'), 'utf8');
+const runtime = readFileSync(resolve(root, 'dist-portable/LexiFlow-Lernlaufzeit.html'), 'utf8');
 
 function entry(id: string, english: string, german: string) {
   return {
@@ -64,7 +64,7 @@ function embedded(html: string) {
   return readEmbeddedAreaFromDocument(dom.window.document);
 }
 
-/** Das eine Paket einer Einzeldatei – der Bereich hat genau eines. */
+/** Das eine Paket einer Lerndatei – der Bereich hat genau eines. */
 function onlyPack(html: string) {
   const result = embedded(html);
   if (!result.ok) throw new Error(result.errors.join(' · '));
@@ -73,14 +73,14 @@ function onlyPack(html: string) {
   return first;
 }
 
-describe('Gebaute Schülerdatei', () => {
+describe('Gebaute Lerndatei', () => {
   it('enthält genau das eine Paket und lässt sich wieder einlesen', () => {
     const result = embedded(build());
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     /*
-      Seit 4B.7 steht in der Datei ein Lernbereich. Bei einer Einzeldatei ist
+      Seit 4B.7 steht in der Datei ein Lernbereich. Bei einer Lerndatei ist
       das einer mit genau einem Paket – und seine Kennung ist die des Pakets,
       damit eine Neuausgabe den Lernstand der vorigen Datei wiederfindet.
     */
@@ -205,7 +205,7 @@ describe('Gebaute Schülerdatei', () => {
   /*
     Sprint 4A.1c: Die Marke muss die Datei überleben.
 
-    Eine Schülerdatei liegt irgendwo auf einem fremden Rechner, womöglich ohne
+    Eine Lerndatei liegt irgendwo auf einem fremden Rechner, womöglich ohne
     Netz. Alles Sichtbare muss also *in* ihr stecken: die Schrift, das Zeichen,
     die Farben. Der Test oben („verweist auf nichts außerhalb der Datei“) prüft
     `src` und `href` im Markup – die Schriften und Bilder stehen aber in CSS,
@@ -255,15 +255,15 @@ describe('Gebaute Schülerdatei', () => {
   /*
     Sprint 4A.2: Das Wörterbuch gehört in die Lehrkraftdatei – und nur dorthin.
 
-    Eine Schülerdatei wird an eine ganze Klasse weitergegeben. Sechs Megabyte
+    Eine Lerndatei wird an eine ganze Klasse weitergegeben. Sechs Megabyte
     Wörterbuch mitzuschicken, das dort niemand benutzen kann, wäre eine Zumutung
     für jede Mailbox und jedes Datenvolumen.
   */
-  it('trägt das Wörterbuch nicht in die Schülerlaufzeit', () => {
+  it('trägt das Wörterbuch nicht in die Lernlaufzeit', () => {
     const marker = '4c27d202e875550c2cc7ea93a4d21ddf80440e5030606d3edbb8b0e65dc64006';
     expect(runtime).not.toContain(marker);
     expect(runtime).not.toContain('Offline-Wörterbuch');
-    // Und auch nicht in die fertige Schülerdatei.
+    // Und auch nicht in die fertige Lerndatei.
     const html = build();
     expect(html).not.toContain(marker);
     expect(html).not.toContain('Offline-Wörterbuch');

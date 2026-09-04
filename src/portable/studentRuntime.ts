@@ -1,14 +1,14 @@
 /**
- * Woher die Schülerlaufzeit kommt – und wann es sie nicht gibt.
+ * Woher die Lernlaufzeit kommt – und wann es sie nicht gibt.
  *
- * In der portablen Lehrkraftdatei ist die vollständige Schülerlaufzeit als
+ * In der portablen Lehrkraftdatei ist die vollständige Lernlaufzeit als
  * Zeichenkette einkompiliert (virtuelles Modul, siehe `vite.portable.config.ts`).
  * Im normalen Web-/PWA-Build wäre das eine Verdopplung des Bündels für eine
  * Funktion, die dort niemand braucht – dort gibt es sie deshalb nicht, und die
  * Oberfläche sagt das, statt einen Knopf anzubieten, der nichts erzeugt.
  */
 
-/** `true`, wenn dieser Build die Schülerlaufzeit mitbringt. */
+/** `true`, wenn dieser Build die Lernlaufzeit mitbringt. */
 export const PORTABLE_BUILD: boolean =
   typeof __LEXIFLOW_PORTABLE__ === 'boolean' ? __LEXIFLOW_PORTABLE__ : false;
 

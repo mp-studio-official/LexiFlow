@@ -7,7 +7,7 @@ import { Icon, type IconName } from './Icon';
  * `label` ist Pflicht und wandert an zwei Stellen: in `aria-label`, damit
  * Vorlesehilfen und Sprachsteuerung die Schaltfläche ansprechen können, und
  * in `title`, damit die Maus nach einer Sekunde dasselbe erfährt. Der Name
- * soll den Gegenstand nennen, nicht nur die Handlung: „Unit 7 als Einzeldatei
+ * soll den Gegenstand nennen, nicht nur die Handlung: „Unit 7 als Lerndatei
  * herunterladen“ – in einer Liste mit acht Paketen stünden sonst acht
  * gleichnamige Schaltflächen.
  *
