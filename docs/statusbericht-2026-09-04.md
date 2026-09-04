@@ -2,6 +2,15 @@
 
 **Stand:** 4. September 2026
 **Branch:** `sprint/4b2-authoring-and-topic-studio`, 21 Commits vor `main` (`20d5338`), linear, keine Merges, kein Remote, Arbeitsverzeichnis sauber.
+> **Nachtrag vom 4. September, nach der Gegenprüfung.** Dieser Bericht bleibt
+> unverändert stehen – er ist so hinausgegangen, und ein Bericht, den man
+> nachträglich richtigstellt, ist keiner mehr. Die Punkte 5.3 bis 5.6 sind
+> inzwischen abgearbeitet: Kognaten `0631fbd`, Wording `4bbe1e8`,
+> Formula Injection `67a3e7f`, Dateigröße `0f4ca73`, Druck `e4e2f3b`,
+> Dokumentation siehe unten. **Punkt 5.1 – Safari – steht unverändert offen
+> und ist weiterhin der einzige echte Blocker.** Der aktuelle Stand steht in
+> `docs/implementation/sprint-4b2.md`.
+
 **Zweck dieses Dokuments:** Es geht an eine zweite KI zur kritischen Gegenprüfung. Es ist bewusst so geschrieben, dass es ohne Zugriff auf das Repository lesbar ist. Am Ende stehen die Stellen, an denen ich meine eigenen Entscheidungen für angreifbar halte – dort ist Widerspruch ausdrücklich erwünscht.
 
 ---

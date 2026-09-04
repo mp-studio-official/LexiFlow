@@ -28,9 +28,16 @@ Parchment `#F8EFE3`. Orange ist mit 4B.1c entfallen.
 | 2 | Strukturierte Quellen und lokaler PDF-Import | ✅ | `5a56b84` |
 | 3 | Empfehlungen kompakt und modern | ✅ | siehe unten |
 | 4 | „Prüfen & Speichern“ und direkte Weitergabe | ✅ | siehe unten |
-| 5 | Materialverwaltung für mehrere Pakete | offen | |
-| 6 | „Zu einem Thema“ offline in Safari | offen | |
-| 7 | Inklusives und konsistentes Wording | offen | |
+| 5 | Materialverwaltung für mehrere Pakete | ✅ | `4678556` (Lernbereiche) |
+| 6 | „Zu einem Thema“ offline in Safari | offen | – |
+| 7 | Inklusives und konsistentes Wording | ✅ | `4bbe1e8` |
+
+Dazu kamen unbeauftragte Blöcke aus der Rückmeldung und aus einer
+Gegenprüfung; sie stehen unten ab „Nach den Phasen“.
+
+**Der Stand in einem Satz:** Funktional ist der Kreis geschlossen. Was fehlt,
+ist kein Merkmal, sondern ein Nachweis – siehe „Was vor dem Piloten noch
+aussteht“ ganz unten.
 
 ---
 
@@ -1134,3 +1141,265 @@ eine Messung zu behaupten, die so nie stattgefunden hat.
 Die gemessenen Größen sind unverändert: Lehrkraftdatei **9368,6 KiB**
 (Schranke 12 MiB), Lernlaufzeit **647,4 KiB** (Schranke jetzt 1024 KiB). Die
 Anhebung schafft Luft, sie verbraucht keine.
+
+
+---
+
+# Nach den Phasen
+
+Was hier folgt, stand nicht im ursprünglichen Sprintplan. Es kam aus der
+Benutzung, aus einer Gegenprüfung durch ein zweites Modell und aus einem
+Statusbericht (`docs/statusbericht-2026-09-04.md`).
+
+## `386154d` – Der Quelltext als Werkzeug
+
+Wörter im Quelltext lassen sich anklicken und mit Umschalt zu Wortgruppen
+verbinden; `sourcePick.ts` entscheidet, ob daraus eine neue Zeile wird oder
+eine vorhandene getroffen ist. Rovender Tabindex, `<mark>` für Getroffenes.
+
+Zwei Fehler, beide aus der eigenen Benutzung: Ein Fokuswechsel mitten im
+Tastendruck sah einen veralteten Zustand und faltete die Auswahl zusammen
+(gelöst mit `anchorRef`/`headRef`); und Umschalt-Klick verschob erst den Fokus,
+bevor es erweitern konnte (gelöst mit `preventDefault` im `mousedown`).
+
+## `1d27077` – Der Satz entscheidet über die Wortart
+
+`contextPartOfSpeech.ts`: fünf geordnete, konservative Regeln. `the island` ist
+ein Substantiv, `to track` ein Verb, `crowded streets` ein Adjektiv. Bei
+unklarem Kontext bleibt das Feld leer und die Bedeutungen erscheinen als
+Auswahl – **geraten wird nicht**.
+
+Dazu Personenbezeichnungen: `doctor` → `der Arzt; die Ärztin`. Nur belegte
+Formen, nie erfundene; die Einigkeitslogik darf ein belegtes Paar nicht auf
+eine Form reduzieren.
+
+## `6a981c5` – Sagen, was das Speichern aufhält
+
+`saveBlockers.ts` mit fester Reihenfolge (Titel → Englisch → Deutsch → Prüfung
+→ Schema → Auswahl), eine klebende Aktionsleiste mit `role="alert"`, ein Sprung
+zur ersten Stelle samt Fokus. „Als geprüft bestätigen“ merkt sich **wofür**
+(`reviewFingerprint`) – wer danach die Übersetzung austauscht, hat einen
+anderen Sachverhalt vor sich.
+
+## `13fc26c` – Felder wachsen nicht mehr unter der Maus
+
+Ein Kommentar zwischen zwei Selektoren beendet keine Auswahlliste. Aus den
+Hover-Regeln und `.growing` war damit **eine** Regel geworden: Jedes überfahrene
+Textfeld bekam `min-height: 44px`. Gemessen 35,59 px → 44 px.
+
+`styles/hover.test.ts` prüft die Regel selbst und nicht eine Stelle im Browser –
+der Fehler steckte in einer Regel, die für alle Textfelder gilt.
+
+## `cbbbc35` – Der Lernbereich bekommt ein Gesicht
+
+Fotos wurden verworfen, und zwar aus drei unabhängigen Gründen: Unsplash
+antwortet über den Egress-Proxy mit 403; Hotlinking bräche „keine fremden
+Requests“; Einbetten spränge die Größenschranke. Der Auftraggeber hat
+**erzeugte Motive** gewählt.
+
+`packMotif.ts` entscheidet, `PackArt.tsx` zeichnet: sechs Kompositionen, zwei
+Grundtöne, zwölf Drehungen, drei Maßstäbe – ausschließlich in den drei
+Markenfarben über CSS-Token.
+
+Zwei Fehler durch Messung gefunden: FNV-1a `% 6` liest die niedrigsten Bits
+(acht ähnliche Titel ergaben vier von sechs Varianten; gelöst mit einer
+Murmur3-Lawine je Entscheidung), und `preserveAspectRatio="none"` verzerrte
+Kreise zu Ellipsen.
+
+## `452ef70` – Karten ohne Stapel, Vermerk unten, Liste statt Tabelle
+
+Der angedeutete Kartenstapel überlappte die Bedienknöpfe und ist entfernt.
+„© OHM“ steht unten – in der Anwendung, in der Lerndatei und auf dem Ausdruck,
+an **einer** Stelle im Quelltext.
+
+Die Vokabelliste folgt einer gelieferten Vorlage: aus der vierspaltigen Tabelle
+wurde eine Liste. Der Grund ist nicht Geschmack – `to depend on sb./sth.` und
+ein ganzer Satz teilen sich in einer 28-%-Spalte nichts.
+
+**Ein echter Fehler, den das aufdeckte:** Die einfarbige Logofassung legte den
+Durchblick mit 35 % Deckkraft auf eine voll deckende Fläche. Das „F“ verschwand –
+auf jedem bisherigen Ausdruck. Die gelieferte Schwarzweiß-Fassung (`tone="bw"`)
+zeichnet jetzt deckend.
+
+**Nicht umgesetzt und warum:** Der Vermerk steht nur am Ende und nicht auf jeder
+Seite. `position: fixed` wird von Chrome im Druck nicht je Seite wiederholt;
+gemessen an einem erzeugten PDF landete er oben auf Seite 2. Der einzige
+zuverlässige Weg wäre `<tfoot>` einer Tabelle – wofür die Liste wieder eine
+Tabelle werden müsste. Der Auftraggeber hat das bestätigt.
+
+## `4678556` – Lernbereiche: mehrere Pakete in einer Datei (Phase 5)
+
+Eine Datei, ein bis vierzig Pakete, ein gemeinsamer Lernstand.
+
+**Der Zuschnitt, auf den es ankommt:** Es gibt nur noch Lernbereiche. Ein
+einzelnes Paket ist einer mit genau einem Paket, und seine Kennung ist die des
+Pakets. Daran hängt der Name der Datenbank auf dem Gerät der lernenden Person –
+eine vor 4B.7 verteilte Datei und ihre Neuausgabe landen deshalb in derselben
+Datenbank.
+
+Die Kennung entsteht genau einmal, beim Anlegen, und es gibt **keine** Funktion,
+die sie ändert. Dexie-Version 4 mit der Tabelle `areas` ist eine reine
+Erweiterung; Pakete und Lernstände werden nicht angefasst.
+
+Die Oberfläche zeigt zwei Listen: links die Auswahl in ihrer Reihenfolge,
+rechts der Vorrat. Umgestellt wird mit Pfeilknöpfen und nicht mit einer
+Ziehgeste – Ziehen ist mit der Tastatur nicht bedienbar.
+
+Ein gelöschtes Paket verschwindet **nicht** still aus einem Bereich. Es steht
+als fehlende Zeile da und blockiert die Ausgabe.
+
+## `ad9eebb` – Statusbericht zur Gegenprüfung
+
+`docs/statusbericht-2026-09-04.md`: Stand, offene Punkte nach Risiko und zehn
+Fragen, bei denen die eigenen Entscheidungen angreifbar sind. Er ging an ein
+zweites Modell; die folgenden fünf Commits sind das Ergebnis.
+
+Ein Punkt darin ist gemessen und nicht vermutet: Öffnet jemand erst die neue
+Lerndatei (hebt die Datenbank auf Schemaversion 4) und danach eine alte aus der
+Zeit davor, öffnet Dexie sie trotzdem – geprüft mit `fake-indexeddb`. **In einem
+echten Browser ist das nicht nachgemessen.**
+
+## `0631fbd` – Kognaten nur mit Beleg durchlassen
+
+Der Befund „Übersetzung stimmt mit dem englischen Stichwort überein“ hielt das
+Speichern auf und feuerte bei `erosion → Erosion`. Bei einem Text über
+Küstenerosion war das jede zweite Vokabel – und wer zwanzigmal „ist schon
+richtig“ geklickt hat, klickt es beim einundzwanzigsten Mal auch dann, wenn es
+diesmal wirklich ein Fehler war.
+
+**Die Regel:** Der Befund entfällt nur mit Beleg – das Offline-Wörterbuch muss
+die identische Übersetzung ausdrücklich führen, in einer Bedeutungsgruppe, deren
+Wortart passt. Ohne Beleg bleibt „Bitte prüfen“; ohne Wörterbuch gibt es nie
+einen Beleg. Ein Verweis auf ein anderes Stichwort (`via`) zählt nicht: Er ist
+eine Schlussfolgerung der Anwendung und keine Auskunft der Quelle.
+
+`validateDrafts` bleibt reine Rechnung; der Nachschlagepass (`attestCognates`)
+steht daneben und läuft nur für Zeilen, in denen Lernform und Übersetzung
+wirklich übereinstimmen – null bis drei je Paket, nicht sechzig.
+
+## `4bbe1e8` – Ein Name je Sache (Phase 7)
+
+Für dieselbe Datei standen drei Wörter im Produkt: „Einzeldatei“ (15×),
+„Lerndatei“ (16×), „Schülerdatei“ (3×). Festgelegt ist jetzt:
+
+| Sache | Name |
+| --- | --- |
+| Die Zusammenstellung mehrerer Pakete | **Lernbereich** |
+| Die HTML-Datei, die einen trägt | **Lerndatei** |
+| Die leere Vorlage | **Lernlaufzeit** (`LexiFlow-Lernlaufzeit.html`) |
+| Die HTML-Datei zum Erstellen | **Lehrkraftdatei** |
+
+**Alte Tabellen bleiben stehen.** In den Verifikationsprotokollen weiter oben
+steht weiterhin `LexiFlow-Schuelerlaufzeit.html`. Das sind Protokolle: Sie
+halten fest, was damals gemessen wurde. Sie nachträglich umzubenennen hieße,
+eine Messung an einer Datei zu behaupten, die es zu dem Zeitpunkt nicht gab –
+dieselbe Begründung wie bei der Schranke „700 KiB“ weiter oben. Dasselbe gilt
+für `docs/statusbericht-2026-09-04.md`: Er ist so hinausgegangen und bleibt so
+stehen.
+
+**Was ausdrücklich bleibt:** der Datenbankname `lexiflow-schueler-…`. Er steht
+auf den Geräten der Lernenden und ist die Adresse ihres Lernstands; ihn
+umzubenennen hieße, jeden vorhandenen Lernstand unauffindbar zu machen.
+`src/ui/wording.test.ts` hält beides fest – die abgelegten Wörter als Verbot
+und diese eine Ausnahme als Absicht.
+
+## `67a3e7f` – Formeln in der Tabellendatei entschärfen
+
+Der CSV-Export schrieb jede Zelle in Anführungszeichen und hielt das für Schutz.
+Es ist keiner: Anführungszeichen gehören zur CSV-Syntax und sind beim Öffnen in
+Excel längst weg. Aus `"=1+1"` wird dort `2`.
+
+Zellen, die mit `=`, `+`, `-`, `@`, Tabulator oder Wagenrücklauf beginnen,
+bekommen ein vorangestelltes Apostroph. `csv.ts` nimmt es beim Wiedereinlesen
+zurück – sonst wüchse bei jedem Umlauf eines dazu.
+
+`hostileContent.test.ts` schickt dieselben Werte durch **jeden** Ausgabeweg und
+zurück. Zwei Prüfungen sind schärfer als der Anlass: „enthält kein einziges
+`<`“ statt „kein `</script>`“ (das ließe sich mit `</SCRIPT >` umgehen), und
+„keine Zelle fängt mit einem Formelzeichen an“ statt einer Liste bekannter
+Werte.
+
+## `0f4ca73` – Die Größe einer Lerndatei messen, nicht raten
+
+Gemessen an der gebauten Lernlaufzeit (666,9 KiB):
+
+| Inhalt | Vokabeln | Datei |
+| --- | --- | --- |
+| 1 Paket × 60 | 60 | 690,7 KiB |
+| 6 Pakete × 60 | 360 | 808,5 KiB |
+| 20 Pakete × 60 | 1200 | 1141,0 KiB |
+| 40 Pakete × 60 | 2400 | 1617,2 KiB |
+| 40 Pakete × 100 | 4000 | 2240,7 KiB |
+
+Ergebnis ist eine Entwarnung: Die Obergrenze von 40 Paketen ist kein
+Größenproblem. Die Ausgabe nennt die gemessene Größe, ab 2 MiB steht ein Satz
+daneben – ein Hinweis und **keine** Schranke, weil es für eine Schranke keine
+Messung auf den Zielgeräten gibt.
+
+## `e4e2f3b` – Den Aufbau einmal oben erklären (Punkt 6)
+
+Eine Legende über der Liste statt wiederholter Feldbezeichnungen je Vokabel.
+Sie nennt den Beispielsatz nur, wenn welche gedruckt werden.
+
+**Ein Fehler, den dabei ein anderer Test fand:** Der Kognaten-Pass aus `0631fbd`
+schrieb sein Ergebnis mit `setDrafts(validateDrafts(geprueft))` zurück – den
+Schnappschuss von **vor** dem Nachschlagen. Wer in dieser Zeit tippte, verlor
+seine Eingabe, und zwar lautlos. Genau der Fall, für den die Projektregel
+„Lehrkrafteingaben nie asynchron überschreiben“ existiert. Zurückgeschrieben
+wird jetzt auf den aktuellen Stand, und nur ein einziges Feld.
+
+Aufgefallen ist es in `topic-studio.spec.ts` an einer Übersetzung, die im
+gespeicherten Paket fehlte – nicht in den Tests des Kognaten-Blocks selbst.
+
+---
+
+## Verifikation (Stand `e4e2f3b`)
+
+| Schritt | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | grün – in der Cloud-Sandbox **und** auf dem Zielrechner |
+| `npm run test` | **1939** grün / 112 Dateien |
+| `npm run build` | grün |
+| `npm run e2e` | **156** grün (Chromium) |
+| `npm run build:portable` | grün, **9434,6 KiB** / **667,4 KiB** |
+| `npm run verify:portable` | grün, 31 Prüfungen |
+| `npm run e2e:portable` | **29** grün (Chromium, `file://`) |
+
+---
+
+## Was vor dem Piloten noch aussteht
+
+### 1. Safari – der einzige echte Blocker
+
+Automatisiert geprüft ist ausschließlich Chromium. Gebaut ist alles für Safari
+(kein Worker unter `file://`, keine SVG-Sprites, `Promise.try` umgangen,
+Blob-URLs), aber **gemessen ist nichts**.
+
+Der Ablauf, den es braucht – vom Auftraggeber so festgelegt:
+
+1. Alte Lerndatei öffnen und einen Lernstand erzeugen.
+2. Aktualisierte Datei desselben Lernbereichs **unter anderem Dateinamen**
+   öffnen.
+3. Lernstand prüfen.
+4. Alte Datei erneut öffnen.
+5. Datei in einen anderen Ordner verschieben und erneut prüfen.
+
+> **Verbindlich:** Chromium- oder `fake-indexeddb`-Läufe dürfen in keinem
+> Bericht als Safari-Nachweis bezeichnet werden.
+
+### 2. Phase 6 – „Zu einem Thema“ offline in Safari
+
+Der Weg fällt ohne Sprachmodell sauber zurück (`e2e/topic-studio.spec.ts`,
+„ohne Sprachmodell bleibt der Weg offen“). Was fehlt, ist derselbe Nachweis in
+echtem Safari – siehe Punkt 1.
+
+### 3. Kein Durchgang auf einem echten Touchgerät
+
+Alle Messungen auf 390 px stammen aus Chromium mit gesetzter Fensterbreite.
+Ungeprüft: die iOS-Tastatur über einem Eingabefeld, Autozoom bei Fokus,
+Scrollverhalten mit der klebenden Aktionsleiste.
+
+### 4. `main` steht unverändert
+
+`main` = `20d5338`. Kein Merge, kein Tag – so beauftragt. Vor einem Piloten
+braucht es dazu eine Entscheidung.
