@@ -1,6 +1,7 @@
 import { newId } from '../domain/ids';
 import { formatAnswers, normalizeAnswer, splitAnswers, splitList } from '../domain/normalize';
 import { sentenceContainsHeadword } from '../domain/wordMatch';
+import { cognateFingerprint, identicalMeanings } from './cognates';
 import {
   PART_OF_SPEECH,
   type GrammaticalNumber,
@@ -130,6 +131,24 @@ export interface DraftRow {
    * `.vocabpack.json` steht es nie.
    */
   reviewConfirmedFor?: string;
+  /**
+   * Wofür das Wörterbuch eine **identische** Übersetzung ausdrücklich belegt
+   * (Sprint 4B.8).
+   *
+   * `erosion → Erosion` ist kein Übertragungsfehler, sondern ein Kognat – aber
+   * nur, wenn die Quelle das hergibt. Gespeichert wird deshalb nicht „ist in
+   * Ordnung", sondern **wofür**: ein Fingerabdruck aus Lernform und Wortart
+   * (`cognateFingerprint`). Ändert sich einer der beiden Werte, ist es ein
+   * anderer Fall, und der Befund kommt zurück.
+   *
+   * Gesetzt wird das Feld ausschließlich von `attestCognates` nach einem
+   * echten Nachschlagen. Ohne Wörterbuch bleibt es leer und der Befund steht –
+   * die Prüfung wird durch diese Regel nicht pauschal unverbindlich.
+   *
+   * Rein für die Erstellung: `draftsToEntries` liest es nicht, und im
+   * `.vocabpack.json` steht es nie.
+   */
+  cognateAttestedFor?: string;
   sentences: DraftSentence[];
   tags: string;
   notes: string;
@@ -364,13 +383,25 @@ export function validateDrafts(drafts: readonly DraftRow[]): DraftRow[] {
       });
     }
 
-    if (english && meanings.some((meaning) => normalizeAnswer(meaning) === normalizeAnswer(english))) {
-      issues.push({
-        level: 'warning',
-        field: 'german',
-        review: true,
-        message: 'Übersetzung stimmt mit dem englischen Stichwort überein.',
-      });
+    /*
+      Übersetzung wie das Stichwort – ein Übertragungsfehler oder ein Kognat.
+
+      Der Unterschied ist nicht zu erraten, sondern nachzuschlagen: Belegt das
+      Wörterbuch die identische Übersetzung ausdrücklich, ist der Fall geklärt
+      und der Befund entfällt. Ohne Beleg bleibt er stehen. Warum das so und
+      nicht als Ähnlichkeitsregel gebaut ist, steht in `cognates.ts`.
+    */
+    if (english && identicalMeanings(english, draft.german).length > 0) {
+      const attested =
+        draft.cognateAttestedFor === cognateFingerprint(english, draft.partOfSpeech);
+      if (!attested) {
+        issues.push({
+          level: 'warning',
+          field: 'german',
+          review: true,
+          message: 'Übersetzung stimmt mit dem englischen Stichwort überein.',
+        });
+      }
     }
 
     if (sentences.some((sentence) => !sentence.english.trim())) {

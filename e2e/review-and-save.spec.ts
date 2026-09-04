@@ -197,4 +197,83 @@ test.describe('Prüfen & Speichern', () => {
       expect(leiste!.height).toBeLessThanOrEqual(420 * 0.5);
     });
   });
+  /* ------------------------------------------- Kognaten (Sprint 4B.8) */
+
+  test.describe('Übersetzung wie das Stichwort', () => {
+    /*
+      `erosion → Erosion` ist kein Übertragungsfehler. `shoreline → shoreline`
+      ist einer. Der Unterschied ist nicht zu erraten, sondern nachzuschlagen –
+      und deshalb steht dieser Test hier und nicht in jsdom: Er braucht das
+      echte Offline-Wörterbuch.
+    */
+    const KOGNATEN = [
+      'erosion\tErosion',
+      'motor\tMotor',
+      'shoreline\tshoreline',
+      'tide\tdie Flut',
+    ].join('\n');
+
+    /** Die Zeilen, die noch eine Bestätigung verlangen. */
+    function offenePruefungen(page: Page) {
+      return page.getByRole('button', { name: /als geprüft bestätigen$/i });
+    }
+
+    test('@smoke ein belegter Kognat klärt sich selbst, ein Übertragungsfehler nicht', async ({
+      page,
+    }) => {
+      await toReview(page, KOGNATEN);
+
+      /*
+        Das Wörterbuch wird beim Betreten der Prüftabelle nachgeschlagen. Der
+        Pass läuft mit einer halben Sekunde Tippbremse und muss danach das
+        6-MB-Archiv öffnen – deshalb wird auf das Ergebnis gewartet und nicht
+        auf eine feste Zeit.
+      */
+      await expect(offenePruefungen(page)).toHaveCount(1, { timeout: 20_000 });
+
+      /*
+        Übrig bleibt genau die Zeile, für die es keinen Beleg gibt. Geprüft am
+        **Wert** des Eingabefelds und nicht am Text der Zeile: Der Inhalt eines
+        `<input>` steht nicht im `textContent`, und `toContainText` sähe dort
+        nur die Beschriftungen der Wortart-Auswahl.
+      */
+      const offen = page.locator('tbody tr', { has: offenePruefungen(page) });
+      await expect(offen.getByRole('textbox').first()).toHaveValue('shoreline');
+    });
+
+    test('@smoke ohne Beleg bleibt der Befund und hält das Speichern auf', async ({ page }) => {
+      /*
+        Die Prüfung ist **nicht** pauschal unverbindlich geworden. Der Fall,
+        um dessentwillen es sie gibt – eine Liste in der falschen Spalte –,
+        blockiert weiterhin.
+      */
+      await toReview(page, ['shoreline\tshoreline', 'barrier\tbarrier'].join('\n'));
+      await expect(offenePruefungen(page)).toHaveCount(2, { timeout: 20_000 });
+
+      await page.getByLabel('Titel', { exact: true }).fill('Falsche Spalte');
+      await page.getByLabel('Jahrgang').selectOption('9');
+      await page.getByRole('button', { name: /Paket speichern/ }).click();
+
+      await expect(page.getByRole('alert')).toBeVisible();
+      await expect(page.getByRole('alert')).toContainText('2 offene Stellen');
+      await expect(page.getByRole('alert')).toContainText(
+        'Übersetzung stimmt mit dem englischen Stichwort überein',
+      );
+    });
+
+    test('@smoke ein ausgetauschtes Stichwort holt den Befund zurück', async ({ page }) => {
+      /*
+        Der Beleg gilt für einen Sachverhalt. Wer nach dem Beleg die Lernform
+        austauscht, hat einen anderen Fall vor sich.
+      */
+      await toReview(page, 'erosion\tErosion');
+      await expect(offenePruefungen(page)).toHaveCount(0, { timeout: 20_000 });
+
+      await page.getByLabel(/Englisch, Zeile 1/).fill('zzzunbekannt');
+      await expect(offenePruefungen(page)).toHaveCount(0);
+
+      await page.getByLabel(/Deutsch, Zeile 1/).fill('zzzunbekannt');
+      await expect(offenePruefungen(page)).toHaveCount(1, { timeout: 20_000 });
+    });
+  });
 });

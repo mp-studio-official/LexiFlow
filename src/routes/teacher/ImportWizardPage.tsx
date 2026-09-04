@@ -34,6 +34,9 @@ import {
   type DraftRow,
 } from '../../import/draft';
 import { parseCsv, parsePastedText } from '../../import/csv';
+import { attestCognates, attestationKey } from '../../import/attestCognates';
+import { createOfflineDictionary } from '../../dictionary/offlineDictionary';
+import type { DictionaryProvider } from '../../dictionary/DictionaryProvider';
 import {
   describeBlockers,
   saveBlockers,
@@ -71,6 +74,14 @@ import type { PendingPackUpdate } from '../../ui/usePackImport';
 import { describeUpdateSummary, summarizeDiff } from '../../domain/packDiff';
 import { newId } from '../../domain/ids';
 import type { SourceType, VocabPack } from '../../domain/schema';
+
+/**
+ * Ein Wörterbuch je Sitzung, nicht je Aufruf.
+ *
+ * Dieselbe Bauart wie in `TextCandidateReview`: Ein zweites Exemplar lüde das
+ * 6-MB-Archiv ein zweites Mal, und zwar in derselben Datei.
+ */
+let sharedDictionary: DictionaryProvider | undefined;
 
 /**
  * Die Vorschlagswerkstatt lädt erst, wenn eine Vorschau geöffnet wird. Der
@@ -264,6 +275,47 @@ export function ImportWizardPage() {
     // Fehler „Deutsche Übersetzung fehlt" sofort auflösen.
     setDrafts((current) => validateDrafts(syncManualEdits(current, next)));
   }
+
+  /*
+    Kognaten nachschlagen – einmal je Sachverhalt, nicht je Tastendruck.
+
+    `erosion → Erosion` ist kein Übertragungsfehler, wenn das Wörterbuch die
+    identische Übersetzung führt. Nachgeschlagen wird nur für die Zeilen, in
+    denen Lernform und Übersetzung wirklich übereinstimmen – in einem Paket mit
+    sechzig Vokabeln sind das null bis drei.
+
+    Der Effekt hängt an `attestationKey`: Solange sich die Menge der offenen
+    Fälle nicht ändert, passiert nichts. Die halbe Sekunde davor ist die
+    Tippbremse – wer „Erosion" schreibt, soll nicht sieben Anfragen auslösen.
+  */
+  const offeneKognaten = attestationKey(drafts);
+
+  useEffect(() => {
+    if (!offeneKognaten) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      void (async () => {
+        const source = (sharedDictionary ??= createOfflineDictionary());
+        const geprueft = await attestCognates(drafts, source);
+        if (!active) return;
+        // Nur schreiben, wenn wirklich etwas belegt wurde – sonst rendert die
+        // Tabelle bei jedem Lauf neu, ohne dass sich etwas geändert hat.
+        if (geprueft.some((row, index) => row !== drafts[index])) {
+          setDrafts(validateDrafts(geprueft));
+        }
+      })();
+    }, 500);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+    /*
+      `drafts` steht bewusst **nicht** in der Liste: Der Auslöser ist die Menge
+      der offenen Fälle, nicht jede Änderung an irgendeiner Zeile. Stünde es
+      darin, liefe der Pass bei jedem Tastendruck in jedem Feld erneut an.
+    */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offeneKognaten]);
 
   /** Die ehrliche Mengenanzeige der Themenwerkstatt – gemessen am Gewünschten. */
   const topicSummary = useMemo(
