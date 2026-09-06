@@ -142,6 +142,62 @@ for (const marker of ['WorkerMessageHandler', 'pdfjsWorker', 'InvalidPDFExceptio
 }
 
 /*
+ * Sprint 4C: Vom optionalen Gemini-Assistenten steht in der Lerndatei nichts.
+ *
+ * Das ist die Zusage, die den ganzen Assistenten erst vertretbar macht: Eine
+ * Datei, die an eine ganze Lerngruppe geht, enthält weder die Adresse eines
+ * Online-Dienstes noch den Code, der sie ansprechen könnte, noch einen
+ * Zugangsschlüssel. Sie kann also gar nicht ins Netz telefonieren, unabhängig
+ * davon, was jemand in der Lehrkraftanwendung eingerichtet hat.
+ *
+ * Die Trennung entsteht baulich und nicht durch Disziplin: Die
+ * Einrichtungsseite hängt allein an einer Route von `App.tsx` und wird `lazy`
+ * geladen; `StudentApp.tsx` kennt sie nicht. Diese Prüfung stellt fest, ob das
+ * so geblieben ist – ein einziger unbedachter Import würde den ganzen Zweig
+ * hineinziehen.
+ */
+for (const [marker, was] of [
+  ['generativelanguage.googleapis.com', 'die Adresse der Gemini-API'],
+  ['x-goog-api-key', 'die Kopfzeile für den API-Schlüssel'],
+  ['lexiflow.gemini.key', 'den Speicherplatz des Schlüssels'],
+  ['GEMINI_BASE_URL', 'eine Gemini-Konstante'],
+  ['generateContent', 'einen Gemini-Aufruf'],
+]) {
+  check(!runtimeHtml.includes(marker), `Lernlaufzeit: enthält ${was} (${marker}).`);
+}
+
+/*
+ * In der Lehrkraftdatei darf die Adresse stehen – ein Schlüssel niemals.
+ *
+ * Die Datei entsteht aus dem Quelltext und kann keinen enthalten; geprüft wird
+ * es trotzdem, weil der Fehler, den es abzufangen gilt, kein Programmierfehler
+ * ist, sondern ein menschlicher: ein Schlüssel, der zum Ausprobieren kurz in
+ * eine Konstante geschrieben und dort vergessen wurde.
+ */
+/*
+ * Vorher die langen Base64-Blöcke heraus – sonst prüft man den Zufall.
+ *
+ * Die Lehrkraftdatei trägt sechs Megabyte Wörterbuch als Base64. In so viel
+ * Zeichenrauschen kommt jede kurze Zeichenfolge irgendwann vor: Der erste Lauf
+ * dieser Prüfung meldete prompt einen „Schlüssel“, der mitten im Wörterbuch
+ * stand (`…OObM2AIzasodZnMkxr…`). Eine Prüfung, die falschen Alarm schlägt,
+ * wird nach dem zweiten Mal ignoriert – und dann fällt der echte Fund auch
+ * nicht mehr auf.
+ *
+ * Deshalb: Läufe von 200 und mehr Base64-Zeichen zählen als Nutzlast und
+ * werden vor der Suche entfernt. Ein versehentlich hinterlassener Schlüssel
+ * steht in einer Zeichenkette im Quelltext und niemals mitten in einem solchen
+ * Block; die Lücke ist bewusst in Kauf genommen.
+ */
+const teacherCode = teacherHtml.replace(/[A-Za-z0-9+/=_-]{200,}/g, '\n');
+for (const [name, pattern] of [
+  ['ein Google-API-Schlüssel', /AIzaSy[0-9A-Za-z_-]{20,}/],
+  ['ein Schlüssel in der Adresse', /generativelanguage\.googleapis\.com[^"']*[?&]key=/],
+]) {
+  check(!pattern.test(teacherCode), `Lehrkraftdatei: enthält ${name}.`);
+}
+
+/*
  * Größenschranken.
  *
  * Kein Selbstzweck: Eine Datei, die per E-Mail nicht mehr durchgeht, ist keine

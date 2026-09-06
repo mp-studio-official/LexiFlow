@@ -48,6 +48,24 @@ export function PrivacyPage() {
           Skripte oder Bilder von fremden Servern nachgeladen und keine
           Nutzungsstatistiken erhoben.
         </p>
+        {/*
+          Diese Karte sagte bis Sprint 4C nur den ersten Absatz. Mit dem
+          optionalen Assistenten wäre das nicht mehr die ganze Wahrheit – und
+          eine Datenschutzangabe, die eine Ausnahme verschweigt, ist schlimmer
+          als eine, die keine verspricht.
+        */}
+        <p className="muted small">
+          Eine Ausnahme gibt es, und sie ist abgeschaltet, bis jemand sie einschaltet:
+          Eine Lehrkraft kann in der Materialwerkstatt einen optionalen Assistenten
+          (Google Gemini) einrichten. Erst dann – und erst nach einem Klick auf eine
+          seiner Aktionen – gehen die dort ausdrücklich genannten Inhalte an Google.
+          Ohne eingetragenen Schlüssel stellt LexiFlow keine einzige fremde Anfrage.
+        </p>
+        <p className="muted small">
+          Der Lernbereich ist davon nicht berührt: Lern-Dateien enthalten weder den
+          Assistenten noch Zugangsdaten und stellen keine Anfragen ins Netz. Vokabeln
+          und Lernstände werden nie an einen KI-Dienst übertragen.
+        </p>
       </Card>
 
       {/*

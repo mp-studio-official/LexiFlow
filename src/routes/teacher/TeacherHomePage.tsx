@@ -352,6 +352,17 @@ export function TeacherHomePage() {
         <Badge>Hinweis</Badge> Exportierte Dateien enthalten nur die Vokabeln und die Metadaten des
         Pakets. Lernstände werden nie exportiert.
       </p>
+
+      {/*
+        Der Assistent steht unten und klein. Er ist eine Zutat und kein Weg:
+        Wer hier zum ersten Mal ist, soll ein Paket anlegen und nicht zuerst
+        einen Zugang einrichten, den die Anwendung nicht braucht.
+      */}
+      <p className="small muted" style={{ marginBottom: 0 }}>
+        <Link to="/material/assistent">Optionaler Gemini-Assistent</Link> – ein Online-Dienst von
+        Google für einzelne Vorschläge bei der Materialerstellung. Nicht eingerichtet bleibt alles
+        wie bisher: offline und ohne fremde Anfragen.
+      </p>
     </div>
   );
 }

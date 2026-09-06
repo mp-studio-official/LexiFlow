@@ -42,6 +42,18 @@ const PackListPage = lazy(() => import('./routes/PackListPage'));
 const LearningAreaPage = lazy(() => import('./routes/teacher/LearningAreaPage'));
 
 /**
+ * Der optionale Gemini-Assistent lädt erst, wenn jemand ihn einrichtet.
+ *
+ * `lazy` ist hier nicht nur eine Größenfrage. Diese Route ist die einzige
+ * Stelle, die den Gemini-Anbieter überhaupt importiert – der ganze Zweig samt
+ * Endpunkt, Schlüsselverwaltung und Anfragebau landet damit in einem eigenen
+ * Bündel. `StudentApp.tsx` kennt die Route nicht, und die portable Lern-Datei
+ * bekommt so weder Anbietercode noch die Adresse zu sehen. Ein Artefakttest
+ * hält das fest.
+ */
+const AssistantSettingsPage = lazy(() => import('./routes/teacher/AssistantSettingsPage'));
+
+/**
  * `HashRouter` statt `BrowserRouter`: Die App wird statisch ausgeliefert
  * (z. B. GitHub Pages) und muss auch beim direkten Aufruf einer Unterseite
  * funktionieren – ohne Server-Rewrite.
@@ -75,6 +87,15 @@ export function App() {
             element={
               <Suspense fallback={<p className="muted">Lernbereich wird geladen …</p>}>
                 <LearningAreaPage />
+              </Suspense>
+            }
+          />
+          {/* Ebenfalls vor `material/:packId` – siehe oben. */}
+          <Route
+            path="material/assistent"
+            element={
+              <Suspense fallback={<p className="muted">Einstellungen werden geladen …</p>}>
+                <AssistantSettingsPage />
               </Suspense>
             }
           />
