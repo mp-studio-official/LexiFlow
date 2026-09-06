@@ -35,6 +35,11 @@ import { CEFR_LEVELS, GRADES, GRADE_LABELS } from '../../domain/cefr';
 import type { CefrLevel, Grade } from '../../domain/cefr';
 import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../domain/schema';
 import { DictionarySuggestionList } from './DictionarySuggestionList';
+import { GeminiTranslations } from '../../ai/gemini/ui/GeminiTranslations';
+import { GeminiAction } from '../../ai/gemini/ui/GeminiAction';
+import { geminiAssistant } from '../../ai/gemini/assistant';
+import { GeminiError } from '../../ai/gemini/errors';
+import { buildCandidateContext, resolveRecommendations } from '../../import/textRecommendation';
 import { Disclosure } from '../../ui/Disclosure';
 import { mergeMultiwordTokens, tokenizeSource } from '../../import/sourceTokens';
 import { pickFromSource } from '../../import/sourcePick';
@@ -514,7 +519,22 @@ export function TextCandidateReview({
    * ein Wort auch wieder auftauchen, wenn es zum neuen Niveau nun passt.
    */
   const refill = useCallback(
-    (options: { excludeShown: boolean; announce: (result: { added: number; requested: number }) => string }): void => {
+    (options: {
+      excludeShown: boolean;
+      announce: (result: { added: number; requested: number }) => string;
+      /**
+       * Der Vorrat, aus dem geschöpft wird. Ohne Angabe: alles, was der Text
+       * hergab.
+       *
+       * Der optionale Assistent gibt hier eine **Vorauswahl** hinein statt
+       * eigene Zeilen zu bauen. Damit läuft ein Gemini-Vorschlag durch genau
+       * dieselbe Maschine wie ein lokaler: dieselbe Bewertung, dieselben
+       * Wortartkürzel, dieselben Wörterbuchantworten, dieselbe Behandlung
+       * beantworteter Zeilen. Ein zweiter Weg, auf dem Empfehlungen entstehen,
+       * wäre ein zweiter Weg, auf dem sie sich unterscheiden können.
+       */
+      pool?: readonly RecommendationInput[];
+    }): void => {
       /*
         Welche Wortfamilien in dieser Liste mehrfach vorkommen, entscheidet
         über die Wortartkürzel – und das lässt sich erst sagen, wenn die
@@ -538,7 +558,7 @@ export function TextCandidateReview({
       const machine = rowsRef.current.filter((row) => !pickedIds.has(row.candidate.id));
 
       const result = replaceOpenRecommendations<CandidateRow>({
-        inputs,
+        inputs: options.pool ?? inputs,
         rows: machine,
         earlier,
         context: { grade: context.grade, cefrLevel: context.cefrLevel },
@@ -1351,6 +1371,69 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                 besetzt; beantwortete Vokabeln bleiben unangetastet.
               </p>
             ) : null}
+
+            {/*
+              Der optionale Assistent steht **unter** der lokalen Empfehlung und
+              nicht daneben: Die nachrechenbare Heuristik ist der Weg, Gemini
+              die Zutat. Ohne eingetragenen Schlüssel steht hier nichts.
+            */}
+            <GeminiAction
+              capability="recommend-from-text"
+              label="Weitere Empfehlungen mit Gemini"
+              ariaLabel="Weitere Empfehlungen mit Gemini erzeugen"
+              disabled={dictionaryState === 'prueft' || dictionaryState === 'laeuft'}
+              run={async (signal) => {
+                /*
+                  Gefragt wird nur nach dem, was noch nicht auf dem Tisch liegt.
+                  Ein Modell, das die schon beantworteten Vokabeln noch einmal
+                  empfiehlt, kostet Geld für eine Antwort, die niemand braucht.
+                */
+                const gezeigt = new Set([
+                  ...rowsRef.current.map((row) => row.candidate.id),
+                  ...earlier.map((row) => row.candidate.id),
+                ]);
+                const offen = inputs.filter((eintrag) => !gezeigt.has(eintrag.candidate.id));
+                if (offen.length === 0) {
+                  throw new GeminiError(
+                    'bad-response',
+                    'Es sind keine weiteren Kandidaten übrig, nach denen sich fragen ließe.',
+                    false,
+                  );
+                }
+
+                /*
+                  `buildCandidateContext` vergibt neutrale Schlüssel (`c1`, `c2`
+                  …) und schneidet bei sechzig ab. Der eingefügte Text geht
+                  nicht hinaus – nur Wort, Häufigkeit und **ein** Satz je
+                  Kandidat.
+                */
+                const kontext = buildCandidateContext(offen.map((eintrag) => eintrag.candidate));
+                const empfehlungen = await geminiAssistant().suggestFromText(kontext.payload, {
+                  grade: context.grade,
+                  cefrLevel: context.cefrLevel,
+                  maxItems: count,
+                  signal,
+                });
+
+                const { ids } = resolveRecommendations(empfehlungen, kontext, count);
+                if (ids.length === 0) {
+                  throw new GeminiError(
+                    'bad-response',
+                    'Gemini hat keine der übrigen Vokabeln empfohlen. Die lokale Empfehlung steht weiterhin zur Verfügung.',
+                    true,
+                  );
+                }
+
+                const auswahl = new Set(ids);
+                lastRun.current = settingsSignature;
+                refill({
+                  excludeShown: false,
+                  pool: inputs.filter((eintrag) => auswahl.has(eintrag.candidate.id)),
+                  announce: (result) =>
+                    `${result.added} von Gemini empfohlene Vokabeln aufgenommen – ungeprüft, bitte durchsehen.`,
+                });
+              }}
+            />
           </div>
         </div>
         }
@@ -1769,6 +1852,24 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                       }
                     />
                   ) : null}
+
+                  {/*
+                    Der optionale Assistent steht **unter** dem Wörterbuch und
+                    nicht an seiner Stelle. Ist kein Schlüssel eingetragen,
+                    rendert er gar nichts – dann sieht diese Zeile aus wie
+                    immer.
+                  */}
+                  <GeminiTranslations
+                    label={label}
+                    english={row.proposal.english || candidate.english}
+                    sentence={candidate.sourceSentence}
+                    partOfSpeech={row.partOfSpeech || undefined}
+                    context={{ grade: context.grade, cefrLevel: context.cefrLevel }}
+                    current={row.german}
+                    onAccept={(german) =>
+                      update(candidate.id, { german, translation: 'accepted' })
+                    }
+                  />
 
                   {row.suggestion && row.translation !== 'pending' ? (
                     <p className="candidate__suggestion">

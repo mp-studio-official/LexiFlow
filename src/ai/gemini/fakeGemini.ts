@@ -65,7 +65,20 @@ export function replyWithJson(value: unknown): FakeReply {
  * nichts davon in der Oberfläche landet, braucht eine Antwort, in der wirklich
  * etwas zu verraten wäre.
  */
-export function replyWithError(status: number, message: string): FakeReply {
+export function replyWithError(
+  status: number,
+  message: string,
+  /**
+   * Der Grund, den Google im Rumpf nennt.
+   *
+   * Die Voreinstellung ist der häufigste Fall – ein Schlüssel, der nicht
+   * akzeptiert wird. Sie ist aber überschreibbar, weil derselbe Statuscode je
+   * nach Grund zu einem anderen nächsten Schritt führt: `403` mit
+   * `API_KEY_INVALID` heißt „trage den Schlüssel neu ein“, `403` mit
+   * `PERMISSION_DENIED` heißt „dieser Schlüssel darf dieses Modell nicht“.
+   */
+  reason = 'API_KEY_INVALID',
+): FakeReply {
   return {
     status,
     text: JSON.stringify({
@@ -76,7 +89,7 @@ export function replyWithError(status: number, message: string): FakeReply {
         details: [
           {
             '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
-            reason: 'API_KEY_INVALID',
+            reason,
             metadata: { service: 'generativelanguage.googleapis.com' },
           },
         ],

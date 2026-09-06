@@ -2170,6 +2170,19 @@ tbody tr.draft__detail-row > td {
   gap: 0.35rem;
 }
 
+/*
+  Der optionale Gemini-Assistent – abgesetzt, aber nicht hervorgehoben.
+
+  Eine dünne Linie darüber und etwas Luft: Das genügt, um zu zeigen, dass hier
+  etwas anderes anfängt. Ein farbiger Kasten wäre ein Werbeplatz für eine
+  Funktion, die ausdrücklich freiwillig ist – und stünde in jeder Vokabelzeile.
+*/
+.gemini-action {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
 progress {
   width: min(100%, 22rem);
   height: 0.6rem;

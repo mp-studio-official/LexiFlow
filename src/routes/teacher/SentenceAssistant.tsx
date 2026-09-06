@@ -15,6 +15,9 @@ import type { DraftRow } from '../../import/draft';
 import type { LearningContext } from '../../import/enrichment';
 import type { ProviderState } from '../../providers/state';
 import type { SentenceMode } from '../../ai/AiProvider';
+import { geminiAssistant } from '../../ai/gemini/assistant';
+import { GeminiAction } from '../../ai/gemini/ui/GeminiAction';
+import { GeminiError } from '../../ai/gemini/errors';
 
 /**
  * Satzassistent – im vorhandenen Detailbereich einer Entwurfszeile.
@@ -50,6 +53,15 @@ export function SentenceAssistant({ draft, context, onChange, rowLabel }: Senten
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [suggestion, setSuggestion] = useState<{ english: string; german: string } | null>(null);
+  /**
+   * Woher der Vorschlag stammt.
+   *
+   * Beide Wege enden im selben Kasten unten – und dürfen das, weil beide
+   * Vorschläge und nicht Antworten liefern. Die Herkunft steht trotzdem daran:
+   * Ein lokal erzeugter Satz hat das Gerät nicht verlassen, ein Gemini-Satz
+   * schon, und wer den Kasten später wiederfindet, soll das noch erkennen.
+   */
+  const [origin, setOrigin] = useState<'lokal' | 'gemini'>('lokal');
   const [lastMode, setLastMode] = useState<SentenceMode>('create');
   const [replaceTarget, setReplaceTarget] = useState('');
 
@@ -123,6 +135,7 @@ export function SentenceAssistant({ draft, context, onChange, rowLabel }: Senten
         return;
       }
 
+      setOrigin('lokal');
       setSuggestion({ english: checked.english, german: checked.german });
       setStatus('Ein Satzvorschlag liegt vor. Er wurde noch nicht übernommen.');
     } catch (caught: unknown) {
@@ -225,85 +238,135 @@ export function SentenceAssistant({ draft, context, onChange, rowLabel }: Senten
             </Alert>
           ) : null}
 
-          {suggestion ? (
-            <div className="candidate__suggestion" style={{ marginTop: '0.5rem' }}>
-              <p className="small" style={{ margin: 0 }}>
-                <Badge tone="warning">ungeprüfter Vorschlag</Badge> <strong>{suggestion.english}</strong>
-              </p>
-              {suggestion.german ? (
-                <p className="small muted" style={{ margin: '0.2rem 0 0' }}>
-                  {suggestion.german}
-                </p>
-              ) : null}
-
-              {hasSentences && draft.sentences.length > 1 ? (
-                <div className="field" style={{ marginTop: '0.4rem' }}>
-                  <label htmlFor={`replace-${draft.id}`}>Zu ersetzender Beispielsatz</label>
-                  <select
-                    id={`replace-${draft.id}`}
-                    value={target}
-                    onChange={(event) => setReplaceTarget(event.target.value)}
-                  >
-                    {draft.sentences.map((sentence, index) => (
-                      <option key={sentence.id} value={sentence.id}>
-                        {index + 1}. {sentence.english || '(leer)'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
-              <div className="row" style={{ marginTop: '0.4rem' }}>
-                <Button
-                  small
-                  variant="primary"
-                  disabled={!canAddSentence(draft)}
-                  aria-label={`Vorschlag für ${rowLabel} als weiteren Satz übernehmen`}
-                  onClick={accept}
-                >
-                  Als weiteren Satz übernehmen
-                </Button>
-                {hasSentences ? (
-                  <Button
-                    small
-                    aria-label={`Vorhandenen Satz für ${rowLabel} ersetzen`}
-                    onClick={replace}
-                  >
-                    Vorhandenen Satz ersetzen
-                  </Button>
-                ) : null}
-                <Button
-                  small
-                  variant="quiet"
-                  aria-label={`Vorschlag für ${rowLabel} ablehnen`}
-                  onClick={() => {
-                    setSuggestion(null);
-                    setStatus('Der Vorschlag wurde abgelehnt.');
-                  }}
-                >
-                  Ablehnen
-                </Button>
-                <Button
-                  small
-                  variant="quiet"
-                  disabled={busy}
-                  aria-label={`Satzvorschlag für ${rowLabel} neu erzeugen`}
-                  onClick={() => void generate(lastMode)}
-                >
-                  Neu versuchen
-                </Button>
-              </div>
-
-              {!canAddSentence(draft) ? (
-                <p className="small muted" style={{ margin: '0.4rem 0 0' }}>
-                  Diese Vokabel hat bereits {MAX_SENTENCES} Beispielsätze. Ein weiterer lässt sich
-                  nicht hinzufügen – ersetzen geht weiterhin.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
         </>
       )}
+
+      {/*
+        Der optionale Assistent steht eigenständig da – nicht innerhalb des
+        Zweigs oben. Sonst wäre er ausgerechnet dort unsichtbar, wo er am
+        meisten nützt: in einem Browser ohne lokales Sprachmodell. Ohne
+        eingetragenen Schlüssel rendert er nichts.
+      */}
+      <GeminiAction
+        capability="suggest-example-sentences"
+        label="Beispielsatz mit Gemini vorschlagen"
+        ariaLabel={`Beispielsatz für ${rowLabel} mit Gemini vorschlagen`}
+        disabled={busy}
+        run={async (signal) => {
+          const request = sentenceRequestFor(draft, modes[0] ?? 'create');
+          const antwort = await geminiAssistant().suggestSentences(
+            {
+              english: request.english,
+              germanAnswers: request.germanAnswers,
+              ...(request.partOfSpeech ? { partOfSpeech: request.partOfSpeech } : {}),
+              existingSentences: request.existingSentences,
+            },
+            {
+              grade: context.grade,
+              cefrLevel: context.cefrLevel,
+              ...(context.topic.trim() ? { topic: context.topic.trim() } : {}),
+              maxItems: 1,
+              signal,
+            },
+          );
+
+          /*
+            Dieselbe Prüfung wie beim lokalen Modell: Ein Satz ohne die Vokabel
+            darin, ein doppelter oder ein zu langer ist kein Angebot, sondern
+            Arbeit für die Lehrkraft. Dass der Satz aus dem Netz kam, macht ihn
+            nicht besser.
+          */
+          const erster = antwort.value[0];
+          const checked = checkSentenceSuggestion(erster ?? { english: '' }, draft);
+          if (!checked.ok) {
+            throw new GeminiError('bad-response', `${checked.message} Du kannst es erneut versuchen.`, true);
+          }
+
+          setOrigin('gemini');
+          setSuggestion({ english: checked.english, german: checked.german });
+        }}
+      />
+
+      {suggestion ? (
+        <div className="candidate__suggestion" style={{ marginTop: '0.5rem' }}>
+          <p className="small" style={{ margin: 0 }}>
+            <Badge tone="warning">
+              {origin === 'gemini' ? 'Gemini, ungeprüft' : 'ungeprüfter Vorschlag'}
+            </Badge>{' '}
+            <strong>{suggestion.english}</strong>
+          </p>
+          {suggestion.german ? (
+            <p className="small muted" style={{ margin: '0.2rem 0 0' }}>
+              {suggestion.german}
+            </p>
+          ) : null}
+
+          {hasSentences && draft.sentences.length > 1 ? (
+            <div className="field" style={{ marginTop: '0.4rem' }}>
+              <label htmlFor={`replace-${draft.id}`}>Zu ersetzender Beispielsatz</label>
+              <select
+                id={`replace-${draft.id}`}
+                value={target}
+                onChange={(event) => setReplaceTarget(event.target.value)}
+              >
+                {draft.sentences.map((sentence, index) => (
+                  <option key={sentence.id} value={sentence.id}>
+                    {index + 1}. {sentence.english || '(leer)'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
+          <div className="row" style={{ marginTop: '0.4rem' }}>
+            <Button
+              small
+              variant="primary"
+              disabled={!canAddSentence(draft)}
+              aria-label={`Vorschlag für ${rowLabel} als weiteren Satz übernehmen`}
+              onClick={accept}
+            >
+              Als weiteren Satz übernehmen
+            </Button>
+            {hasSentences ? (
+              <Button
+                small
+                aria-label={`Vorhandenen Satz für ${rowLabel} ersetzen`}
+                onClick={replace}
+              >
+                Vorhandenen Satz ersetzen
+              </Button>
+            ) : null}
+            <Button
+              small
+              variant="quiet"
+              aria-label={`Vorschlag für ${rowLabel} ablehnen`}
+              onClick={() => {
+                setSuggestion(null);
+                setStatus('Der Vorschlag wurde abgelehnt.');
+              }}
+            >
+              Ablehnen
+            </Button>
+            <Button
+              small
+              variant="quiet"
+              disabled={busy}
+              aria-label={`Satzvorschlag für ${rowLabel} neu erzeugen`}
+              onClick={() => void generate(lastMode)}
+            >
+              Neu versuchen
+            </Button>
+          </div>
+
+          {!canAddSentence(draft) ? (
+            <p className="small muted" style={{ margin: '0.4rem 0 0' }}>
+              Diese Vokabel hat bereits {MAX_SENTENCES} Beispielsätze. Ein weiterer lässt sich
+              nicht hinzufügen – ersetzen geht weiterhin.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
