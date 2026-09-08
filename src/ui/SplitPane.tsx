@@ -70,12 +70,26 @@ export function SplitPane({
   const [width, setWidth] = useState(initialWidth);
   const frame = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  /**
+   * Der Abstand zwischen Zeiger und Spaltenkante im Moment des Zufassens.
+   *
+   * Ohne ihn wird die Spaltenbreite gleich der Zeigerposition: Die Spalte
+   * springt beim ersten Bewegen auf den Finger, statt ihm zu folgen. Der Griff
+   * ist 4 px breit und trägt ein Trefferpolster von ±6 px, die Greifzone liegt
+   * also asymmetrisch zur Kante – der Versatz reicht von −6 px bis +10 px.
+   *
+   * Zehn Pixel sind wenig. Aber es ist genau der Moment, in dem die Illusion
+   * bricht, einen Gegenstand in der Hand zu haben: Was man anfasst, bewegt
+   * sich, bevor man es bewegt.
+   */
+  const grabOffset = useRef(0);
 
   const apply = useCallback(
     (clientX: number) => {
       const box = frame.current?.getBoundingClientRect();
       if (!box) return;
-      setWidth(clamp((clientX - box.left) / remInPixels(), minWidth, maxWidth));
+      const kante = clientX - box.left - grabOffset.current;
+      setWidth(clamp(kante / remInPixels(), minWidth, maxWidth));
     },
     [minWidth, maxWidth],
   );
@@ -89,6 +103,7 @@ export function SplitPane({
     }
     function stop(): void {
       dragging.current = false;
+      grabOffset.current = 0;
     }
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', stop);
@@ -125,6 +140,15 @@ export function SplitPane({
         onPointerDown={(event) => {
           dragging.current = true;
           event.currentTarget.setPointerCapture(event.pointerId);
+          /*
+            Den Greifpunkt merken, bevor sich etwas bewegt. Gerechnet wird
+            gegen die **tatsächliche** Kante aus dem Layout und nicht gegen
+            `width`: Der Zustand ist in `rem`, und zwischen Zustand und
+            gerenderter Kante liegen Rundung, Zoom und die Untergrenze des
+            Rasters.
+          */
+          const kante = event.currentTarget.getBoundingClientRect().left;
+          grabOffset.current = event.clientX - kante;
         }}
         onKeyDown={(event) => {
           // Ein Schritt ist 1 rem, mit Umschalt 4 – grob und fein, wie beim

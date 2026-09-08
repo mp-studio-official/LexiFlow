@@ -274,6 +274,51 @@ test.describe('Textwerkstatt', () => {
   });
 
   /*
+    Sprint 4D: Der Griff springt nicht mehr auf den Finger.
+
+    Bis dahin rechnete `SplitPane` die Breite als `clientX − box.left`. Damit
+    wurde die Spaltenbreite gleich der Zeigerposition, unabhängig davon, wo
+    innerhalb der Greifzone man zugefasst hatte. Die Greifzone ist 16 px breit
+    (4 px Griff, ±6 px Polster) und liegt asymmetrisch zur Kante: Wer rechts
+    außen zufasste, sah die Spalte um bis zu 10 px nach rechts schnappen,
+    bevor sie überhaupt folgte.
+
+    Der Test fasst deshalb ausdrücklich **nicht** in der Mitte zu – dort ist
+    der Versatz fast null und der Fehler unsichtbar. Er fasst am rechten Rand
+    an und bewegt sich um genau einen Pixel: Die Spalte darf sich um diesen
+    einen Pixel ändern und um keinen mehr.
+  */
+  test('@smoke der Griff folgt dem Finger, statt auf ihn zu springen', async ({ page }) => {
+    await analyze(page);
+    await recommend(page);
+
+    const quelle = page.locator('.split__source');
+    const griff = page.getByRole('separator', { name: 'Breite der Quellspalte' });
+
+    const box = await griff.boundingBox();
+    if (!box) throw new Error('Der Griff hat keine Fläche.');
+    const vorher = (await quelle.boundingBox())?.width ?? 0;
+    expect(vorher).toBeGreaterThan(0);
+
+    // Am äußeren Rand des Trefferpolsters zufassen, nicht in der Mitte.
+    const rand = box.x + box.width + 5;
+    const mitte = box.y + box.height / 2;
+    await page.mouse.move(rand, mitte);
+    await page.mouse.down();
+    await page.mouse.move(rand + 1, mitte);
+
+    const nachher = (await quelle.boundingBox())?.width ?? 0;
+    await page.mouse.up();
+
+    /*
+      Ein Pixel Bewegung, ein Pixel Breite. Vor der Korrektur stand hier ein
+      Sprung von rund neun Pixeln – die Toleranz ist deshalb eng genug, ihn zu
+      fangen, und weit genug für die Rundung des Rasters.
+    */
+    expect(Math.abs(nachher - vorher - 1)).toBeLessThan(3);
+  });
+
+  /*
     Sprint 4B.3, Block A: die vollständige englische Lernform – mit dem
     **echten** Offline-Wörterbuch.
 
