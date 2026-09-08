@@ -234,6 +234,34 @@
   --duration-base: 200ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 
+  /*
+    Der Druckzustand ist schneller als alles andere – und das ist keine
+    Feinheit.
+
+    Eine Rückmeldung auf den Finger muss **da** sein, nicht ankommen. Ab etwa
+    100 ms nimmt man die Verzögerung als Trägheit wahr, und genau an dieser
+    Stelle entscheidet sich, ob sich eine Oberfläche direkt anfühlt. Der Weg
+    zurück darf ruhig die gewohnten 120 ms nehmen: Loslassen ist kein
+    Ereignis, auf das jemand wartet.
+
+    Deshalb steht diese Dauer in den `:active`-Regeln als
+    `transition-duration` und nicht in der Grundregel – sie gilt nur für den
+    Hinweg.
+  */
+  --duration-press: 90ms;
+
+  /*
+    Zwei Maßstäbe, weil dieselbe Zahl an einer Karte und an einem Chip nicht
+    dasselbe bedeutet.
+
+    Eine 320 px breite Karte auf 0,97 zu stauchen wäre eine Bewegung von zehn
+    Pixeln – das sieht nach einem Fehler aus. Ein 80 px breiter Chip bei 0,99
+    bewegt sich um weniger als einen Pixel und ist damit gar keine
+    Rückmeldung. Beide Werte erzeugen ungefähr dieselbe *sichtbare* Bewegung.
+  */
+  --press-scale-surface: 0.99;
+  --press-scale-control: 0.97;
+
   /* ------------------------------------------------------------ Fokus */
   --focus-ring: var(--brand-aubergine);
   /* Auf Aubergine erreicht Tomato 4,74 : 1 – deutlich über den 3 : 1, die ein

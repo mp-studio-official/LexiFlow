@@ -256,6 +256,19 @@ a {
 .bottom-nav__link[aria-current='page'] {
   color: var(--nav-ink);
 }
+/*
+  Die untere Navigation ist die meistberührte Fläche der ganzen App und war bis
+  Sprint 4D die einzige ohne jede Rückmeldung: kein Überfahren (es gibt hier
+  keinen Zeiger) und kein Drücken. Ein Tippen sah aus wie nichts, bis die
+  nächste Seite kam.
+
+  Kein Maßstabssprung, sondern eine Fläche: Ein skalierter Eintrag zöge das
+  Symbol und den Marker schief, und die Leiste hat feste Spalten.
+*/
+.bottom-nav__link:active {
+  background: var(--nav-active-surface);
+  color: var(--nav-ink);
+}
 /* Der aktive Eintrag trägt zusätzlich einen Marker – Farbe allein genügt nie. */
 .bottom-nav__mark {
   width: 1.25rem;
@@ -373,9 +386,18 @@ a {
     color: var(--nav-ink-muted);
     font-weight: var(--weight-regular);
   }
-  .app-nav__link:hover {
+  @media (hover: hover) {
+    .app-nav__link:hover {
+      background: var(--nav-active-surface);
+      color: var(--nav-ink);
+    }
+  }
+  /* Gedrückt sieht anders aus als überfahren – auch am Zeigergerät. */
+  .app-nav__link:active {
     background: var(--nav-active-surface);
     color: var(--nav-ink);
+    transform: scale(var(--press-scale-control));
+    transition-duration: var(--duration-press);
   }
   .app-nav__link[aria-current='page'] {
     background: var(--nav-active-surface);
@@ -696,12 +718,25 @@ a {
     border-color var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
 }
-.creator-option:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .creator-option:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
 }
+/*
+  Gedrückt geht die Kachel **hinein**, nicht auf null.
+
+  Bis Sprint 4D stand hier `transform: none`. Das hob die einzige Rückmeldung
+  wieder auf, die es gab: Überfahren hob die Kachel um 1 px an, Drücken setzte
+  sie zurück – gedrückt sah damit aus wie unberührt. Auf einem Telefon, wo es
+  kein Überfahren gibt, war beides derselbe Zustand: gar keiner.
+*/
 .creator-option:active {
-  transform: none;
+  border-color: var(--border-strong);
+  background: var(--surface-sunken);
+  transform: scale(var(--press-scale-surface));
+  transition-duration: var(--duration-press);
 }
 .creator-option__label {
   font-size: var(--text-lg);
@@ -757,13 +792,40 @@ a {
   box-shadow: var(--shadow-1);
   transition:
     border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-base) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
 }
-.pack-card:has(.pack-card__link:hover),
+/*
+  Der Fokus gehört **nicht** in die Hover-Schranke.
+
+  Beides sah lange gleich aus und stand deshalb in einer Auswahlliste. Sobald
+  das Überfahren auf Zeigergeräte begrenzt wird, wäre die Tastaturbedienung auf
+  einem Tablet mit ihr verschwunden – zwei Zustände, die zufällig dieselbe
+  Gestalt haben, sind trotzdem zwei Zustände.
+*/
 .pack-card:has(.pack-card__link:focus-visible) {
   border-color: var(--border-strong);
   border-left-color: var(--ink);
   box-shadow: var(--shadow-2);
+}
+@media (hover: hover) {
+  .pack-card:has(.pack-card__link:hover) {
+    border-color: var(--border-strong);
+    border-left-color: var(--ink);
+    box-shadow: var(--shadow-2);
+  }
+}
+/*
+  Und das, was auf dem Telefon vorher fehlte: eine Antwort auf den Finger.
+
+  Sie sitzt auf `:active`, also ab dem Aufsetzen und nicht erst beim Loslassen –
+  bevor also entschieden ist, ob daraus ein Tippen oder ein Wischen wird.
+*/
+.pack-card:has(.pack-card__link:active) {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-1);
+  transform: scale(var(--press-scale-surface));
+  transition-duration: var(--duration-press);
 }
 .pack-card__title {
   grid-column: 1;
@@ -799,10 +861,12 @@ a {
   inset: 0;
   border-radius: inherit;
 }
-.pack-card__link:hover {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-decoration-color: var(--accent);
+@media (hover: hover) {
+  .pack-card__link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--accent);
+  }
 }
 .pack-card__meta {
   grid-column: 1;
@@ -933,12 +997,25 @@ a {
   overflow: hidden;
   transition:
     border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-base) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
 }
-.mode-card:has(.mode-card__link:hover),
+/* Fokus außerhalb der Schranke – siehe die Paketkarte weiter oben. */
 .mode-card:has(.mode-card__link:focus-visible) {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-2);
+}
+@media (hover: hover) {
+  .mode-card:has(.mode-card__link:hover) {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-2);
+  }
+}
+.mode-card:has(.mode-card__link:active) {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-1);
+  transform: scale(var(--press-scale-surface));
+  transition-duration: var(--duration-press);
 }
 /*
   Flacher als der Kartenkopf eines Pakets: Ein Lernweg ist kein Gegenstand,
@@ -973,10 +1050,12 @@ a {
   position: absolute;
   inset: 0;
 }
-.mode-card__link:hover {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-decoration-color: var(--accent);
+@media (hover: hover) {
+  .mode-card__link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--accent);
+  }
 }
 .mode-card__text {
   margin: 0;
@@ -1293,10 +1372,19 @@ ol.area-list .area-item::before {
   color: var(--ink-secondary);
   cursor: pointer;
 }
-.icon-btn:hover {
+@media (hover: hover) {
+  .icon-btn:hover {
+    background: var(--surface-sunken);
+    border-color: var(--border);
+    color: var(--ink);
+  }
+}
+.icon-btn:active {
   background: var(--surface-sunken);
   border-color: var(--border);
   color: var(--ink);
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
 }
 .icon-btn:focus-visible {
   outline: var(--focus-width) solid var(--focus-ring);
@@ -1362,9 +1450,11 @@ ol.area-list .area-item::before {
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
-.btn:hover:not(:disabled) {
-  background: var(--surface-sunken);
-  border-color: var(--ink-muted);
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    background: var(--surface-sunken);
+    border-color: var(--ink-muted);
+  }
 }
 .btn:active:not(:disabled) {
   background: var(--surface-sunken);
@@ -1397,9 +1487,11 @@ ol.area-list .area-item::before {
   border-color: var(--primary);
   color: var(--primary-ink);
 }
-.btn--primary:hover:not(:disabled) {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
+@media (hover: hover) {
+  .btn--primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
 }
 
 /*
@@ -1446,9 +1538,11 @@ ol.area-list .area-item::before {
   border-color: var(--accent-ink);
   color: var(--primary-ink);
 }
-.btn--accent:hover:not(:disabled) {
-  background: #96252e;
-  border-color: #96252e;
+@media (hover: hover) {
+  .btn--accent:hover:not(:disabled) {
+    background: #96252e;
+    border-color: #96252e;
+  }
 }
 
 .btn--danger {
@@ -1456,18 +1550,22 @@ ol.area-list .area-item::before {
   border-color: var(--danger);
   background: var(--surface);
 }
-.btn--danger:hover:not(:disabled) {
-  background: var(--danger-soft);
+@media (hover: hover) {
+  .btn--danger:hover:not(:disabled) {
+    background: var(--danger-soft);
+  }
 }
 .btn--quiet {
   border-color: transparent;
   background: transparent;
   color: var(--ink-secondary);
 }
-.btn--quiet:hover:not(:disabled) {
-  background: var(--surface-sunken);
-  border-color: transparent;
-  color: var(--ink);
+@media (hover: hover) {
+  .btn--quiet:hover:not(:disabled) {
+    background: var(--surface-sunken);
+    border-color: transparent;
+    color: var(--ink);
+  }
 }
 .btn--small {
   min-height: 2.25rem;
@@ -1528,12 +1626,14 @@ textarea {
 
   Zwei Regeln, keine Kommentare dazwischen.
 */
-input[type='text']:hover:not(:disabled),
-input[type='search']:hover:not(:disabled),
-input[type='number']:hover:not(:disabled),
-select:hover:not(:disabled),
-textarea:hover:not(:disabled) {
-  border-color: var(--ink-muted);
+@media (hover: hover) {
+  input[type='text']:hover:not(:disabled),
+  input[type='search']:hover:not(:disabled),
+  input[type='number']:hover:not(:disabled),
+  select:hover:not(:disabled),
+  textarea:hover:not(:disabled) {
+    border-color: var(--ink-muted);
+  }
 }
 
 /*
@@ -2151,8 +2251,15 @@ tbody tr.draft__detail-row > td {
   min-height: 1.9rem;
   text-align: left;
 }
-.candidate__more:hover {
+@media (hover: hover) {
+  .candidate__more:hover {
+    color: var(--accent-ink);
+  }
+}
+.candidate__more:active {
   color: var(--accent-ink);
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
 }
 .candidate__more:focus-visible {
   outline: var(--focus-width) solid var(--focus-ring);
@@ -2254,6 +2361,11 @@ progress {
     border-color: currentColor;
   }
 }
+.badge--button:active {
+  border-color: currentColor;
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
+}
 
 /*
   Grau: ein Angebot, kein Urteil.
@@ -2275,6 +2387,12 @@ progress {
     background: var(--surface-sunken);
     color: var(--ink);
   }
+}
+.badge--action:active {
+  background: var(--surface-sunken);
+  color: var(--ink);
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
 }
 
 /* --------------------------------------------------------------- Übung */
@@ -2331,9 +2449,17 @@ progress {
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-out);
 }
-.option:hover:not(:disabled) {
+@media (hover: hover) {
+  .option:hover:not(:disabled) {
+    background: var(--surface-sunken);
+    border-color: var(--ink-muted);
+  }
+}
+.option:active:not(:disabled) {
   background: var(--surface-sunken);
   border-color: var(--ink-muted);
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
 }
 .option:disabled {
   cursor: default;
@@ -2489,8 +2615,15 @@ progress {
   position: relative;
   min-height: var(--tap-target);
 }
-.steps__step:hover:not(:disabled) {
+@media (hover: hover) {
+  .steps__step:hover:not(:disabled) {
+    color: var(--ink);
+  }
+}
+.steps__step:active:not(:disabled) {
   color: var(--ink);
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
 }
 .steps__step:disabled {
   cursor: default;
@@ -2599,8 +2732,22 @@ progress {
   font-size: var(--text-sm);
   line-height: 1;
 }
-.info__button:hover .info__mark,
+/*
+  Aufgeklappt ist ein Zustand, überfahren eine Vorschau darauf. Der erste
+  gehört nicht in die Hover-Schranke – sonst verschwände auf dem Telefon die
+  Anzeige, dass der Aufklapper offen ist.
+*/
 .info__button[aria-expanded='true'] .info__mark {
+  background: var(--info);
+  color: var(--surface);
+}
+@media (hover: hover) {
+  .info__button:hover .info__mark {
+    background: var(--info);
+    color: var(--surface);
+  }
+}
+.info__button:active .info__mark {
   background: var(--info);
   color: var(--surface);
 }
@@ -2696,8 +2843,15 @@ progress {
   min-height: var(--tap-target);
   transition: background var(--duration-fast) var(--ease-out);
 }
-.mode:hover:not(:has(input:disabled)) {
+@media (hover: hover) {
+  .mode:hover:not(:has(input:disabled)) {
+    background: var(--surface-sunken);
+  }
+}
+.mode:active:not(:has(input:disabled)) {
   background: var(--surface-sunken);
+  transform: scale(var(--press-scale-surface));
+  transition-duration: var(--duration-press);
 }
 
 /*
@@ -3322,6 +3476,12 @@ progress {
     border-color: var(--info);
   }
 }
+.chip:active:not(:disabled) {
+  background: var(--info-soft);
+  border-color: var(--info);
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
+}
 
 .chip:focus-visible {
   outline: var(--focus-width) solid var(--focus-ring);
@@ -3440,6 +3600,11 @@ progress {
   .disclosure__summary:hover {
     color: var(--ink);
   }
+}
+.disclosure__summary:active {
+  color: var(--ink);
+  transform: scale(var(--press-scale-control));
+  transition-duration: var(--duration-press);
 }
 
 .disclosure__summary:focus-visible {
@@ -3655,13 +3820,28 @@ progress {
   border-radius: 2px;
   background: var(--border);
 }
-.split__grip:hover,
+/*
+  Der Fokusring des Griffs bleibt außerhalb der Schranke: Er gehört der
+  Tastatur, und die gibt es auch an Geräten ohne Zeiger.
+*/
 .split__grip:focus-visible {
   background: var(--border);
   outline: none;
 }
-.split__grip:hover::after,
 .split__grip:focus-visible::after {
+  background: var(--ink);
+}
+@media (hover: hover) {
+  .split__grip:hover {
+    background: var(--border);
+    outline: none;
+  }
+  .split__grip:hover::after {
+    background: var(--ink);
+  }
+}
+/* Beim Ziehen liegt der Finger darauf – da soll der Griff sichtbar bleiben. */
+.split__grip:active::after {
   background: var(--ink);
 }
 .split__grip:focus-visible {
@@ -4380,7 +4560,13 @@ progress {
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
-.split__word:hover {
+@media (hover: hover) {
+  .split__word:hover {
+    background: var(--accent-soft, var(--surface-sunken));
+    color: var(--ink);
+  }
+}
+.split__word:active {
   background: var(--accent-soft, var(--surface-sunken));
   color: var(--ink);
 }
