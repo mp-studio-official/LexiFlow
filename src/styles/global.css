@@ -3110,6 +3110,31 @@ progress {
   justify-content: center;
   gap: var(--space-4);
   text-align: center;
+  /*
+    Waagerecht gehört die Geste der Karte, senkrecht dem Browser.
+
+    `pan-y` überlässt das Scrollen dem Browser und lässt ihn die
+    Unterscheidung treffen – er kann das schneller und besser als jeder
+    eigene Schwellwert, und er tut es, bevor das erste Ereignis bei uns
+    ankommt. Wird daraus doch ein Scrollen, kommt `pointercancel`, und die
+    Karte geht zurück.
+  */
+  touch-action: pan-y;
+  /* Der Browser darf beim Tippen nichts eigenes einblenden. */
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+}
+
+/*
+  Während des Ziehens: keine Textauswahl, ein anderer Zeiger.
+
+  Ohne `user-select` markiert ein Zug über die Vokabel den Text, und man zieht
+  eine Karte mit blauer Markierung darin durchs Bild.
+*/
+.card-deck--dragging {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Der Kartenbereich ist fokussierbar – dann muss man das auch sehen. */

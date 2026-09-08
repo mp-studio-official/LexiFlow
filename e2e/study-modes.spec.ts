@@ -186,6 +186,80 @@ test.describe('Auf eigene Weise lernen', () => {
     expect(externalRequests).toEqual([]);
   });
 
+  /*
+    Sprint 4D: Die Karte lässt sich wegwischen.
+
+    Was hier geprüft wird, ist nicht die Bewegung – die sieht man nicht in
+    einem Test – sondern dass die Geste dasselbe tut wie die Pfeiltasten und
+    dass sie an den Rändern nichts tut, was sie nicht soll. Die Rechnung
+    dahinter steht in `domain/swipe.ts` und ist dort ohne Browser geprüft;
+    hier geht es um die Verkabelung: Kommt das Zeigerereignis an, ist die
+    Breite messbar, blättert es wirklich?
+  */
+  test('@smoke Karten: nach links wegwischen blättert weiter, nach rechts zurück', async ({
+    page,
+  }) => {
+    await seedPack(page, { direction: 'en-de' });
+    await page.getByRole('link', { name: 'Mit Karten lernen' }).click();
+    await expect(page.getByText('Karte 1 von 4')).toBeVisible();
+
+    const deck = page.getByRole('group', { name: /^Karte 1 von / });
+    const gemessen = await deck.boundingBox();
+    if (!gemessen) throw new Error('Die Karte hat keine Fläche.');
+    // Eine eigene Konstante: In der Funktion darunter greift die Verengung
+    // von `if (!gemessen)` nicht mehr.
+    const box = gemessen;
+    const y = box.y + box.height / 2;
+
+    /** Ein Wisch über die halbe Kartenbreite, in Schritten – sonst gibt es
+        kein `pointermove` zwischen Druck und Loslassen. */
+    async function wischen(richtung: -1 | 1): Promise<void> {
+      const start = box.x + box.width / 2;
+      await page.mouse.move(start, y);
+      await page.mouse.down();
+      for (const anteil of [0.15, 0.3, 0.45]) {
+        await page.mouse.move(start + richtung * box.width * anteil, y);
+      }
+      await page.mouse.up();
+    }
+
+    await wischen(-1);
+    await expect(page.getByText('Karte 2 von 4')).toBeVisible();
+
+    await wischen(1);
+    await expect(page.getByText('Karte 1 von 4')).toBeVisible();
+  });
+
+  test('@smoke Karten: bei der ersten Karte führt das Zurückwischen nirgendwohin', async ({
+    page,
+  }) => {
+    /*
+      Das Gummiband. Sichtbar wäre der Widerstand; prüfbar ist, dass danach
+      dieselbe Karte dasteht – und dass die Ansicht nicht in einen Zustand
+      gerät, in dem sie gar nichts mehr zeigt.
+    */
+    await seedPack(page, { direction: 'en-de' });
+    await page.getByRole('link', { name: 'Mit Karten lernen' }).click();
+    await expect(page.getByText('Karte 1 von 4')).toBeVisible();
+
+    const deck = page.getByRole('group', { name: /^Karte 1 von / });
+    const box = await deck.boundingBox();
+    if (!box) throw new Error('Die Karte hat keine Fläche.');
+    const y = box.y + box.height / 2;
+    const start = box.x + box.width / 2;
+
+    await page.mouse.move(start, y);
+    await page.mouse.down();
+    for (const anteil of [0.2, 0.5, 0.9]) {
+      await page.mouse.move(start + box.width * anteil, y);
+    }
+    await page.mouse.up();
+
+    await expect(page.getByText('Karte 1 von 4')).toBeVisible();
+    // Und die Karte steht wieder an ihrem Platz, nicht irgendwo rechts daneben.
+    await expect(deck).toHaveJSProperty('style.transform', '');
+  });
+
   test('@smoke beide Ansichten lassen den Lernstand unverändert', async ({ page }) => {
     await seedPack(page, { direction: 'en-de' });
 

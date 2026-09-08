@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Announcer, Badge, Button, Card, Meter } from '../../ui/components';
 import { LearnHeader } from './LearnHeader';
@@ -14,6 +14,7 @@ import {
 import { GRADE_LABELS } from '../../domain/cefr';
 import type { VocabPack } from '../../domain/schema';
 import { formatAnswers } from '../../domain/normalize';
+import { useCardSwipe } from '../../ui/useCardSwipe';
 
 /**
  * Karten ansehen – kein Test, keine Runde, keine Bewertung.
@@ -46,7 +47,6 @@ export function CardStudyPage() {
   /** `true`, sobald über die letzte Karte hinausgegangen wurde. */
   const [finished, setFinished] = useState(false);
   const [status, setStatus] = useState('');
-  const deckRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -69,6 +69,31 @@ export function CardStudyPage() {
       seed,
     });
   }, [pack, choice, seed]);
+
+  /*
+    Die Wischgeste.
+
+    Sie tut dasselbe wie die Pfeiltasten und die Schaltflächen darunter – nur
+    mit dem Finger. Der Haken bekommt deshalb genau die beiden Funktionen, die
+    auch dort hängen; es gibt keinen zweiten Weg durch den Kartensatz, der
+    anders zählte.
+
+    `canNext` ist immer wahr: Nach vorn gibt es notfalls den Schlussbildschirm.
+    Nach hinten ist bei der ersten Karte Schluss, und dort greift das Gummiband.
+
+    Der Aufruf steht **vor** den frühen Rückgaben weiter unten. Das ist keine
+    Stilfrage: Ein Haken hinter `if (loading) return` wird beim ersten Rendern
+    übersprungen und beim zweiten aufgerufen – React zählt die Haken je
+    Rendern durch und bricht dann ab. Genau das ist beim ersten Anlauf
+    passiert. `goNext` und `goPrevious` sind Funktionsdeklarationen und damit
+    hier schon ansprechbar, obwohl sie weiter unten stehen.
+  */
+  const swipe = useCardSwipe({
+    onNext: () => goNext(),
+    onPrevious: () => goPrevious(),
+    canNext: true,
+    canPrevious: index > 0,
+  });
 
   if (loading) return <p className="muted">Paket wird geladen …</p>;
   if (!pack) {
@@ -240,13 +265,16 @@ export function CardStudyPage() {
       <Meter value={index} max={cards.length} label="Fortschritt im Kartensatz" />
 
       <div
-        className="card-deck"
-        ref={deckRef}
+        className={['card-deck', swipe.dragging ? 'card-deck--dragging' : '']
+          .filter(Boolean)
+          .join(' ')}
+        ref={swipe.cardRef}
         tabIndex={0}
         role="group"
         aria-roledescription="Lernkarte"
         aria-label={`Karte ${index + 1} von ${cards.length}: ${card.prompt}`}
         onKeyDown={handleKeyDown}
+        {...swipe.handlers}
       >
         {/*
           Der Kopf der Karte trägt das Motiv des Pakets.
@@ -290,7 +318,13 @@ export function CardStudyPage() {
 
         {!flipped ? (
           <p className="small muted card-deck__hint">
-            Überlege in Ruhe – decke die Lösung erst dann auf.
+            {/*
+              Der Hinweis auf die Geste steht **neben** dem Hinweis auf die
+              Ruhe und nicht als eigene Zeile: Er ist eine Beiläufigkeit, keine
+              Anweisung. Wer die Karte ohnehin anfasst, braucht ihn nicht.
+            */}
+            Überlege in Ruhe – decke die Lösung erst dann auf. Zum Blättern wischen oder die
+            Pfeiltasten benutzen.
           </p>
         ) : null}
       </div>
