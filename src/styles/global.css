@@ -39,12 +39,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+  Was alle Überschriften teilen – die Laufweite gehört nicht dazu.
+
+  Sie stand bis Sprint 4D hier oben, gemeinsam für h1 bis h4. Zwischen h1
+  (36 px) und h4 (16 px) liegt aber mehr als das Doppelte, und ein Wert kann
+  für beide nicht stimmen. Jede Ebene nimmt jetzt die Stufe ihrer Größe.
+*/
 h1,
 h2,
 h3,
 h4 {
   line-height: var(--leading-snug);
-  letter-spacing: var(--tracking-tight);
   margin: 0 0 var(--space-2);
   font-weight: var(--weight-semibold);
   color: var(--ink);
@@ -53,12 +59,19 @@ h4 {
 
 h1 {
   font-size: var(--text-3xl);
+  letter-spacing: var(--tracking-tighter);
 }
 h2 {
   font-size: var(--text-xl);
+  letter-spacing: var(--tracking-snug);
 }
 h3 {
   font-size: var(--text-lg);
+  letter-spacing: var(--tracking-snug);
+}
+/* h4 erbt --text-md und steht damit auf der Fließtextstufe. */
+h4 {
+  letter-spacing: var(--tracking-body);
 }
 
 p {
@@ -171,7 +184,7 @@ a {
   font-family: var(--font-display);
   font-weight: var(--weight-black);
   font-size: var(--text-xl);
-  letter-spacing: -0.03em;
+  letter-spacing: var(--tracking-wordmark);
   line-height: 1;
 }
 .logo--brand .logo__word {
@@ -342,7 +355,7 @@ a {
     font-family: var(--font-display);
     font-weight: var(--weight-black);
     font-size: var(--text-lg);
-    letter-spacing: -0.03em;
+    letter-spacing: var(--tracking-wordmark);
     line-height: 1;
   }
 
@@ -577,7 +590,7 @@ a {
   margin: 0 0 var(--space-3);
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tracking-body);
   color: var(--accent-ink);
 }
 .app-footer__claim {
@@ -741,7 +754,7 @@ a {
 .creator-option__label {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-snug);
 }
 .creator-option__text {
   font-size: var(--text-base);
@@ -830,7 +843,7 @@ a {
 .pack-card__title {
   grid-column: 1;
   font-size: var(--text-lg);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-snug);
   margin: 0;
 }
 /* Die Anzahl ist beim Überfliegen die meistgesuchte Angabe – eigene Spalte,
@@ -1034,7 +1047,7 @@ a {
 .mode-card__title {
   margin: 0;
   font-size: var(--text-base);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-body);
 }
 /*
   Der Titel ist der Link, und er spannt die ganze Karte auf. Ein Knopf unter
@@ -1437,7 +1450,7 @@ ol.area-list .area-item::before {
   font: inherit;
   font-weight: var(--weight-semibold);
   font-size: var(--text-base);
-  letter-spacing: -0.005em;
+  letter-spacing: var(--tracking-body);
   padding: 0.6rem 1.1rem;
   min-height: var(--tap-target);
   border-radius: var(--radius-control);
@@ -1784,7 +1797,7 @@ input[type='radio']:disabled {
 }
 .alert--decision strong {
   font-size: var(--text-lg);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-snug);
 }
 
 /* --------------------------------------------------------------- Tabelle */
@@ -2302,7 +2315,7 @@ progress {
   display: inline-block;
   font-size: var(--text-2xs);
   font-weight: var(--weight-semibold);
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   padding: 0.15rem 0.55rem;
   border-radius: var(--radius-pill);
@@ -2379,7 +2392,7 @@ progress {
   border-color: var(--border-strong);
   background: var(--surface);
   text-transform: none;
-  letter-spacing: normal;
+  letter-spacing: var(--tracking-body);
   font-size: var(--text-xs);
 }
 @media (hover: hover) {
@@ -3143,7 +3156,7 @@ progress {
   font-family: var(--font-display);
   font-size: var(--text-3xl);
   line-height: 1.1;
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-tighter);
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -3542,7 +3555,7 @@ progress {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
 }
 
 .dictionary__words {
@@ -4017,7 +4030,7 @@ progress {
   font-family: var(--font-display);
   font-weight: var(--weight-black);
   font-size: var(--text-lg);
-  letter-spacing: -0.03em;
+  letter-spacing: var(--tracking-wordmark);
 }
 
 .sheet__titles {
@@ -4043,7 +4056,7 @@ progress {
   border-bottom: 0.2em solid var(--brand-tomato);
   font-size: var(--text-3xl);
   line-height: 1.1;
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-tighter);
 }
 .sheet__meta {
   margin: var(--space-3) 0 0;

@@ -95,9 +95,49 @@
   --leading-snug: 1.25;
   --leading-normal: 1.6;
 
-  --tracking-display: -0.028em;
-  --tracking-tight: -0.014em;
+  /*
+    Laufweite ist eine Eigenschaft der **Größe**, nicht des Elements.
+
+    Bis Sprint 4D trug `--tracking-tight` einen einzigen Wert von 15 px bis
+    36 px. Das kann nicht für beides stimmen: Große Schrift wirkt zu locker
+    gesetzt und will enger stehen, kleine Schrift wird durch negative
+    Laufweite schlechter lesbar. Dass die Regel fehlte, sah man daran, dass
+    daneben drei handgesetzte Einzelwerte gewachsen waren – −0,005em am Knopf,
+    −0,01em am Anspruch, −0,03em an der Wortmarke. Jemand hatte punktuell
+    nachgebessert, was systematisch zu lösen war.
+
+    Die Stufen laufen mit der Größe mit. Sie zu wechseln heißt deshalb nicht,
+    „etwas engeres“ zu wählen, sondern die Stufe zu nehmen, die zur
+    Schriftgröße der Regel gehört; `tracking.test.ts` rechnet das nach.
+  */
+  --tracking-body: 0;          /* --text-base, --text-md   (15–16 px) */
+  --tracking-snug: -0.012em;   /* --text-lg, --text-xl     (18–22 px) */
+  --tracking-tight: -0.018em;  /* --text-2xl               (28 px)    */
+  --tracking-tighter: -0.024em; /* --text-3xl              (36 px)    */
+  --tracking-display: -0.028em; /* --text-display          (36–64 px) */
+
+  /* Versalien brauchen Luft – unabhängig davon, wie groß sie stehen. */
   --tracking-eyebrow: 0.14em;
+
+  /*
+    Die schwächere Sperrung für kurze Etiketten in Versalien – Marken, Wortart-
+    kürzel, Zustandsplaketten. Sie stehen bei 11 px und in einem Kasten; die
+    volle Augenbrauen-Sperrung ließe sie darin auseinanderfallen.
+
+    Bis Sprint 4D standen dafür zwei Werte nebeneinander, 0,06em und 0,04em.
+    Bei 11 px sind das 0,22 px Unterschied – kein Unterschied, sondern zwei
+    Entscheidungen, die niemand zusammen getroffen hat.
+  */
+  --tracking-label: 0.06em;
+
+  /*
+    Die Wortmarke ist keine Schriftgröße, sondern ein Bild.
+
+    Sie steht in der Kopfzeile, in der Navigation und auf dem Druckblatt in
+    drei verschiedenen Größen und soll überall gleich aussehen. Deshalb hat
+    sie einen eigenen Wert und folgt der Stufenleiter nicht.
+  */
+  --tracking-wordmark: -0.03em;
 
   --weight-regular: 400;
   --weight-medium: 500;
