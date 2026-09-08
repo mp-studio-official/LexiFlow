@@ -11,7 +11,7 @@ import {
 } from './studentExport';
 import { readEmbeddedAreaFromDocument } from './embedded';
 import { learningAreaFileName } from '../domain/learningArea';
-import type { VocabPack } from '../domain/schema';
+import { vocabPackFileSchema, type VocabPack } from '../domain/schema';
 import { RUNTIME_LIMIT_KIB } from '../../scripts/portableLimits.mjs';
 
 /**
@@ -288,6 +288,39 @@ describe('Gebaute Lerndatei', () => {
     expect(teacher).toContain('CC BY-SA 4.0');
     expect(teacher).toContain('en.wiktionary.org');
     expect(teacher).toContain('wiktextract');
+  });
+
+  /*
+    Das mitgelieferte Beispielpaket ist der erste Eindruck – und muss deshalb
+    wirklich funktionieren.
+
+    `examples/unit-3-city-life-7.vocabpack.json` liegt im Repository, damit
+    jemand die Anwendung ausprobieren kann, ohne vorher selbst eine Liste zu
+    tippen. Bis Sprint 4D hat niemand geprüft, ob daraus auch eine **Lerndatei**
+    entsteht: Die Beispieldateien unten wurden aus Testdaten gebaut, nicht aus
+    dieser. Ein Beispielpaket, das sich nicht ausgeben lässt, fiele erst dem
+    ersten Menschen auf, der es versucht.
+  */
+  it('macht aus dem mitgelieferten Beispielpaket eine Lerndatei', () => {
+    const roh: unknown = JSON.parse(
+      readFileSync(resolve(root, 'examples/unit-3-city-life-7.vocabpack.json'), 'utf8'),
+    );
+    const geprueft = vocabPackFileSchema.safeParse(roh);
+    expect(geprueft.success, 'Das Beispielpaket passt nicht zum Paketformat.').toBe(true);
+    if (!geprueft.success) return;
+
+    const beispiel: VocabPack = { meta: geprueft.data.meta, entries: geprueft.data.entries };
+    const html = build(beispiel);
+
+    // Wieder einlesen: Was hineingeschrieben wurde, muss auch herauskommen.
+    const dom = new JSDOM(html);
+    const zurueck = readEmbeddedAreaFromDocument(dom.window.document);
+    expect(zurueck.ok, 'Die erzeugte Lerndatei ließ sich nicht wieder einlesen.').toBe(true);
+    if (!zurueck.ok) return;
+    expect(zurueck.area.packs[0]?.entries).toHaveLength(beispiel.entries.length);
+    expect(zurueck.area.packs[0]?.meta.title).toBe('Unit 3 – City life');
+
+    writeFileSync(resolve(root, `dist-portable/${studentFileName(beispiel.meta)}`), html, 'utf8');
   });
 
   it('legt eine Beispieldatei zum Nachsehen ab', () => {
