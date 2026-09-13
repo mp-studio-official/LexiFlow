@@ -309,11 +309,110 @@ eigener Test die Plausibilität der gesammelten Paketnamen.
 
 ## 3. Schema
 
-*Wird in Phase 2 gefüllt.*
+Drei Migrationen in `supabase/migrations/`, in dieser Reihenfolge:
+
+| Datei | Inhalt |
+| --- | --- |
+| `20260913120000_grundgeruest.sql` | Typen, elf Tabellen, Indizes, der Einfrier-Trigger |
+| `20260913120100_hilfsfunktionen.sql` | Sieben `security definer`-Funktionen und `redeem_invite` |
+| `20260913120200_zugriffsregeln.sql` | Rechte und 23 Regeln |
+
+### 3.1 Die Tabellen
+
+| Tabelle | Wofür |
+| --- | --- |
+| `profiles` | Anzeigename, kurze neutrale Kennung, Rolle. **Keine E-Mail-Adresse** |
+| `courses`, `course_members` | Lerngruppen und wer darin ist |
+| `course_invites` | Einladungen – gespeichert ist nur der SHA-256 des Codes |
+| `packs`, `pack_drafts`, `pack_revisions` | Identität, Arbeitsstand, eingefrorene Fassung |
+| `course_packs` | Welche Revision in welchem Kurs, in welcher Reihenfolge |
+| `pack_progress`, `entry_progress` | Lernstand – immer der der aufrufenden Person |
+| `progress_events` | Verarbeitete Ereigniskennungen, für die Idempotenz |
+
+### 3.2 Drei Entscheidungen im Schema
+
+**Das Paket liegt als JSONB.** Die Zod-Schemata in `src/domain/schema.ts` sind
+die Wahrheit über das Paketformat und haben eine eigene Versionskette. Sie in
+Spalten zu zerlegen hieße, dieselbe Wahrheit zweimal zu pflegen; die SQL-Kopie
+veraltete als Erste. Was gefiltert wird – Titel, Jahrgang – steht zusätzlich
+in Spalten.
+
+**Zurückziehen löscht nicht.** `pack_revisions.withdrawn_at` statt `delete`.
+Eine Lerngruppe, die mit einer Revision übt, soll nicht mitten im Halbjahr vor
+einer leeren Seite stehen, und ein Verweis auf eine gelöschte Revision wäre
+eine Lüge. Ein Trigger erzwingt, dass sich **nur** dieses eine Feld ändert –
+auch für die Eigentümerin und für Wartungszugriffe.
+
+**Es gibt keine Spalte für den Lernstand einer anderen Person.** Nicht
+verborgen, nicht gesperrt: nicht vorhanden. Eine Klassenübersicht ließe sich in
+diesem Schema nicht bauen, ohne es zu ändern.
 
 ## 4. Zugriffsregeln (RLS)
 
-*Wird in Phase 2 gefüllt.*
+Der Publishable Key im Browser ist kein Geheimnis (ADR-3). Wer ihn hat, kann
+jede Abfrage stellen, die ihm einfällt. Deshalb ist diese Datei die
+Sicherheitsarchitektur und nicht ihr Anhang.
+
+### 4.1 Die Regel, auf die es ankommt
+
+Für `pack_progress`, `entry_progress` und `progress_events` gibt es je Tabelle
+**genau eine** Regel, für alle vier Operationen, mit genau einer Bedingung:
+`user_id = auth.uid()`. Keine Ausnahme für Lehrkräfte, keine für die
+Verwaltung. Ein struktureller Test hält zusätzlich fest, dass in diesen Regeln
+die Wörter `course_members`, `app_is_teacher_of`, `app_my_role` und
+`app_is_member_of` **nicht vorkommen** – jede denkbare Auswertung bräuchte
+eines davon.
+
+### 4.2 Was sonst gilt
+
+| Gegenstand | Wer sieht ihn |
+| --- | --- |
+| Kurs | Eigentümerin und Mitglieder |
+| Mitgliederliste | Lehrkräfte des Kurses; Lernende sehen nur die eigene Zeile |
+| Einladungen | **nur** Lehrkräfte des Kurses – Lernende sehen keine einzige Zeile |
+| Paketentwurf | nur die Eigentümerin |
+| Revision | Eigentümerin, sowie Mitglieder eines Kurses, dem sie zugewiesen ist |
+| Profil | man selbst; dazu Lehrkräfte der eigenen Kurse |
+
+Veröffentlicht heißt nicht sichtbar: Ohne Zuweisung an einen Kurs sieht eine
+lernende Person eine Revision nicht.
+
+### 4.3 Drei Feinheiten, die leicht übersehen werden
+
+**`with check` neben `using`.** `using` prüft, was man anfassen darf; `with
+check`, wie es hinterher aussehen darf. Ohne das Zweite könnte jede Person ihre
+eigene Lernstandszeile jemand anderem zuschreiben.
+
+**Ein Spaltenrecht statt einer Regel.** Eine Zugriffsregel sieht Zeilen, keine
+Spalten – sie kann nicht sagen „ändere deine Zeile, aber nicht diese Spalte“.
+Deshalb hat `authenticated` auf `profiles` nur `update (display_name)`. Sonst
+könnte sich jede Person selbst zur Lehrkraft machen.
+
+**Der Beitritt ist eine Funktion, keine Regel.** Um einen Code zu prüfen,
+müsste man Einladungen lesen dürfen – und wer die eines Kurses liest, sieht
+alle. `redeem_invite` dreht das um: Sie nimmt den Code, vergleicht Hash gegen
+Hash und gibt den Kurs zurück oder einen Fehler. Derselbe Fehlertext für
+„gibt es nicht“, „zurückgezogen“, „abgelaufen“ und „aufgebraucht“, damit
+Durchprobieren nichts verrät.
+
+### 4.4 Wie das geprüft wurde
+
+`scripts/db/` – PGlite mit PostgreSQL 17.5, die echten Migrationen, echte
+Rollenwechsel. 45 Verhaltensprüfungen und 14 strukturelle.
+
+**Gegenprobe.** Ein Test prüft die Prüfung: Dieselbe Zeile wird einmal mit
+Einrichtungsrechten gesehen und einmal als andere Person nicht. Ohne ihn könnte
+jede Regelprüfung aus dem falschen Grund bestehen – etwa weil das Einfügen
+fehlschlug.
+
+**Mutationsprobe.** Versuchsweise wurde eine Leseregel für Lehrkräfte auf
+`pack_progress` ergänzt. Sechs Tests schlugen fehl, vier davon
+verhaltensbezogen. Die Regel wurde danach entfernt; die Probe steht hier, weil
+eine grüne Suite ohne sie nichts über ihre Schärfe sagt.
+
+**Nicht geprüft, ausdrücklich:** GoTrue, PostgREST, die Edge-Laufzeit,
+Supabase-eigene Rollen und Erweiterungen (ADR-6). Die Regeln sind echt geprüft,
+die Plattform darunter ist nachgebildet.
 
 ## 5. Veröffentlichung und Lernstand
 
@@ -366,9 +465,23 @@ Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 Die beiden letzten Zeilen sind der Punkt: Der Portalcode liegt im Quellbaum
 und in **keiner** der beiden portablen Dateien.
 
-**Als Nächstes:** Phase 2 – Schema und Zugriffsregeln in Supabase, geprüft
-gegen echtes Postgres per PGlite (ADR-6). Danach § 3 und § 4 dieses Dokuments
-füllen.
+- Phase 2 – Schema, Hilfsfunktionen und Zugriffsregeln; geprüft gegen echtes
+  PostgreSQL 17.5 per PGlite. Siehe § 3 und § 4.
+
+**Messung nach Phase 2** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx vitest run` | **2301** Tests in **137** Dateien, alle grün |
+| davon `npm run test:db` | 59 (45 Verhalten, 14 Struktur) gegen PostgreSQL 17.5 |
+| `npm run build:portable` | 9482,1 KiB / 674,6 KiB – beide unverändert |
+
+Phase 2 hat keine Datei unter `src/` angefasst. Neu sind
+`supabase/migrations/`, `scripts/db/` und eine Entwicklungsabhängigkeit
+(`@electric-sql/pglite`, Apache-2.0).
+
+**Als Nächstes:** Phase 3 – Anmeldung und Wiederherstellung. Erst dort rendert
+`src/main.tsx` das Portal statt `App`.
 
 **Nicht vergessen:**
 
