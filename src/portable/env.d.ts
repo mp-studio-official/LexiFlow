@@ -15,6 +15,18 @@ declare const __LEXIFLOW_PORTABLE__: boolean;
  */
 declare const __LEXIFLOW_LEARNER__: boolean;
 
+/**
+ * Zur Bauzeit gesetzte Kennzeichnung des Portals.
+ *
+ * Seit Phase 3 gibt es zwei Web-Builds aus demselben Quellbaum: die
+ * kontofreie PWA unter `/LexiFlow/` und das Portal unter `/LexiFlow/portal/`.
+ * `define` gilt je Build und nicht je Einstiegspunkt – deshalb hat das Portal
+ * eine eigene Vite-Konfiguration, und deshalb muss es sich ausdrücklich zu
+ * erkennen geben. Ohne diese Fahne ist der Web-Build `web-solo`, also ohne
+ * Backend. Der Standard liegt damit auf der sicheren Seite.
+ */
+declare const __LEXIFLOW_PORTAL__: boolean;
+
 declare module 'virtual:lexiflow-student-runtime' {
   const html: string;
   export default html;

@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { RepositoryProvider } from '../application/RepositoryContext';
 import { createFakeCloud } from '../application/fakeCloudRepositories';
-import { HostedApp, HostedRoutes } from './HostedApp';
+import { HostedApp, HostedRoutes, fälschungGewünscht } from './HostedApp';
 import { SessionProvider } from './SessionContext';
 
 /**
@@ -166,5 +166,38 @@ describe('ohne Konfiguration', () => {
       />,
     );
     expect(await screen.findByRole('heading', { name: 'LexiFlow', level: 1 })).toBeInTheDocument();
+  });
+});
+
+describe('die Testfassung ohne Server', () => {
+  it('läuft nur auf ausdrückliche Ansage', () => {
+    expect(fälschungGewünscht({})).toBe(false);
+    expect(fälschungGewünscht({ VITE_LEXIFLOW_FAKE_CLOUD: '0' })).toBe(false);
+    expect(fälschungGewünscht({ VITE_LEXIFLOW_FAKE_CLOUD: 'true' })).toBe(false);
+    expect(fälschungGewünscht({ VITE_LEXIFLOW_FAKE_CLOUD: '1' })).toBe(true);
+  });
+
+  it('sagt auf jeder Seite, dass sie eine ist', async () => {
+    /*
+      Die Bedingung dafür, dass es diese Fahne überhaupt geben darf. Ohne das
+      Band wäre eine Fassung mit erfundenen Konten von der echten nicht zu
+      unterscheiden – auf dem Bildschirm nicht und auf einem Screenshot erst
+      recht nicht.
+    */
+    render(
+      <HostedApp
+        env={{ VITE_LEXIFLOW_FAKE_CLOUD: '1', BASE_URL: '/' }}
+        config={{ ok: false, missing: ['VITE_SUPABASE_URL'], invalid: [] }}
+      />,
+    );
+    expect(await screen.findByText(/Testfassung ohne Server/)).toBeInTheDocument();
+    // Und die Einrichtungsseite kommt dann nicht – die Fassung läuft ja.
+    expect(screen.queryByRole('heading', { name: /noch nicht eingerichtet/i })).not.toBeInTheDocument();
+  });
+
+  it('zeigt ohne die Fahne kein Band', async () => {
+    render(<HostedApp repositories={createFakeCloud().repositories} env={{ BASE_URL: '/' }} />);
+    await screen.findByRole('heading', { name: 'LexiFlow', level: 1 });
+    expect(screen.queryByText(/Testfassung ohne Server/)).not.toBeInTheDocument();
   });
 });

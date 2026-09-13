@@ -46,6 +46,8 @@ export default defineConfig({
     // Die Lehrkraftdatei ist portabel, aber keine Lerndatei: Sie hat ihre
     // Werkstatt. `src/runtime/mode.ts` liest daraus `portable-teacher`.
     __LEXIFLOW_LEARNER__: 'false',
+    // Und kein Portal: Diese Datei hat kein Backend und darf keines bekommen.
+    __LEXIFLOW_PORTAL__: 'false',
   },
   plugins: [
     studentRuntime(`${outRoot}/student/student.html`),

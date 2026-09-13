@@ -108,9 +108,16 @@ function graphAb(einstieg: string): Graph {
   return { dateien, pakete };
 }
 
-/** Die beiden Einstiegspunkte, aus denen portable Dateien entstehen. */
+/**
+ * Die drei Einstiegspunkte.
+ *
+ * `src/main.tsx` trägt zwei Auslieferungen: die kontofreie PWA unter
+ * `<base>/` und – über dieselbe `index.html` – die portable Lehrkraftdatei.
+ * Beide haben kein Backend, also gilt für sie dieselbe Prüfung.
+ */
 const LEHRKRAFT = graphAb('src/main.tsx');
 const LERNDATEI = graphAb('src/student-main.tsx');
+const PORTAL = graphAb('src/portal-main.tsx');
 
 describe('der Importgraph lässt sich überhaupt lesen', () => {
   it('findet aus beiden Einstiegen erkennbar viele Dateien', () => {
@@ -123,6 +130,7 @@ describe('der Importgraph lässt sich überhaupt lesen', () => {
   it('findet die erwarteten Ankerdateien', () => {
     expect(LEHRKRAFT.dateien).toContain('src/App.tsx');
     expect(LERNDATEI.dateien).toContain('src/StudentApp.tsx');
+    expect(PORTAL.dateien).toContain('src/hosted/HostedApp.tsx');
   });
 
   it('sammelt nur Dinge, die wie Paketnamen aussehen', () => {
@@ -134,7 +142,7 @@ describe('der Importgraph lässt sich überhaupt lesen', () => {
       `supabase`. Ein Test, der bei kaputtem Werkzeug besteht, prüft nichts.
     */
     const name = /^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i;
-    for (const graph of [LEHRKRAFT, LERNDATEI]) {
+    for (const graph of [LEHRKRAFT, LERNDATEI, PORTAL]) {
       for (const paket of graph.pakete) {
         // `virtual:lexiflow-student-runtime` ist der eine erlaubte Sonderfall.
         if (paket.startsWith('virtual:')) continue;
@@ -167,6 +175,43 @@ describe('kein Backend in portablen Dateien', () => {
       expect(graph.dateien).not.toContain('src/application/fakeCloudRepositories.ts');
     });
   }
+});
+
+describe('das Portal', () => {
+  it('erreicht den Cloudzweig – sonst wäre es keines', () => {
+    /*
+      Die Gegenprobe zu allem darüber. Ohne sie könnten die Prüfungen oben
+      auch dann bestehen, wenn es den Cloudzweig gar nicht gäbe – und dann
+      prüften sie nichts.
+    */
+    expect(PORTAL.dateien).toContain('src/hosted/SessionContext.tsx');
+    expect(PORTAL.dateien).toContain('src/application/repositories.ts');
+  });
+
+  it('erreicht das Wörterbuch nicht', () => {
+    /*
+      Genau hier ist etwas durchgerutscht: Das Portal band anfangs die
+      Datenschutzseite der kontofreien Anwendung ein, und an der hing über
+      die Lizenztafel der Wiktionary-Datensatz – 6,3 MB in einem Bündel, das
+      ohne ihn 261 kB groß ist. Aufgefallen ist es an der Bündelgröße. Seitdem
+      steht die Frage hier.
+    */
+    const verdaechtig = [...PORTAL.dateien].filter((datei) => datei.startsWith('src/dictionary/'));
+    expect(verdaechtig).toEqual([]);
+  });
+
+  it('erreicht den PDF-Zweig nicht', () => {
+    // Der PDF-Import ist eine Werkstattfunktion der Lehrkraftdatei. Kommt sie
+    // später ins Portal, ist das eine Entscheidung – und diese Zeile der Ort,
+    // an dem sie getroffen wird.
+    expect([...PORTAL.pakete]).not.toContain('pdfjs-dist');
+  });
+
+  it('trägt die Lernlaufzeit nicht mit sich', () => {
+    // Das Erzeugen von Lerndateien setzt die eingebettete Laufzeit voraus,
+    // und die gibt es nur in der portablen Lehrkraftdatei.
+    expect([...PORTAL.pakete]).not.toContain('virtual:lexiflow-student-runtime');
+  });
 });
 
 describe('die Lerndatei bleibt eine Lerndatei', () => {

@@ -533,3 +533,174 @@ describe('ohne Anmeldung', () => {
     }
   });
 });
+
+/* ============================================== Anmeldung (Phase 3) ====== */
+
+describe('Lern-Konten', () => {
+  const CODE = 'TEST-CODE-1234';
+
+  async function legeLernkontoAn(code = CODE) {
+    await alsEinrichtung(db);
+    await db.query(
+      `insert into learner_accounts (user_id, learner_id, recovery_code_hash)
+       values ($1, 'fuchs-7390', encode(sha256(convert_to(upper($2), 'UTF8')), 'hex'))`,
+      [LERNENDE, code],
+    );
+  }
+
+  it('die lernende Person sieht ihre eigene Zeile', async () => {
+    await legeLernkontoAn();
+    await alsPerson(db, LERNENDE);
+    const zeilen = await db.query('select learner_id from learner_accounts');
+    expect(zeilen.rows).toEqual([{ learner_id: 'fuchs-7390' }]);
+  });
+
+  it('aber nicht den Hash ihres Codes', async () => {
+    /*
+      Ein lesbarer Hash ist eine Einladung, ihn offline durchzuprobieren –
+      und der Code ist kurz genug, dass das gelänge.
+    */
+    await legeLernkontoAn();
+    await alsPerson(db, LERNENDE);
+    const fehler = await fehlerVon(db.query('select recovery_code_hash from learner_accounts'));
+    expect(fehler).toMatch(/permission denied/i);
+  });
+
+  it('niemand sonst sieht die Zeile – auch die Lehrkraft nicht', async () => {
+    await legeLernkontoAn();
+    await alsPerson(db, LEHRERIN);
+    expect(await zaehle('select user_id from learner_accounts')).toBe(0);
+  });
+
+  it('niemand kann eine Lern-ID anlegen oder ändern', async () => {
+    // Konten legt ausschließlich die Serverfunktion mit Service Role an.
+    await legeLernkontoAn();
+    await alsPerson(db, LERNENDE);
+    expect(
+      await fehlerVon(
+        db.query(`update learner_accounts set learner_id = 'jemand-anders'`),
+      ),
+    ).toMatch(/permission denied/i);
+    expect(
+      await fehlerVon(
+        db.query(
+          `insert into learner_accounts (user_id, learner_id, recovery_code_hash) values ($1, 'neu-0001', 'x')`,
+          [ZWEITE_LERNENDE],
+        ),
+      ),
+    ).toMatch(/permission denied/i);
+  });
+
+  it('zwei Konten können nicht dieselbe Lern-ID haben', async () => {
+    await legeLernkontoAn();
+    await alsEinrichtung(db);
+    const fehler = await fehlerVon(
+      db.query(
+        `insert into learner_accounts (user_id, learner_id, recovery_code_hash) values ($1, 'fuchs-7390', 'x')`,
+        [ZWEITE_LERNENDE],
+      ),
+    );
+    expect(fehler).toMatch(/duplicate key|unique/i);
+  });
+
+  it('eine großgeschriebene Lern-ID wird gar nicht erst angenommen', async () => {
+    // Sie wird vorgelesen und abgeschrieben; „Fuchs-7390" und „fuchs-7390"
+    // müssen dieselbe Kennung sein, und zwar schon beim Anlegen.
+    await alsEinrichtung(db);
+    const fehler = await fehlerVon(
+      db.query(
+        `insert into learner_accounts (user_id, learner_id, recovery_code_hash) values ($1, 'Fuchs-7390', 'x')`,
+        [LERNENDE],
+      ),
+    );
+    expect(fehler).toMatch(/check constraint|learner_accounts/i);
+  });
+});
+
+describe('den Wiederherstellungscode bestätigen', () => {
+  const CODE = 'TEST-CODE-1234';
+
+  beforeEach(async () => {
+    await alsEinrichtung(db);
+    await db.query(
+      `insert into learner_accounts (user_id, learner_id, recovery_code_hash)
+       values ($1, 'fuchs-7390', encode(sha256(convert_to(upper($2), 'UTF8')), 'hex'))`,
+      [LERNENDE, CODE],
+    );
+  });
+
+  it('mit dem richtigen Code klappt es', async () => {
+    await alsPerson(db, LERNENDE);
+    const ergebnis = await db.query('select confirm_recovery_code($1) as ok', [CODE]);
+    expect(ergebnis.rows[0].ok).toBe(true);
+
+    const nachher = await db.query('select recovery_confirmed_at from learner_accounts');
+    expect(nachher.rows[0].recovery_confirmed_at).not.toBeNull();
+  });
+
+  it('Groß- und Kleinschreibung sowie Leerraum spielen keine Rolle', async () => {
+    await alsPerson(db, LERNENDE);
+    const ergebnis = await db.query('select confirm_recovery_code($1) as ok', [
+      `  ${CODE.toLowerCase()}  `,
+    ]);
+    expect(ergebnis.rows[0].ok).toBe(true);
+  });
+
+  it('mit einem falschen Code nicht – und es bleibt unbestätigt', async () => {
+    await alsPerson(db, LERNENDE);
+    const ergebnis = await db.query('select confirm_recovery_code($1) as ok', ['FALSCH-0000']);
+    expect(ergebnis.rows[0].ok).toBe(false);
+
+    await alsEinrichtung(db);
+    const nachher = await db.query('select recovery_confirmed_at from learner_accounts');
+    expect(nachher.rows[0].recovery_confirmed_at).toBeNull();
+  });
+
+  it('ein zweiter Klick sieht nicht wie ein falscher Code aus', async () => {
+    await alsPerson(db, LERNENDE);
+    await db.query('select confirm_recovery_code($1) as ok', [CODE]);
+    const nochmal = await db.query('select confirm_recovery_code($1) as ok', [CODE]);
+    expect(nochmal.rows[0].ok).toBe(true);
+  });
+
+  it('eine andere Person bestätigt damit nichts', async () => {
+    await alsPerson(db, ZWEITE_LERNENDE);
+    const ergebnis = await db.query('select confirm_recovery_code($1) as ok', [CODE]);
+    expect(ergebnis.rows[0].ok).toBe(false);
+
+    await alsEinrichtung(db);
+    const nachher = await db.query('select recovery_confirmed_at from learner_accounts');
+    expect(nachher.rows[0].recovery_confirmed_at).toBeNull();
+  });
+
+  it('ohne Anmeldung geht es nicht', async () => {
+    await alsUnangemeldet(db);
+    const fehler = await fehlerVon(db.query('select confirm_recovery_code($1)', [CODE]));
+    expect(fehler).toMatch(/permission denied|Nicht angemeldet/i);
+  });
+});
+
+describe('kein Weg, ein fremdes Kennwort zu setzen', () => {
+  it('es gibt keine Funktion dafür', async () => {
+    /*
+      Die Zusage aus dem Kopf von `20260913120300_anmeldung.sql`: Wer ein
+      fremdes Kennwort setzen könnte, könnte sich als diese Person anmelden –
+      und sähe damit ihren Lernstand. Alle Regeln aus Phase 2 wären mit einem
+      Klick umgangen.
+
+      Diese Prüfung ist grob, und sie fängt genau den Fall, der später aus
+      Bequemlichkeit entsteht: „die Lehrkraft setzt eben ein neues Kennwort".
+    */
+    await alsEinrichtung(db);
+    const funktionen = await db.query(`
+      select p.proname
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and (p.proname like '%password%' or p.proname like '%kennwort%'
+             or p.proname like '%reset%' or p.proname like '%set_pass%')
+      order by 1
+    `);
+    expect(funktionen.rows.map((zeile) => zeile.proname)).toEqual([]);
+  });
+});

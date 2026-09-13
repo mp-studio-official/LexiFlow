@@ -86,14 +86,18 @@ export function mayEnter(input: {
 }
 
 /**
- * Welche Rolle in einer portablen Datei gilt.
+ * Welche Rolle in einem Modus ohne Konten gilt.
  *
- * Ohne Konten muss die Rolle aus der Gestalt der Datei folgen, sonst stünde
- * jede Ansicht vor der Frage „angemeldet als was?“, die es dort nicht gibt.
+ * Ohne Konten muss die Rolle aus der Gestalt der Auslieferung folgen, sonst
+ * stünde jede Ansicht vor der Frage „angemeldet als was?“, die es dort nicht
+ * gibt. Die kontofreie PWA zählt dabei wie die Lehrkraftdatei: Sie hat die
+ * Werkstatt, und es gibt niemanden, vor dem sie zu schützen wäre – alles
+ * liegt im Browser genau der Person, die davorsitzt.
+ *
  * Im Portal gibt es keine Antwort ohne Anmeldung – deshalb `undefined`.
  */
 export function roleForPortableMode(mode: RuntimeMode): Role | undefined {
-  if (mode === 'portable-teacher') return 'teacher';
+  if (mode === 'portable-teacher' || mode === 'web-solo') return 'teacher';
   if (mode === 'portable-learner') return 'student';
   return undefined;
 }

@@ -2,15 +2,17 @@ import { Suspense, lazy, useMemo } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { RepositoryProvider } from '../application/RepositoryContext';
 import { createFakeCloud } from '../application/fakeCloudRepositories';
+import { createCloudRepositories } from '../cloud/createCloudRepositories';
 import { readHostedConfig, type HostedConfigResult } from '../runtime/hostedConfig';
-import { PrivacyPage } from '../routes/PrivacyPage';
-import { LearnerShell, TeacherShell } from './PortalShell';
+import { LearnerShell, PublicShell, TeacherShell } from './PortalShell';
 import { RequireArea } from './RequireArea';
 import { SessionProvider } from './SessionContext';
 import { JoinPage } from './pages/JoinPage';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
+import { NewPasswordPage } from './pages/NewPasswordPage';
 import { RecoveryPage } from './pages/RecoveryPage';
+import { PortalPrivacyPage } from './pages/PortalPrivacyPage';
 import { SetupPage } from './pages/SetupPage';
 import type { Repositories } from '../application/repositories';
 
@@ -53,12 +55,20 @@ function Laedt({ was }: { was: string }) {
 export function HostedRoutes() {
   return (
     <Routes>
-      {/* Öffentlich: Ohne diese vier käme niemand herein. */}
-      <Route index element={<LandingPage />} />
-      <Route path="anmelden" element={<LoginPage />} />
-      <Route path="beitreten" element={<JoinPage />} />
-      <Route path="wiederherstellen" element={<RecoveryPage />} />
-      <Route path="datenschutz" element={<PrivacyPage />} />
+      {/* Öffentlich: Ohne diese käme niemand herein. */}
+      <Route element={<PublicShell />}>
+        <Route index element={<LandingPage />} />
+        <Route path="anmelden" element={<LoginPage />} />
+        <Route path="beitreten" element={<JoinPage />} />
+        <Route path="wiederherstellen" element={<RecoveryPage />} />
+        {/*
+          Das Ziel des Verweises aus der Wiederherstellungs-E-Mail. Öffentlich,
+          weil die Sitzung in diesem Moment erst entsteht – der Code aus der
+          Adresse ist der Nachweis, nicht eine vorherige Anmeldung.
+        */}
+        <Route path="kennwort-neu" element={<NewPasswordPage />} />
+        <Route path="datenschutz" element={<PortalPrivacyPage />} />
+      </Route>
 
       <Route
         element={
@@ -129,26 +139,77 @@ export function HostedRoutes() {
  * Modulersatz verbiegen muss – und damit ab Phase 3 die echten Adapter an
  * dieselbe Stelle treten können, ohne dass hier mehr als eine Zeile wechselt.
  */
+/** Aus der Umgebung: Soll statt der Cloud die kontrollierte Fälschung laufen? */
+export function fälschungGewünscht(env: Record<string, unknown>): boolean {
+  /*
+    Nur auf ausdrückliche Ansage. Ein stiller Rückfall auf die Fälschung wäre
+    die schlimmste Variante: Das Portal liefe, die Anmeldung funktionierte mit
+    erfundenen Konten, und niemand merkte, dass nichts gespeichert wird.
+
+    Die Fahne gilt bewusst auch in einem gebauten Bündel – die Ende-zu-Ende-
+    Prüfungen brauchen ein Portal, das sich anmelden lässt, ohne dass je eine
+    Anfrage hinausgeht. Der Preis dafür ist das Band unten: Eine so gebaute
+    Auslieferung sagt auf jeder Seite, was sie ist.
+  */
+  return String(env['VITE_LEXIFLOW_FAKE_CLOUD'] ?? '') === '1';
+}
+
+/**
+ * Das Band über einer Testfassung.
+ *
+ * Nicht dekorativ, sondern die Bedingung dafür, dass es die Fahne überhaupt
+ * gibt: Eine Fassung mit erfundenen Konten, die aussieht wie das Portal, wäre
+ * eine Falle – für die Person davor und für jeden, der einen Screenshot sieht.
+ */
+function Testband() {
+  return (
+    <p
+      role="status"
+      style={{
+        margin: 0,
+        padding: '0.5rem 1rem',
+        background: 'var(--tomato, #FF2E2D)',
+        color: '#fff',
+        fontWeight: 600,
+        textAlign: 'center',
+      }}
+    >
+      Testfassung ohne Server: erfundene Konten, nichts wird gespeichert.
+    </p>
+  );
+}
+
 export function HostedApp({
   repositories,
+  env = import.meta.env as unknown as Record<string, unknown>,
   config = readHostedConfig(import.meta.env as unknown as Record<string, string | undefined>),
 }: {
   repositories?: Repositories;
+  /** Nur für Tests: die Bauzeitumgebung. */
+  env?: Record<string, unknown>;
   config?: HostedConfigResult;
 } = {}) {
-  /*
-    Der Fallback ist ausdrücklich die kontrollierte Fälschung und nicht etwa
-    ein Supabase-Client: Solange Phase 2 nicht steht, gibt es keinen, und ein
-    Import „auf Vorrat“ wäre genau der Code, den die portablen Bündel nie
-    enthalten dürfen.
-  */
-  const speicher = useMemo(() => repositories ?? createFakeCloud().repositories, [repositories]);
+  const fälschung = fälschungGewünscht(env);
 
-  if (!config.ok && !repositories) {
+  const speicher = useMemo<Repositories>(() => {
+    if (repositories) return repositories;
+    if (fälschung) return createFakeCloud().repositories;
+    if (config.ok) {
+      return createCloudRepositories({
+        config: config.config,
+        origin: window.location.origin,
+        base: String(env['BASE_URL'] ?? '/'),
+      });
+    }
+    // Ohne Konfiguration entsteht nichts – die Seite unten sagt, was fehlt.
+    return {};
+  }, [repositories, fälschung, config, env]);
+
+  if (!config.ok && !repositories && !fälschung) {
     /*
-      Ohne Konfiguration und ohne übergebene Speicher gibt es nichts zu zeigen
-      außer der Auskunft, was fehlt. Mit übergebenen Speichern – Test,
-      Entwicklungsfassung – ist die Konfiguration schlicht nicht nötig.
+      Ohne Konfiguration, ohne übergebene Speicher und ohne ausdrücklich
+      gewünschte Fälschung gibt es nichts zu zeigen außer der Auskunft, was
+      fehlt. Weiß bleiben wäre die schlechteste Antwort.
     */
     return <SetupPage result={config} />;
   }
@@ -156,6 +217,7 @@ export function HostedApp({
   return (
     <RepositoryProvider value={speicher}>
       <SessionProvider>
+        {fälschung ? <Testband /> : null}
         <HashRouter>
           <HostedRoutes />
         </HashRouter>

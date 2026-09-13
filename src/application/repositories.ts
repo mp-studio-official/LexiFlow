@@ -72,6 +72,33 @@ export interface AuthRepository {
   signOut(): Promise<void>;
   /** Meldet Änderungen der Sitzung, etwa nach Ablauf. Gibt den Abmelder zurück. */
   onSessionChange(listener: (session: Session | undefined) => void): () => void;
+
+  /**
+   * Lehrkräfte und Verwaltung: einen Wiederherstellungsverweis anfordern.
+   *
+   * Gibt **immer** nichts zurück und wirft nur bei einem Netzfehler – nie
+   * deswegen, weil es die Adresse nicht gäbe. Eine Antwort, die das
+   * unterscheidet, ist ein Verzeichnis aller Konten, und in einer Schule ist
+   * das eine Personenliste.
+   */
+  requestEmailRecovery(email: string): Promise<void>;
+
+  /**
+   * Lernende: Wiederherstellung mit dem eigenen Code.
+   *
+   * Kein Weg über eine Lehrkraft (ADR-5). Wer ein fremdes Kennwort setzen
+   * könnte, könnte sich anmelden – und sähe damit einen Lernstand, den zu
+   * sehen niemandem zusteht. Der Code gehört der lernenden Person und wird
+   * beim Anlegen des Kontos einmal bestätigt.
+   */
+  redeemRecoveryCode(input: {
+    learnerId: string;
+    recoveryCode: string;
+    newPassword: string;
+  }): Promise<Session>;
+
+  /** Ein neues Kennwort setzen – für die laufende, bereits geprüfte Sitzung. */
+  setPassword(newPassword: string): Promise<void>;
 }
 
 export interface ProfileRepository {

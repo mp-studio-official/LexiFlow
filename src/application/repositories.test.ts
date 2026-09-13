@@ -89,12 +89,24 @@ describe('Anmeldung', () => {
       nicht verlieren.
     */
     const auth = block('AuthRepository');
-    const lernendeZeile = auth.split('\n').find((zeile) => zeile.includes('signInWithLearnerId('));
-    expect(lernendeZeile).toBeDefined();
-    expect(lernendeZeile!.toLowerCase()).not.toContain('email');
-    // Und keine dritte Methode, die beides vermischt.
+
+    for (const methode of ['signInWithLearnerId(', 'redeemRecoveryCode(']) {
+      const zeile = auth.split('\n').find((eintrag) => eintrag.includes(methode));
+      expect(zeile, methode).toBeDefined();
+      expect(zeile!.toLowerCase(), methode).not.toContain('email');
+    }
+
+    /*
+      Genau zwei Methoden dürfen eine Adresse im Namen tragen, und beide
+      gehören den Lehrkräften: die Anmeldung und die Wiederherstellung. Käme
+      eine dritte hinzu, fiele dieser Test auf – und die Frage „für wen ist
+      die?“ würde gestellt.
+    */
     const methoden = [...auth.matchAll(/^\s{2}(\w+)\(/gm)].map((treffer) => treffer[1]!);
-    expect(methoden.filter((name) => /email/i.test(name))).toEqual(['signInWithEmail']);
+    expect(methoden.filter((name) => /email/i.test(name)).sort()).toEqual([
+      'requestEmailRecovery',
+      'signInWithEmail',
+    ]);
   });
 });
 

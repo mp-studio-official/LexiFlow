@@ -6,7 +6,8 @@
   "description": "LexiFlow – lokale, datensparsame Vokabeltrainer-PWA (Englisch/Deutsch, Gymnasium NRW)",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev:portal": "vite --config vite.portal.config.ts",
+    "build": "tsc --noEmit && vite build && vite build --config vite.portal.config.ts",
     "build:portable": "node scripts/build-portable.mjs",
     "verify:portable": "node scripts/verify-portable.mjs",
     "preview": "vite preview --port 4173",
@@ -19,11 +20,13 @@
     "e2e:smoke": "playwright test --grep @smoke",
     "verify": "npm run typecheck && npm run test && npm run build && npm run e2e",
     "e2e:a11y": "playwright test --grep @a11y",
-    "e2e:portable": "playwright test --config playwright.portable.config.ts"
+    "e2e:portable": "playwright test --config playwright.portable.config.ts",
+    "e2e:portal": "playwright test --config playwright.portal.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
+    "@supabase/supabase-js": "^2.116.0",
     "dexie": "^4.4.5",
     "dexie-react-hooks": "^4.4.0",
     "fflate": "^0.8.3",

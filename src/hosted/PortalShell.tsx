@@ -3,6 +3,7 @@ import { useOptionalRepository, useRuntimeMode } from '../application/Repository
 import { Copyright } from '../ui/Copyright';
 import { Logo, LogoMark } from '../ui/Logo';
 import { mayEnter } from '../runtime/access';
+import { soloUrlFrom } from '../runtime/entryUrls';
 import { useSession } from './SessionContext';
 
 /**
@@ -154,5 +155,56 @@ export function TeacherShell() {
       nav={nav}
       hinweis="Du siehst, wer in deinen Kursen ist – nicht, wie viel jemand geübt hat."
     />
+  );
+}
+
+/**
+ * Die Hülle vor der Anmeldung.
+ *
+ * Sie fehlte im ersten Entwurf, und das fiel erst auf, als ein Test ein
+ * `<main>` suchte und keines fand: Landung, Anmeldung, Beitritt und
+ * Wiederherstellung rendeten nackt – ohne Marke, ohne Sprungziel zum Inhalt,
+ * ohne Fußzeile. Genau diese vier Seiten sieht aber jemand als erstes, und für
+ * eine Vorlesehilfe war der Inhalt ohne Landmarke gar nicht auffindbar.
+ *
+ * Keine Navigation: Vor der Anmeldung gibt es nichts zu navigieren. Der eine
+ * Verweis, der hierhergehört, führt hinaus – zur Fassung ohne Konto.
+ */
+export function PublicShell() {
+  return (
+    <div className="app">
+      <a className="skip-link" href="#inhalt">
+        Zum Inhalt springen
+      </a>
+
+      <header className="app-header">
+        <div className="app-header__inner">
+          <Link className="brand" to="/" aria-label="LexiFlow – Startseite">
+            <Logo tone="on-dark" size={28} />
+          </Link>
+        </div>
+      </header>
+
+      <div className="app-body">
+        <div className="app-work">
+          <main className="app-main" id="inhalt" tabIndex={-1}>
+            <Outlet />
+          </main>
+
+          <footer className="app-footer">
+            <div className="app-footer__inner">
+              <p style={{ margin: 0 }}>
+                Freiwillige Lernhilfe. Lehrkräfte sehen keine individuellen Lernstände.
+              </p>
+              <p style={{ margin: 0 }}>
+                <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> läuft
+                vollständig im Browser – ohne Anmeldung und ohne Server.
+              </p>
+              <Copyright />
+            </div>
+          </footer>
+        </div>
+      </div>
+    </div>
   );
 }

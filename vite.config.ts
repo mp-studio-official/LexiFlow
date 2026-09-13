@@ -47,8 +47,16 @@ export default defineConfig({
     // normalen Build bliebe sie ungenutztes Gewicht (siehe
     // `src/portable/studentRuntime.ts`).
     __LEXIFLOW_PORTABLE__: 'false',
-    // Und erst recht keine Lerndatei: Dieser Build ist das Portal.
     __LEXIFLOW_LEARNER__: 'false',
+    /*
+      Und ausdrücklich **nicht** das Portal. Dieser Build ist die kontofreie
+      PWA unter `<base>/`; das Portal liegt daneben unter `<base>/portal/` und
+      hat eine eigene Konfiguration (`vite.portal.config.ts`). Ohne diese
+      Zeile wäre der Modus zwar ebenfalls `web-solo` – der Standard ist der
+      engste Fall –, aber eine Fahne, die man liest, ist mehr wert als eine,
+      deren Fehlen man richtig deuten muss.
+    */
+    __LEXIFLOW_PORTAL__: 'false',
   },
   plugins: [
     runtimeStub,
@@ -74,7 +82,7 @@ export default defineConfig({
           Die portable Lehrkraftdatei ist davon unberührt: Dort steckt das
           Wörterbuch fest im Dokument, ohne Service Worker und ohne Netz.
         */
-        globIgnores: ['**/dictionary-*.js'],
+        globIgnores: ['**/dictionary-*.js', 'portal/**'],
         runtimeCaching: [
           {
             urlPattern: /\/assets\/dictionary-[^/]+\.js$/,
@@ -87,6 +95,18 @@ export default defineConfig({
           },
         ],
         navigateFallback: `${base}index.html`,
+        /*
+          Das Portal liegt unter demselben Ursprung und wäre damit im
+          Zuständigkeitsbereich dieses Service Workers. Ohne diese Ausnahme
+          bekäme jemand, der `…/portal/` aufruft, die zwischengespeicherte
+          Startseite der kontofreien Anwendung ausgeliefert – und zwar
+          besonders zuverlässig dann, wenn die PWA schon installiert ist.
+
+          Zusammen mit `globIgnores` oben heißt das: Der Service Worker kennt
+          das Portal nicht und fasst es nicht an. Das Portal ist bewusst keine
+          Offline-Anwendung (ADR-7).
+        */
+        navigateFallbackDenylist: [new RegExp(`^${base}portal/`)],
       },
       devOptions: { enabled: false },
     }),

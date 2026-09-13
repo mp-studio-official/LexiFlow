@@ -138,6 +138,11 @@ lässt sich am Bündel messen, was drin ist.
 Hosted-Einstiegspunkt ist ein eigener. Ein Artefakttest prüft, dass die
 Lernlaufzeit weder Supabase-Code noch Cloudrouten enthält.
 
+> **Ergänzt in Phase 3 (ADR-10).** Es sind **vier** Modi geworden: Mit der
+> zweiten Web-Auslieferung braucht die kontofreie PWA einen eigenen Namen
+> (`web-solo`). Wichtiger als die Zahl ist die Richtung: Ohne gesetzte Fahne
+> ist das Ergebnis jetzt der engste Web-Fall und nicht mehr `hosted`.
+
 ### ADR-2 – Repository-Schnittstellen mit Injektion
 
 **Entscheidung.** Neun Verträge (`AuthRepository`, `ProfileRepository`,
@@ -249,6 +254,51 @@ sie schwerer wiegt.
 eigene Namensauflösung nicht vollständig ausschließen. Das steht in § 7 und
 wird nicht weggeredet.
 
+### ADR-10 – Zwei Web-Auslieferungen statt einer Weiche
+
+**Entscheidung.** `/LexiFlow/` bleibt die kontofreie PWA, unverändert.
+`/LexiFlow/portal/` ist eine **zweite** Auslieferung aus demselben Quellbaum,
+mit eigener Vite-Konfiguration, eigenem Einstiegspunkt und eigenem Bündel.
+
+**Warum keine Weiche zur Laufzeit.** „Ist jemand angemeldet? Dann Portal“ sieht
+bequemer aus und hat einen Preis, den man erst später sieht: Beide Zweige lägen
+in einem Bündel. Die Zusage „diese Auslieferung hat kein Backend“ hinge an einer
+Bedingung statt an einem Import – und wäre nicht mehr am Bündel prüfbar.
+
+**Warum keine zwei Einträge in einer Konfiguration.** `define` gilt je Build,
+nicht je Einstiegspunkt. Zwei Seiten in einer Konfiguration bekämen dieselben
+Fahnen, und die ganze Trennung hinge wieder an einer Laufzeitabfrage.
+
+**Folge.** Ein vierter Laufzeitmodus, `web-solo`. Und eine Korrektur: Bis
+Phase 2 galt „kein Flag gesetzt“ als `hosted` – der Standard eines Web-Builds
+wäre damit der einzige Modus mit Backend gewesen. Jetzt ist der Standard der
+engste Fall.
+
+**Grenze.** Zwei Adressen muss man erklären. `/LexiFlow/` kann später eine
+gemeinsame Einstiegsseite werden; das ist nicht Teil dieses Sprints.
+
+### ADR-11 – Wiederherstellung für Lernende ohne Lehrkraft
+
+**Entscheidung.** Lernende stellen ihr Konto mit einem **eigenen**
+Wiederherstellungscode wieder her. Es gibt keinen Weg, auf dem eine Lehrkraft,
+die Verwaltung oder sonst jemand ein fremdes Kennwort setzt.
+
+**Warum.** Der naheliegende Entwurf – die Lehrkraft vergibt ein neues Kennwort –
+ist bequem und hebt die zentrale Zusage dieses Produkts auf. Wer ein fremdes
+Kennwort setzen kann, kann sich als diese Person anmelden; für die Datenbank
+**ist** er sie und sieht ihren Lernstand. Sämtliche Zugriffsregeln aus Phase 2
+wären mit einem Klick umgangen, und niemand würde es bemerken.
+
+**Preis, offen genannt.** Wer Kennwort **und** Code verliert, verliert das
+Konto samt Lernstand. Das steht so auch auf der Wiederherstellungsseite. Die
+Lehrkraft kann ein neues Konto anlegen; der alte Stand ist dann fort.
+
+**Warum der Code nach Gebrauch gültig bleibt.** Er ist das Einzige, was
+zwischen dieser Person und einem verlorenen Konto steht. Ihn nach einmaligem
+Gebrauch zu verbrennen hieße, beim zweiten Vergessen endgültig auszusperren.
+Wertlos wird er durch einen neu erzeugten – und das entscheidet die lernende
+Person selbst.
+
 ---
 
 ## 2b. Der Aufbau nach Phase 1
@@ -304,6 +354,90 @@ regulären Ausdrucks verschluckte ab einem `import` **in einer Zeichenkette**
 den halben Dateirest und legte den Unsinn als „Paket“ ab – die Prüfungen
 darunter blieben grün, weil Unsinn kein `supabase` enthält. Seitdem prüft ein
 eigener Test die Plausibilität der gesammelten Paketnamen.
+
+---
+
+## 2c. Die zwei Web-Adressen (Phase 3)
+
+| Adresse | Was dort liegt | Modus | Backend |
+| --- | --- | --- | --- |
+| `https://mp-studio-official.github.io/LexiFlow/` | die kontofreie PWA, unverändert | `web-solo` | keines |
+| `https://mp-studio-official.github.io/LexiFlow/portal/` | das Portal mit Anmeldung | `hosted` | Supabase |
+
+Dazu unverändert die beiden Dateien: `LexiFlow-Lehrkraft.html` und jede
+Lerndatei. Sie hängen an **keiner** der beiden Web-Adressen.
+
+### Der Unterpfad ist die Fehlerquelle
+
+Auf GitHub Pages liegt alles unter `/LexiFlow/`. Ein fest geschriebenes
+`/portal/` funktioniert lokal tadellos und führt nach dem Deployment ins Leere –
+dieser Fehler fällt nie beim Entwickeln auf, sondern bei allen gleichzeitig.
+
+Deshalb steht im Quelltext nirgends ein fester Pfad. Alles leitet sich aus
+`import.meta.env.BASE_URL` ab (`src/runtime/entryUrls.ts`), und die
+Portalsuite läuft ausschließlich unter `/LexiFlow/`.
+
+### Wie die Ausgabe entsteht
+
+Die Quelldatei heißt `portal.html` und liegt im Projektstamm neben
+`index.html` und `student.html`. Ausgeliefert wird sie als
+`dist/portal/index.html` – nur dann öffnet `…/portal/` sie ohne Dateinamen in
+der Adresse. Umbenannt wird in `closeBundle`, also auf der Platte: Der erste
+Versuch tat es im Bündel und erzeugte gar keine Datei, weil Rolldown den Namen
+zu dem Zeitpunkt bereits festgeschrieben hatte.
+
+### Der Service Worker lässt das Portal in Ruhe
+
+Beide Auslieferungen teilen sich einen Ursprung, und der Service Worker der PWA
+wäre damit für das Portal zuständig. Ohne Gegenmaßnahme bekäme jemand, der
+`…/portal/` aufruft, die zwischengespeicherte Startseite der kontofreien
+Anwendung – besonders zuverlässig dann, wenn die PWA installiert ist. Zwei
+Zeilen in `vite.config.ts` verhindern das: `globIgnores: ['portal/**']` und
+`navigateFallbackDenylist`.
+
+Die zugehörige Ende-zu-Ende-Prüfung ist eine der wenigen, die tatsächlich
+etwas Unsichtbares festhält – und sie wurde gegengeprüft: Ohne die
+Ausnahmeliste schlägt sie fehl.
+
+### Anmeldung
+
+| Wer | Womit | Weg |
+| --- | --- | --- |
+| Lehrkraft, Verwaltung | E-Mail + Kennwort | Supabase Auth direkt |
+| Lernende | Lern-ID + Kennwort | über die Serverfunktion `learner-auth` |
+
+Die technische Adresse hinter einer Lern-ID bildet **ausschließlich** die
+Serverfunktion (ADR-5). Stünde die Bildungsregel im Bündel, könnte jede Person
+sie für jede Lern-ID nachrechnen. Ein Test prüft, dass in keiner ausgehenden
+Anfrage ein `@` steht.
+
+### PKCE, nicht impliziter Ablauf
+
+Das Portal benutzt `HashRouter` und trägt seine Route hinter `#`. Ein
+Anmeldeablauf, der seine Antwort ebenfalls hinter `#` zurückgibt, überschriebe
+genau diesen Teil: Die Anwendung landete auf einer unbekannten Seite, und das
+Zugangstoken stünde in Adresszeile, Verlauf und jedem geteilten Screenshot.
+
+PKCE antwortet mit `?code=…` im Abfrageteil. Der verträgt sich mit einer Route
+hinter der Raute. Nach dem Eintausch räumt die Seite den verbrauchten Code aus
+der Adresszeile – auch das wird unter `/LexiFlow/` geprüft.
+
+### Was Phase 3 an der Cloudseite fertig hat
+
+`auth` und `profile` laufen gegen Supabase. `courses`, `invitations`, `packs`,
+`publication`, `progress`, `account` und `ai` sind **nicht vorhanden** – die
+Oberfläche fragt mit `useOptionalRepository` und sagt ehrlich, dass es sie in
+dieser Fassung noch nicht gibt, statt einen Knopf anzubieten, der abstürzt.
+
+### Die Testfassung ohne Server
+
+`VITE_LEXIFLOW_FAKE_CLOUD=1` baut das Portal gegen die kontrollierte Fälschung.
+Nur so lässt sich die Anmeldung wirklich durchspielen, ohne dass je eine
+Anfrage hinausgeht – es gibt in diesem Sprint kein Supabase-Projekt.
+
+Die Bedingung dafür, dass es diese Fahne gibt: Eine so gebaute Auslieferung
+trägt auf **jeder** Seite ein rotes Band mit dem Satz „Testfassung ohne Server:
+erfundene Konten, nichts wird gespeichert.“ Ein Test hält das fest.
 
 ---
 
@@ -420,7 +554,40 @@ die Plattform darunter ist nachgebildet.
 
 ## 6. Einrichtung
 
-*Wird in Phase 8 gefüllt.*
+Vollständig wird dieser Abschnitt in Phase 8. Was heute feststeht:
+
+### 6.1 Das vorgesehene Ziel
+
+| | |
+| --- | --- |
+| Repository | `https://github.com/mp-studio-official/LexiFlow.git` |
+| GitHub Pages | `https://mp-studio-official.github.io/LexiFlow/` |
+| Grundpfad | `LEXIFLOW_BASE=/LexiFlow/` |
+
+**Stand: nur dokumentiert.** Es gibt in diesem Arbeitsverzeichnis **keinen**
+Remote, und es wurde nichts gepusht. Vor dem Anlegen von `origin` ist zu
+prüfen, ob bereits ein Remote existiert und ob die Historie dort leer oder mit
+der lokalen vereinbar ist. Kein Force-Push, keine fremde Historie überschreiben,
+kein Deployment vor grünem Build und grünen Tests.
+
+### 6.2 Die beiden öffentlichen Werte
+
+`.env.example` ist die Vorlage; die echte Datei heißt `.env` und ist von Git
+ausgeschlossen. Beide Werte dürfen öffentlich sein und stehen im Bündel. Der
+Secret Key und die Service Role gehören ausschließlich in die Function Secrets –
+eine Variable mit dem Präfix `VITE_` landet im Bündel und wäre kein Geheimnis
+mehr.
+
+### 6.3 Befehle
+
+| Befehl | Wirkung |
+| --- | --- |
+| `npm run dev` | kontofreie PWA unter `/` |
+| `npm run dev:portal` | Portal unter `/portal.html`, Port 5174 |
+| `npm run build` | beide Web-Auslieferungen nach `dist/` und `dist/portal/` |
+| `npm run e2e` | die bestehenden 159 Prüfungen, unverändert |
+| `npm run e2e:portal` | 11 Prüfungen unter `/LexiFlow/` |
+| `npm run test:db` | Zugriffsregeln gegen PostgreSQL 17.5 (PGlite) |
 
 ## 7. Offene Risiken
 
@@ -431,11 +598,30 @@ die Plattform darunter ist nachgebildet.
 | Wiederherstellungscode geht verloren → Konto ist verloren | bewusst; Bestätigungsschritt beim Anlegen |
 | EU-Region ist kein Datenschutznachweis | bekannt; organisatorische Prüfung vor Schulbetrieb nötig |
 | Supabase-Backups löschen nicht sofort mit | zu dokumentieren, nicht zu behaupten |
+| Lernende verlieren Kennwort **und** Code → Konto verloren | bewusst, ADR-11; steht so auf der Seite |
+| `VITE_LEXIFLOW_FAKE_CLOUD=1` versehentlich deployt | eingegrenzt: rotes Band auf jeder Seite, Test hält es fest |
+| Die Serverfunktion `learner-auth` ist geschrieben, aber **nie gelaufen** | bekannt; ohne Supabase-Projekt nicht ausführbar |
+| Portalbündel 488 kB (Supabase-Client) | beobachtet; lazy laden ist eine Option für eine spätere Phase |
 
 ## 8. Größenwacht
 
 Die Lernlaufzeit lag beim Start bei **674,6 KiB**. Jede Phase misst neu; ein
 Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
+
+| Artefakt | Start | nach Phase 3 |
+| --- | --- | --- |
+| `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,1 KiB** |
+| `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,6 KiB** |
+| kontofreie PWA (`index-*.js`) | 441,53 kB | 441,53 kB |
+| Portalbündel (`portal-*.js`) | – | 488,17 kB |
+
+Einmal ist dabei etwas durchgerutscht und wurde bemerkt: Das Portal band
+anfangs die Datenschutzseite der kontofreien Anwendung ein, und an der hing
+über die Lizenztafel der Wiktionary-Datensatz – 6,3 MB in einem Bündel, das
+ohne ihn 261 kB groß war. Aufgefallen ist es an der Bündelgröße, nicht am
+Nachdenken. Seitdem prüft `portableIsolation.test.ts` auch den Portal-Einstieg
+auf Wörterbuch und PDF-Zweig, und das Portal hat eine eigene Datenschutzseite –
+die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 
 ---
 
@@ -467,6 +653,10 @@ und in **keiner** der beiden portablen Dateien.
 
 - Phase 2 – Schema, Hilfsfunktionen und Zugriffsregeln; geprüft gegen echtes
   PostgreSQL 17.5 per PGlite. Siehe § 3 und § 4.
+- Phase 3 – zweiter Web-Einstieg unter `/LexiFlow/portal/`, vierter
+  Laufzeitmodus `web-solo`, Anmeldung über Supabase Auth, Anmeldung für
+  Lernende über eine Serverfunktion, Wiederherstellung für beide Wege.
+  Siehe § 2c, ADR-10 und ADR-11.
 
 **Messung nach Phase 2** (13.09.2026):
 
@@ -480,8 +670,26 @@ Phase 2 hat keine Datei unter `src/` angefasst. Neu sind
 `supabase/migrations/`, `scripts/db/` und eine Entwicklungsabhängigkeit
 (`@electric-sql/pglite`, Apache-2.0).
 
-**Als Nächstes:** Phase 3 – Anmeldung und Wiederherstellung. Erst dort rendert
-`src/main.tsx` das Portal statt `App`.
+**Messung nach Phase 3** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2384** Tests in **141** Dateien, alle grün |
+| `npm run build` | beide Web-Auslieferungen erfolgreich |
+| `npm run build:portable` | erfolgreich, Größen unverändert |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | **159** E2E – unverändert, nicht angefasst |
+| `npm run e2e:portable` | 29 Portable-E2E, alle grün |
+| `npm run e2e:portal` | **11** neue Portal-E2E unter `/LexiFlow/`, alle grün |
+
+Zwei Gegenproben in dieser Phase: Ohne `navigateFallbackDenylist` schlägt die
+Service-Worker-Prüfung fehl (also prüft sie etwas), und der Wörterbuch-Einzug
+ins Portalbündel wurde an der Größe bemerkt, bevor ein Test danach fragte –
+seitdem fragt einer.
+
+**Als Nächstes:** Phase 4 – Kurse, Mitgliedschaft und Einladungen im Portal,
+gegen die Zugriffsregeln aus Phase 2 statt gegen die Fälschung.
 
 **Nicht vergessen:**
 

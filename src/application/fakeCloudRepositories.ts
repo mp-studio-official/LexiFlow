@@ -55,6 +55,8 @@ interface Konto {
   /** Nur für Lernende – nie eine E-Mail-Adresse (ADR-5). */
   learnerId?: string;
   password: string;
+  /** Nur für Lernende: der Code, mit dem sie sich selbst wieder hereinholen. */
+  recoveryCode?: string;
 }
 
 function profil(id: string, displayName: string, shortCode: string, role: Role): Profile {
@@ -77,6 +79,7 @@ export const FAKE_ACCOUNTS: readonly Konto[] = [
     profile: profil('u-lernend', 'Fuchs', 'LX-7390', 'student'),
     learnerId: 'fuchs-7390',
     password: 'testkennwort',
+    recoveryCode: 'TESTCODE-NUR-ZUM-PROBIEREN',
   },
 ];
 
@@ -92,6 +95,8 @@ function kursSchluessel(courseId: string, packId: string): string {
 }
 
 export interface FakeCloudState {
+  /** Angeforderte Wiederherstellungen – damit ein Test sie sehen kann. */
+  recoveryRequests: string[];
   courses: Course[];
   members: Map<string, CourseMember[]>;
   invites: Map<string, { invite: CourseInvite; codeFaltung: string }>;
@@ -105,6 +110,7 @@ export interface FakeCloudState {
 
 function leererStand(): FakeCloudState {
   return {
+    recoveryRequests: [],
     courses: [],
     members: new Map(),
     invites: new Map(),
@@ -182,6 +188,26 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     onSessionChange(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
+    },
+    async requestEmailRecovery(email) {
+      /*
+        Absichtlich ohne jede Rückmeldung darüber, ob es die Adresse gibt.
+        Die Fälschung tut dasselbe wie die echte Fassung: Sie merkt sich den
+        Versuch, damit ein Test ihn sehen kann, und sagt nichts.
+      */
+      state.recoveryRequests.push(email.trim().toLowerCase());
+    },
+    async redeemRecoveryCode({ learnerId, recoveryCode, newPassword }) {
+      const account = FAKE_ACCOUNTS.find((entry) => entry.learnerId === learnerId.trim().toLowerCase());
+      // Wieder dieselbe Meldung für beide Fehlschläge – siehe die Anmeldung.
+      if (!account || account.recoveryCode !== recoveryCode.trim().toUpperCase()) {
+        throw new Error('Diese Angaben passen nicht zusammen.');
+      }
+      account.password = newPassword;
+      return setze(account.profile.id);
+    },
+    async setPassword(newPassword) {
+      ich().password = newPassword;
     },
   };
 
