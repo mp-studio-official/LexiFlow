@@ -195,6 +195,94 @@ describe('Lernstände – die Zusage, um die es geht', () => {
   });
 });
 
+/* ================================================ Der Schreibweg ======== */
+
+describe('Der Schreibweg für Lernstände', () => {
+  /**
+   * Ein Ereignis, wie der Client es schickt.
+   *
+   * Bewusst hier von Hand gebaut und nicht über `progressEvents.ts`: Diese
+   * Datei prüft die Datenbank, und sie soll auch dann noch auffallen, wenn
+   * jemand im TypeScript-Teil die Gestalt ändert, ohne an die Migration zu
+   * denken.
+   */
+  function ereignis(nummer, felder = {}) {
+    return {
+      eventId: testId(9100 + nummer),
+      courseId: kurs,
+      packId: paket,
+      entryId: `v-${nummer}`,
+      direction: 'en-de',
+      outcome: 'correct',
+      occurredAt: '2026-09-14T09:00:00.000Z',
+      entryState: { box: 2, correctCount: 1, wrongCount: 0, streak: 1, dueAt: '2026-09-15T09:00:00.000Z' },
+      ...felder,
+    };
+  }
+
+  async function sende(ereignisse) {
+    const ergebnis = await db.query('select record_progress_events($1) as neu', [
+      JSON.stringify(ereignisse),
+    ]);
+    return ergebnis.rows[0].neu;
+  }
+
+  it('meldet, wie viele Ereignisse neu waren', async () => {
+    await alsPerson(db, LERNENDE);
+    expect(await sende([ereignis(1), ereignis(2)])).toBe(2);
+    expect(await sende([ereignis(1), ereignis(3)])).toBe(1);
+  });
+
+  it('schreibt auf die aufrufende Person – und nur auf sie', async () => {
+    /*
+      Die Funktion ist `security definer`, läuft also an den Zugriffsregeln
+      vorbei. Genau deshalb muss hier stehen, dass sie trotzdem niemandem
+      etwas unterschieben kann: Eine Lehrkraft, die dasselbe Ereignis
+      schickt, schreibt ihren eigenen Lernstand – es gibt keinen Parameter
+      für jemand anderen.
+    */
+    await alsPerson(db, LEHRERIN);
+    await sende([ereignis(1)]);
+
+    expect(await zaehle('select * from pack_progress')).toBe(1);
+    const meins = await db.query('select user_id from pack_progress');
+    expect(meins.rows[0].user_id).toBe(LEHRERIN);
+
+    await alsPerson(db, LERNENDE);
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+  });
+
+  it('geht ohne Anmeldung gar nicht', async () => {
+    await alsUnangemeldet(db);
+    expect(await fehlerVon(sende([ereignis(1)]))).toMatch(/Nicht angemeldet|permission denied/i);
+    expect(
+      await fehlerVon(db.query('select begin_practice_session($1, $2)', [kurs, paket])),
+    ).toMatch(/Nicht angemeldet|permission denied/i);
+  });
+
+  it('nimmt keine beliebig lange Liste an', async () => {
+    await alsPerson(db, LERNENDE);
+    const zuviele = Array.from({ length: 201 }, (unused, index) => ereignis(index + 10));
+    expect(await fehlerVon(sende(zuviele))).toMatch(/Zu viele Ereignisse/);
+  });
+
+  it('nimmt nichts an, was keine Liste ist', async () => {
+    await alsPerson(db, LERNENDE);
+    expect(await fehlerVon(sende({ eventId: testId(9999) }))).toMatch(/Liste von Ereignissen/);
+  });
+
+  it('setzt nur den eigenen Lernstand zurück', async () => {
+    await alsPerson(db, LERNENDE);
+    await sende([ereignis(1)]);
+
+    await alsPerson(db, LEHRERIN);
+    await db.query('select reset_my_progress($1, $2)', [kurs, paket]);
+
+    await alsPerson(db, LERNENDE);
+    expect(await zaehle('select * from pack_progress')).toBe(1);
+  });
+});
+
 /* ========================================================= Kurse ======== */
 
 describe('Kurse', () => {
@@ -696,6 +784,18 @@ describe('kein Weg, ein fremdes Kennwort zu setzen', () => {
       Diese Prüfung ist grob, und sie fängt genau den Fall, der später aus
       Bequemlichkeit entsteht: „die Lehrkraft setzt eben ein neues Kennwort".
     */
+    /**
+     * Was das grobe Muster mitfängt, ohne mit Kennwörtern zu tun zu haben.
+     *
+     * Eine Ausnahme mit Begründung statt eines engeren Musters: Enger hieße,
+     * dass `reset_password_for` eines Tages durchrutscht. So muss jemand,
+     * der etwas mit `reset` im Namen anlegt, es hier eintragen.
+     */
+    const UNVERDAECHTIG = {
+      reset_my_progress:
+        'Löscht den eigenen Lernstand (Phase 6) – nimmt keine fremde Kennung entgegen.',
+    };
+
     await alsEinrichtung(db);
     const funktionen = await db.query(`
       select p.proname
@@ -706,6 +806,8 @@ describe('kein Weg, ein fremdes Kennwort zu setzen', () => {
              or p.proname like '%reset%' or p.proname like '%set_pass%')
       order by 1
     `);
-    expect(funktionen.rows.map((zeile) => zeile.proname)).toEqual([]);
+    expect(funktionen.rows.map((zeile) => zeile.proname)).toEqual(
+      Object.keys(UNVERDAECHTIG).sort(),
+    );
   });
 });

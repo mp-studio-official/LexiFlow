@@ -118,7 +118,7 @@ describe('die Materialseite', () => {
 });
 
 describe('was die Lerngruppe davon sieht', () => {
-  it('die zugewiesene Fassung – und einen ehrlichen Hinweis zum Üben', async () => {
+  it('die zugewiesene Fassung – mit einem Weg zum Üben', async () => {
     const cloud = createFakeCloud();
     cloud.signInAs('u-lehrerin');
     const kurs = await cloud.repositories.courses!.createCourse({ title: 'Englisch 7b' });
@@ -134,7 +134,12 @@ describe('was die Lerngruppe davon sieht', () => {
     setup(`/lernen/kurs/${kurs.id}`, 'u-lernend', cloud);
 
     expect(await screen.findByRole('heading', { name: pack.meta.title })).toBeInTheDocument();
-    expect(screen.getByText(/Üben kommt als Nächstes/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Üben' })).toHaveAttribute(
+      'href',
+      `/lernen/kurs/${kurs.id}/ueben/${pack.meta.id}`,
+    );
+    // Der Satz, der den Unterschied zum kontofreien LexiFlow erklärt.
+    expect(screen.getByText(/auf jedem Gerät, auf dem du dich anmeldest/)).toBeInTheDocument();
   });
 
   it('einen erklärten leeren Zustand, solange nichts zugewiesen ist', async () => {

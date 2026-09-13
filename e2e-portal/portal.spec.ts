@@ -423,3 +423,204 @@ test.describe('Material und Veröffentlichung', () => {
     ).toEqual([]);
   });
 });
+
+/* ================================================ Lernstand (Phase 6) ==== */
+
+/**
+ * Üben im Portal – der ganze Weg, im Browser, unter dem Unterpfad.
+ *
+ * Diese Prüfung fängt dort an, wo ein Paket entsteht: in der kontofreien
+ * Anwendung unter `/LexiFlow/`. Von dort wird es ins Konto übernommen
+ * (derselbe Ursprung, derselbe IndexedDB – ADR-10), veröffentlicht, einem
+ * Kurs gegeben, und am Ende übt eine lernende Person damit.
+ *
+ * Ein langer Durchlauf, und mit Absicht: Die einzelnen Schritte sind in den
+ * Verträgen abgenommen, teils gegen echtes PostgreSQL. Was **nur** hier zu
+ * sehen ist, ist die Naht zwischen den beiden Auslieferungen.
+ */
+
+const VOKABELLISTE = [
+  'crowded\tüberfüllt, voll',
+  'neighbourhood\tNachbarschaft, Viertel',
+  'litter\tMüll',
+  'quiet\truhig, leise',
+].join('\n');
+
+/** Ein Paket in der kontofreien Anwendung anlegen – dort, wo Pakete entstehen. */
+async function paketOhneKonto(page: import('@playwright/test').Page, titel: string) {
+  await page.goto('./#/material/import');
+  await page.getByLabel('Vokabelliste einfügen').fill(VOKABELLISTE);
+  await page.getByRole('button', { name: 'Weiter zur Vorschau' }).click();
+  await page.getByLabel('Titel', { exact: true }).fill(titel);
+  await page.getByLabel('Jahrgang').selectOption('7');
+  /*
+    Nur eine Richtung. Bei „beide Richtungen" schaltet die erste richtige
+    Antwort die produktive Richtung frei – die zweite Runde wäre dann voll,
+    und zwar zu Recht. Diese Prüfung will aber zeigen, dass **dieselben**
+    Vokabeln nicht sofort wiederkommen, und dafür muss es bei einer
+    Richtung bleiben.
+  */
+  await page.getByLabel('Lernrichtung').selectOption('en-de');
+  await page.getByRole('button', { name: /Paket speichern/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: titel })).toBeVisible();
+}
+
+/** Als lernende Person anmelden. */
+async function alsLernende(page: import('@playwright/test').Page) {
+  await page.goto('./portal/#/anmelden');
+  await page.getByRole('button', { name: 'Ich lerne' }).click();
+  await page.getByLabel('Lern-ID').fill('fuchs-7390');
+  await page.getByLabel('Kennwort').fill('testkennwort');
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await page.getByRole('heading', { name: 'Deine Kurse' }).waitFor();
+}
+
+/**
+ * Eine Aufgabe beantworten.
+ *
+ * Bei einem frischen Paket wählt der Planer für Fach 1 die Karteikarte – das
+ * ist in `domain/exercises.ts` festgelegt und seit Sprint 1 so. Ändert sich
+ * das, fällt diese Hilfe auf, und das ist richtig so: Dann prüft sie etwas
+ * anderes als das, was sie zu prüfen behauptet.
+ */
+async function eineAntwort(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: 'Lösung anzeigen' }).click();
+  await page.getByRole('button', { name: 'Gewusst', exact: true }).click();
+  await page.getByRole('button', { name: 'Weiter' }).click();
+}
+
+/** Der ganze Aufbau bis zu einem zugewiesenen Paket. Gibt den Code zurück. */
+async function paketImKurs(page: import('@playwright/test').Page, titel: string) {
+  await paketOhneKonto(page, titel);
+
+  await alsLehrkraft(page);
+  await kursAnlegen(page, 'Englisch 7b');
+  const code = await codeErzeugen(page);
+
+  await page.goto('./portal/#/material');
+  await page.getByRole('button', { name: 'Alle übernehmen' }).click();
+  await expect(page.getByText(/Paket ist übernommen|Pakete sind übernommen/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Veröffentlichen' }).click();
+  await expect(page.getByText(/als Fassung 1 veröffentlicht/)).toBeVisible();
+
+  await page.getByLabel('Einer Lerngruppe geben').selectOption({ label: 'Englisch 7b' });
+  await page.getByRole('button', { name: 'Zuweisen' }).click();
+  await expect(page.getByText(/liegt jetzt in „Englisch 7b"/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Abmelden' }).click();
+  return code;
+}
+
+test.describe('Üben im Portal', () => {
+  test('@smoke ein Paket vom Gerät wird geübt – und der Lernstand bleibt im Konto', async ({
+    page,
+  }) => {
+    const code = await paketImKurs(page, 'Unit 3 – City life');
+
+    await alsLernende(page);
+    await page.goto('./portal/#/beitreten');
+    await page.getByLabel('Einladungscode').fill(code);
+    await page.getByRole('button', { name: 'Beitreten' }).click();
+    await page.getByRole('heading', { name: 'Englisch 7b', level: 1 }).waitFor();
+
+    // Der Satz, der den Unterschied zum kontofreien LexiFlow erklärt.
+    await expect(page.getByText(/auf jedem Gerät, auf dem du dich anmeldest/)).toBeVisible();
+
+    await page.getByRole('link', { name: 'Üben' }).click();
+    await expect(page.getByRole('heading', { name: 'Unit 3 – City life', level: 1 })).toBeVisible();
+    await expect(page.getByText('Noch 4 in dieser Runde')).toBeVisible();
+
+    for (let uebrig = 4; uebrig > 0; uebrig -= 1) await eineAntwort(page);
+
+    await expect(page.getByRole('heading', { name: 'Runde beendet' })).toBeVisible();
+    await expect(page.getByText('4 Antworten in „Unit 3 – City life".')).toBeVisible();
+
+    /*
+      Der eigentliche Beweis: Die nächste Runde ist leer, weil der Lernstand
+      geblieben ist. Stünde er nirgends, wären dieselben vier Vokabeln sofort
+      wieder fällig – und die Seite zählte von vorn.
+    */
+    await page.getByRole('button', { name: 'Noch eine Runde' }).click();
+    await expect(page.getByRole('heading', { name: 'Gerade nichts fällig' })).toBeVisible();
+    await expect(page.getByText(/Das Nächste ist am/)).toBeVisible();
+  });
+
+  test('@smoke die Lehrkraft sieht davon nichts', async ({ page }) => {
+    /*
+      Die Zusage, auf der das Produkt steht – hier am fertigen Lernstand
+      geprüft und nicht an einer leeren Tabelle: Erst wird wirklich geübt,
+      dann sieht die Lehrkraft nach.
+    */
+    const code = await paketImKurs(page, 'Unit 3 – City life');
+
+    await alsLernende(page);
+    await page.goto('./portal/#/beitreten');
+    await page.getByLabel('Einladungscode').fill(code);
+    await page.getByRole('button', { name: 'Beitreten' }).click();
+    await page.getByRole('link', { name: 'Üben' }).click();
+    await eineAntwort(page);
+
+    await page.getByRole('button', { name: 'Abmelden' }).click();
+    await alsLehrkraft(page);
+    await page.getByRole('link', { name: 'Englisch 7b' }).click();
+    await page.getByRole('heading', { name: 'Englisch 7b', level: 1 }).waitFor();
+
+    /*
+      Geprüft wird die Mitgliedertabelle – dort stünde eine Zahl über das
+      Üben, wenn es je eine gäbe. Nicht die ganze Seite: Auf ihr steht der
+      Satz, der erklärt, warum dort nichts steht.
+    */
+    const tabelle = page.getByRole('table', { name: /Mitglieder dieses Kurses/ });
+    await expect(tabelle).toContainText('Fuchs');
+    for (const wort of ['geübt', 'Fortschritt', 'Antworten', 'zuletzt aktiv', 'Fach', '%']) {
+      await expect(tabelle).not.toContainText(wort);
+    }
+  });
+
+  test('@a11y die Übungsseite ohne schwerwiegende Befunde', async ({ page }) => {
+    const code = await paketImKurs(page, 'Unit 3 – City life');
+
+    await alsLernende(page);
+    await page.goto('./portal/#/beitreten');
+    await page.getByLabel('Einladungscode').fill(code);
+    await page.getByRole('button', { name: 'Beitreten' }).click();
+    await page.getByRole('link', { name: 'Üben' }).click();
+    await page.getByRole('heading', { name: 'Unit 3 – City life', level: 1 }).waitFor();
+
+    const ergebnis = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(
+      ergebnis.violations
+        .filter((verstoss) => ['serious', 'critical'].includes(verstoss.impact ?? ''))
+        .map((verstoss) => ({ regel: verstoss.id, wo: verstoss.nodes.map((k) => k.target.join(' ')) })),
+    ).toEqual([]);
+  });
+});
+
+test.describe('Üben auf dem Telefon', () => {
+  test('@a11y die Übungsseite sprengt das Fenster nicht', async ({ page }) => {
+    /*
+      Der Aufbau läuft in Fensterbreite, die Prüfung auf dem Telefon. Grund:
+      Auf schmalen Fenstern tritt die untere Leiste an die Stelle der
+      Seitenschiene, und in ihr gibt es kein „Abmelden" – der Aufbau braucht
+      aber einen Wechsel der Person. Geprüft werden soll die Übungsseite,
+      nicht der Weg dorthin.
+    */
+    const code = await paketImKurs(page, 'Unit 3 – City life');
+
+    await alsLernende(page);
+    await page.goto('./portal/#/beitreten');
+    await page.getByLabel('Einladungscode').fill(code);
+    await page.getByRole('button', { name: 'Beitreten' }).click();
+    await page.getByRole('link', { name: 'Üben' }).click();
+    await page.getByRole('heading', { name: 'Unit 3 – City life', level: 1 }).waitFor();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const ueberlauf = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(ueberlauf).toBeLessThanOrEqual(1);
+  });
+});

@@ -1,5 +1,6 @@
 import { newId } from '../domain/ids';
 import { CODE_GILT_NICHT } from '../cloud/courseGateway';
+import { alsLernstand } from './progressEvents';
 import type { EntryProgress, PackProgress, VocabPack } from '../domain/schema';
 import {
   type AccountRepository,
@@ -117,6 +118,9 @@ export interface FakeRevision {
 function kursSchluessel(courseId: string, packId: string): string {
   return `${courseId}::${packId}`;
 }
+
+/** Dieselbe Obergrenze wie in `record_progress_events` – siehe Migration 6. */
+const MAX_EREIGNISSE = 200;
 
 export interface FakeCloudState {
   /** Angeforderte Wiederherstellungen – damit ein Test sie sehen kann. */
@@ -744,9 +748,17 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     },
     async recordEvents(events: readonly ProgressEvent[]) {
       const mich = ich();
+      if (events.length > MAX_EREIGNISSE) throw new Error('Zu viele Ereignisse auf einmal.');
+
       for (const event of events) {
+        /*
+          Der Riegel – dasselbe, was in SQL `on conflict do nothing` tut: Ist
+          die Kennung schon da, passiert nichts weiter. Damit ist dasselbe
+          Ereignis zweimal gesendet dasselbe wie einmal.
+        */
         if (state.seenEvents.has(event.eventId)) continue;
         state.seenEvents.add(event.eventId);
+
         const schluessel = `${mich.profile.id}::${kursSchluessel(event.courseId, event.packId)}`;
         const bisher = state.packProgress.get(schluessel) ?? {
           packId: event.packId,
@@ -758,8 +770,31 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
           ...bisher,
           answeredCount: bisher.answeredCount + 1,
           correctCount: bisher.correctCount + (event.outcome === 'correct' ? 1 : 0),
-          lastPracticedAt: event.occurredAt,
+          // `greatest`: Ein spät eintreffendes Ereignis darf den Zeitpunkt
+          // nicht zurückdrehen.
+          lastPracticedAt:
+            bisher.lastPracticedAt !== undefined && bisher.lastPracticedAt > event.occurredAt
+              ? bisher.lastPracticedAt
+              : event.occurredAt,
         });
+
+        const stand = alsLernstand(event);
+        const staende = state.entryProgress.get(schluessel) ?? [];
+        const vorhanden = staende.findIndex((eintrag) => eintrag.key === stand.key);
+        if (vorhanden === -1) {
+          state.entryProgress.set(schluessel, [...staende, stand]);
+          continue;
+        }
+        /*
+          Ein Stand, der **älter** ist als der gespeicherte, wird nicht
+          übernommen. Zwei Geräte, die kurz nacheinander senden, sollen nicht
+          rückwärtslaufen.
+        */
+        const alt = staende[vorhanden]!;
+        if (alt.lastAnsweredAt !== undefined && alt.lastAnsweredAt > event.occurredAt) continue;
+        const kopie = [...staende];
+        kopie[vorhanden] = stand;
+        state.entryProgress.set(schluessel, kopie);
       }
     },
     async resetMyProgress(courseId, packId) {

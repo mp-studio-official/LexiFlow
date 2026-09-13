@@ -10,8 +10,10 @@ import {
 } from './supabaseProfileRepository';
 import { createSqlCourseRepositories } from './courseGateway';
 import { createSqlPackRepositories } from './packGateway';
+import { createSqlProgressRepository } from './progressGateway';
 import { createSupabaseCourseGateway } from './supabaseCourseGateway';
 import { createSupabasePackGateway } from './supabasePackGateway';
+import { createSupabaseProgressGateway } from './supabaseProgressGateway';
 import { createSupabaseClient } from './supabaseClient';
 import type { HostedConfig } from '../runtime/hostedConfig';
 import type { Repositories } from '../application/repositories';
@@ -21,10 +23,13 @@ import type { Repositories } from '../application/repositories';
  *
  * ## Was hier absichtlich fehlt
  *
- * `progress`, `account`, `ai`. Sie kommen in den Phasen 6 und 7. Bis dahin sind sie **nicht vorhanden**, und das ist besser
- * als eine Fassung, die Fehler wirft: Die Oberfläche fragt mit
+ * `account` und `ai`. Sie kommen in Phase 7 beziehungsweise mit dem
+ * Datenauszug. Bis dahin sind sie **nicht vorhanden**, und das ist besser als
+ * eine Fassung, die Fehler wirft: Die Oberfläche fragt mit
  * `useOptionalRepository` und sagt dann ehrlich, dass es das in dieser Fassung
  * noch nicht gibt, statt einen Knopf anzubieten, der in einen Absturz führt.
+ *
+ * `progress` ist seit Phase 6 dabei.
  *
  * ## Die Rückkehradresse
  *
@@ -108,5 +113,7 @@ export function createCloudRepositories(input: {
 
   const { packs, publication } = createSqlPackRepositories(createSupabasePackGateway(client));
 
-  return { auth, profile, courses, invitations, packs, publication };
+  const progress = createSqlProgressRepository(createSupabaseProgressGateway(client));
+
+  return { auth, profile, courses, invitations, packs, publication, progress };
 }

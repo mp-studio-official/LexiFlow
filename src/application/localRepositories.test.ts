@@ -3,7 +3,10 @@ import { clearAllLocalData } from '../data/db';
 import { getPackProgress } from '../data/progressRepo';
 import { makePack } from '../test/fixtures';
 import { createLocalPackRepository, createLocalProgressRepository, createLocalRepositories } from './localRepositories';
+import { antwortEreignis } from './progressEvents';
 import { LOCAL_SCOPE, type ProgressEvent } from './repositories';
+import type { AnswerVerdict } from '../domain/answerCheck';
+import type { EntryProgress, TaskDirection } from '../domain/schema';
 
 /**
  * Die lokalen Adapter über den bestehenden Dexie-Repositories.
@@ -20,18 +23,32 @@ beforeEach(async () => {
   await clearAllLocalData();
 });
 
-function ereignis(over: Partial<ProgressEvent> = {}): ProgressEvent {
+/**
+ * Ein Ereignis – gebaut wie im Betrieb, mit `antwortEreignis`.
+ *
+ * Nicht von Hand zusammengesetzt: Der Leitner-Stand gehört seit Phase 6 ins
+ * Ereignis, und ein hier erfundener prüfte am Ende eine Erfindung.
+ */
+function ereignis(
+  over: {
+    eventId?: string;
+    outcome?: AnswerVerdict;
+    direction?: TaskDirection;
+    courseId?: string;
+    vorher?: EntryProgress;
+  } = {},
+): ProgressEvent {
   const erster = pack.entries[0]!;
-  return {
-    eventId: 'e-1',
-    courseId: LOCAL_SCOPE,
+  return antwortEreignis({
+    eventId: over.eventId ?? 'e-1',
+    courseId: over.courseId ?? LOCAL_SCOPE,
     packId: pack.meta.id,
     entryId: erster.id,
-    direction: 'en-de',
-    outcome: 'correct',
-    occurredAt: '2026-09-01T10:00:00.000Z',
-    ...over,
-  };
+    direction: over.direction ?? 'en-de',
+    outcome: over.outcome ?? 'correct',
+    vorher: over.vorher,
+    now: new Date('2026-09-01T10:00:00.000Z'),
+  }).event;
 }
 
 describe('Pakete', () => {

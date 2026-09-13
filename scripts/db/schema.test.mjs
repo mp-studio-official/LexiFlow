@@ -160,8 +160,22 @@ describe('Lernstände sind an die aufrufende Person gebunden', () => {
     }
   });
 
-  it('keine Funktion gibt fremde Lernstände heraus', async () => {
-    const verdaechtig = await zeilen(`
+  /**
+   * Die einzigen Funktionen, die Lernstandstabellen überhaupt anfassen dürfen
+   * – jede mit dem Grund, warum sie es darf.
+   *
+   * Eine Liste statt eines Verbots, weil es seit Phase 6 einen Schreibweg
+   * gibt. Kommt eine vierte hinzu, fällt der Test auf, und jemand muss
+   * aufschreiben, wozu sie gut ist. Genau das ist der Zweck.
+   */
+  const SCHREIBWEGE = {
+    record_progress_events: 'Der Schreibweg für Antworten – idempotent über progress_events.',
+    begin_practice_session: 'Zählt eine begonnene Übungsrunde.',
+    reset_my_progress: 'Löscht den eigenen Lernstand, auf ausdrücklichen Wunsch.',
+  };
+
+  it('nur die aufgeschriebenen Funktionen fassen Lernstände überhaupt an', async () => {
+    const gefunden = await zeilen(`
       select p.proname
       from pg_proc p
       join pg_namespace n on n.oid = p.pronamespace
@@ -169,7 +183,36 @@ describe('Lernstände sind an die aufrufende Person gebunden', () => {
         and (p.prosrc like '%pack_progress%' or p.prosrc like '%entry_progress%')
       order by 1
     `);
-    expect(verdaechtig.map((zeile) => zeile.proname)).toEqual([]);
+    expect(gefunden.map((zeile) => zeile.proname)).toEqual(Object.keys(SCHREIBWEGE).sort());
+  });
+
+  it('und keine von ihnen nimmt eine fremde Kennung entgegen', async () => {
+    /*
+      Der eigentliche Riegel, und er ist schärfer als „gibt nichts heraus":
+      Jeder Vergleich auf `user_id` in diesen Funktionen muss gegen `v_me`
+      laufen – also gegen `auth.uid()` und gegen nichts sonst. Stünde dort
+      eines Tages `user_id = p_person`, wäre das die Zeile, mit der eine
+      Lehrkraft fremde Lernstände läse, und dieser Test fiele auf.
+    */
+    for (const name of Object.keys(SCHREIBWEGE)) {
+      const [funktion] = await zeilen(
+        `select prosrc, pg_get_function_arguments(oid) as argumente
+           from pg_proc where proname = $1`,
+        [name],
+      );
+
+      expect(funktion.prosrc, `${name} liest auth.uid() nicht`).toContain('auth.uid()');
+      expect(funktion.argumente, `${name} nimmt eine Personenkennung`).not.toMatch(
+        /p_(user|person|learner|profile)/,
+      );
+
+      const vergleiche = [...funktion.prosrc.matchAll(/user_id\s*=\s*([\w.]+)/g)].map(
+        (treffer) => treffer[1],
+      );
+      for (const vergleich of vergleiche) {
+        expect(vergleich, `${name} vergleicht user_id mit ${vergleich}`).toBe('v_me');
+      }
+    }
   });
 });
 
@@ -255,6 +298,15 @@ describe('die security-definer-Funktionen bleiben eng', () => {
       // gehört der aufrufenden Person, beides hat sie gerade selbst geschickt.
       save_pack_draft: 'packs',
       publish_pack: 'pack_revisions',
+
+      // Lernstand (Phase 6). Nur der eigene, und nur Zahlen über ihn.
+      begin_practice_session: 'void',
+      reset_my_progress: 'void',
+      // Wie viele Ereignisse **neu** waren. Eine Zahl über das, was die
+      // aufrufende Person gerade selbst geschickt hat – sie verrät nichts,
+      // was diese Person nicht schon wusste, und sagt ihr, ob eine
+      // Wiederholung dabei war.
+      record_progress_events: 'integer',
     };
 
     const funktionen = await zeilen(`

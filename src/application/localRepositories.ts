@@ -8,10 +8,11 @@ import {
 import {
   getPackProgress,
   getProgressIndex,
-  recordAnswer,
   resetPackProgress,
   startSession,
+  storeAnswer,
 } from '../data/progressRepo';
+import { alsLernstand } from './progressEvents';
 import type { VocabPack } from '../domain/schema';
 import type {
   PackRepository,
@@ -135,16 +136,17 @@ export function createLocalProgressRepository(): ProgressRepository {
       for (const event of events) {
         if (verarbeitet.has(event.eventId)) continue;
         /*
+          Abgelegt wird der Stand, der im Ereignis steht – nicht ein hier neu
+          gerechneter. Gerechnet hat ihn `progressEvents.ts` mit derselben
+          Funktion aus `domain/leitner.ts`; ihn erneut zu rechnen hieße, den
+          Wert an zwei Stellen zu bestimmen, und im Portal käme dabei ein
+          anderer heraus als der, den der Server abgelegt hat.
+        */
+        await storeAnswer(alsLernstand(event), event.outcome, new Date(event.occurredAt));
+        /*
           Erst schreiben, dann merken. Andersherum verlöre ein Fehlschlag beim
           Schreiben das Ereignis endgültig: gemerkt, aber nicht gezählt.
         */
-        await recordAnswer(
-          event.packId,
-          event.entryId,
-          event.direction,
-          event.outcome,
-          new Date(event.occurredAt),
-        );
         verarbeitet.add(event.eventId);
       }
     },

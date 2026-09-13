@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FAKE_ACCOUNTS, createFakeCloud } from './fakeCloudRepositories';
 import { makePack } from '../test/fixtures';
+import { antwortEreignis } from './progressEvents';
 
 /**
  * Die kontrollierte Cloudfassung.
@@ -164,38 +165,24 @@ describe('Veröffentlichung', () => {
 });
 
 describe('Lernstand', () => {
-  it('verwirft eine wiederholte Ereigniskennung', async () => {
-    const cloud = createFakeCloud();
-    cloud.signInAs(LERNEND);
-    const ereignis = {
-      eventId: 'e-1',
-      courseId: 'kurs-1',
-      packId: 'pack-1',
-      entryId: 'v-1',
-      direction: 'en-de' as const,
-      outcome: 'correct' as const,
-      occurredAt: '2026-09-01T10:00:00.000Z',
-    };
-
-    await cloud.repositories.progress!.recordEvents([ereignis]);
-    await cloud.repositories.progress!.recordEvents([ereignis]);
-
-    expect((await cloud.repositories.progress!.myPackProgress('kurs-1', 'pack-1'))?.answeredCount).toBe(1);
-  });
-
+  /*
+    Der Ablauf selbst steht im Lernstandsvertrag, zweimal abgenommen – einmal
+    hier gegen die Fälschung, einmal gegen echtes PostgreSQL. Was hier bleibt,
+    ist die Zusage, die keine Zusage über Abläufe ist, sondern über das
+    Produkt: Es gibt keinen Weg zu einem fremden Lernstand.
+  */
   it('hält die Lernstände zweier Personen auseinander', async () => {
     const cloud = createFakeCloud();
     cloud.signInAs(LERNEND);
     await cloud.repositories.progress!.recordEvents([
-      {
-        eventId: 'e-1',
+      antwortEreignis({
         courseId: 'kurs-1',
         packId: 'pack-1',
         entryId: 'v-1',
         direction: 'en-de',
         outcome: 'correct',
-        occurredAt: '2026-09-01T10:00:00.000Z',
-      },
+        now: new Date('2026-09-01T10:00:00.000Z'),
+      }).event,
     ]);
 
     cloud.signInAs(LEHRERIN);

@@ -237,6 +237,19 @@ export interface PublicationRepository {
 /* ------------------------------------------------------------ Lernstand */
 
 /**
+ * Der Leitner-Stand einer Vokabel in einer Richtung – ohne ihre Kennungen.
+ *
+ * Abgeleitet aus `EntryProgress` und nicht danebengeschrieben: Käme ein Feld
+ * dazu, fiele es hier von selbst mit an. Was fehlt, sind `key`, `packId`,
+ * `entryId` und `direction` – die stehen schon im Ereignis, und zweimal
+ * dasselbe hieße, dass beides auseinanderlaufen kann.
+ */
+export type EntryState = Pick<
+  EntryProgress,
+  'box' | 'correctCount' | 'wrongCount' | 'streak' | 'dueAt'
+>;
+
+/**
  * Eine Lernstandsänderung – mit einer Kennung, die der Client vergibt.
  *
  * Die `eventId` ist der ganze Trick an der Idempotenz: Der Server merkt sich,
@@ -260,6 +273,26 @@ export interface ProgressEvent {
   /** Was die lernende Person getan hat – nicht, was sie getippt hat. */
   outcome: AnswerVerdict;
   occurredAt: string;
+  /**
+   * Der Stand **nach** dieser Antwort, gerechnet auf dem Gerät.
+   *
+   * ## Warum der Client rechnet und nicht der Server
+   *
+   * Welche Box eine Vokabel bekommt und wann sie wieder fällig ist, rechnet
+   * `src/domain/leitner.ts` – seit Sprint 1, mit eigenen Prüfungen, und
+   * dieselbe Rechnung läuft in jeder portablen Datei ohne Server. Dieselbe
+   * Rechnung zusätzlich in SQL hieße, zwei Wahrheiten zu pflegen. Sie würden
+   * auseinanderlaufen, und zwar unbemerkt: Wer abwechselnd im Portal und in
+   * einer Lerndatei übt, bekäme zwei verschiedene Vorstellungen davon, was er
+   * kann.
+   *
+   * Die Folge, offen gesagt: Wer will, kann seinen **eigenen** Lernstand
+   * beschönigen. Das ist hinnehmbar – er ist seiner, niemand sonst sieht ihn
+   * (ADR-1), und aus ihm folgt nichts als die Auswahl der nächsten Vokabel.
+   *
+   * Gebaut wird dieses Feld an genau einer Stelle: `progressEvents.ts`.
+   */
+  entryState: EntryState;
 }
 
 /**

@@ -29,6 +29,30 @@ export async function getPackProgress(packId: string): Promise<PackProgress> {
   );
 }
 
+/**
+ * Einen fertig gerechneten Lernstand ablegen und die Paketzähler erhöhen.
+ *
+ * Muss innerhalb einer Transaktion über beide Tabellen laufen: Ein Lernstand
+ * ohne erhöhten Zähler – oder umgekehrt – wäre ein Widerspruch, den niemand
+ * mehr auflöst.
+ */
+async function ablegen(stand: EntryProgress, verdict: AnswerVerdict, now: Date): Promise<void> {
+  await db.directionProgress.put(stand);
+
+  const pack = (await db.packProgress.get(stand.packId)) ?? {
+    packId: stand.packId,
+    sessionCount: 0,
+    answeredCount: 0,
+    correctCount: 0,
+  };
+  await db.packProgress.put({
+    ...pack,
+    answeredCount: pack.answeredCount + 1,
+    correctCount: pack.correctCount + (verdict === 'correct' ? 1 : 0),
+    lastPracticedAt: now.toISOString(),
+  });
+}
+
 export async function recordAnswer(
   packId: string,
   entryId: string,
@@ -41,21 +65,26 @@ export async function recordAnswer(
     const existing = await db.directionProgress.get(key);
     const base = existing ?? createEntryProgress(packId, entryId, direction, now);
     const updated = applyAnswer(base, verdict, now);
-    await db.directionProgress.put(updated);
-
-    const pack = (await db.packProgress.get(packId)) ?? {
-      packId,
-      sessionCount: 0,
-      answeredCount: 0,
-      correctCount: 0,
-    };
-    await db.packProgress.put({
-      ...pack,
-      answeredCount: pack.answeredCount + 1,
-      correctCount: pack.correctCount + (verdict === 'correct' ? 1 : 0),
-      lastPracticedAt: now.toISOString(),
-    });
+    await ablegen(updated, verdict, now);
     return updated;
+  });
+}
+
+/**
+ * Einen anderswo gerechneten Lernstand übernehmen.
+ *
+ * Der Weg für Ereignisse (`ProgressEvent`): Dort steht der Stand schon drin,
+ * gerechnet mit derselben Funktion aus `domain/leitner.ts`. Ihn hier erneut zu
+ * rechnen hieße, denselben Wert zweimal zu bestimmen – und im Portal würde
+ * dabei ein anderer herauskommen als der, den der Server abgelegt hat.
+ */
+export async function storeAnswer(
+  stand: EntryProgress,
+  verdict: AnswerVerdict,
+  now: Date = new Date(),
+): Promise<void> {
+  await db.transaction('rw', db.directionProgress, db.packProgress, async () => {
+    await ablegen(stand, verdict, now);
   });
 }
 

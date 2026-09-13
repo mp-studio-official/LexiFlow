@@ -350,6 +350,10 @@ Ebenso unangetastet: die bestehenden Lernseiten. Sie rufen `packRepo` und
 `progressRepo` weiterhin direkt auf. Sie an die Verträge zu hängen gehört in
 Phase 6, wo der geräteübergreifende Lernstand dazukommt.
 
+> **Nachtrag aus Phase 6.** So ist es nicht gekommen, und das ist eine
+> bewusste Abweichung: Die bestehenden Lernseiten blieben, wo sie waren.
+> Begründung in § 5.5.6.
+
 ### Die Prüfungen aus Phase 1
 
 | Zusage | Wo sie geprüft wird |
@@ -746,7 +750,107 @@ braucht ihn einmal.
 
 ### 5.5 Lernstand
 
-*Wird in Phase 6 gefüllt.*
+#### 5.5.1 Die eine Entscheidung, aus der alles Weitere folgt
+
+**Das Leitner-Rechnen bleibt auf dem Gerät.** Welche Box eine Vokabel nach
+einer Antwort bekommt und wann sie wieder fällig ist, rechnet
+`src/domain/leitner.ts` – seit Sprint 1, mit eigenen Prüfungen, und dieselbe
+Rechnung läuft in jeder portablen Datei ohne Server.
+
+Dieselbe Rechnung zusätzlich in SQL hieße, zwei Wahrheiten zu pflegen. Sie
+würden auseinanderlaufen, und zwar unbemerkt: Wer abwechselnd im Portal und in
+einer Lerndatei übt, bekäme zwei verschiedene Vorstellungen davon, was er kann.
+
+Der Client rechnet also und schickt das Ergebnis mit – als Feld `entryState`
+eines `ProgressEvent`. Gebaut wird ein solches Ereignis an **genau einer**
+Stelle: `src/application/progressEvents.ts`. Jede Ansicht, die das selbst täte,
+wäre eine zweite Stelle, an der jemand `streak` vergessen kann.
+
+**Die Folge, offen gesagt:** Wer will, kann seinen **eigenen** Lernstand
+beschönigen. Das ist hinnehmbar – er ist seiner, niemand sonst sieht ihn
+(ADR-1), und aus ihm folgt nichts als die Auswahl der nächsten Vokabel. Wer
+sich selbst belügt, hat weniger geübt; mehr passiert nicht.
+
+#### 5.5.2 Idempotenz
+
+Eine Antwort, die unterwegs verlorengeht, muss erneut gesendet werden können.
+Ohne Vorkehrung zählte ein Wackler im WLAN eine Vokabel zweimal.
+
+Die Vorkehrung ist `progress_events`: Der Client vergibt je Antwort eine
+Kennung, und diese Tabelle merkt sich, welche verarbeitet wurden. Ein
+`insert … on conflict do nothing` entscheidet in **einer** Anweisung, ob ein
+Ereignis neu ist – zwei Anweisungen hätten dieselbe Lücke wie beim
+Einladungscode (§ 2d.2).
+
+Zurücksetzen löscht den Lernstand, **nicht** die Ereigniskennungen. Sonst
+ließe sich eine alte Runde danach erneut einreichen.
+
+#### 5.5.3 Nichts läuft rückwärts
+
+Zwei Geräte, die kurz nacheinander senden, dürfen den Stand nicht zurückdrehen.
+Zwei Riegel dafür:
+
+| Wert | Regel |
+| --- | --- |
+| `pack_progress.last_practiced_at` | `greatest(alt, neu)` – ein spät eintreffendes Ereignis setzt den Zeitpunkt nicht zurück |
+| `entry_progress` (Box, Serie, Fälligkeit) | Übernahme nur, wenn das Ereignis **nicht älter** ist als der gespeicherte Stand |
+
+Gezählt wird das späte Ereignis trotzdem: Die Vokabel wurde ja geübt. Nur das
+Fach bleibt, wo das jüngere Gerät es hingesetzt hat.
+
+#### 5.5.4 Die Abläufe
+
+| Funktion | Was sie tut |
+| --- | --- |
+| `record_progress_events(jsonb)` | nimmt bis zu 200 Ereignisse, gibt zurück, wie viele **neu** waren |
+| `begin_practice_session(uuid, text)` | zählt eine begonnene Runde – mehr wird über Runden nicht geführt |
+| `reset_my_progress(uuid, text)` | löscht den eigenen Lernstand, ohne Umweg über jemanden |
+
+Keine davon nimmt eine Personenkennung entgegen. `auth.uid()`, und nichts
+sonst – was nicht beschrieben ist, entsteht nicht aus Versehen. Zwei Prüfungen
+halten das fest: eine Liste der Funktionen, die Lernstandstabellen überhaupt
+anfassen dürfen (mit Begründung je Eintrag), und eine Prüfung, dass jeder
+Vergleich auf `user_id` in ihnen gegen `v_me := auth.uid()` läuft.
+
+#### 5.5.5 Üben im Portal
+
+`src/hosted/learner/PracticePage.tsx`, lazy geladen (22,1 kB). Neu ist daran
+**nichts außer dem Ziel des Lernstands**: Rundenplanung
+(`domain/exercises.ts`), Ablauf (`domain/session.ts`), Aufgabenansicht
+(`ExerciseView`) und Leitner-Rechnen stammen unverändert aus Sprint 1.
+
+Zwei Dinge, die eine Oberfläche gern verschweigt, stehen dort:
+
+- **Ein Senden, das scheitert, wird gesagt.** Wer weiterübt, während nichts
+  ankommt, hätte am Ende eine Runde geübt, die es nirgends gibt.
+- **Eine leere Runde ist kein Fehler.** „Gerade nichts fällig" samt dem Datum
+  der nächsten Fälligkeit statt „0 Antworten".
+
+Der Lernstand wird während der Runde im Speicher mitgeführt. Ihn nach jeder
+Antwort neu vom Server zu holen hieße, mitten in der Übung auf das Netz zu
+warten.
+
+#### 5.5.6 Was Phase 6 **nicht** getan hat – und warum
+
+Phase 1 hatte angekündigt, die bestehenden Lernseiten (`src/routes/student/`)
+in Phase 6 an die Verträge zu hängen. Das ist nicht geschehen, und zwar
+absichtlich.
+
+`SessionPage.tsx` ist 541 Zeilen und seit Sprint 1 durch einen großen Teil der
+159 E2E abgesichert. Sie umzubauen hieße, den Weg, auf dem heute jede lernende
+Person ohne Konto übt, für einen Zugewinn anzufassen, den sie nicht hat: Ohne
+Konto gibt es nur ein Gerät, und `LOCAL_SCOPE` beschreibt genau das. Der
+Umbau brächte Risiko ohne Gegenwert.
+
+Stattdessen gibt es eine eigene, kurze Portalseite über **denselben**
+Domainfunktionen. Was dabei **nicht** doppelt vorliegt, ist der Punkt: die
+Rundenplanung, der Ablauf, die Aufgabenansicht und das Leitner-Rechnen. Doppelt
+ist nur das Zusammenstecken – rund 200 Zeilen, und sie sagen an jeder Stelle,
+woher das Teil kommt.
+
+Der Preis, offen benannt: Zwei Seiten können auseinanderlaufen. Fällt das
+eines Tages auf, ist der Umbau von `SessionPage` die Antwort – dann aber mit
+einem Anlass statt auf Vorrat.
 
 ## 6. Einrichtung
 
@@ -803,7 +907,7 @@ mehr.
 
 - die Anmelde- und Wiederherstellungslogik der Serverfunktion
 - die Repository-Verträge gegen zwei Implementierungen
-- die Oberfläche des Portals
+- die Oberfläche des Portals einschließlich der Übungsseite
 
 **Nicht belegt – und zwar gar nicht:**
 
@@ -840,19 +944,23 @@ dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
 | Wiederherstellungscode wird beim Anlegen zwar abgeschrieben, aber nicht sicher aufbewahrt | bewusst; mehr kann Software an dieser Stelle nicht |
 | `supabasePackGateway.ts` (PostgREST) ungeprüft | bekannt; die abweichenden Stellen stehen als Kommentar in der Datei |
 | Zwei gleichzeitige Veröffentlichungen ergeben einen Fehler statt einer Wartezeit | bewusst; der Primärschlüssel verhindert die Dopplung, die Wiederholung liegt beim Aufruf |
-| Portalbündel 575 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
+| Portalbündel 579 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
+| `supabaseProgressGateway.ts` (PostgREST) ungeprüft | bekannt; dieselbe Lage wie bei Kursen und Paketen |
+| Der eigene Lernstand lässt sich beschönigen | bewusst, § 5.5.1; die Alternative wären zwei Leitner-Rechnungen, die auseinanderlaufen |
+| Ein Gerät, das lange offline war, sendet nach – die Zähler steigen, die Fächer nicht | bewusst, § 5.5.3; die Alternative wäre ein Rückwärtslauf des Lernstands |
+| Übungsseite im Portal und `SessionPage` können auseinanderlaufen | bewusst, § 5.5.6; die gemeinsame Grundlage ist die Domainschicht, doppelt ist nur das Zusammenstecken |
 
 ## 8. Größenwacht
 
 Die Lernlaufzeit lag beim Start bei **674,6 KiB**. Jede Phase misst neu; ein
 Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 
-| Artefakt | Start | nach Phase 3 |
+| Artefakt | Start | nach Phase 6 |
 | --- | --- | --- |
-| `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,1 KiB** |
-| `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,6 KiB** |
-| kontofreie PWA (`index-*.js`) | 441,53 kB | 441,53 kB |
-| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → **574,85 kB** (Phase 5) |
+| `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,2 KiB** |
+| `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,7 KiB** |
+| kontofreie PWA (`index-*.js`) | 441,53 kB | 441,59 kB |
+| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → 574,85 kB (Phase 5) → **578,83 kB** (Phase 6) |
 
 Nach Phase 4 sind Lehrkraftdatei und Lernlaufzeit weiterhin bei **9482,1 KiB**
 und **674,6 KiB**. Einmal wären sie um 0,5 und 0,2 KiB gewachsen: Eine
@@ -861,12 +969,22 @@ und wanderte damit in jede Lerndatei mit. Sie steht jetzt in
 `src/styles/portal.css`, das nur `portal-main.tsx` importiert. Bei 0,2 KiB
 klingt das kleinlich; die Gewohnheit ist der Punkt.
 
+**Phase 6 kostet 0,1 KiB in beiden portablen Dateien** – und der Posten ist
+benannt: `src/application/progressEvents.ts`, die eine Stelle, an der ein
+Lernstandsereignis entsteht. Sie liegt in den portablen Dateien mit, weil auch
+dort Ereignisse entstehen, und sie dort **nicht** zu haben hieße, das
+Leitner-Ergebnis an zwei Stellen zusammenzubauen. 0,1 KiB gegen zwei
+Wahrheiten ist ein guter Tausch; die Zahl steht hier trotzdem, weil die
+Gewohnheit der Punkt ist.
+
 **Das Portalbündel wächst dagegen.** 488 → 575 kB durch Phase 5, im
 Wesentlichen Zod (die Paketprüfung) und die beiden Gateways. Das ist kein
 Fehler – das Portal ist nicht portabel –, aber es ist beobachtet: Für ein
 Telefon im Schulnetz sind 575 kB spürbar. Zwei Hebel liegen bereit und sind
 noch nicht gezogen: den Supabase-Client und die Paketprüfung erst beim ersten
-Bedarf laden. Die Übernahme vom Gerät ist bereits abgetrennt (98,8 kB).
+Bedarf laden. Die Übernahme vom Gerät ist bereits abgetrennt (98,8 kB), die Übungsseite
+ebenfalls (22,1 kB): Eine Lehrkraft, die nur Material verwaltet, lädt sie nie.
+Phase 6 hat dem Hauptbündel deshalb nur 4 kB hinzugefügt.
 
 Einmal ist dabei etwas durchgerutscht und wurde bemerkt: Das Portal band
 anfangs die Datenschutzseite der kontofreien Anwendung ein, und an der hing
@@ -890,6 +1008,7 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 | 3 | `a8a44a8` | Zweiter Web-Einstieg, vierter Modus, Anmeldung, Wiederherstellung (§ 2c, ADR-10/11) | 2384 Tests, 159 E2E unverändert, 29 Portable-E2E, 11 neue Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 4 | `56faa8c` | Kurse, Mitgliedschaft, Einladungen; Kursvertrag gegen zwei Erfüllungen; Serverfunktion aufgetrennt und geprüft (§ 2d) | 2487 Tests, 159 E2E unverändert, 29 Portable-E2E, **20** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 5 | `085b0c8` | Pakete im Konto, unveränderliche Revisionen, Zuweisung, Übernahme vom Gerät (§ 5) | 2539 Tests, 159 E2E unverändert, 29 Portable-E2E, **22** Portal-E2E, 32 Prüfungen; Größen unverändert |
+| 6 | *(folgt)* | Lernstand im Konto, geräteübergreifend und idempotent; Üben im Portal (§ 5.5) | 2589 Tests, 159 E2E unverändert, 29 Portable-E2E, **26** Portal-E2E, 32 Prüfungen; portable Dateien +0,1 KiB (§ 8) |
 
 Die Zeile der jeweils letzten Phase trägt ihre Commit-ID mit dem **folgenden**
 Commit nach – vorher gibt es sie nicht. Jede Abnahme ist eine tatsächlich
@@ -1008,8 +1127,41 @@ Ein Befund in dieser Phase kam wieder von einer Prüfung: Die Fälschung meldete
 denselben Zeitstempel bekamen. Die Datenbank hat das Problem nicht (`now()`
 mit Mikrosekunden); die Fälschung hat jetzt eine Uhr, die nie stehenbleibt.
 
-**Als Nächstes:** Phase 6 – Lernstand im Konto, geräteübergreifend und
-idempotent. Danach § 5.5 füllen.
+- Phase 6 – Lernstand im Konto: Schreibweg in SQL, Lernstandsvertrag gegen
+  Fälschung **und** echtes PostgreSQL, Ereignisse an genau einer Stelle
+  gebaut, Üben im Portal. Siehe § 5.5.
+
+**Messung nach Phase 6** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2589** Tests in **152** Dateien, alle grün |
+| davon `npm run test:db` | 79 gegen PostgreSQL 17.5 |
+| davon Lernstandsvertrag | 2 × 17 – einmal Fälschung, einmal PostgreSQL |
+| `npm run build` | beide Web-Auslieferungen erfolgreich |
+| `npm run build:portable` | 9482,2 KiB / 674,7 KiB – **+0,1 KiB**, Posten benannt (§ 8) |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | **159** E2E – unverändert, nicht angefasst |
+| `npm run e2e:portable` | 29 Portable-E2E, alle grün |
+| `npm run e2e:portal` | **26** Portal-E2E, alle grün |
+
+Eine Gegenprobe in dieser Phase: Nimmt man den Riegel gegen rückwärtslaufende
+Lernstände aus der Migration heraus, fällt genau die eine Prüfung um, die ihn
+beschreibt – die Prüfung prüft also etwas. Ein Befund kam von einer bestehenden
+Prüfung: `reset_my_progress` fiel in die grobe Suche nach Funktionen mit
+`reset` im Namen, mit der seit Phase 3 ein „die Lehrkraft setzt eben ein neues
+Kennwort" abgefangen wird. Statt das Muster enger zu ziehen, steht die Funktion
+jetzt als begründete Ausnahme dort – enger hieße, dass `reset_password_for`
+eines Tages durchrutscht.
+
+Die neue Portal-E2E beginnt bewusst in der **kontofreien** Anwendung: Sie legt
+dort ein Paket an, übernimmt es im Portal, veröffentlicht, weist zu und übt
+damit. Das ist der einzige Ort, an dem die Zusage aus § 5.4 – beide
+Auslieferungen, ein Ursprung, ein IndexedDB – tatsächlich nachprüfbar ist.
+
+**Als Nächstes:** Phase 7 – KI-Zugang mit Verschlüsselung und SSRF-Schutz
+(ADR-8, ADR-9).
 
 **Nicht vergessen:**
 

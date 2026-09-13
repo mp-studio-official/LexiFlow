@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, Route, Routes, useParams } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Alert, Card, EmptyState } from '../../ui/components';
@@ -14,13 +14,15 @@ import type { Course, PackRevision } from '../../application/repositories';
  * liegt eine Map dahinter (siehe `fakeCloudRepositories.ts`); ab Phase 4 ist
  * es die Datenbank, ohne dass diese Datei sich ändert.
  *
- * ## Was hier fehlt
+ * ## Das Üben
  *
- * Das Üben selbst. Die Übungsseiten existieren seit Sprint 1 und arbeiten
- * heute gegen `packRepo` direkt; sie an die Verträge zu hängen ist Phase 6 und
- * gehört dorthin, weil dazu der Lernstand geräteübergreifend gehört. Bis dahin
- * wäre ein Verweis von hier aus ein Knopf ohne Ziel.
+ * Seit Phase 6 dabei – in `PracticePage`, lazy geladen, weil es die
+ * Aufgabenlogik ins Bündel zieht und eine Lehrkraft sie nie braucht. Die
+ * Übung selbst ist dieselbe wie ohne Konto; nur der Lernstand geht ins Konto
+ * statt in IndexedDB.
  */
+
+const PracticePage = lazy(() => import('./PracticePage'));
 
 function Kursliste() {
   const courses = useOptionalRepository('courses');
@@ -136,21 +138,23 @@ function Kurs() {
               <p className="small muted" style={{ margin: 0 }}>
                 {paket.pack.entries.length} Vokabeln · Klasse {paket.pack.meta.grade}
               </p>
+              <p style={{ marginBottom: 0 }}>
+                <Link to={`/lernen/kurs/${courseId ?? ''}/ueben/${paket.packId}`}>Üben</Link>
+              </p>
             </Card>
           </li>
         ))}
       </ul>
 
       {pakete !== undefined && pakete.length > 0 ? (
-        <Alert tone="info" title="Üben kommt als Nächstes">
+        <Alert tone="info" title="Dein Lernstand liegt in deinem Konto">
           {/*
-            Ehrlich statt einladend: Ein Knopf „Üben", der nichts tut, wäre
-            schlimmer als der Satz, dass es ihn noch nicht gibt. Der Lernstand
-            über mehrere Geräte gehört in Phase 6, und ohne ihn wäre Üben im
-            Portal ein Fortschritt, der beim nächsten Gerät wieder weg ist.
+            Der Satz, der den Unterschied zum kontofreien LexiFlow erklärt –
+            und zugleich der einzige Grund, warum es das Konto gibt. Ohne ihn
+            wüsste niemand, warum er sich anmelden sollte.
           */}
-          Die Vokabeln sind da. Das Üben im Portal kommt mit dem geräteübergreifenden Lernstand –
-          bis dahin geht es in einer Lerndatei, die deine Lehrkraft weitergeben kann.
+          Was du hier übst, steht auf jedem Gerät, auf dem du dich anmeldest. Deine Lehrkraft sieht
+          ihn nicht – sie sieht nur, welche Pakete es gibt.
         </Alert>
       ) : null}
     </div>
@@ -170,6 +174,14 @@ export function LearnerArea() {
         }
       />
       <Route path="kurs/:courseId" element={<Kurs />} />
+      <Route
+        path="kurs/:courseId/ueben/:packId"
+        element={
+          <Suspense fallback={<p className="muted">Die Übung wird geladen …</p>}>
+            <PracticePage />
+          </Suspense>
+        }
+      />
     </Routes>
   );
 }
