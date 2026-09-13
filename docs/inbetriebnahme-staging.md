@@ -158,7 +158,32 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 | 1.4.3 | Secret Key (früher „service_role") | **geheim** | nur Supabase → Edge Function Secrets |
 | 1.4.4 | `LEXIFLOW_ALLOWED_ORIGINS` | unkritisch | Supabase → Edge Function Secrets |
 | 1.4.5 | `LEXIFLOW_AI_MASTER_KEY_V1` | **geheim** | nur Supabase → Edge Function Secrets |
-| 1.4.6 | KI-Anbieterschlüssel | **geheim** | **nirgends hier** – die Lehrkraft trägt ihn im Portal ein |
+| 1.4.6 | KI-Anbieterschlüssel | **geheim** | **nicht hier** – die Lehrkraft trägt ihn im Portal ein (6.11); er landet verschlüsselt in der Datenbank |
+
+> ### Vier Schlüsselklassen, vier verschiedene Wege
+>
+> „Gehört nicht in Supabase" ist für den Anbieterschlüssel **falsch** – er wird
+> dort sehr wohl gespeichert. Was nicht passiert, ist etwas anderes: Er wird
+> nicht von Hand eingetragen und ist kein gemeinsames Projekt-Secret. Die
+> Unterscheidung ist nicht akademisch, denn sie entscheidet, wer ihn lesen kann.
+>
+> | Schlüssel | Wo er eingegeben wird | Wo er liegt | Wer ihn im Klartext sieht |
+> | --- | --- | --- | --- |
+> | **Anbieterschlüssel** (je Lehrkraft) | Portalformular der Lehrkraft | `ai_connections.secret_ciphertext`, AES-GCM-versiegelt | **niemand** – die Edge Function entsiegelt ihn im Arbeitsspeicher für einen Aufruf |
+> | **Hauptschlüssel** `LEXIFLOW_AI_MASTER_KEY_V1` | Supabase → Edge Function Secrets | nur dort | nur die Laufzeit der Funktion |
+> | **Publishable Key** | `.env`, GitHub → Variables | im ausgelieferten Bündel | jeder – **so gedacht** |
+> | **Secret Key** (`service_role`) | Supabase → Edge Function Secrets | nur dort | nur die Laufzeit der Funktion |
+>
+> Der Weg des Anbieterschlüssels ist also: **Browser → Edge Function →
+> versiegelt in die Datenbank.** Er geht durch Supabase hindurch und bleibt
+> dort, aber in keiner Form, die jemand lesen kann – auch Marc nicht, auch mit
+> Dashboard-Zugang nicht. Das ist 7.6.3: Wer im SQL-Editor nachsieht, findet
+> Base64 und nicht den Schlüssel.
+>
+> Was daraus **nicht** folgt: dass er als Function Secret abgelegt werden
+> dürfte. Ein Function Secret gilt projektweit; der Anbieterschlüssel gehört
+> einer Lehrkraft und wird pro Verbindung an ihre Kennung gebunden (AAD,
+> siehe 7.6.5).
 
 > ### Zum Secret Key: zwei Dinge, die oft verwechselt werden
 >
@@ -179,8 +204,11 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 
 > ### ⚠ Der früher im Chat gepostete Gemini-Schlüssel
 >
-> Er gilt als **kompromittiert** und wird hier nirgends verwendet. Er darf
-> weder in Supabase noch in GitHub noch im Portal eingetragen werden.
+> Er gilt als **kompromittiert** und wird hier nirgends verwendet. Für ihn gilt
+> die Tabelle oben **nicht**: Auch der ordentliche Weg über das Portalformular
+> ist ihm verschlossen. Ein verbrannter Schlüssel wird durch sorgfältige
+> Aufbewahrung nicht wieder gut – wer ihn kennt, ruft den Anbieter auf Marcs
+> Rechnung, ganz ohne LexiFlow.
 >
 > **Bitte beim Anbieter widerrufen**, falls noch nicht geschehen – ein
 > Schlüssel, der einmal in einem Chatverlauf stand, ist unabhängig davon
@@ -370,6 +398,13 @@ ohne etwas zu schützen.
 `LEXIFLOW_ALLOWED_ORIGINS`, `LEXIFLOW_AI_MASTER_KEY_V1` – siehe 3.4.
 
 **Der Secret Key und der Hauptschlüssel gehören ausschließlich dorthin.**
+
+**Der Anbieterschlüssel gehört ausdrücklich *nicht* in diese Liste** – aber
+nicht, weil er nicht nach Supabase käme. Er kommt dorthin, nur über einen
+anderen Weg: Die Lehrkraft gibt ihn im Portal ein (6.11), die Edge Function
+versiegelt ihn, und er liegt verschlüsselt in `ai_connections`. Ein Function
+Secret gälte projektweit und wäre für eine zweite Lehrkraft bereits falsch.
+Siehe den Kasten „Vier Schlüsselklassen" in 1.4.
 
 ---
 
@@ -598,6 +633,11 @@ gesendete** Stand gilt, nicht der mit der späteren Uhrzeit.
 | 6.11.5 | „Verbindung prüfen" | erster echter Anbieteraufruf überhaupt |
 | 6.11.6 | Entwicklerwerkzeuge → Netzwerk | **kein** Aufruf an den Anbieter aus dem Browser; nur an `functions/v1/ai-gateway` |
 | 6.11.7 | Anbieter „OpenAI-kompatibel", eigene Adresse `https://beliebig.example/v1/` | **„Dieser Host ist nicht freigegeben."** |
+| 6.11.8 | Im SQL-Editor `select secret_ciphertext from ai_connections` | Base64 – der eingegebene Schlüssel liegt jetzt **in Supabase**, aber versiegelt |
+
+> 6.11.8 ist die Gegenprobe zum Kasten in 1.4: Der Anbieterschlüssel *wird* in
+> Supabase gespeichert. Die Zusage ist nicht, dass er das Haus nicht betritt,
+> sondern dass ihn dort niemand lesen kann.
 
 ### 6.12 Mitgliedschaft entfernen → Schreibzugriff endet
 
