@@ -1105,7 +1105,7 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 | 4 | `56faa8c` | Kurse, Mitgliedschaft, Einladungen; Kursvertrag gegen zwei Erfüllungen; Serverfunktion aufgetrennt und geprüft (§ 2d) | 2487 Tests, 159 E2E unverändert, 29 Portable-E2E, **20** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 5 | `085b0c8` | Pakete im Konto, unveränderliche Revisionen, Zuweisung, Übernahme vom Gerät (§ 5) | 2539 Tests, 159 E2E unverändert, 29 Portable-E2E, **22** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 6 | `bfc41e9` | Lernstand im Konto, geräteübergreifend und idempotent; Üben im Portal (§ 5.5) | 2589 Tests, 159 E2E unverändert, 29 Portable-E2E, **26** Portal-E2E, 32 Prüfungen; portable Dateien +0,1 KiB (§ 8) |
-| 6b | *(folgt)* | Korrektur: Fassung statt Client-Zeitstempel; serverseitige Eingangsprüfung (§ 5.5.3, § 5.5.4, § 5.5.8) | 2625 Tests, davon Lernstandsvertrag 2 × 32; 159 E2E unverändert, 26 Portal-E2E |
+| 6b | `3adef03` | Korrektur: Fassung statt Client-Zeitstempel; serverseitige Eingangsprüfung (§ 5.5.3, § 5.5.4, § 5.5.8) | 2625 Tests, davon Lernstandsvertrag 2 × 32; 159 E2E unverändert, 26 Portal-E2E |
 
 Die Zeile der jeweils letzten Phase trägt ihre Commit-ID mit dem **folgenden**
 Commit nach – vorher gibt es sie nicht. Jede Abnahme ist eine tatsächlich
