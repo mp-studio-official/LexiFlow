@@ -99,7 +99,9 @@ fehlen und deshalb im Staging von Hand zu tun sind:
    die Lehrkraft kann keinen Kurs anlegen.
 
 **Für dieses Staging mit *einer* Lehrkraft ist Handarbeit freigegeben** –
-Dashboard plus das dokumentierte SQL in 6.1/6.2.
+Dashboard plus das dokumentierte SQL in 6.1/6.2. Beides im Dashboard: das
+Konto über Authentication → Users, die Profilzeile über den SQL-Editor. **Der
+Secret Key wird dafür nicht herausgegeben**, siehe den Kasten in 1.4.
 
 > **Aber sie ist ein Blocker für mehr.** Siehe Abschnitt 14: Vor einer
 > Weitergabe an mehrere Lehrkräfte muss die manuelle Konto- und
@@ -157,6 +159,23 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 | 1.4.4 | `LEXIFLOW_ALLOWED_ORIGINS` | unkritisch | Supabase → Edge Function Secrets |
 | 1.4.5 | `LEXIFLOW_AI_MASTER_KEY_V1` | **geheim** | nur Supabase → Edge Function Secrets |
 | 1.4.6 | KI-Anbieterschlüssel | **geheim** | **nirgends hier** – die Lehrkraft trägt ihn im Portal ein |
+
+> ### Zum Secret Key: zwei Dinge, die oft verwechselt werden
+>
+> **Erhöhte Rechte im Dashboard** und **den Schlüssel in der Hand haben** sind
+> nicht dasselbe. Der SQL-Editor im Supabase-Dashboard arbeitet an den
+> Zugriffsregeln vorbei, weil er *innerhalb* von Supabase läuft – angemeldet
+> über Marcs Supabase-Konto, protokolliert, jederzeit entziehbar. Der
+> Schlüssel selbst wird dabei nirgendwohin kopiert.
+>
+> Der Secret Key aus 1.4.3 dagegen ist ein Wert, der wandert. Wo er ankommt,
+> ist er dauerhaft, unprotokolliert und nicht einzeln zurückziehbar.
+>
+> **Daraus folgt für dieses Dokument:** Der Secret Key wird an genau einer
+> Stelle eingetragen – Supabase → Edge Function Secrets – und sonst nirgends.
+> Für die Handarbeit in 6.1/6.2 wird er **nicht gebraucht**; sie läuft
+> vollständig über Dashboard und SQL-Editor. Wer ihn dafür herauskopiert, tut
+> mehr als nötig.
 
 > ### ⚠ Der früher im Chat gepostete Gemini-Schlüssel
 >
@@ -450,6 +469,11 @@ values ('<uuid>', 'A. Beispiel', 'LX-4821', 'teacher');
 > Abschnitt 14 sagt, was vor einer Weitergabe an mehrere Lehrkräfte an ihre
 > Stelle treten muss.
 
+> **Beide Schritte bleiben im Dashboard.** Weder 6.1 noch 6.2 braucht den
+> Secret Key irgendwo außerhalb von Supabase – kein `psql` mit dem Schlüssel in
+> der Befehlszeile, kein Skript auf dem Laptop, keine Zwischenablage. Wenn ein
+> Weg hier den Secret Key verlangt, ist es der falsche Weg.
+
 ### 6.3 Anmelden als Lehrkraft
 
 | Nr. | Erwartung |
@@ -680,13 +704,18 @@ erfahren), beim Aufruf nicht – dort wäre er ein Scanner für das interne Netz
 | --- | --- | --- |
 | 7.6.1 | `select masked_secret from ai_connections` als Lehrkraft | nur die Maske |
 | 7.6.2 | `select secret_ciphertext …` | **permission denied** |
-| 7.6.3 | Mit Service Role: `secret_ciphertext` ansehen | Base64, **nicht** der Klartext |
+| 7.6.3 | Im SQL-Editor: `secret_ciphertext` ansehen | Base64, **nicht** der Klartext |
 | 7.6.4 | `secret_iv` bei zwei Verbindungen vergleichen | **verschieden** |
-| 7.6.5 | Chiffretext von Verbindung A auf B kopieren (Service Role), dann B aufrufen | **409**, „lässt sich nicht entsiegeln" |
+| 7.6.5 | Chiffretext von Verbindung A auf B kopieren (im SQL-Editor), dann B aufrufen | **409**, „lässt sich nicht entsiegeln" |
 | 7.6.6 | `LEXIFLOW_AI_MASTER_KEY_V1` löschen, Verbindung aufrufen | **503**; die Zeile **bleibt stehen** |
 | 7.6.7 | Schlüssel wieder setzen | funktioniert wieder |
 
 7.6.5 ist die Abnahme der AAD-Bindung, 7.6.6 die des kontrollierten Fehlers.
+
+> **7.6.3 und 7.6.5 laufen im SQL-Editor des Dashboards**, nicht mit dem Secret
+> Key in einem lokalen Werkzeug. Dass die Zugriffsregeln dort nicht greifen,
+> ist genau der Punkt der Prüfung – erhöhte Rechte braucht sie, den
+> herauskopierten Schlüssel nicht.
 
 ### 7.7 Rollen
 
@@ -1000,19 +1029,33 @@ Probleme, und keines davon ist Bequemlichkeit:
 
 | Problem | Folge |
 | --- | --- |
-| Wer das tut, braucht die **Service Role** | also den Schlüssel, mit dem man an jeder Zugriffsregel vorbeikommt |
+| Es braucht **Dashboard-Zugang zum Produktivprojekt** | wer eine Lehrkraft anlegen darf, kann dort alles – auch Lernstände lesen, was dem Produktversprechen widerspricht |
 | Eine Kurzkennung von Hand | Tippfehler, Dopplungen, und `LX-0002` beschreibt Reihenfolge statt nichts |
-| Kein Protokoll | niemand kann später sagen, wer wen zur Lehrkraft gemacht hat |
+| Kein Protokoll auf Anwendungsebene | Supabase hält fest, *dass* jemand SQL ausgeführt hat; es steht nirgends, dass es eine Rollenvergabe war und für wen |
+
+> **Was hier *nicht* das Problem ist.** Der Secret Key muss dafür nicht
+> herausgegeben werden – der SQL-Editor läuft innerhalb von Supabase. Eine
+> frühere Fassung dieses Abschnitts hat das anders behauptet; das war falsch.
+> Der Engpass ist der Dashboard-Zugang selbst, nicht ein wandernder Schlüssel.
+> Und genau deshalb skaliert der Weg nicht: Dashboard-Zugang lässt sich nicht
+> auf „darf Lehrkräfte anlegen" einschränken.
 
 **Was an ihre Stelle treten muss** (eigener Sprint, nicht dieser):
 
 1. Ein Weg in der Verwaltungsoberfläche, mit dem eine Person mit Rolle `admin`
-   ein Lehrkraftkonto anlegt – ohne Service Role im Browser.
-2. Profil und Kurzkennung entstehen dabei **serverseitig**, mit derselben
-   Erzeugung wie bei Lernenden (`kurzkennungAus`, aus kryptografischem
-   Zufall).
-3. Ein nachvollziehbarer Vermerk, wer eine Rolle vergeben hat.
-4. Ein Weg, eine Rolle wieder zu entziehen.
+   ein Lehrkraftkonto anlegt – **ohne Dashboard-Zugang und ohne Secret Key im
+   Browser**.
+2. Der Secret Key bleibt dabei **ausschließlich serverseitig**: Er lebt
+   weiterhin nur in den Edge Function Secrets, die Funktion benutzt ihn, und
+   er verlässt Supabase auch dann nicht, wenn die Verwaltung ihn indirekt
+   auslöst. Eine Lösung, die ihn an einen Menschen, einen Client oder ein
+   Skript weitergibt, ist keine Lösung, sondern dieselbe Handarbeit mit
+   Oberfläche.
+3. Profil und Kurzkennung entstehen **serverseitig**, mit derselben Erzeugung
+   wie bei Lernenden (`kurzkennungAus`, aus kryptografischem Zufall).
+4. Ein fachlicher Vermerk, wer wem wann welche Rolle gegeben hat – in der
+   Anwendung, nicht im Protokoll des Datenbankanbieters.
+5. Ein Weg, eine Rolle wieder zu entziehen.
 
 Solange das fehlt, gilt: **ein Staging, eine Lehrkraft, Handarbeit
 dokumentiert.** Kein Pilotbetrieb an einer Schule.
