@@ -224,14 +224,14 @@ revoke all on function app_my_role() from public;
 revoke all on function app_is_member_of(uuid) from public;
 revoke all on function app_is_teacher_of(uuid) from public;
 revoke all on function app_owns_course(uuid) from public;
-revoke all on function app_owns_pack(uuid) from public;
+revoke all on function app_owns_pack(text) from public;
 revoke all on function app_sees_profile(uuid) from public;
-revoke all on function app_revision_is_assigned_to_me(uuid, integer) from public;
+revoke all on function app_revision_is_assigned_to_me(text, integer) from public;
 
 grant execute on function app_my_role() to authenticated;
 grant execute on function app_is_member_of(uuid) to authenticated;
 grant execute on function app_is_teacher_of(uuid) to authenticated;
 grant execute on function app_owns_course(uuid) to authenticated;
-grant execute on function app_owns_pack(uuid) to authenticated;
+grant execute on function app_owns_pack(text) to authenticated;
 grant execute on function app_sees_profile(uuid) to authenticated;
-grant execute on function app_revision_is_assigned_to_me(uuid, integer) to authenticated;
+grant execute on function app_revision_is_assigned_to_me(text, integer) to authenticated;

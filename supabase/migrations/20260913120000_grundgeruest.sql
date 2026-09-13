@@ -118,7 +118,20 @@ create index course_invites_course_idx on course_invites (course_id);
 -- ---------------------------------------------------------------- Pakete --
 
 create table packs (
-  id uuid primary key default gen_random_uuid(),
+  /*
+    Text und nicht `uuid`, und das ist eine fachliche Entscheidung:
+
+    Die Paketkennung kommt vom Client. Sie steht seit Sprint 1 in jeder
+    Paketdatei, in jeder Lerndatei und in jedem lokalen Lernstand – und sie
+    muss **unverändert** übernommen werden, sonst wäre „ein Paket ins Konto
+    übernehmen" beim zweiten Mal ein zweites Paket (ADR-4).
+
+    `newId()` liefert in heutigen Browsern eine UUID, hat aber einen Rückfall
+    für Umgebungen ohne sicheren Kontext. Eine `uuid`-Spalte lehnte eine so
+    entstandene Kennung ab – und zwar erst beim Übernehmen, Jahre später, bei
+    genau der Person mit dem alten Browser.
+  */
+  id text primary key check (char_length(id) between 1 and 100),
   owner_id uuid not null references profiles (id) on delete cascade,
   title text not null check (char_length(title) between 1 and 200),
   grade text not null check (char_length(grade) between 1 and 20),
@@ -134,7 +147,7 @@ comment on table packs is
   'Entwurf (ADR-4).';
 
 create table pack_drafts (
-  pack_id uuid primary key references packs (id) on delete cascade,
+  pack_id text primary key references packs (id) on delete cascade,
   format_version integer not null check (format_version > 0),
   pack jsonb not null,
   updated_at timestamptz not null default now()
@@ -145,7 +158,7 @@ comment on table pack_drafts is
   'dafür gibt es hier keine Zugriffsregel, nicht nur keinen Knopf.';
 
 create table pack_revisions (
-  pack_id uuid not null references packs (id) on delete cascade,
+  pack_id text not null references packs (id) on delete cascade,
   revision integer not null check (revision > 0),
   format_version integer not null check (format_version > 0),
   pack jsonb not null,
@@ -162,7 +175,7 @@ create table pack_revisions (
 
 create table course_packs (
   course_id uuid not null references courses (id) on delete cascade,
-  pack_id uuid not null references packs (id) on delete cascade,
+  pack_id text not null references packs (id) on delete cascade,
   revision integer not null,
 
   -- „position" wäre in SQL ein Funktionsname und müsste überall in
@@ -185,7 +198,7 @@ create table course_packs (
 create table pack_progress (
   user_id uuid not null references profiles (id) on delete cascade,
   course_id uuid not null references courses (id) on delete cascade,
-  pack_id uuid not null references packs (id) on delete cascade,
+  pack_id text not null references packs (id) on delete cascade,
   session_count integer not null default 0 check (session_count >= 0),
   answered_count integer not null default 0 check (answered_count >= 0),
   correct_count integer not null default 0 check (correct_count >= 0),
@@ -196,7 +209,7 @@ create table pack_progress (
 create table entry_progress (
   user_id uuid not null references profiles (id) on delete cascade,
   course_id uuid not null references courses (id) on delete cascade,
-  pack_id uuid not null references packs (id) on delete cascade,
+  pack_id text not null references packs (id) on delete cascade,
 
   -- Die Vokabelkennung aus dem Paket-JSON, kein Fremdschlüssel: Vokabeln sind
   -- keine Zeilen in dieser Datenbank (siehe oben, JSONB).

@@ -99,6 +99,21 @@ function faltung(text: string): string {
   return `faltung:${wert}`;
 }
 
+/** Ein Entwurf samt Eigentum und Zeitpunkt – das, was die Liste braucht. */
+export interface FakeEntwurf {
+  pack: VocabPack;
+  ownerId: string;
+  updatedAt: string;
+}
+
+/** Eine eingefrorene Fassung. `withdrawnAt` heißt: aus den Kursen genommen. */
+export interface FakeRevision {
+  revision: number;
+  pack: VocabPack;
+  publishedAt: string;
+  withdrawnAt?: string;
+}
+
 function kursSchluessel(courseId: string, packId: string): string {
   return `${courseId}::${packId}`;
 }
@@ -111,8 +126,8 @@ export interface FakeCloudState {
   courses: Course[];
   members: Map<string, CourseMember[]>;
   invites: Map<string, { invite: CourseInvite; codeFaltung: string; erzeugtVon: string }>;
-  drafts: Map<string, VocabPack>;
-  revisions: Map<string, PackRevision[]>;
+  drafts: Map<string, FakeEntwurf>;
+  revisions: Map<string, FakeRevision[]>;
   assignments: Map<string, { packId: string; revision: number; position: number }[]>;
   packProgress: Map<string, PackProgress>;
   entryProgress: Map<string, EntryProgress[]>;
@@ -156,7 +171,25 @@ export interface FakeCloud {
 }
 
 export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud {
-  const jetzt = options.now ?? (() => new Date().toISOString());
+  /*
+    Eine Uhr, die nie stehenbleibt.
+
+    `new Date().toISOString()` hat Millisekunden. Zwei Schritte in derselben
+    Millisekunde – veröffentlichen und gleich wieder speichern – bekämen
+    denselben Zeitpunkt, und „der Entwurf ist neuer als die Veröffentlichung"
+    wäre dann falsch. In der Datenbank stellt sich die Frage nicht: `now()`
+    hat Mikrosekunden und ist je Transaktion verschieden.
+
+    Aufgefallen an einem Oberflächentest, der genau diesen Zustand anzeigen
+    wollte und nichts fand.
+  */
+  const roheUhr = options.now ?? (() => new Date().toISOString());
+  let letzter = '';
+  const jetzt = () => {
+    const gelesen = roheUhr();
+    letzter = gelesen > letzter ? gelesen : new Date(Date.parse(letzter) + 1).toISOString();
+    return letzter;
+  };
   const state = leererStand();
   let session: Session | undefined;
   const listeners = new Set<(session: Session | undefined) => void>();
@@ -508,98 +541,178 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     },
   };
 
-  function zusammenfassung(pack: VocabPack): PackSummary {
-    const revisionen = state.revisions.get(pack.meta.id) ?? [];
-    const letzte = revisionen.at(-1);
+  /* ------------------------------------------------------------ Pakete -- */
+
+  function meinEntwurf(packId: string): FakeEntwurf | undefined {
+    const mich = ich();
+    const eintrag = state.drafts.get(packId);
+    return eintrag && eintrag.ownerId === mich.profile.id ? eintrag : undefined;
+  }
+
+  function nurEigenesPaket(packId: string): FakeEntwurf {
+    const eintrag = meinEntwurf(packId);
+    if (!eintrag) throw new Error('Dieses Paket gehört jemand anderem.');
+    return eintrag;
+  }
+
+  function revisionen(packId: string): FakeRevision[] {
+    return state.revisions.get(packId) ?? [];
+  }
+
+  function zusammenfassung(eintrag: FakeEntwurf): PackSummary {
+    const letzte = revisionen(eintrag.pack.meta.id).at(-1);
     return {
-      id: pack.meta.id,
-      title: pack.meta.title,
-      grade: pack.meta.grade,
-      entryCount: pack.entries.length,
+      id: eintrag.pack.meta.id,
+      title: eintrag.pack.meta.title,
+      grade: eintrag.pack.meta.grade,
+      entryCount: eintrag.pack.entries.length,
       ...(letzte === undefined ? {} : { publishedRevision: letzte.revision }),
-      hasUnpublishedChanges: letzte === undefined || letzte.publishedAt < pack.meta.updatedAt,
-      updatedAt: pack.meta.updatedAt,
+      // Wie in der Datenbank: Der Entwurf ist jünger als die letzte
+      // Veröffentlichung.
+      hasUnpublishedChanges: letzte === undefined || letzte.publishedAt < eintrag.updatedAt,
+      updatedAt: eintrag.updatedAt,
     };
   }
 
   const packs: PackRepository = {
     async list() {
-      ich();
-      return [...state.drafts.values()].map(zusammenfassung);
+      const mich = ich();
+      return [...state.drafts.values()]
+        .filter((eintrag) => eintrag.ownerId === mich.profile.id)
+        .map(zusammenfassung);
     },
+
     async getDraft(packId) {
-      ich();
-      return state.drafts.get(packId);
+      return meinEntwurf(packId)?.pack;
     },
+
     async saveDraft(pack) {
-      ich();
-      state.drafts.set(pack.meta.id, pack);
-      return zusammenfassung(pack);
+      const mich = ich();
+      if (mich.profile.role === 'student') throw new Error('Material legen Lehrkräfte an.');
+
+      const vorhanden = state.drafts.get(pack.meta.id);
+      if (vorhanden && vorhanden.ownerId !== mich.profile.id) {
+        throw new Error('Dieses Paket gehört jemand anderem.');
+      }
+      /*
+        Der Zeitpunkt kommt von hier und nicht aus `pack.meta.updatedAt`: Eine
+        Fälschung, die den Zeitstempel der Eingabe übernimmt, könnte
+        „unveröffentlichte Änderungen" nie zuverlässig melden – und genau das
+        ist der Unterschied, den die Liste anzeigt.
+      */
+      const eintrag: FakeEntwurf = {
+        pack: structuredClone(pack),
+        ownerId: mich.profile.id,
+        updatedAt: jetzt(),
+      };
+      state.drafts.set(pack.meta.id, eintrag);
+      return zusammenfassung(eintrag);
     },
+
     async deletePack(packId) {
-      ich();
+      nurEigenesPaket(packId);
       state.drafts.delete(packId);
       state.revisions.delete(packId);
+      for (const [courseId, zuweisungen] of state.assignments) {
+        state.assignments.set(
+          courseId,
+          zuweisungen.filter((zuweisung) => zuweisung.packId !== packId),
+        );
+      }
     },
+
     async importFromLocal(pack) {
+      // Dieselbe Kennung, also derselbe Eintrag: wiederholbar (ADR-4).
       return this.saveDraft(pack);
     },
   };
 
   const publication: PublicationRepository = {
     async publish(packId) {
-      ich();
-      const entwurf = state.drafts.get(packId);
-      if (!entwurf) throw new Error('Kein Entwurf zu diesem Paket.');
-      const bisher = state.revisions.get(packId) ?? [];
-      const revision: PackRevision = {
-        packId,
+      const entwurf = nurEigenesPaket(packId);
+      const bisher = revisionen(packId);
+      const revision: FakeRevision = {
         revision: (bisher.at(-1)?.revision ?? 0) + 1,
-        // Eine Kopie: Eine Revision ist unveränderlich, und eine geteilte
-        // Referenz wäre es nicht (ADR-4).
-        pack: structuredClone(entwurf),
+        // Eine Kopie: Eine veröffentlichte Fassung ist unveränderlich, und
+        // eine geteilte Referenz wäre es nicht (ADR-4).
+        pack: structuredClone(entwurf.pack),
         publishedAt: jetzt(),
       };
       state.revisions.set(packId, [...bisher, revision]);
-      return revision;
+      return { packId, revision: revision.revision, pack: revision.pack, publishedAt: revision.publishedAt };
     },
+
     async withdraw(packId, revision) {
-      ich();
-      state.revisions.set(
-        packId,
-        (state.revisions.get(packId) ?? []).filter((eintrag) => eintrag.revision !== revision),
-      );
+      nurEigenesPaket(packId);
+      for (const eintrag of revisionen(packId)) {
+        if (eintrag.revision === revision) eintrag.withdrawnAt = jetzt();
+      }
+      // Zurückziehen heißt: aus den Kursen verschwinden.
+      for (const [courseId, zuweisungen] of state.assignments) {
+        state.assignments.set(
+          courseId,
+          zuweisungen.filter(
+            (zuweisung) => !(zuweisung.packId === packId && zuweisung.revision === revision),
+          ),
+        );
+      }
     },
+
     async revisions(packId) {
-      ich();
-      return (state.revisions.get(packId) ?? []).map(({ pack: _pack, ...rest }) => rest);
+      nurEigenesPaket(packId);
+      return revisionen(packId).map((eintrag) => ({
+        packId,
+        revision: eintrag.revision,
+        publishedAt: eintrag.publishedAt,
+      }));
     },
+
     async assignToCourse(courseId, packId, revision, position) {
       ich();
+      nurLehrkraftDesKurses(courseId);
+      const kurs = kursOder(courseId, 'Diesen Kurs gibt es nicht.');
+      if (kurs.archived) throw new Error('Ein archivierter Kurs bekommt kein neues Material.');
+
+      const gefunden = revisionen(packId).find(
+        (eintrag) => eintrag.revision === revision && eintrag.withdrawnAt === undefined,
+      );
+      if (!gefunden || !meinEntwurf(packId)) throw new Error('Diese Fassung gibt es nicht.');
+
       const zuweisungen = (state.assignments.get(courseId) ?? []).filter(
         (eintrag) => eintrag.packId !== packId,
       );
       zuweisungen.push({ packId, revision, position });
       state.assignments.set(courseId, zuweisungen);
     },
+
     async removeFromCourse(courseId, packId) {
       ich();
+      nurLehrkraftDesKurses(courseId);
       state.assignments.set(
         courseId,
         (state.assignments.get(courseId) ?? []).filter((eintrag) => eintrag.packId !== packId),
       );
     },
+
     async publishedForCourse(courseId) {
       ich();
+      if (!istMitglied(courseId)) return [];
       const zuweisungen = [...(state.assignments.get(courseId) ?? [])].sort(
         (a, b) => a.position - b.position,
       );
       const ergebnis: PackRevision[] = [];
       for (const zuweisung of zuweisungen) {
-        const revision = (state.revisions.get(zuweisung.packId) ?? []).find(
-          (eintrag) => eintrag.revision === zuweisung.revision,
+        const gefunden = revisionen(zuweisung.packId).find(
+          (eintrag) => eintrag.revision === zuweisung.revision && eintrag.withdrawnAt === undefined,
         );
-        if (revision) ergebnis.push(revision);
+        if (gefunden) {
+          ergebnis.push({
+            packId: zuweisung.packId,
+            revision: gefunden.revision,
+            pack: gefunden.pack,
+            publishedAt: gefunden.publishedAt,
+          });
+        }
       }
       return ergebnis;
     },

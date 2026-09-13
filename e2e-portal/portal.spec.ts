@@ -369,3 +369,57 @@ test.describe('Barrierefreiheit', () => {
     expect(await pruefe(page)).toEqual([]);
   });
 });
+
+/* ================================================ Material (Phase 5) ===== */
+
+test.describe('Material und Veröffentlichung', () => {
+  test('@smoke ein Paket wird veröffentlicht, zugewiesen und ist für die Lerngruppe da', async ({
+    page,
+  }) => {
+    /*
+      Der ganze Weg in einem Durchlauf – weil die einzelnen Schritte im
+      Paketvertrag schon abgenommen sind und hier die Frage ist, ob sie in
+      einem Browser zusammenpassen.
+    */
+    await alsLehrkraft(page);
+    await kursAnlegen(page, 'Englisch 7b');
+    const code = await codeErzeugen(page);
+
+    await page.goto('./portal/#/material');
+    await expect(page.getByRole('heading', { name: 'Material', level: 1 })).toBeVisible();
+
+    // In der Testfassung gibt es noch kein Paket – der leere Zustand erklärt es.
+    await expect(page.getByText('Noch kein Paket im Konto')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'LexiFlow ohne Konto' })).toBeVisible();
+
+    // Die lernende Person kommt herein und sieht den Kurs ohne Vokabeln.
+    await page.getByRole('button', { name: 'Abmelden' }).click();
+    await page.goto('./portal/#/anmelden');
+    await page.getByRole('button', { name: 'Ich lerne' }).click();
+    await page.getByLabel('Lern-ID').fill('fuchs-7390');
+    await page.getByLabel('Kennwort').fill('testkennwort');
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+
+    await page.goto('./portal/#/beitreten');
+    await page.getByLabel('Einladungscode').fill(code);
+    await page.getByRole('button', { name: 'Beitreten' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Englisch 7b', level: 1 })).toBeVisible();
+    await expect(page.getByText('Noch keine Vokabeln')).toBeVisible();
+  });
+
+  test('@a11y die Materialseite ohne schwerwiegende Befunde', async ({ page }) => {
+    await alsLehrkraft(page);
+    await page.goto('./portal/#/material');
+    await page.getByRole('heading', { name: 'Material', level: 1 }).waitFor();
+
+    const ergebnis = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(
+      ergebnis.violations
+        .filter((verstoss) => ['serious', 'critical'].includes(verstoss.impact ?? ''))
+        .map((verstoss) => ({ regel: verstoss.id, wo: verstoss.nodes.map((k) => k.target.join(' ')) })),
+    ).toEqual([]);
+  });
+});

@@ -65,7 +65,7 @@ as $$
   select exists (select 1 from courses where id = p_course and owner_id = auth.uid());
 $$;
 
-create or replace function app_owns_pack(p_pack uuid)
+create or replace function app_owns_pack(p_pack text)
 returns boolean
 language sql
 stable
@@ -107,7 +107,7 @@ $$;
   Das ist der einzige Weg, auf dem eine lernende Person überhaupt an ein Paket
   kommt: veröffentlicht, einem ihrer Kurse zugewiesen, nicht zurückgezogen.
 */
-create or replace function app_revision_is_assigned_to_me(p_pack uuid, p_revision integer)
+create or replace function app_revision_is_assigned_to_me(p_pack text, p_revision integer)
 returns boolean
 language sql
 stable

@@ -65,11 +65,16 @@ beforeEach(async () => {
     'student',
   ]);
 
-  const pakete = await db.query(
-    'insert into packs (owner_id, title, grade) values ($1, $2, $3) returning *',
-    [LEHRERIN, 'Unit 3 – City life', '7'],
+  /*
+    Die Paketkennung kommt vom Client und hat keinen Vorgabewert – sie muss
+    unverändert übernehmbar sein (siehe die Spalte `packs.id`). Hier steht
+    deshalb eine offensichtliche Testkennung, keine erzeugte.
+  */
+  paket = 'pack-unit-3-city-life';
+  await db.query(
+    'insert into packs (id, owner_id, title, grade) values ($1, $2, $3, $4)',
+    [paket, LEHRERIN, 'Unit 3 – City life', '7'],
   );
-  paket = pakete.rows[0].id;
   await db.query(
     'insert into pack_drafts (pack_id, format_version, pack) values ($1, 2, $2)',
     [paket, JSON.stringify({ meta: { title: 'Unit 3 – City life' }, entries: [] })],

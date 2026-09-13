@@ -248,6 +248,13 @@ describe('die security-definer-Funktionen bleiben eng', () => {
       release_invite_by_hash: 'void',
       create_learner_account: 'void',
       rotate_recovery_code: 'void',
+      withdraw_pack_revision: 'void',
+      assign_pack_to_course: 'void',
+
+      // Das eben gespeicherte Paket und die eben erzeugte Fassung – beides
+      // gehört der aufrufenden Person, beides hat sie gerade selbst geschickt.
+      save_pack_draft: 'packs',
+      publish_pack: 'pack_revisions',
     };
 
     const funktionen = await zeilen(`

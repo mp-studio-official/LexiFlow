@@ -685,7 +685,68 @@ die Plattform darunter ist nachgebildet.
 
 ## 5. Veröffentlichung und Lernstand
 
-*Wird in Phase 5 und 6 gefüllt.*
+### 5.1 Drei Zustände eines Pakets
+
+| Zustand | Wer sieht es |
+| --- | --- |
+| nur Entwurf | die Eigentümerin |
+| veröffentlicht | die Eigentümerin; Kurse **erst nach Zuweisung** |
+| veröffentlicht, Entwurf ist neuer | dieselbe Sicht – die Lerngruppe hat noch die alte Fassung |
+
+Der dritte ist der, den eine Oberfläche gern verschweigt. Ohne ihn ändert
+jemand ein Paket, sieht „veröffentlicht" und wundert sich wochenlang, warum
+die Lerngruppe die Änderung nicht hat. Die Materialseite sagt ihn, und ein
+Test hält das fest.
+
+### 5.2 Die Abläufe
+
+| Funktion | Was sie tut |
+| --- | --- |
+| `save_pack_draft` | Paket und Entwurf in **einem** Schritt – getrennt entstünde bei einem Fehlschlag ein Paket ohne Inhalt |
+| `publish_pack` | friert den Entwurf als nächste Revision ein |
+| `withdraw_pack_revision` | setzt `withdrawn_at` **und** nimmt die Fassung aus allen Kursen |
+| `assign_pack_to_course` | weist eine Fassung zu – nicht in archivierte Kurse, nicht fremde Pakete |
+
+**Die Revisionsnummer.** Sie entsteht in einer Anweisung, und der
+Primärschlüssel `(pack_id, revision)` macht aus zwei gleichzeitigen
+Veröffentlichungen einen Fehler statt zweier Fassungen mit derselben Nummer.
+Erst unmöglich machen, dann abfangen.
+
+**Zurückziehen wirkt.** Ohne die zweite Wirkung wäre „zurückgezogen" eine
+Beschriftung, die nichts tut: Die Fassung bliebe in den Kursen und würde weiter
+geübt.
+
+### 5.3 Die Paketkennung ist Text, keine UUID
+
+`packs.id` ist `text`. Der Grund ist fachlich: Die Kennung kommt vom Client,
+steht seit Sprint 1 in jeder Paketdatei und in jedem lokalen Lernstand und muss
+**unverändert** übernommen werden – sonst wäre „ein Paket ins Konto übernehmen"
+beim zweiten Mal ein zweites Paket. `newId()` liefert heute UUIDs, hat aber
+einen Rückfall für Umgebungen ohne sicheren Kontext; eine `uuid`-Spalte lehnte
+eine so entstandene Kennung ab, und zwar erst Jahre später bei genau der Person
+mit dem alten Browser.
+
+> **Dazu eine offene Frage der Arbeitsweise.** Diese Änderung steht in der
+> Migration aus Phase 2 und **nicht** in einer neuen. Das ist vertretbar, weil
+> es nirgends eine Datenbank gibt, auf der sie schon gelaufen wäre (§ 7.1) –
+> und es hält das Schema lesbar. Mit dem ersten echten Deployment endet das:
+> Ab dann sind Migrationen ausschließlich additiv.
+
+### 5.4 Übernahme vom eigenen Gerät
+
+Beide Web-Auslieferungen liegen unter demselben Ursprung, und IndexedDB gehört
+dem Ursprung und nicht dem Pfad. Das Portal liest damit denselben Speicher, in
+dem die kontofreie Anwendung ihre Pakete hat: Wer bisher ohne Konto gearbeitet
+hat, muss nichts exportieren und nichts hochladen.
+
+Übernommen werden **nur Pakete**. Lernstände nicht – auch nicht die eigenen.
+
+Der Bereich wird lazy geladen (98,8 kB, im Wesentlichen Dexie): Eine Lehrkraft
+braucht ihn einmal.
+
+### 5.5 Lernstand
+
+*Wird in Phase 6 gefüllt.*
 
 ## 6. Einrichtung
 
@@ -777,6 +838,9 @@ dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
 | Echte Gleichzeitigkeit auf dem letzten freien Platz nicht nachstellbar | PGlite hat eine Verbindung; belegt ist die Atomarität der Anweisung, nicht das Rennen selbst (§ 2d.2) |
 | `supabaseCourseGateway.ts` (PostgREST) ungeprüft | bekannt; vier benannte offene Fragen stehen als Kommentar in der Datei |
 | Wiederherstellungscode wird beim Anlegen zwar abgeschrieben, aber nicht sicher aufbewahrt | bewusst; mehr kann Software an dieser Stelle nicht |
+| `supabasePackGateway.ts` (PostgREST) ungeprüft | bekannt; die abweichenden Stellen stehen als Kommentar in der Datei |
+| Zwei gleichzeitige Veröffentlichungen ergeben einen Fehler statt einer Wartezeit | bewusst; der Primärschlüssel verhindert die Dopplung, die Wiederholung liegt beim Aufruf |
+| Portalbündel 575 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
 
 ## 8. Größenwacht
 
@@ -788,7 +852,7 @@ Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 | `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,1 KiB** |
 | `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,6 KiB** |
 | kontofreie PWA (`index-*.js`) | 441,53 kB | 441,53 kB |
-| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) |
+| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → **574,85 kB** (Phase 5) |
 
 Nach Phase 4 sind Lehrkraftdatei und Lernlaufzeit weiterhin bei **9482,1 KiB**
 und **674,6 KiB**. Einmal wären sie um 0,5 und 0,2 KiB gewachsen: Eine
@@ -796,6 +860,13 @@ CSS-Regel für die Abmeldeschaltfläche des Portals lag zuerst in `global.css`
 und wanderte damit in jede Lerndatei mit. Sie steht jetzt in
 `src/styles/portal.css`, das nur `portal-main.tsx` importiert. Bei 0,2 KiB
 klingt das kleinlich; die Gewohnheit ist der Punkt.
+
+**Das Portalbündel wächst dagegen.** 488 → 575 kB durch Phase 5, im
+Wesentlichen Zod (die Paketprüfung) und die beiden Gateways. Das ist kein
+Fehler – das Portal ist nicht portabel –, aber es ist beobachtet: Für ein
+Telefon im Schulnetz sind 575 kB spürbar. Zwei Hebel liegen bereit und sind
+noch nicht gezogen: den Supabase-Client und die Paketprüfung erst beim ersten
+Bedarf laden. Die Übernahme vom Gerät ist bereits abgetrennt (98,8 kB).
 
 Einmal ist dabei etwas durchgerutscht und wurde bemerkt: Das Portal band
 anfangs die Datenschutzseite der kontofreien Anwendung ein, und an der hing
@@ -911,8 +982,32 @@ Abmeldeschaltfläche in der Navigationsschiene brachte als `<button>` die
 Voreinstellungen des Browsers mit; und die Kursoberfläche wäre um 0,2 KiB in
 jede Lerndatei gewandert.
 
-**Als Nächstes:** Phase 5 – Pakete im Konto, unveränderliche Revisionen und
-Zuweisung an Kurse. Danach § 5 dieses Dokuments füllen.
+- Phase 5 – Pakete im Konto, unveränderliche Revisionen, Zuweisung an Kurse,
+  Übernahme vom eigenen Gerät. Siehe § 5.
+
+**Messung nach Phase 5** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2539** Tests in **148** Dateien, alle grün |
+| davon `npm run test:db` | 72 gegen PostgreSQL 17.5 |
+| davon Kursvertrag | 2 × 23 |
+| davon Paketvertrag | 2 × 21 – einmal Fälschung, einmal PostgreSQL |
+| `npm run build` | beide Web-Auslieferungen erfolgreich |
+| `npm run build:portable` | 9482,1 KiB / 674,6 KiB – beide unverändert |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | **159** E2E – unverändert, nicht angefasst |
+| `npm run e2e:portable` | 29 Portable-E2E, alle grün |
+| `npm run e2e:portal` | **22** Portal-E2E, alle grün |
+
+Ein Befund in dieser Phase kam wieder von einer Prüfung: Die Fälschung meldete
+„der Entwurf ist neuer" nie, weil zwei Schritte in derselben Millisekunde
+denselben Zeitstempel bekamen. Die Datenbank hat das Problem nicht (`now()`
+mit Mikrosekunden); die Fälschung hat jetzt eine Uhr, die nie stehenbleibt.
+
+**Als Nächstes:** Phase 6 – Lernstand im Konto, geräteübergreifend und
+idempotent. Danach § 5.5 füllen.
 
 **Nicht vergessen:**
 

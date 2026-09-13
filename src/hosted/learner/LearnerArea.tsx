@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Route, Routes, useParams } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Alert, Card, EmptyState } from '../../ui/components';
-import type { Course } from '../../application/repositories';
+import type { Course, PackRevision } from '../../application/repositories';
 
 /**
  * Der Lernbereich des Portals.
@@ -80,7 +80,9 @@ function Kursliste() {
 function Kurs() {
   const { courseId } = useParams();
   const courses = useOptionalRepository('courses');
+  const publication = useOptionalRepository('publication');
   const [kurs, setKurs] = useState<Course | undefined>(undefined);
+  const [pakete, setPakete] = useState<PackRevision[] | undefined>(undefined);
 
   useEffect(() => {
     if (!courses || !courseId) return;
@@ -88,21 +90,69 @@ function Kurs() {
     void courses.getCourse(courseId).then((gefunden) => {
       if (aktiv) setKurs(gefunden);
     });
+    if (publication) {
+      void publication
+        .publishedForCourse(courseId)
+        .then((gefunden) => {
+          if (aktiv) setPakete(gefunden);
+        })
+        .catch(() => {
+          if (aktiv) setPakete([]);
+        });
+    }
     return () => {
       aktiv = false;
     };
-  }, [courses, courseId]);
+  }, [courses, publication, courseId]);
 
   return (
     <div className="stack">
-      <h1>{kurs?.title ?? 'Kurs'}</h1>
-      <Alert tone="info" title="Kommt in Phase 5">
-        Die veröffentlichten Pakete dieses Kurses – und ab Phase 6 der eigene Lernstand dazu, auf
-        jedem Gerät.
-      </Alert>
-      <p className="small muted">
+      <p className="small muted" style={{ margin: 0 }}>
         <Link to="/lernen">Zurück zu deinen Kursen</Link>
       </p>
+      <h1>{kurs?.title ?? 'Kurs'}</h1>
+      {kurs?.archived ? (
+        <Alert tone="info" title="Dieser Kurs ist abgeschlossen">
+          Du kannst weiter üben. Neue Pakete kommen hier keine mehr dazu.
+        </Alert>
+      ) : null}
+
+      {pakete === undefined ? <p className="muted">Pakete werden geladen …</p> : null}
+
+      {pakete !== undefined && pakete.length === 0 ? (
+        <EmptyState title="Noch keine Vokabeln">
+          <p style={{ marginBottom: 0 }}>
+            Deine Lehrkraft hat diesem Kurs noch kein Paket gegeben. Sobald eines da ist, steht es
+            hier.
+          </p>
+        </EmptyState>
+      ) : null}
+
+      <ul className="stack" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {(pakete ?? []).map((paket) => (
+          <li key={paket.packId}>
+            <Card>
+              <h2 style={{ marginTop: 0, marginBottom: '0.2rem' }}>{paket.pack.meta.title}</h2>
+              <p className="small muted" style={{ margin: 0 }}>
+                {paket.pack.entries.length} Vokabeln · Klasse {paket.pack.meta.grade}
+              </p>
+            </Card>
+          </li>
+        ))}
+      </ul>
+
+      {pakete !== undefined && pakete.length > 0 ? (
+        <Alert tone="info" title="Üben kommt als Nächstes">
+          {/*
+            Ehrlich statt einladend: Ein Knopf „Üben", der nichts tut, wäre
+            schlimmer als der Satz, dass es ihn noch nicht gibt. Der Lernstand
+            über mehrere Geräte gehört in Phase 6, und ohne ihn wäre Üben im
+            Portal ein Fortschritt, der beim nächsten Gerät wieder weg ist.
+          */}
+          Die Vokabeln sind da. Das Üben im Portal kommt mit dem geräteübergreifenden Lernstand –
+          bis dahin geht es in einer Lerndatei, die deine Lehrkraft weitergeben kann.
+        </Alert>
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import { Alert, Card } from '../../ui/components';
 import { CourseDetailPage } from './CourseDetailPage';
 import { CoursesPage } from './CoursesPage';
+import { MaterialPage } from './MaterialPage';
 
 /**
  * Der Lehrkraftbereich des Portals – das eine Bündel, das Lernende nie holen.
@@ -66,6 +67,14 @@ export function TeacherArea({ section }: { section: TeacherSection }) {
       <Routes>
         <Route index element={<CoursesPage />} />
         <Route path=":courseId" element={<CourseDetailPage />} />
+      </Routes>
+    );
+  }
+
+  if (section === 'material') {
+    return (
+      <Routes>
+        <Route index element={<MaterialPage />} />
       </Routes>
     );
   }
