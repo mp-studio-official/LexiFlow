@@ -43,6 +43,9 @@ export default defineConfig({
     // wurde. Der normale Web-Build lässt die Aktion damit sauber weg, statt
     // einen Knopf anzubieten, der nichts erzeugen kann.
     __LEXIFLOW_PORTABLE__: 'true',
+    // Die Lehrkraftdatei ist portabel, aber keine Lerndatei: Sie hat ihre
+    // Werkstatt. `src/runtime/mode.ts` liest daraus `portable-teacher`.
+    __LEXIFLOW_LEARNER__: 'false',
   },
   plugins: [
     studentRuntime(`${outRoot}/student/student.html`),

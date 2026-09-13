@@ -47,6 +47,8 @@ export default defineConfig({
     // normalen Build bliebe sie ungenutztes Gewicht (siehe
     // `src/portable/studentRuntime.ts`).
     __LEXIFLOW_PORTABLE__: 'false',
+    // Und erst recht keine Lerndatei: Dieser Build ist das Portal.
+    __LEXIFLOW_LEARNER__: 'false',
   },
   plugins: [
     runtimeStub,

@@ -21,6 +21,17 @@ const outRoot = process.env['LEXIFLOW_PORTABLE_OUT'] ?? 'dist-portable';
 
 export default defineConfig({
   base: './',
+  define: {
+    /*
+      Die einzige gesetzte Fahne dieser Datei – und `__LEXIFLOW_PORTABLE__`
+      bleibt bewusst ungesetzt. Es bedeutet „dieser Build trägt die
+      Lernlaufzeit als Zeichenkette bei sich“; hier wäre das zirkulär, und
+      `virtual:lexiflow-student-runtime` ist in dieser Konfiguration gar nicht
+      aufgelöst. Aus der Lernfahne allein leitet `src/runtime/mode.ts` den
+      Modus `portable-learner` ab – den engsten der drei.
+    */
+    __LEXIFLOW_LEARNER__: 'true',
+  },
   plugins: [react(), viteSingleFile({ removeViteModuleLoader: true }), inlineFavicon(import.meta.dirname)],
   build: {
     target: 'es2022',

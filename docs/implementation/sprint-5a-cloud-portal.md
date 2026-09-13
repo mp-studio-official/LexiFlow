@@ -251,6 +251,62 @@ wird nicht weggeredet.
 
 ---
 
+## 2b. Der Aufbau nach Phase 1
+
+Neue Dateien, und was jede von ihnen trägt:
+
+| Datei | Rolle |
+| --- | --- |
+| `src/runtime/mode.ts` | Die drei Modi, aus zwei `define`-Fahnen abgeleitet |
+| `src/runtime/hostedConfig.ts` | Die zwei öffentlichen Werte; fehlende Konfiguration als Zustand, nicht als Absturz |
+| `src/runtime/access.ts` | Rollen, Bereiche, `mayEnter` – eine Regel an einer Stelle |
+| `src/application/repositories.ts` | Die neun Verträge |
+| `src/application/RepositoryContext.tsx` | Injektion; `useRepository` wirft mit Modusnamen |
+| `src/application/localRepositories.ts` | Die Verträge über IndexedDB – Standard in portablen Dateien |
+| `src/application/fakeCloudRepositories.ts` | Kontrollierte Fassung für Phase 1, rein im Arbeitsspeicher |
+| `src/hosted/HostedApp.tsx` | Das Portal: öffentliche Routen, zwei Shells, Code-Split |
+| `src/hosted/SessionContext.tsx` | Sitzungszustand mit drei Werten (`laedt` ist der wichtige) |
+| `src/hosted/RequireArea.tsx` | Der Riegel – Oberflächengrenze, **keine** Sicherheitsgrenze |
+| `src/hosted/PortalShell.tsx` | `LearnerShell` und `TeacherShell` |
+| `src/hosted/teacher/TeacherArea.tsx` | Der Ankerpunkt des Lehrkraftbündels |
+| `src/hosted/learner/LearnerArea.tsx` | Kursliste gegen die Verträge |
+
+### Die zweite Bauzeit-Fahne
+
+`__LEXIFLOW_LEARNER__` kam hinzu. `__LEXIFLOW_PORTABLE__` bedeutet seit
+Sprint 3 „dieser Build trägt die Lernlaufzeit als Zeichenkette bei sich“ – in
+der Lerndatei ist das gerade nicht der Fall, sie *ist* die Laufzeit. Deshalb
+setzt `vite.student.config.ts` nur die neue Fahne, und `resolveRuntimeMode`
+prüft sie zuerst: Ein Build, der beide setzte, ergäbe die **engere** Gestalt.
+
+### Was Phase 1 **nicht** getan hat
+
+`src/main.tsx` rendert weiterhin `App`. Das Portal ist gebaut und geprüft,
+aber nicht verdrahtet – ein Portal ohne Datenbank (Phase 2) und ohne Anmeldung
+(Phase 3) wäre eine Umleitung ins Leere. Der Wechsel gehört in Phase 3.
+
+Ebenso unangetastet: die bestehenden Lernseiten. Sie rufen `packRepo` und
+`progressRepo` weiterhin direkt auf. Sie an die Verträge zu hängen gehört in
+Phase 6, wo der geräteübergreifende Lernstand dazukommt.
+
+### Die Prüfungen aus Phase 1
+
+| Zusage | Wo sie geprüft wird |
+| --- | --- |
+| Portabler Modus erzeugt nie einen Supabase-Client | `src/runtime/portableIsolation.test.ts` – Importgraph ab beiden Einstiegen |
+| Lerndatei kann keine Lehrkraftroute rendern | `src/StudentApp.test.tsx` (Verhalten) + Importgraph (Abwesenheit) |
+| Keine Oberfläche zeigt fremde Lernstände | `src/application/repositories.test.ts` (Vertrag) + `src/hosted/HostedApp.test.tsx` (Seiten) |
+| Fehlende Hosted-Konfiguration wird verständlich behandelt | `src/runtime/hostedConfig.test.ts`, `HostedApp.test.tsx` |
+| Bestehende portable E2E bleiben grün | 29 Portable-E2E, unverändert |
+
+Der Importgraph-Test hat eine eigene Wache: eine frühere Fassung seines
+regulären Ausdrucks verschluckte ab einem `import` **in einer Zeichenkette**
+den halben Dateirest und legte den Unsinn als „Paket“ ab – die Prüfungen
+darunter blieben grün, weil Unsinn kein `supabase` enthält. Seitdem prüft ein
+eigener Test die Plausibilität der gesammelten Paketnamen.
+
+---
+
 ## 3. Schema
 
 *Wird in Phase 2 gefüllt.*
@@ -286,11 +342,33 @@ Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 
 ## 9. Fortsetzungsstand
 
-**Erledigt:** Phase 0 (Audit, Ausgangsmessung, ADR-1 bis ADR-9).
+**Erledigt:**
 
-**Als Nächstes:** Phase 1 – Laufzeitmodus, Repository-Verträge, Injektion,
-getrennte AppShells, Route Guards. Ohne jede Verhaltensänderung an der
-bestehenden Anwendung.
+- Phase 0 – Audit, Ausgangsmessung, ADR-1 bis ADR-9 (`f8d5871`).
+- Phase 1 – Laufzeitmodus, Hosted-Konfiguration, Repository-Verträge,
+  Injektion, lokale Adapter, kontrollierte Cloudfassung, Rollenmodell,
+  Route Guards, getrennte Shells, öffentliche Routen, Code-Split. Siehe § 2b.
+
+**Messung nach Phase 1** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2242** Tests in **135** Dateien, alle grün (Start: 2114/125) |
+| `npm run build` | erfolgreich |
+| `npm run build:portable` | erfolgreich |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | 159 E2E, alle grün |
+| `… --config playwright.portable.config.ts` | 29 Portable-E2E, alle grün |
+| `LexiFlow-Lehrkraft.html` | **9482,1 KiB** – unverändert |
+| `LexiFlow-Lernlaufzeit.html` | **674,6 KiB** – unverändert |
+
+Die beiden letzten Zeilen sind der Punkt: Der Portalcode liegt im Quellbaum
+und in **keiner** der beiden portablen Dateien.
+
+**Als Nächstes:** Phase 2 – Schema und Zugriffsregeln in Supabase, geprüft
+gegen echtes Postgres per PGlite (ADR-6). Danach § 3 und § 4 dieses Dokuments
+füllen.
 
 **Nicht vergessen:**
 
