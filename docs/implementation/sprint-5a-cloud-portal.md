@@ -889,9 +889,11 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 | 2 | `6946139` | Schema, Hilfsfunktionen, Zugriffsregeln (§ 3, § 4) | 2301 Tests, davon 59 gegen PostgreSQL 17.5; Größen unverändert; Mutationsprobe bestanden |
 | 3 | `a8a44a8` | Zweiter Web-Einstieg, vierter Modus, Anmeldung, Wiederherstellung (§ 2c, ADR-10/11) | 2384 Tests, 159 E2E unverändert, 29 Portable-E2E, 11 neue Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 4 | `56faa8c` | Kurse, Mitgliedschaft, Einladungen; Kursvertrag gegen zwei Erfüllungen; Serverfunktion aufgetrennt und geprüft (§ 2d) | 2487 Tests, 159 E2E unverändert, 29 Portable-E2E, **20** Portal-E2E, 32 Prüfungen; Größen unverändert |
+| 5 | `085b0c8` | Pakete im Konto, unveränderliche Revisionen, Zuweisung, Übernahme vom Gerät (§ 5) | 2539 Tests, 159 E2E unverändert, 29 Portable-E2E, **22** Portal-E2E, 32 Prüfungen; Größen unverändert |
 
-Jede Abnahme ist eine tatsächlich ausgeführte Messung; die Einzelheiten stehen
-in den Abschnitten darunter. Was dabei **nicht** geprüft wurde, steht in § 7.1 –
+Die Zeile der jeweils letzten Phase trägt ihre Commit-ID mit dem **folgenden**
+Commit nach – vorher gibt es sie nicht. Jede Abnahme ist eine tatsächlich
+ausgeführte Messung; die Einzelheiten stehen in den Abschnitten darunter. Was dabei **nicht** geprüft wurde, steht in § 7.1 –
 und zwar vollständig.
 
 **Im Einzelnen:**
