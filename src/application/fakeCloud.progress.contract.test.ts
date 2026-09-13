@@ -12,6 +12,7 @@ import { makePack } from '../test/fixtures';
  */
 describeProgressContract('kontrollierte Fälschung', async (): Promise<LernstandSzenario> => {
   const cloud = createFakeCloud();
+  let kursId = '';
 
   return {
     repositories: () => cloud.repositories,
@@ -41,11 +42,16 @@ describeProgressContract('kontrollierte Fälschung', async (): Promise<Lernstand
         await cloud.repositories.invitations!.redeemCode(code);
       }
 
+      kursId = kurs.id;
       return {
         courseId: kurs.id,
         packId: pack.meta.id,
         entryIds: pack.entries.map((eintrag) => eintrag.id),
       };
+    },
+    async archiviereKurs() {
+      cloud.signInAs('u-lehrerin');
+      await cloud.repositories.courses!.setArchived(kursId, true);
     },
   };
 });

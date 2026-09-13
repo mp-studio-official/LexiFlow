@@ -256,6 +256,35 @@ sie schwerer wiegt.
 eigene Namensauflösung nicht vollständig ausschließen. Das steht in § 7 und
 wird nicht weggeredet.
 
+### ADR-12 – Archiviert heißt abgeschlossen, nicht geschlossen
+
+**Entscheidung.** Ein archivierter Kurs bleibt für seine Mitglieder sichtbar
+und **lernbar**: Die Pakete bleiben da, es wird weiter geübt, der Lernstand
+wird weiter gespeichert. Was endet, ist die organisatorische Arbeit am Kurs –
+keine neuen Mitglieder, keine neuen Zuweisungen, keine Änderungen am Kurs
+selbst. Wieder öffnen ist jederzeit möglich und hebt alles davon auf.
+
+**Zugriff entziehen ist eine andere Handlung.** Die Mitgliedschaft entfernen –
+oder später ein eigener Zustand „Lernzugriff beendet". Das Archivieren dafür zu
+benutzen hieße, zwei Dinge in einen Knopf zu legen, von denen das eine
+harmlos und das andere endgültig ist.
+
+**Warum.** Ein Halbjahr endet, das Lernen nicht. Wer im Sommer die Vokabeln aus
+dem Frühjahr wiederholt, soll seinen Lernstand behalten. Die Gegenrichtung wäre
+schlimmer als unbequem: Auf der Kursseite einer lernenden Person stünde „Du
+kannst weiter üben", und der Server lehnte still ab.
+
+**Wo das steht.**
+
+| Ort | Was |
+| --- | --- |
+| `app_check_progress_events` | prüft Mitgliedschaft, Zuweisung und Fassung – **nicht** `archived` |
+| Trigger `courses_archived_closed` | lässt an einem archivierten Kurs nur noch `archived` selbst ändern |
+| `redeem_invite`, `assign_pack_to_course` | lehnen bei `archived` ab (seit Phase 4 und 5) |
+| Kursvertrag, Lernstandsvertrag | je zweimal abgenommen, Fälschung und PostgreSQL |
+| `rls.test.mjs` | „schreibt auch in einem archivierten Kurs weiter" und „aber nicht mehr ohne Mitgliedschaft" |
+| Oberfläche | „Dieser Kurs ist abgeschlossen … der Lernstand läuft mit" – bei Lehrkraft und Lerngruppe |
+
 ### ADR-10 – Zwei Web-Auslieferungen statt einer Weiche
 
 **Entscheidung.** `/LexiFlow/` bleibt die kontofreie PWA, unverändert.
@@ -846,7 +875,7 @@ Eine Folge davon, die eher hilft als stört: Eine grob falsch gestellte Uhr
 gewinnt nicht nur nicht – sie kommt gar nicht erst an, weil sie eine
 Fälligkeit außerhalb jedes Fachs errechnet.
 
-**Zum abgeschlossenen Kurs siehe § 5.5.7** – dort steht eine offene Frage.
+**Zum abgeschlossenen Kurs siehe ADR-12 und § 5.5.7.**
 
 #### 5.5.5 Die Abläufe
 
@@ -881,23 +910,15 @@ Der Lernstand wird während der Runde im Speicher mitgeführt. Ihn nach jeder
 Antwort neu vom Server zu holen hieße, mitten in der Übung auf das Netz zu
 warten.
 
-#### 5.5.7 Eine offene Frage: der abgeschlossene Kurs
+#### 5.5.7 Der abgeschlossene Kurs – entschieden
 
-Marcs Vorgabe für die Korrektur lautete, das Paket müsse zu einem **aktiven**
-Kurs der lernenden Person gehören. Umgesetzt ist: Mitgliedschaft ja,
-Zuweisung ja, Fassung nicht zurückgezogen ja – **archiviert spielt keine
-Rolle**.
+Die Frage stand offen und ist **von Marc entschieden**: ADR-12. Archiviert
+heißt abgeschlossen, nicht geschlossen.
 
-Der Grund ist eine Zusage, die seit Phase 4 auf der Kursseite steht und die
-eine lernende Person dort liest: „Dieser Kurs ist abgeschlossen. Du kannst
-weiter üben. Neue Pakete kommen hier keine mehr dazu." Sie jetzt zu brechen
-hieße, jemandem den Lernstand wegzunehmen, während auf dem Bildschirm das
-Gegenteil steht.
-
-Das ist eine fachliche Entscheidung, und sie wird hier nicht stillschweigend
-getroffen: **Marc entscheidet.** Soll ein abgeschlossener Kurs auch das Üben
-beenden, sind es zwei Zeilen in `app_check_progress_events` und ein anderer
-Satz auf der Kursseite.
+`app_check_progress_events` prüft deshalb Mitgliedschaft, Zuweisung und
+Fassung – und ausdrücklich **nicht** `archived`. Die Gegenprobe steht daneben:
+Wird die Mitgliedschaft entfernt, endet der Schreibweg sofort. Das ist der
+Weg, der Zugriff beendet; das Archivieren ist es nicht.
 
 #### 5.5.8 Was am ersten Entwurf falsch war
 
@@ -1072,8 +1093,6 @@ sie nicht weiterreichen.
 
 ## 6. Einrichtung
 
-Vollständig wird dieser Abschnitt in Phase 8. Was heute feststeht:
-
 ### 6.1 Das vorgesehene Ziel
 
 | | |
@@ -1103,9 +1122,113 @@ mehr.
 | `npm run dev` | kontofreie PWA unter `/` |
 | `npm run dev:portal` | Portal unter `/portal.html`, Port 5174 |
 | `npm run build` | beide Web-Auslieferungen nach `dist/` und `dist/portal/` |
-| `npm run e2e` | die bestehenden 159 Prüfungen, unverändert |
-| `npm run e2e:portal` | 11 Prüfungen unter `/LexiFlow/` |
-| `npm run test:db` | Zugriffsregeln gegen PostgreSQL 17.5 (PGlite) |
+| `npm run build:portable` | Lehrkraftdatei und Lernlaufzeit |
+| `npm test` | alles – auch PostgreSQL (PGlite) und beide Serverfunktionen |
+| `npm run test:db` | nur die Zugriffsregeln gegen PostgreSQL 17.5 |
+| `npm run e2e` | die kontofreie Anwendung (159) |
+| `npm run e2e:portable` | die portablen Dateien (29) |
+| `npm run e2e:portal` | das Portal unter `/LexiFlow/` (31) |
+| `npm run verify:portable` | Größenwacht und fachliche Prüfung |
+| `npm run verify:deploy` | der Riegel vor dem Netz – prüft `dist/` |
+
+### 6.4 Die Prüfkette (Phase 8)
+
+Zwei Abläufe, zwei Fragen.
+
+| Datei | Frage | Wann |
+| --- | --- | --- |
+| `.github/workflows/ci.yml` | Ist der Stand in Ordnung? | jeder Zweig, jeder Pull Request |
+| `.github/workflows/deploy.yml` | Darf das ins Netz? | nur `main`, und nur nach der vollständigen Kette |
+
+**Warum getrennt.** Zusammen in einer Datei hinge die Prüfung am Deployment,
+und ein Zweig ohne Deployment bekäme keine – genau der Zweig, auf dem
+gearbeitet wird.
+
+`scripts/ci.test.mjs` liest beide Dateien und prüft, dass sie aufrufen, was es
+zu prüfen gibt. Eine Prüfkette, aus der jemand beim Umbauen einen Schritt
+herausnimmt, meldet sonst weiterhin Erfolg – der unangenehmste Fehler, den eine
+Werkstatt haben kann.
+
+**Im CI wird nichts Echtes angefasst.** `LEXIFLOW_CI=1`: kein Browsermodell
+wird heruntergeladen, kein Anbieter angerufen, kein Schlüssel gebraucht. Ein
+Test hält fest, dass in keinem Ablauf ein Schlüssel im Klartext steht.
+
+### 6.5 Der Riegel vor dem Netz
+
+`npm run verify:deploy` prüft das **gebaute Verzeichnis**, nicht den Quelltext.
+Das ist der Schritt zwischen „alle Tests grün" und „das Richtige liegt im
+Netz", und er fehlte.
+
+| Geprüft wird | Warum |
+| --- | --- |
+| beide Einstiege da, das Portal heißt `index.html` | `portal.html` hieße: das Umbenennen ist nicht gelaufen, und `/portal/` ginge ins Leere |
+| keine Spur der Testfassung | erfundene Konten samt `testkennwort` im Netz sähen aus wie das Produkt |
+| kein Geheimnis im Bündel | gesucht wird ein **Wert**, nicht ein Wort (siehe unten) |
+| kein Serverfunktionscode | eine Prüfung, die im Browser läuft, ist keine Prüfung |
+| alle Pfade unter dem Grundpfad | lokal unter `/` geht ein falscher Pfad nie kaputt |
+| `.nojekyll` vorhanden | sonst lässt Pages jede Datei mit `_` am Anfang weg |
+
+**Zwei Befunde beim allerersten Lauf**, und beide waren echt:
+
+**1. Die kontrollierte Fälschung lag im produktiven Portalbündel.**
+`HostedApp.tsx` importierte `fakeCloudRepositories.ts` gewöhnlich; die Fahne
+`VITE_LEXIFLOW_FAKE_CLOUD` entschied nur, ob sie **benutzt** wird – nicht, ob
+sie **ausgeliefert** wird. Damit standen `fuchs-7390`, `testkennwort` und der
+Wiederherstellungscode in jeder Auslieferung.
+
+Das ist derselbe Gedanke, den ADR-10 für die beiden Web-Auslieferungen schon
+einmal geführt hat: *Eine Zusage, die an einer Bedingung hängt statt an einem
+Import, ist am Bündel nicht prüfbar.* Die Antwort ist deshalb dieselbe – eine
+**Bauzeitfahne** `__LEXIFLOW_FAKE_CLOUD__`, ein dynamischer Import dahinter,
+und der Bundler faltet den Zweig weg. Nachgemessen: Das Portalbündel schrumpfte
+von 582,98 kB auf **567,90 kB**, und `dist/` enthält die Testkonten nicht mehr.
+
+Beide Richtungen sind nachgeprüft: Ohne die Fahne ist der Chunk nicht da und
+die Wache schweigt; mit der Fahne ist er da und die Wache bricht ab.
+
+**2. Die Wache hielt den Türsteher für den Einbrecher.** Der erste Entwurf
+suchte die Zeichenkette `sb_secret` – und fand sie sofort in
+`@supabase/supabase-js` selbst, wo sie dazu dient, einen falsch eingesetzten
+Secret Key **abzulehnen**. Eine Wache, die beim ersten Lauf falschen Alarm
+schlägt, wird abgeschaltet, und dann bewacht sie gar nichts mehr. Gesucht wird
+jetzt ein Präfix **plus** genug Zeichen dahinter, dass es ein Schlüssel sein
+könnte. Der Fund selbst wird nicht ins Protokoll geschrieben: Ein
+CI-Protokoll ist der letzte Ort, an dem ein Schlüssel landen sollte.
+
+### 6.6 Was noch zu tun ist – und von wem
+
+Nichts davon ist gelaufen. Die Liste ist eine Anleitung, kein Bericht.
+
+**Supabase-Projekt (Marc, einmalig):**
+
+1. Projekt in der EU-Region anlegen. Die Region ist kein Datenschutznachweis
+   (§ 7.2), aber ohne sie fängt die Prüfung gar nicht erst an.
+2. `supabase/migrations/` anwenden – acht Dateien, in der Reihenfolge ihrer
+   Namen.
+3. Function Secrets setzen: `SUPABASE_SECRET_KEY`,
+   `LEXIFLOW_ALLOWED_ORIGINS` (die beiden Pages-Adressen),
+   `LEXIFLOW_AI_MASTER_KEY_V1` (32 Byte, base64, aus einer
+   kryptografischen Quelle – **nicht** aus einem Passwortgenerator im
+   Browser).
+4. Beide Edge Functions deployen: `learner-auth`, `ai-gateway`.
+5. Eine erste Lehrkraft anlegen und ihre Rolle setzen. Dafür gibt es
+   absichtlich keinen Weg in der Oberfläche.
+
+**GitHub (Marc, einmalig):**
+
+6. Repository anlegen oder prüfen, dass es leer ist. Erst dann `origin`
+   hinzufügen.
+7. Pages auf „GitHub Actions" stellen.
+8. Repository-Variablen `VITE_SUPABASE_URL` und
+   `VITE_SUPABASE_PUBLISHABLE_KEY` setzen. **Variables, nicht Secrets** – sie
+   stehen ohnehin im Bündel, und als Secret wären sie in Protokollen
+   maskiert, was das Nachsehen erschwert, ohne etwas zu schützen.
+9. Erst nach grünem `ci.yml` nach `main` bringen.
+
+**Was danach zum ersten Mal wirklich geprüft ist** (§ 7.1): reales Supabase
+Auth, JWT-Claims, PostgREST, beide Edge-Laufzeiten, Function Secrets,
+E-Mail-Versand und das Deployment. Bis dahin steht in diesem Dokument an
+keiner Stelle, dass LexiFlow im Portalbetrieb funktioniert.
 
 ## 7. Beweislage und offene Risiken
 
@@ -1172,16 +1295,18 @@ dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
 | Wiederherstellungscode wird beim Anlegen zwar abgeschrieben, aber nicht sicher aufbewahrt | bewusst; mehr kann Software an dieser Stelle nicht |
 | `supabasePackGateway.ts` (PostgREST) ungeprüft | bekannt; die abweichenden Stellen stehen als Kommentar in der Datei |
 | Zwei gleichzeitige Veröffentlichungen ergeben einen Fehler statt einer Wartezeit | bewusst; der Primärschlüssel verhindert die Dopplung, die Wiederholung liegt beim Aufruf |
-| Portalbündel 583 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
+| Portalbündel 568 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
 | `supabaseProgressGateway.ts` (PostgREST) ungeprüft | bekannt; dieselbe Lage wie bei Kursen und Paketen |
 | Der eigene Lernstand lässt sich beschönigen | bewusst, § 5.5.1; die Alternative wären zwei Leitner-Rechnungen, die auseinanderlaufen |
 | Eine offline entstandene Runde trägt den Zeitpunkt des Hochladens | bewusst, § 5.5.3; die Alternative wäre ein Zeitstempel vom Gerät, und der ist nicht überprüfbar |
-| Abgeschlossene Kurse erlauben weiterhin das Üben | **offene fachliche Frage**, § 5.5.7 – Marc entscheidet |
+| Abgeschlossene Kurse erlauben weiterhin das Üben | **entschieden**, ADR-12 und § 5.5.7 – bewusst so, mit Prüfungen in beiden Verträgen und in `rls.test.mjs` |
 | Ein drittes Gerät im selben Moment bleibt beim Konflikt | bewusst; ein zweiter Versuch, kein dritter. Der Hinweis steht dann da, die nächste Runde liest neu |
 | **DNS-Rebinding ist nicht gelöst** | bekannt und nicht weggeredet, § 5a.4; eingegrenzt allein durch die administrative Freigabeliste, weil die Edge-Laufzeit keine eigene Namensauflösung hergibt |
 | Ein freigegebener Host kann intern zeigen | dieselbe Grenze; eine Freigabe ist eine Verwaltungsentscheidung, keine Formulareinstellung |
 | Der Hauptschlüssel liegt in den Function Secrets | wer sie liest, liest alle Anbieterschlüssel. Die Grenze jeder serverseitigen Verschlüsselung; benannt statt verschwiegen |
 | Eine Schlüsselrotation ist vorgesehen, aber nie gelaufen | § 5a.2; geprüft ist die Logik, nicht der Vorgang |
+| Die Fälschung lag im produktiven Portalbündel | **behoben in Phase 8**, § 6.5; gefunden von `verify-deploy.mjs` beim ersten Lauf, nicht von einem Test |
+| `verify:deploy` prüft Zeichenketten, keine Semantik | bewusst; es ist die letzte grobe Wache vor dem Netz, nicht die einzige |
 | `ai-gateway/index.ts` (Deno-Mantel) ungeprüft | bekannt; darin stehen nur zwei Dinge, die nirgends sonst stehen können – `redirect: 'manual'` und das strömende Lesen |
 | Übungsseite im Portal und `SessionPage` können auseinanderlaufen | bewusst, § 5.5.9; die gemeinsame Grundlage ist die Domainschicht, doppelt ist nur das Zusammenstecken |
 
@@ -1190,12 +1315,12 @@ dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
 Die Lernlaufzeit lag beim Start bei **674,6 KiB**. Jede Phase misst neu; ein
 Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 
-| Artefakt | Start | nach Phase 7 |
+| Artefakt | Start | nach Phase 8 |
 | --- | --- | --- |
 | `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,3 KiB** |
 | `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,7 KiB** |
 | kontofreie PWA (`index-*.js`) | 441,53 kB | 441,59 kB |
-| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → 574,85 kB (Phase 5) → 579,86 kB (Phase 6b) → **582,98 kB** (Phase 7) |
+| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → 574,85 kB (Phase 5) → 582,98 kB (Phase 7) → **567,90 kB** (Phase 8) |
 
 Nach Phase 4 sind Lehrkraftdatei und Lernlaufzeit weiterhin bei **9482,1 KiB**
 und **674,6 KiB**. Einmal wären sie um 0,5 und 0,2 KiB gewachsen: Eine
@@ -1221,6 +1346,11 @@ Bedarf laden. Die Übernahme vom Gerät ist bereits abgetrennt (98,8 kB), die Ü
 ebenfalls (22,6 kB) und die KI-Seite auch (5,5 kB): Eine Lehrkraft, die nur
 Material verwaltet, lädt keine davon. Phase 6 hat dem Hauptbündel 4 kB
 hinzugefügt, Phase 7 noch einmal 3 kB.
+
+**Phase 8 macht das Portalbündel zum ersten Mal kleiner** – 583 → 568 kB. Der
+Grund ist kein Aufräumen, sondern ein Befund: Die kontrollierte Fälschung lag
+darin (§ 6.5). Sie liegt jetzt hinter einer Bauzeitfahne, und der Bundler
+faltet sie weg.
 
 **Phase 7 kostet die portablen Dateien nichts** – 9482,3 KiB und 674,7 KiB,
 unverändert. Der ganze KI-Zugang des Kontos liegt in
@@ -1252,6 +1382,7 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 | 5 | `085b0c8` | Pakete im Konto, unveränderliche Revisionen, Zuweisung, Übernahme vom Gerät (§ 5) | 2539 Tests, 159 E2E unverändert, 29 Portable-E2E, **22** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 6 | `bfc41e9` | Lernstand im Konto, geräteübergreifend und idempotent; Üben im Portal (§ 5.5) | 2589 Tests, 159 E2E unverändert, 29 Portable-E2E, **26** Portal-E2E, 32 Prüfungen; portable Dateien +0,1 KiB (§ 8) |
 | 6b | `3adef03` | Korrektur: Fassung statt Client-Zeitstempel; serverseitige Eingangsprüfung (§ 5.5.3, § 5.5.4, § 5.5.8) | 2625 Tests, davon Lernstandsvertrag 2 × 32; 159 E2E unverändert, 26 Portal-E2E |
+| 8 | *(folgt)* | Prüfkette, Pages-Deployment, Riegel vor dem Netz; ADR-12 (§ 6.4–6.6) | 2830 Tests, 159 E2E unverändert, 29 Portable-E2E, 31 Portal-E2E; Portalbündel −15 kB |
 | 7 | `0144644` | KI-Zugang: Tresor (AES-GCM), Adressprüfung, Freigabeliste, vier Anbieter (§ 5a) | 2792 Tests, davon 123 für die Serverfunktion; 159 E2E unverändert, **31** Portal-E2E; portable Dateien unverändert |
 
 Die Zeile der jeweils letzten Phase trägt ihre Commit-ID mit dem **folgenden**
@@ -1458,7 +1589,31 @@ einen Anbieter an.** Der Hauptschlüssel ist eine Folge von Siebenen, die
 Anbieterschlüssel heißen `sk-test-…`, und der Transport ist eine Funktion, die
 ein Objekt zurückgibt.
 
-**Als Nächstes:** Phase 8 – CI und GitHub Pages (§ 6 vervollständigen).
+- Phase 8 – die vollständige Prüfkette, das Pages-Deployment und der Riegel
+  davor. Dazu ADR-12: archiviert heißt abgeschlossen, nicht geschlossen.
+  Siehe § 6.4 bis § 6.6.
+
+**Messung nach Phase 8** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2830** Tests in **158** Dateien, alle grün |
+| `npm run build` | beide Web-Auslieferungen erfolgreich |
+| `npm run verify:deploy` | in Ordnung – ohne Fahne keine Testfassung in `dist/` |
+| `npm run build:portable` | 9482,3 KiB / 674,7 KiB – unverändert |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | **159** E2E – unverändert, nicht angefasst |
+| `npm run e2e:portable` | 29 Portable-E2E, alle grün |
+| `npm run e2e:portal` | 31 Portal-E2E, alle grün |
+| Portalbündel | 582,98 kB → **567,90 kB** |
+
+Der Befund dieser Phase kam nicht von einem Test, sondern von der neuen Wache
+bei ihrem ersten Lauf: Die kontrollierte Fälschung lag im produktiven
+Portalbündel. Die Begründung und die Gegenprobe stehen in § 6.5.
+
+**Als Nächstes:** Phase 9 – Datenschutz-, Sicherheits- und Übergabedokumente.
+Danach der Abschlussbericht.
 
 **Nicht vergessen:**
 

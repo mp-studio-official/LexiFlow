@@ -300,6 +300,19 @@ export function describeCourseContract(
 
     /* ------------------------------------------------------ Archivieren -- */
 
+    /**
+     * Archiviert heißt **abgeschlossen, nicht geschlossen** (ADR-12).
+     *
+     * Die Unterscheidung ist die ganze Entscheidung: Was endet, ist die
+     * organisatorische Arbeit am Kurs – niemand kommt mehr hinzu, es wird
+     * nichts mehr zugewiesen, und der Kurs selbst lässt sich nicht mehr
+     * ändern. Was **nicht** endet, ist das Lernen: Die Pakete bleiben da, es
+     * wird weiter geübt, der Lernstand wird weiter gespeichert.
+     *
+     * Zugriff entziehen ist etwas anderes und eine eigene Handlung – die
+     * Mitgliedschaft entfernen. Wer das Archivieren dafür benutzte, nähme
+     * einer lernenden Person ihren Lernstand weg, ohne es zu wollen.
+     */
     describe('archivierte Kurse', () => {
       it('bleiben für Mitglieder sichtbar', async () => {
         const kurs = await neuerKurs();
@@ -338,6 +351,31 @@ export function describeCourseContract(
         await szenario.alsPerson(szenario.personen.lehrerin);
         const nachher = (await invitations().listForCourse(kurs.id)).find((e) => e.id === invite.id);
         expect(nachher?.usedCount).toBe(0);
+      });
+
+      it('lassen sich nicht nebenbei umbenennen', async () => {
+        /*
+          „Keine regulären Kursänderungen, solange der Kurs archiviert ist."
+          Ein Kurs, der nach dem Abschluss noch heimlich den Namen wechselt,
+          ist für die Lerngruppe ein anderer Kurs als der, den sie besucht
+          hat.
+        */
+        const kurs = await neuerKurs();
+        await courses().setArchived(kurs.id, true);
+
+        expect(await fehlerVon(courses().updateCourse(kurs.id, { title: 'Anders' }))).toBeTruthy();
+        expect((await courses().getCourse(kurs.id))?.title).toBe(kurs.title);
+      });
+
+      it('lassen sich aber jederzeit wieder öffnen – sonst wäre es eine Einbahnstraße', async () => {
+        const kurs = await neuerKurs();
+        await courses().setArchived(kurs.id, true);
+        await courses().setArchived(kurs.id, false);
+
+        expect((await courses().getCourse(kurs.id))?.archived).toBe(false);
+        // Und danach ist wieder alles erlaubt.
+        await courses().updateCourse(kurs.id, { title: 'Englisch 8b' });
+        expect((await courses().getCourse(kurs.id))?.title).toBe('Englisch 8b');
       });
 
       it('lassen sich wieder öffnen', async () => {

@@ -80,6 +80,13 @@ export default defineConfig(({ command }) => ({
     __LEXIFLOW_PORTABLE__: 'false',
     __LEXIFLOW_LEARNER__: 'false',
     __LEXIFLOW_PORTAL__: 'true',
+    /*
+      Nur auf ausdrückliche Ansage beim Bauen. Ist sie nicht gesetzt, faltet
+      der Bundler den ganzen Zweig weg – und `dist/` enthält weder die
+      erfundenen Konten noch das Warnband. Das ist der Unterschied zwischen
+      „wird nicht benutzt" und „ist nicht da".
+    */
+    __LEXIFLOW_FAKE_CLOUD__: String(process.env['VITE_LEXIFLOW_FAKE_CLOUD'] === '1'),
   },
   plugins: [react(), alsIndexAusliefern(outDir)],
   build: {

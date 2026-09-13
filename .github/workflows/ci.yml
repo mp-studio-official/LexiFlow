@@ -1,0 +1,131 @@
+# LexiFlow – die vollständige Prüfkette.
+#
+# ## Warum getrennt von `deploy.yml`
+#
+# Weil sie zwei verschiedene Fragen beantworten. Diese hier fragt: „Ist der
+# Stand in Ordnung?" – und sie soll das für **jeden** Zweig und jeden Pull
+# Request tun. Die andere fragt: „Darf das ins Netz?" und betrifft nur `main`.
+#
+# Zusammen in einer Datei wäre die Prüfung an das Deployment gebunden, und ein
+# Zweig ohne Deployment bekäme keine. Genau das ist der Zweig, auf dem
+# gearbeitet wird.
+#
+# ## Warum so viele Schritte
+#
+# Weil es so viele Zusagen gibt, und keine davon prüft sich selbst:
+#
+# * `typecheck` – TypeScript im strengen Modus.
+# * `test` – alles, auch die 100+ Prüfungen gegen echtes PostgreSQL (PGlite)
+#   und die 123 der beiden Serverfunktionen.
+# * `build` – beide Web-Auslieferungen, unter dem **Unterpfad**, der auf
+#   GitHub Pages gilt. Lokal unter `/` gehen fest codierte Pfade nie kaputt.
+# * `build:portable` + `verify:portable` – die Größenwacht. Ein Wachstum der
+#   Lernlaufzeit durch Cloudcode wäre ein Fehler, kein Preis.
+# * drei E2E-Suiten – die kontofreie Anwendung, die portablen Dateien und das
+#   Portal unter `/LexiFlow/`.
+#
+# ## Keine echten Modelle, keine echten Schlüssel
+#
+# `LEXIFLOW_CI=1` sagt den Prüfungen, dass sie in einer Werkstatt laufen. Kein
+# Browsermodell wird heruntergeladen, kein Anbieter angerufen, kein Schlüssel
+# gebraucht. Die Portalsuite baut mit `VITE_LEXIFLOW_FAKE_CLOUD=1` gegen die
+# kontrollierte Fälschung – eine so gebaute Auslieferung trägt auf jeder Seite
+# ein Band, das sagt, was sie ist, und `deploy.yml` prüft, dass dieses Band im
+# Deployment **nicht** vorkommt.
+
+name: CI
+
+on:
+  push:
+    branches-ignore: []
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Kein Netz zu einem Anbieter, kein Browsermodell, keine echten Schlüssel.
+  LEXIFLOW_CI: '1'
+
+jobs:
+  pruefen:
+    name: Typen, Tests und Größen
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Typen
+        run: npm run typecheck
+
+      - name: Alle Prüfungen (inkl. PostgreSQL und Serverfunktionen)
+        run: npm test
+
+      - name: Beide Web-Auslieferungen bauen
+        run: npm run build
+        env:
+          # Derselbe Unterpfad wie auf GitHub Pages. Ohne ihn fielen fest
+          # codierte Pfade erst im Deployment auf.
+          LEXIFLOW_BASE: /${{ github.event.repository.name }}/
+
+      - name: Portable Dateien bauen
+        run: npm run build:portable
+
+      - name: Größenwacht und fachliche Prüfung der portablen Dateien
+        run: npm run verify:portable
+
+      - name: Portable Dateien als Artefakt behalten
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-${{ github.sha }}
+          path: dist-portable/*.html
+          retention-days: 7
+          if-no-files-found: error
+
+  e2e:
+    name: Ende-zu-Ende
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Chromium für Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Die kontofreie Anwendung
+        run: npm run e2e
+
+      - name: Die portablen Dateien
+        run: npm run e2e:portable
+
+      - name: Das Portal unter dem Unterpfad
+        # Baut mit VITE_LEXIFLOW_FAKE_CLOUD=1 (siehe
+        # playwright.portal.config.ts). Diese Auslieferung wird nie deployt;
+        # `deploy.yml` prüft das ausdrücklich nach.
+        run: npm run e2e:portal
+
+      - name: Spuren eines Fehlschlags behalten
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-spuren-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore

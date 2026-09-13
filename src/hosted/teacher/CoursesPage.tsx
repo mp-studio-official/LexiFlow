@@ -73,8 +73,9 @@ export function CoursesPage() {
           {zeigeArchiv ? (
             <>
               <p className="small muted">
-                Archivierte Kurse bleiben lesbar und nehmen niemanden mehr auf. Alte
-                Einladungscodes führen nicht mehr hinein.
+                Abgeschlossene Kurse bleiben für ihre Lerngruppe da: Dort wird weiter geübt, und
+                der Lernstand läuft mit. Sie nehmen nur niemanden mehr auf und lassen sich nicht
+                mehr ändern.
               </p>
               <Kursliste kurse={archivierte} />
             </>

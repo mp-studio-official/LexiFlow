@@ -46,6 +46,8 @@ export interface LernstandSzenario {
    * erfundene Kennungen im Vertrag prüften sonst nur noch diese Prüfung.
    */
   kursMitPaket(): Promise<{ courseId: string; packId: string; entryIds: string[] }>;
+  /** Den Kurs archivieren – für die Zusage aus ADR-12. */
+  archiviereKurs(): Promise<void>;
 }
 
 export function describeProgressContract(
@@ -416,6 +418,66 @@ export function describeProgressContract(
         expect(endstand?.rev).toBe(frisch!.rev! + 1);
       });
 
+      it('verbraucht die Ereigniskennung nicht, wenn der Schreibvorgang abgelehnt wird', async () => {
+        /*
+          Die Zusage, nach der Marc ausdrücklich gefragt hat, in einem Stück.
+
+          Ein `baseRev`-Konflikt lehnt den **Lernstand** ab. Er darf dabei die
+          `eventId` nicht so verbrauchen, dass der Wiederholungsversuch ins
+          Leere läuft – sonst wäre die Auflösung aus § 5.5.3 eine Anleitung
+          ohne Wirkung: Das Gerät lüde neu, rechnete neu, sendete – und nichts
+          geschähe.
+
+          Geprüft werden beide Hälften: Der zweite Versuch **wirkt**, und er
+          wirkt **genau einmal**.
+        */
+        const oben = await aufFachFuenf();
+        const vorZaehler = (await progress().myPackProgress(kurs, paket))!.answeredCount;
+        const revVorher = (await stand(v(0)))!.rev!;
+
+        // Gerät A ist schneller.
+        const a = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'correct', vorher: oben, now: zeit(),
+        });
+        await progress().recordEvents([a.event]);
+
+        // Gerät B ging vom überholten Stand aus und wird abgelehnt.
+        const b = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'wrong', vorher: oben, now: zeit(),
+        });
+        const konflikte = await progress().recordEvents([b.event]);
+        expect(konflikte).toHaveLength(1);
+
+        const nachKonflikt = await stand(v(0));
+        // Der Lernstand ist der von Gerät A geblieben.
+        expect(nachKonflikt!.box).toBe(a.nachher.box);
+        expect(nachKonflikt!.rev).toBe(revVorher + 1);
+        // Gezählt wurde die Antwort von B trotzdem – geübt hat die Person ja.
+        expect((await progress().myPackProgress(kurs, paket))!.answeredCount).toBe(vorZaehler + 2);
+
+        // Neu laden, neu rechnen, **dieselbe** eventId senden.
+        const zweiterVersuch = erneutRechnen(b.event, nachKonflikt);
+        expect(zweiterVersuch.eventId).toBe(b.event.eventId);
+        expect(await progress().recordEvents([zweiterVersuch])).toEqual([]);
+
+        // Erste Hälfte: Er hat gewirkt.
+        const nachAufloesung = await stand(v(0));
+        expect(nachAufloesung!.box).toBe(1);
+        expect(nachAufloesung!.rev).toBe(nachKonflikt!.rev! + 1);
+
+        // Zweite Hälfte: genau einmal. Der Zähler ist nicht weitergelaufen.
+        expect((await progress().myPackProgress(kurs, paket))!.answeredCount).toBe(vorZaehler + 2);
+
+        // Und ein dritter Versuch mit derselben Kennung ändert nichts mehr –
+        // weder am Stand noch an der Fassung, und er ist kein Konflikt.
+        expect(await progress().recordEvents([zweiterVersuch])).toEqual([]);
+        const endstand = await stand(v(0));
+        expect(endstand!.rev).toBe(nachAufloesung!.rev);
+        expect((await progress().myPackProgress(kurs, paket))!.answeredCount).toBe(vorZaehler + 2);
+      });
+
       it('zählt dabei nichts doppelt', async () => {
         /*
           Punkt 7. Das Ereignis geht dreimal über die Leitung: einmal
@@ -620,6 +682,35 @@ export function describeProgressContract(
 
         await szenario.alsPerson(szenario.personen.lernende);
         expect((await progress().myPackProgress(kurs, paket))?.answeredCount).toBe(2);
+      });
+    });
+
+    describe('Der abgeschlossene Kurs', () => {
+      it('nimmt weiter Lernstand an – archiviert heißt nicht ausgesperrt', async () => {
+        /*
+          ADR-12, an der Stelle, an der es zählt. Ein Kurs wird am Ende des
+          Halbjahrs archiviert; die Vokabeln bleiben da, und wer im Sommer
+          weiterübt, soll seinen Lernstand behalten.
+
+          Die Alternative wäre, einer lernenden Person den Lernstand
+          wegzunehmen, während auf ihrer Kursseite „Du kannst weiter üben"
+          steht. Zugriff entziehen ist eine andere Handlung – die
+          Mitgliedschaft entfernen.
+        */
+        await szenario.archiviereKurs();
+        await szenario.alsPerson(szenario.personen.lernende);
+
+        expect(await progress().recordEvents([ereignis({ entryId: v(0), outcome: 'correct' })])).toEqual([]);
+        expect((await progress().myPackProgress(kurs, paket))?.answeredCount).toBe(1);
+        expect(await stand(v(0))).toBeDefined();
+      });
+
+      it('zählt auch weiter Übungsrunden', async () => {
+        await szenario.archiviereKurs();
+        await szenario.alsPerson(szenario.personen.lernende);
+
+        await progress().beginSession(kurs, paket);
+        expect((await progress().myPackProgress(kurs, paket))?.sessionCount).toBe(1);
       });
     });
 

@@ -345,6 +345,32 @@ describe('Der Schreibweg für Lernstände', () => {
     expect(await fehlerVon(sende({ eventId: testId(9999) }))).toMatch(/Liste von Ereignissen/);
   });
 
+  it('schreibt auch in einem archivierten Kurs weiter', async () => {
+    /*
+      ADR-12: archiviert heißt abgeschlossen, nicht geschlossen. Die
+      organisatorische Arbeit endet, das Lernen nicht. Wer das anders will,
+      entfernt die Mitgliedschaft – das ist eine eigene, bewusste Handlung,
+      und die Prüfung darunter zeigt, dass sie wirkt.
+    */
+    await alsPerson(db, LEHRERIN);
+    await db.query('update courses set archived = true where id = $1', [kurs]);
+
+    await alsPerson(db, LERNENDE);
+    expect(await sende([ereignis(1)])).toEqual([]);
+    expect(await zaehle('select * from entry_progress')).toBe(1);
+  });
+
+  it('aber nicht mehr, wenn die Mitgliedschaft entfernt wurde', async () => {
+    await alsPerson(db, LEHRERIN);
+    await db.query('delete from course_members where course_id = $1 and user_id = $2', [
+      kurs,
+      LERNENDE,
+    ]);
+
+    await alsPerson(db, LERNENDE);
+    expect(await fehlerVon(sende([ereignis(1)]))).toMatch(/nicht in einem deiner Kurse/);
+  });
+
   it('setzt nur den eigenen Lernstand zurück', async () => {
     await alsPerson(db, LERNENDE);
     await sende([ereignis(1)]);
@@ -883,6 +909,46 @@ describe('kein Weg, ein fremdes Kennwort zu setzen', () => {
     expect(funktionen.rows.map((zeile) => zeile.proname)).toEqual(
       Object.keys(UNVERDAECHTIG).sort(),
     );
+  });
+});
+
+describe('ein archivierter Kurs ist abgeschlossen, nicht geschlossen', () => {
+  beforeEach(async () => {
+    await alsPerson(db, LEHRERIN);
+    await db.query('update courses set archived = true where id = $1', [kurs]);
+  });
+
+  it('lässt sich nicht mehr umbenennen', async () => {
+    const fehler = await fehlerVon(
+      db.query('update courses set title = $1 where id = $2', ['Anders', kurs]),
+    );
+    expect(fehler).toMatch(/archiviert/i);
+  });
+
+  it('auch nicht mit Einrichtungsrechten – der Trigger gilt für alle', async () => {
+    /*
+      Dieselbe Begründung wie beim Einfrieren der Revisionen: Eine Regel, die
+      nur für angemeldete Rollen gilt, ist eine Regel, an der eine
+      Serverfunktion vorbeischreibt.
+    */
+    await alsEinrichtung(db);
+    const fehler = await fehlerVon(
+      db.query('update courses set school_year = $1 where id = $2', ['2027/28', kurs]),
+    );
+    expect(fehler).toMatch(/archiviert/i);
+  });
+
+  it('lässt sich aber wieder öffnen, und danach ist alles erlaubt', async () => {
+    await db.query('update courses set archived = false where id = $1', [kurs]);
+    await db.query('update courses set title = $1 where id = $2', ['Englisch 8b', kurs]);
+
+    const zeilen = await db.query('select title from courses where id = $1', [kurs]);
+    expect(zeilen.rows[0].title).toBe('Englisch 8b');
+  });
+
+  it('bleibt für die Lerngruppe sichtbar', async () => {
+    await alsPerson(db, LERNENDE);
+    expect(await zaehle('select * from courses where id = $1', [kurs])).toBe(1);
   });
 });
 

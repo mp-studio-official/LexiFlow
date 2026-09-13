@@ -57,6 +57,15 @@ export default defineConfig({
       deren Fehlen man richtig deuten muss.
     */
     __LEXIFLOW_PORTAL__: 'false',
+    /*
+      Die kontofreie PWA hat kein Portal und damit auch keine Fälschung.
+
+      Unter Vitest gilt das Gegenteil: Dort wird nichts ausgeliefert, und die
+      Prüfungen der Portaloberfläche brauchen die Fälschung. `define` gilt für
+      den ganzen Lauf, und Vitest liest diese Datei mit – deshalb steht die
+      Unterscheidung hier und nicht in einer zweiten Konfiguration.
+    */
+    __LEXIFLOW_FAKE_CLOUD__: process.env['VITEST'] ? 'true' : 'false',
   },
   plugins: [
     runtimeStub,

@@ -66,9 +66,11 @@ export function CourseDetailPage() {
       </p>
       <h1>{kurs.title}</h1>
       {kurs.archived ? (
-        <Alert tone="info" title="Dieser Kurs ist archiviert">
-          Er bleibt für alle Mitglieder lesbar und nimmt niemanden mehr auf. Alte Einladungscodes
-          führen nicht mehr hinein.
+        <Alert tone="info" title="Dieser Kurs ist abgeschlossen">
+          Die Lerngruppe sieht ihn weiter und übt darin weiter – der Lernstand läuft mit. Was endet,
+          ist die Arbeit daran: Niemand kommt mehr hinzu, alte Einladungscodes führen nicht mehr
+          hinein, und der Kurs lässt sich nicht mehr ändern. Wer wirklich keinen Zugriff mehr haben
+          soll, wird aus der Mitgliederliste entfernt.
         </Alert>
       ) : null}
 
@@ -132,8 +134,8 @@ export function CourseDetailPage() {
         <h2 style={{ marginTop: 0 }}>Kurs {kurs.archived ? 'wieder öffnen' : 'archivieren'}</h2>
         <p>
           {kurs.archived
-            ? 'Ein geöffneter Kurs nimmt wieder neue Mitglieder auf.'
-            : 'Am Ende des Halbjahrs: Der Kurs bleibt lesbar, nimmt aber niemanden mehr auf.'}
+            ? 'Ein geöffneter Kurs nimmt wieder Mitglieder auf und lässt sich wieder ändern.'
+            : 'Am Ende des Halbjahrs: Die Lerngruppe übt weiter und behält ihren Lernstand. Nur die Arbeit am Kurs endet – keine neuen Mitglieder, keine neuen Zuweisungen, keine Änderungen.'}
         </p>
         <Button
           onClick={() => {
@@ -214,7 +216,7 @@ function Einladungen({ courseId, archiviert }: { courseId: string; archiviert: b
 
       {archiviert ? (
         <p className="muted">
-          Ein archivierter Kurs nimmt niemanden mehr auf. Öffne ihn wieder, wenn du einladen
+          Ein abgeschlossener Kurs nimmt niemanden mehr auf. Öffne ihn wieder, wenn du einladen
           willst.
         </p>
       ) : (

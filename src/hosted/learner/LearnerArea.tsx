@@ -115,7 +115,8 @@ function Kurs() {
       <h1>{kurs?.title ?? 'Kurs'}</h1>
       {kurs?.archived ? (
         <Alert tone="info" title="Dieser Kurs ist abgeschlossen">
-          Du kannst weiter üben. Neue Pakete kommen hier keine mehr dazu.
+          Du kannst weiter üben, und dein Lernstand läuft mit. Neue Pakete kommen hier keine mehr
+          dazu.
         </Alert>
       ) : null}
 

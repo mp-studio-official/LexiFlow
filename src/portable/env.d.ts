@@ -27,6 +27,23 @@ declare const __LEXIFLOW_LEARNER__: boolean;
  */
 declare const __LEXIFLOW_PORTAL__: boolean;
 
+/**
+ * Trägt dieser Build die kontrollierte Fälschung überhaupt mit?
+ *
+ * Der Befund aus Phase 8: Eine Laufzeitabfrage (`VITE_LEXIFLOW_FAKE_CLOUD`)
+ * entscheidet, ob die Fälschung **benutzt** wird – sie entscheidet nicht, ob
+ * sie **ausgeliefert** wird. Ein gewöhnlicher Import brachte damit die
+ * erfundenen Konten samt `testkennwort` in jede Auslieferung.
+ *
+ * Diese Fahne ist die strukturelle Antwort, und es ist dieselbe wie bei
+ * ADR-10: Was `false` ist, faltet der Bundler weg, und dann gibt es den Zweig
+ * nicht mehr. Die Zusage hängt an einem Import und nicht an einer Bedingung.
+ *
+ * Fehlt sie (in Prüfungen), gilt `true` – dort soll die Fälschung erreichbar
+ * sein, und dort wird nichts ausgeliefert.
+ */
+declare const __LEXIFLOW_FAKE_CLOUD__: boolean;
+
 declare module 'virtual:lexiflow-student-runtime' {
   const html: string;
   export default html;

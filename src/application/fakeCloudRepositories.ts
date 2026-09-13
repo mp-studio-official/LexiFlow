@@ -460,6 +460,15 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
       ich();
       nurLehrkraftDesKurses(courseId);
       const kurs = kursOder(courseId, 'Dieser Kurs lässt sich nicht ändern.');
+      /*
+        Archiviert heißt abgeschlossen (ADR-12): Das Lernen geht weiter, die
+        Arbeit am Kurs nicht. Dasselbe sagt in der Datenbank der Trigger
+        `courses_archived_closed` – hier steht es noch einmal, damit beide
+        Erfüllungen des Vertrags sich gleich verhalten.
+      */
+      if (kurs.archived) {
+        throw new Error('Dieser Kurs ist archiviert. Zum Ändern zuerst wieder öffnen.');
+      }
       Object.assign(kurs, changes);
       return kurs;
     },

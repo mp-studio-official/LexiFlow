@@ -1,7 +1,6 @@
-import { Suspense, lazy, useMemo } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { RepositoryProvider } from '../application/RepositoryContext';
-import { createFakeCloud } from '../application/fakeCloudRepositories';
 import { createCloudRepositories } from '../cloud/createCloudRepositories';
 import { readHostedConfig, type HostedConfigResult } from '../runtime/hostedConfig';
 import { LearnerShell, PublicShell, TeacherShell } from './PortalShell';
@@ -148,6 +147,15 @@ export function HostedRoutes() {
  * dieselbe Stelle treten können, ohne dass hier mehr als eine Zeile wechselt.
  */
 /** Aus der Umgebung: Soll statt der Cloud die kontrollierte Fälschung laufen? */
+/**
+ * Liegt die Fälschung in diesem Build?
+ *
+ * Fehlt die Fahne – in Prüfungen –, gilt `true`: Dort soll die Fälschung
+ * erreichbar sein, und dort wird nichts ausgeliefert.
+ */
+export const FÄLSCHUNG_GEBAUT =
+  typeof __LEXIFLOW_FAKE_CLOUD__ === 'boolean' ? __LEXIFLOW_FAKE_CLOUD__ : true;
+
 export function fälschungGewünscht(env: Record<string, unknown>): boolean {
   /*
     Nur auf ausdrückliche Ansage. Ein stiller Rückfall auf die Fälschung wäre
@@ -205,11 +213,44 @@ export function HostedApp({
   env?: Record<string, unknown>;
   config?: HostedConfigResult;
 } = {}) {
-  const fälschung = fälschungGewünscht(env);
+  /*
+    Zwei Fahnen, und beide müssen stimmen: Die Bauzeitfahne entscheidet, ob
+    die Fälschung überhaupt im Bündel liegt, die Laufzeitfahne, ob sie benutzt
+    wird. In einem produktiven Build ist die erste `false`, und dann gibt es
+    unten schlicht keinen Zweig mehr, den die zweite erreichen könnte.
+  */
+  const fälschung = FÄLSCHUNG_GEBAUT && fälschungGewünscht(env);
+
+  /**
+   * Die kontrollierte Fälschung – **nachgeladen**, nicht mitgeliefert.
+   *
+   * Das war ein Befund aus Phase 8, gefunden von `verify-deploy.mjs` beim
+   * ersten Lauf: Ein gewöhnlicher `import` brachte `fakeCloudRepositories.ts`
+   * in **jedes** Portalbündel, auch in ein produktives. Damit lagen die
+   * erfundenen Konten samt `testkennwort` in der Auslieferung, und was sie
+   * davon trennte, war eine Bedingung zur Laufzeit.
+   *
+   * Genau diesen Gedanken hat ADR-10 für die Auslieferungen schon einmal
+   * geführt: Eine Zusage, die an einer Bedingung hängt statt an einem Import,
+   * ist am Bündel nicht prüfbar. Hier gilt er noch einmal – jetzt entscheidet
+   * der Bundler, und `dist/` enthält die Testkonten nicht mehr.
+   */
+  const [fälschungsspeicher, setFälschungsspeicher] = useState<Repositories | undefined>(undefined);
+
+  useEffect(() => {
+    if (!fälschung || repositories) return;
+    let aktiv = true;
+    void import('../application/fakeCloudRepositories').then((modul) => {
+      if (aktiv) setFälschungsspeicher(modul.createFakeCloud().repositories);
+    });
+    return () => {
+      aktiv = false;
+    };
+  }, [fälschung, repositories]);
 
   const speicher = useMemo<Repositories>(() => {
     if (repositories) return repositories;
-    if (fälschung) return createFakeCloud().repositories;
+    if (fälschung) return fälschungsspeicher ?? {};
     if (config.ok) {
       return createCloudRepositories({
         config: config.config,
@@ -219,7 +260,12 @@ export function HostedApp({
     }
     // Ohne Konfiguration entsteht nichts – die Seite unten sagt, was fehlt.
     return {};
-  }, [repositories, fälschung, config, env]);
+  }, [repositories, fälschung, fälschungsspeicher, config, env]);
+
+  if (fälschung && !repositories && !fälschungsspeicher) {
+    // Ein Wimpernschlag, und nur in der Testfassung.
+    return <p className="muted">Die Testfassung wird geladen …</p>;
+  }
 
   if (!config.ok && !repositories && !fälschung) {
     /*

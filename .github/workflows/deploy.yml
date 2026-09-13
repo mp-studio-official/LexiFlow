@@ -1,3 +1,31 @@
+# LexiFlow – die Auslieferung auf GitHub Pages.
+#
+# ## Was hier anders ist als in `ci.yml`
+#
+# `ci.yml` fragt „ist der Stand in Ordnung?" und läuft auf jedem Zweig. Diese
+# Datei fragt „darf das ins Netz?" und läuft nur auf `main`. Der Unterschied
+# ist nicht nur organisatorisch: Was hier passiert, ist öffentlich.
+#
+# ## Die Reihenfolge ist die Zusage
+#
+# Gebaut und geprüft wird **vor** dem Hochladen, und zwar in einem eigenen
+# Auftrag mit frischem Auscheckvorgang. Nichts aus den E2E-Läufen kann hier
+# hineingeraten – und das ist wichtig, weil die Portalsuite mit
+# `VITE_LEXIFLOW_FAKE_CLOUD=1` baut: erfundene Konten, Kennwort im Quelltext,
+# nichts wird gespeichert. Eine solche Auslieferung im Netz sähe aus wie das
+# Produkt.
+#
+# `npm run verify:deploy` ist der Riegel dagegen. Er durchsucht das gebaute
+# Verzeichnis nach Spuren der Testfassung, nach Geheimnissen und nach Pfaden,
+# die den Grundpfad verlassen – und bricht ab, statt zu warnen.
+#
+# ## Der erste Lauf wird nichts finden
+#
+# Es gibt kein Supabase-Projekt (§ 7.1). Ohne `VITE_SUPABASE_URL` zeigt das
+# Portal seine Einrichtungsseite und sagt, was fehlt. Das ist der richtige
+# Zustand und kein Defekt – `verify:deploy` schreibt ihn als Hinweis ins
+# Protokoll, damit niemand ihn für einen hält.
+
 name: Build & Deploy
 
 on:
@@ -14,9 +42,14 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  LEXIFLOW_CI: '1'
+
 jobs:
-  verify:
+  pruefen:
+    name: Die vollständige Prüfkette
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,29 +57,54 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+
       - run: npm run typecheck
       - run: npm test
+
       - run: npx playwright install --with-deps chromium
-      # Smoke-Test und Barrierefreiheitsprüfung (Axe, Tastatur, 390 px)
       - run: npm run e2e
+      - run: npm run e2e:portable
+      - run: npm run e2e:portal
+
+      - name: Portable Dateien und Größenwacht
+        run: npm run build:portable && npm run verify:portable
 
   deploy:
-    needs: verify
+    name: Auf GitHub Pages
+    needs: pruefen
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Frisch ausgecheckt. Kein Artefakt aus dem Prüfauftrag – dort ist eine
+      # Testfassung gebaut worden.
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Basis-Pfad für GitHub Pages: https://<user>.github.io/<repo>/
-      - run: npm run build
+
+      - name: Beide Auslieferungen bauen
+        run: npm run build
+        env:
+          # Basis-Pfad für GitHub Pages: https://<user>.github.io/<repo>/
+          LEXIFLOW_BASE: /${{ github.event.repository.name }}/
+          # Die beiden Werte, die im Bündel stehen dürfen. Fehlen sie, zeigt
+          # das Portal seine Einrichtungsseite – siehe oben.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Ausdrücklich **nicht** gesetzt: VITE_LEXIFLOW_FAKE_CLOUD.
+          # Der Schritt darunter bricht ab, falls doch.
+
+      - name: Der Riegel vor dem Netz
+        run: npm run verify:deploy
         env:
           LEXIFLOW_BASE: /${{ github.event.repository.name }}/
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

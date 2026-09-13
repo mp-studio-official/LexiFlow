@@ -287,6 +287,47 @@ begin
 end;
 $$;
 
+/*
+  Ein archivierter Kurs ist **abgeschlossen, nicht geschlossen** (ADR-12).
+
+  Er bleibt für seine Mitglieder sichtbar, es wird darin weiter geübt, und der
+  Lernstand wird weiter gespeichert. Was endet, ist die organisatorische
+  Arbeit daran: keine neuen Mitglieder (`redeem_invite`), keine neuen
+  Zuweisungen (`assign_pack_to_course`) – und keine gewöhnlichen Änderungen am
+  Kurs selbst. Das steht hier.
+
+  Änderbar bleibt genau ein Feld: `archived`. Ein archivierter Kurs lässt sich
+  wieder öffnen, und danach ist alles wieder erlaubt. Andersherum wäre das
+  Archivieren eine Einbahnstraße, und niemand träute sich, den Knopf zu
+  drücken.
+
+  **Warum ein Trigger und keine Regel.** Eine Zugriffsregel sieht in `using`
+  die alte und in `with check` die neue Zeile, aber nie beide zugleich. „Nur
+  dieses eine Feld darf sich geändert haben" lässt sich damit nicht sagen.
+*/
+create or replace function app_archived_courses_are_closed()
+returns trigger
+language plpgsql
+as $$
+begin
+  if not old.archived then return new; end if;
+
+  if new.owner_id is distinct from old.owner_id
+     or new.title is distinct from old.title
+     or new.description is distinct from old.description
+     or new.school_year is distinct from old.school_year then
+    raise exception 'Dieser Kurs ist archiviert (%). Zum Ändern zuerst wieder öffnen.', old.id
+      using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger courses_archived_closed
+  before update on courses
+  for each row execute function app_archived_courses_are_closed();
+
 create trigger pack_revisions_frozen
 before update or delete on pack_revisions
 for each row execute function app_revisions_are_frozen();

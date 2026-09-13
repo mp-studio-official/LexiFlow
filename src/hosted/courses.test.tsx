@@ -167,7 +167,16 @@ describe('archivierte Kurse', () => {
     const { user } = setup(`/kurse/${kurs.id}`, 'u-lehrerin', cloud);
     await user.click(await screen.findByRole('button', { name: 'Archivieren' }));
 
-    expect(await screen.findByText(/Dieser Kurs ist archiviert/)).toBeInTheDocument();
+    /*
+      „Abgeschlossen", nicht „geschlossen" (ADR-12). Der Unterschied ist der
+      ganze Punkt der Entscheidung, und er muss auf der Seite stehen: Die
+      Lerngruppe übt weiter, nur die Arbeit am Kurs endet.
+    */
+    expect(await screen.findByText(/Dieser Kurs ist abgeschlossen/)).toBeInTheDocument();
+    expect(screen.getByText(/übt darin weiter – der Lernstand läuft mit/)).toBeInTheDocument();
+    // Und der Weg, wenn wirklich kein Zugriff mehr sein soll.
+    expect(screen.getByText(/aus der Mitgliederliste entfernt/)).toBeInTheDocument();
+
     expect(screen.queryByRole('button', { name: 'Code erzeugen' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Wieder öffnen' })).toBeInTheDocument();
   });

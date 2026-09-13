@@ -155,12 +155,14 @@ begin
     einer Fassung steht, die diesem Kurs zugewiesen ist, in dem diese Person
     Mitglied ist.
 
-    Zu einem **abgeschlossenen** Kurs wird weiterhin geschrieben. Das ist
-    keine Nachlässigkeit, sondern die Einlösung eines Satzes, der seit Phase 4
-    auf der Kursseite steht: „Du kannst weiter üben. Neue Pakete kommen hier
-    keine mehr dazu." Ihn jetzt zu brechen hieße, einer lernenden Person den
-    Lernstand wegzunehmen, während auf dem Bildschirm das Gegenteil steht.
-    Siehe die offene Frage in § 5.5.7 des Fortsetzungsdokuments.
+    `archived` wird hier **absichtlich nicht geprüft** (ADR-12): Ein
+    abgeschlossener Kurs ist abgeschlossen, nicht geschlossen. Die
+    organisatorische Arbeit daran endet, das Lernen nicht – die Pakete bleiben
+    da, es wird weiter geübt, der Lernstand läuft mit.
+
+    Wer wirklich keinen Zugriff mehr haben soll, verliert die Mitgliedschaft.
+    Das ist eine eigene, bewusste Handlung, und sie wirkt sofort: Ohne
+    Mitgliedschaft fällt die Prüfung oben durch.
   */
   if exists (
     select 1

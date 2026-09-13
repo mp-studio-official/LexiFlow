@@ -87,6 +87,7 @@ describeProgressContract(
   async (): Promise<LernstandSzenario> => {
     const db = await neueDatenbank();
     offeneDatenbank = db;
+    let kursId = '';
 
     await legePersonAn(db, {
       id: PERSONEN.lehrerin,
@@ -129,11 +130,16 @@ describeProgressContract(
           await invitations.redeemCode(code);
         }
 
+        kursId = kurs.id;
         return {
           courseId: kurs.id,
           packId: pack.meta.id,
           entryIds: pack.entries.map((eintrag) => eintrag.id),
         };
+      },
+      async archiviereKurs() {
+        await alsPerson(db, PERSONEN.lehrerin);
+        await courses.setArchived(kursId, true);
       },
     };
   },
