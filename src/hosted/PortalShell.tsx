@@ -138,6 +138,7 @@ export function LearnerShell() {
 const LEHR_NAV: readonly NavPunkt[] = [
   { to: '/kurse', label: 'Kurse', hint: 'Lerngruppen und Einladungen' },
   { to: '/material', label: 'Material', hint: 'Pakete erstellen und veröffentlichen' },
+  { to: '/ki', label: 'KI-Zugang', hint: 'Anbieter hinterlegen' },
   { to: '/lernen', label: 'Lernen', hint: 'Dein eigenes Üben' },
   { to: '/datenschutz', label: 'Daten', hint: 'Was gespeichert wird' },
 ];

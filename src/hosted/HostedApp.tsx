@@ -110,6 +110,14 @@ export function HostedRoutes() {
             </Suspense>
           }
         />
+        <Route
+          path="ki/*"
+          element={
+            <Suspense fallback={<Laedt was="Der KI-Bereich" />}>
+              <TeacherArea section="ki" />
+            </Suspense>
+          }
+        />
         {/*
           Die Verwaltung liegt im Lehrkraftbündel, hat aber ihren eigenen
           Riegel: `admin` ist enger als `teacher`, und der äußere Riegel prüft

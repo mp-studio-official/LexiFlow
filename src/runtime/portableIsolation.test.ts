@@ -174,6 +174,16 @@ describe('kein Backend in portablen Dateien', () => {
       // ihre Testkonten schlicht Unsinn, der nach Funktion aussieht.
       expect(graph.dateien).not.toContain('src/application/fakeCloudRepositories.ts');
     });
+
+    it(`${name} erreicht den KI-Zugang des Kontos nicht`, () => {
+      /*
+        Die portable Lehrkraftdatei hat ihren **eigenen** KI-Weg: direkt, mit
+        eigenem Schlüssel, ohne Server (ADR-8). Beides in einer Datei hieße
+        zwei Sicherheitsmodelle und keine prüfbare Zusage.
+      */
+      expect(graph.dateien).not.toContain('src/cloud/aiGateway.ts');
+      expect(graph.dateien).not.toContain('src/hosted/teacher/AiPage.tsx');
+    });
   }
 });
 
@@ -211,6 +221,18 @@ describe('das Portal', () => {
     // Das Erzeugen von Lerndateien setzt die eingebettete Laufzeit voraus,
     // und die gibt es nur in der portablen Lehrkraftdatei.
     expect([...PORTAL.pakete]).not.toContain('virtual:lexiflow-student-runtime');
+  });
+
+  it('trägt keinen Serverfunktionscode mit sich', () => {
+    /*
+      Die Zusage aus Phase 7, am Bündel geprüft: In
+      `supabase/functions/ai-gateway/` stehen die Adressprüfung, der Tresor
+      und die Rollenprüfung. Sie gehören auf den Server – nicht, weil ihr
+      Quelltext geheim wäre, sondern weil eine Prüfung, die im Browser läuft,
+      keine Prüfung ist. Wer sie dort fände, könnte sie dort auch umgehen.
+    */
+    const verdaechtig = [...PORTAL.dateien].filter((datei) => datei.startsWith('supabase/'));
+    expect(verdaechtig).toEqual([]);
   });
 });
 

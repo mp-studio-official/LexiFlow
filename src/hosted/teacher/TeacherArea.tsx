@@ -1,8 +1,14 @@
+import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Alert, Card } from '../../ui/components';
 import { CourseDetailPage } from './CourseDetailPage';
 import { CoursesPage } from './CoursesPage';
 import { MaterialPage } from './MaterialPage';
+
+/**
+ * Der KI-Zugang – lazy, weil eine Lehrkraft ohne KI ihn nie braucht.
+ */
+const AiPage = lazy(() => import('./AiPage'));
 
 /**
  * Der Lehrkraftbereich des Portals – das eine Bündel, das Lernende nie holen.
@@ -28,7 +34,7 @@ import { MaterialPage } from './MaterialPage';
  * Abschnitt in seiner Phase, dann innerhalb seiner eigenen Datei.
  */
 
-export const TEACHER_SECTIONS = ['kurse', 'material', 'verwaltung'] as const;
+export const TEACHER_SECTIONS = ['kurse', 'material', 'ki', 'verwaltung'] as const;
 export type TeacherSection = (typeof TEACHER_SECTIONS)[number];
 
 interface Platz {
@@ -47,6 +53,11 @@ const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
     titel: 'Material',
     phase: 'Phase 5',
     text: 'Pakete im Konto anlegen, aus der lokalen Fassung übernehmen, als unveränderliche Revision veröffentlichen und einem Kurs zuweisen.',
+  },
+  ki: {
+    titel: 'KI-Zugang',
+    phase: 'Phase 7',
+    text: 'Einen Anbieter hinterlegen. Der Schlüssel bleibt auf dem Server.',
   },
   verwaltung: {
     titel: 'Verwaltung',
@@ -76,6 +87,16 @@ export function TeacherArea({ section }: { section: TeacherSection }) {
       <Routes>
         <Route index element={<MaterialPage />} />
       </Routes>
+    );
+  }
+
+  if (section === 'ki') {
+    return (
+      <Suspense fallback={<p className="muted">Der KI-Bereich wird geladen …</p>}>
+        <Routes>
+          <Route index element={<AiPage />} />
+        </Routes>
+      </Suspense>
     );
   }
 

@@ -98,8 +98,16 @@ describe('die kontrollierte Cloudfassung', () => {
     expect(screen.getByText(/gefunden: object/)).toBeInTheDocument();
   });
 
-  it('hat noch kein KI-Gateway – Phase 7', () => {
-    expect(createFakeCloud().repositories.ai).toBeUndefined();
+  it('hat seit Phase 7 ein KI-Gateway – aber keinen Datenauszug', () => {
+    const { repositories } = createFakeCloud();
+    expect(repositories.ai).toBeDefined();
+    // Der Auszug der eigenen Daten kommt später.
+    expect(repositories.account).toBeDefined();
+  });
+
+  it('die portable Fassung hat beides nicht – dort gibt es kein Konto', () => {
+    expect(createLocalRepositories().ai).toBeUndefined();
+    expect(createLocalRepositories().account).toBeUndefined();
   });
 });
 

@@ -10,6 +10,7 @@ import {
 } from './supabaseProfileRepository';
 import { createSqlCourseRepositories } from './courseGateway';
 import { createSqlPackRepositories } from './packGateway';
+import { createAiGateway, createAiTransport } from './aiGateway';
 import { createSqlProgressRepository } from './progressGateway';
 import { createSupabaseCourseGateway } from './supabaseCourseGateway';
 import { createSupabasePackGateway } from './supabasePackGateway';
@@ -23,13 +24,13 @@ import type { Repositories } from '../application/repositories';
  *
  * ## Was hier absichtlich fehlt
  *
- * `account` und `ai`. Sie kommen in Phase 7 beziehungsweise mit dem
- * Datenauszug. Bis dahin sind sie **nicht vorhanden**, und das ist besser als
- * eine Fassung, die Fehler wirft: Die Oberfläche fragt mit
- * `useOptionalRepository` und sagt dann ehrlich, dass es das in dieser Fassung
- * noch nicht gibt, statt einen Knopf anzubieten, der in einen Absturz führt.
+ * `account`. Der Datenauszug kommt später. Bis dahin ist er **nicht
+ * vorhanden**, und das ist besser als eine Fassung, die Fehler wirft: Die
+ * Oberfläche fragt mit `useOptionalRepository` und sagt dann ehrlich, dass es
+ * das in dieser Fassung noch nicht gibt, statt einen Knopf anzubieten, der in
+ * einen Absturz führt.
  *
- * `progress` ist seit Phase 6 dabei.
+ * `progress` ist seit Phase 6 dabei, `ai` seit Phase 7.
  *
  * ## Die Rückkehradresse
  *
@@ -115,5 +116,21 @@ export function createCloudRepositories(input: {
 
   const progress = createSqlProgressRepository(createSupabaseProgressGateway(client));
 
-  return { auth, profile, courses, invitations, packs, publication, progress };
+  /*
+    Der KI-Zugang geht **ausschließlich** über die Serverfunktion (ADR-8). Der
+    Client bekommt hier keinen Anbieterschlüssel und keine Adresse zu sehen –
+    er bekommt einen Transport, der ein Zugangstoken mitschickt.
+  */
+  const ai = createAiGateway(
+    createAiTransport({
+      supabaseUrl: input.config.supabaseUrl,
+      publishableKey: input.config.supabasePublishableKey,
+      async accessToken() {
+        const { data } = await client.auth.getSession();
+        return data.session?.access_token;
+      },
+    }),
+  );
+
+  return { auth, profile, courses, invitations, packs, publication, progress, ai };
 }

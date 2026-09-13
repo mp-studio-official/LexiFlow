@@ -624,3 +624,83 @@ test.describe('Üben auf dem Telefon', () => {
     expect(ueberlauf).toBeLessThanOrEqual(1);
   });
 });
+
+/* ==================================================== KI-Zugang (Phase 7) = */
+
+/**
+ * Der KI-Zugang im Browser.
+ *
+ * Was der Server tut, ist in `supabase/functions/ai-gateway/` mit 123
+ * Prüfungen abgenommen – ohne einen einzigen Netzaufruf und ohne einen
+ * einzigen echten Schlüssel. Hier geht es um das, was nur ein Browser zeigen
+ * kann: dass der Satz über den Schlüssel dasteht, bevor jemand ihn eintippt,
+ * dass die Seite auf einem Telefon hält und dass eine Vorlesehilfe durchkommt.
+ *
+ * Eingetragen wird dabei ein offensichtlicher Testwert. Es gibt in diesem
+ * Sprint keinen echten Anbieterschlüssel, und diese Auslieferung ruft ohnehin
+ * keinen Anbieter an – sie läuft gegen die kontrollierte Fälschung.
+ */
+
+const TEST_SCHLUESSEL = 'sk-test-nur-zum-probieren-1234';
+
+test.describe('KI-Zugang', () => {
+  test('@smoke sagt vor dem Eintragen, wohin der Schlüssel geht', async ({ page }) => {
+    await alsLehrkraft(page);
+    await page.goto('./portal/#/ki');
+    await page.getByRole('heading', { name: 'KI-Zugang', level: 1 }).waitFor();
+
+    await expect(page.getByText(/kommt nie wieder heraus/)).toBeVisible();
+    await expect(page.getByText(/generativelanguage\.googleapis\.com/)).toBeVisible();
+    // Kein Feld für eine freie Adresse beim offiziellen Anbieter.
+    await expect(page.getByLabel(/Eigene Adresse/)).toHaveCount(0);
+  });
+
+  test('@smoke nach dem Speichern steht nur noch die Maske da', async ({ page }) => {
+    await alsLehrkraft(page);
+    await page.goto('./portal/#/ki');
+    await page.getByLabel('Name für dich').fill('Schulzugang Englisch');
+    await page.getByLabel('API-Schlüssel').fill(TEST_SCHLUESSEL);
+    await page.getByRole('button', { name: 'Speichern' }).click();
+
+    await expect(page.getByText(/nicht mehr lesbar/)).toBeVisible();
+    await expect(page.getByText(/Schlüssel ••••••••1234/)).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('sk-test-nur-zum-probieren');
+  });
+
+  test('@smoke eine lernende Person kommt nicht hinein', async ({ page }) => {
+    await alsLernende(page);
+    await page.goto('./portal/#/ki');
+
+    await expect(page.getByRole('heading', { name: 'KI-Zugang', level: 1 })).toHaveCount(0);
+  });
+
+  test('@a11y die KI-Seite ohne schwerwiegende Befunde', async ({ page }) => {
+    await alsLehrkraft(page);
+    await page.goto('./portal/#/ki');
+    await page.getByRole('heading', { name: 'KI-Zugang', level: 1 }).waitFor();
+
+    const ergebnis = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(
+      ergebnis.violations
+        .filter((verstoss) => ['serious', 'critical'].includes(verstoss.impact ?? ''))
+        .map((verstoss) => ({ regel: verstoss.id, wo: verstoss.nodes.map((k) => k.target.join(' ')) })),
+    ).toEqual([]);
+  });
+});
+
+test.describe('KI-Zugang auf dem Telefon', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('@a11y sprengt das Fenster nicht', async ({ page }) => {
+    await alsLehrkraft(page);
+    await page.goto('./portal/#/ki');
+    await page.getByRole('heading', { name: 'KI-Zugang', level: 1 }).waitFor();
+
+    const ueberlauf = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(ueberlauf).toBeLessThanOrEqual(1);
+  });
+});

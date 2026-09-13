@@ -946,6 +946,130 @@ Der Preis, offen benannt: Zwei Seiten können auseinanderlaufen. Fällt das
 eines Tages auf, ist der Umbau von `SessionPage` die Antwort – dann aber mit
 einem Anlass statt auf Vorrat.
 
+## 5a. KI-Zugang (Phase 7)
+
+### 5a.1 Zwei Wege, ohne Vermischung
+
+ADR-8 steht seit Phase 0, und Phase 7 löst ihn ein:
+
+| Gestalt | Weg zum Anbieter | Wer hat den Schlüssel |
+| --- | --- | --- |
+| portable Lehrkraftdatei | direkt aus dem Browser (seit Sprint 4C) | die Lehrkraft, auf ihrem Gerät |
+| Portal | ausschließlich über die Serverfunktion `ai-gateway` | der Server – der Browser sieht ihn nie |
+
+Beides ist für seine Lage richtig. Falsch wäre, sie zu vermischen: Ein
+Browser, der je nach Zustand mal direkt und mal über den Server geht, hat zwei
+Sicherheitsmodelle und keine prüfbare Zusage. Ein Test am Importgraphen hält
+das fest – `src/cloud/aiGateway.ts` ist in keiner portablen Datei erreichbar,
+und in keinem Browserbündel steht Code aus `supabase/functions/`.
+
+### 5a.2 Der Tresor
+
+`supabase/functions/ai-gateway/tresor.ts`. **AES-GCM aus WebCrypto**, keine
+eigene Kryptografie.
+
+| Baustein | Warum |
+| --- | --- |
+| 96-Bit-IV je Verschlüsselung, aus einer kryptografischen Quelle | Derselbe IV zweimal mit demselben Schlüssel gibt bei GCM **beide Klartexte** preis – nicht „wird schwächer" |
+| Ein IV aus lauter Nullen wird abgelehnt | Rechnerisch möglich, praktisch immer eine kaputte Zufallsquelle |
+| AAD bindet Schlüsselfassung, Eigentümerin, Verbindung und Anbieter | Verschlüsselt heißt nicht unverschiebbar. Ohne Bindung ließe sich ein Chiffretext in die Zeile einer anderen Lehrkraft kopieren – oder auf einen Anbieter mit freier Adresse umhängen |
+| Trennzeichen der AAD ist `\u0000`, und jedes Feld wird dagegen geprüft | Mit einem gewöhnlichen Trennzeichen ergäben zwei verschiedene Bindungen dieselbe Zeichenkette |
+| Hauptschlüssel **nur** aus den Function Secrets | Ein eingebauter Vorgabewert wäre ein Schlüssel, den jeder kennt, der den Quelltext liest |
+| Nummerierte Fassungen, alte bleiben lesbar | Eine Rotation, die die alte Fassung wegwirft, ist ein Datenverlust mit Ankündigung |
+| Die Maske entsteht **vor** dem Versiegeln | Sonst wäre jede Liste von Verbindungen ein Grund, jeden Schlüssel zu entsiegeln |
+
+**Ein Fehlschlag meldet sich und räumt nicht auf.** Fehlender Hauptschlüssel,
+falsche Fassung, veränderter Chiffretext: derselbe Satz, kein Löschen, keine
+zurückgesetzte Zeile. Ein Hauptschlüssel, der versehentlich fehlt, ist ein
+behebbarer Betriebsfehler; eine Funktion, die daraufhin Zeilen entfernte,
+machte ihn unbehebbar.
+
+### 5a.3 Wohin gesendet werden darf
+
+`supabase/functions/ai-gateway/ziel.ts`. Zwei Tore, und beide müssen auf sein:
+
+1. **Der Host steht auf einer Liste** – der der offiziellen Anbieter (fest im
+   Quelltext) oder der, die eine Verwaltung gepflegt hat. **Exakter
+   Vergleich.** Ein Suffixvergleich erlaubte
+   `generativelanguage.googleapis.com.boese.example`.
+2. **Die Adresse taugt**: HTTPS, keine Zugangsdaten im URL, nur Port 443,
+   kein IP-Literal in irgendeiner Schreibweise, kein `localhost`/`.internal`/
+   `.local`, nur ASCII.
+
+**IP-Literale werden umgekehrt geprüft.** Nicht „ist das eine private
+Adresse?" – diese Frage hat zu viele Schreibweisen (`2130706433`, `0x7f.1`,
+`0177.0.0.1`, `[::ffff:127.0.0.1]`). Sondern: **Ein Anbieter hat einen
+Namen.** Alles, was wie eine Zahlenadresse aussieht, fällt durch, ohne dass
+entschieden werden muss, ob sie privat wäre. 53 Prüfungen zählen die
+Schreibweisen auf; sie sind die Begründung, nicht die Verteidigung.
+
+**Weiterleitungen werden nicht verfolgt.** Eine Umleitung ist der übliche Weg,
+aus einer geprüften Adresse eine ungeprüfte zu machen. „Jedes neue Ziel erneut
+prüfen" wäre die Alternative; ablehnen ist die kürzere und die sicherere.
+
+**Keine Kopfzeilen von außen.** Die Serverfunktion baut sie vollständig selbst.
+Mit freien Kopfzeilen ließe sich der `Host` umbiegen oder ein interner Dienst
+mit einer Kennung ansprechen, die diese Funktion zufällig hat.
+
+**Größen.** 32 KiB hinaus, 256 KiB herein – und die Antwort wird strömend
+gelesen und abgebrochen, nicht erst vollständig in den Speicher geholt.
+
+### 5a.4 Die ehrliche Grenze: DNS-Rebinding
+
+**Nicht gelöst.** Ein Name auf der Freigabeliste kann auf `127.0.0.1` zeigen.
+Dagegen hilft nur, den Namen selbst aufzulösen, die **Adresse** zu prüfen und
+die Verbindung an genau diese Adresse zu binden – sonst löst der HTTP-Client
+ein zweites Mal auf. Eine Edge-Laufzeit gibt beides nicht her.
+
+Das wird nicht weggeredet. Eingegrenzt ist es allein dadurch, dass
+benutzerdefinierte Hosts **ausschließlich über eine administrative
+Freigabeliste** erreichbar sind: Wer einen Namen freigibt, gibt seine
+Auflösung mit frei. Genau deshalb ist die Freigabe eine Verwaltungsaufgabe und
+kein Feld im Formular.
+
+### 5a.5 Die Anbieter
+
+| Anbieter | Adresse | Eigene Adresse? | Schlüssel |
+| --- | --- | --- | --- |
+| Gemini | `generativelanguage.googleapis.com` | nein | Kopfzeile `x-goog-api-key`, **nie** `?key=` |
+| OpenAI-kompatibel | `api.openai.com` voreingestellt | ja, nur freigegebene Hosts | `Authorization: Bearer` |
+| Anthropic-kompatibel | `api.anthropic.com` voreingestellt | ja, nur freigegebene Hosts | `x-api-key` + feste `anthropic-version` |
+| Modell im Browser | — | — | keiner |
+
+Der Schlüssel geht nie in die Adresse: Adressen landen in Server-Logs, in
+Proxy-Logs, im Verlauf und in Fehlerberichten.
+
+Das **Browsermodell** steht in der Liste und hat trotzdem keine Adresse. Es
+läuft im Gerät der Lehrkraft und geht nie ins Netz – ein Aufruf darüber wird
+abgelehnt, nicht stillschweigend umgeleitet.
+
+### 5a.6 Die Datenbank
+
+| Tabelle | Wer darf was |
+| --- | --- |
+| `ai_allowed_hosts` | lesen: jede angemeldete Person (die Oberfläche braucht eine Auswahl). Ändern: nur `admin`, und nur auf den eigenen Namen |
+| `ai_connections` | eine Regel: `owner_id = auth.uid()`; anlegen zusätzlich nur als Lehrkraft |
+
+**Der eigentliche Riegel ist ein Spaltenrecht.** `secret_ciphertext`,
+`secret_iv` und `secret_key_version` sind für `authenticated` **nicht lesbar** –
+auch nicht über eine selbst formulierte PostgREST-Abfrage, auch nicht für die
+Verwaltung, auch nicht über `select *`. Geschrieben wird dort ausschließlich
+von der Serverfunktion mit Service Role.
+
+Das ist der Unterschied zwischen „die Anwendung zeigt es nicht an" und „es wird
+nicht herausgegeben".
+
+**Kein Protokoll der Aufrufe.** Wer wann welchen Text an ein Modell geschickt
+hat, wäre eine Auswertung über Lehrkräfte. Die Bremse (120 Aufrufe je Stunde)
+zählt in `auth_rate_limit` und merkt sich nicht, worum es ging.
+
+### 5a.7 Was ein Modell zu sehen bekommt
+
+Wörter und Beispielsätze. Keine Namen, keine Lernstände, nichts aus dem
+Lernbereich – das gilt seit Sprint 2A und unabhängig vom Anbieter. Der
+Serverfunktion fehlt für Lernstände schlicht der Port; was sie nicht hat, kann
+sie nicht weiterreichen.
+
 ## 6. Einrichtung
 
 Vollständig wird dieser Abschnitt in Phase 8. Was heute feststeht:
@@ -1002,6 +1126,12 @@ mehr.
 - die Anmelde- und Wiederherstellungslogik der Serverfunktion
 - die Repository-Verträge gegen zwei Implementierungen
 - die Oberfläche des Portals einschließlich der Übungsseite
+- **die Adressprüfung des KI-Gateways** (53 Prüfungen, jede Schreibweise einer
+  IP-Adresse einzeln)
+- **das Ver- und Entsiegeln der Anbieterschlüssel** (29 Prüfungen gegen echtes
+  WebCrypto – AES-GCM selbst wird dabei nicht nachgeprüft, sondern das, was
+  darum herum falsch gemacht werden kann)
+- **die Abläufe des KI-Gateways** (41 Prüfungen mit Fakes)
 
 **Nicht belegt – und zwar gar nicht:**
 
@@ -1011,8 +1141,12 @@ mehr.
   Token wurde je ausgestellt, signiert oder geprüft.
 - **das API-Gateway (PostgREST).** Die SQL-Ebene ist geprüft, die HTTP-Ebene
   darüber nicht – einschließlich der Abbildung von Abfragen auf Anfragen.
-- **die Edge-Function-Laufzeit.** Der Kern ist getestet, der Deno-Mantel nie
-  ausgeführt.
+- **die Edge-Function-Laufzeit.** Die Kerne sind getestet, die Deno-Mäntel nie
+  ausgeführt – das gilt für `learner-auth` wie für `ai-gateway`.
+- **Function Secrets.** Es gibt keinen Hauptschlüssel. Der Schlüsselbund wurde
+  nie aus einer echten Umgebung gelesen, und keine Rotation ist je gelaufen.
+- **jeder echte KI-Anbieter.** Kein Aufruf hat je ein Netz gesehen, kein
+  echter Anbieterschlüssel existiert.
 - **E-Mail-Versand.** Es wurde keine Nachricht verschickt und keine empfangen.
 - **Deployment.** Es gibt kein Supabase-Projekt, keinen Remote, kein GitHub
   Pages. Nichts davon ist eingerichtet, und nichts wurde ausprobiert.
@@ -1038,12 +1172,17 @@ dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
 | Wiederherstellungscode wird beim Anlegen zwar abgeschrieben, aber nicht sicher aufbewahrt | bewusst; mehr kann Software an dieser Stelle nicht |
 | `supabasePackGateway.ts` (PostgREST) ungeprüft | bekannt; die abweichenden Stellen stehen als Kommentar in der Datei |
 | Zwei gleichzeitige Veröffentlichungen ergeben einen Fehler statt einer Wartezeit | bewusst; der Primärschlüssel verhindert die Dopplung, die Wiederholung liegt beim Aufruf |
-| Portalbündel 580 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
+| Portalbündel 583 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
 | `supabaseProgressGateway.ts` (PostgREST) ungeprüft | bekannt; dieselbe Lage wie bei Kursen und Paketen |
 | Der eigene Lernstand lässt sich beschönigen | bewusst, § 5.5.1; die Alternative wären zwei Leitner-Rechnungen, die auseinanderlaufen |
 | Eine offline entstandene Runde trägt den Zeitpunkt des Hochladens | bewusst, § 5.5.3; die Alternative wäre ein Zeitstempel vom Gerät, und der ist nicht überprüfbar |
 | Abgeschlossene Kurse erlauben weiterhin das Üben | **offene fachliche Frage**, § 5.5.7 – Marc entscheidet |
 | Ein drittes Gerät im selben Moment bleibt beim Konflikt | bewusst; ein zweiter Versuch, kein dritter. Der Hinweis steht dann da, die nächste Runde liest neu |
+| **DNS-Rebinding ist nicht gelöst** | bekannt und nicht weggeredet, § 5a.4; eingegrenzt allein durch die administrative Freigabeliste, weil die Edge-Laufzeit keine eigene Namensauflösung hergibt |
+| Ein freigegebener Host kann intern zeigen | dieselbe Grenze; eine Freigabe ist eine Verwaltungsentscheidung, keine Formulareinstellung |
+| Der Hauptschlüssel liegt in den Function Secrets | wer sie liest, liest alle Anbieterschlüssel. Die Grenze jeder serverseitigen Verschlüsselung; benannt statt verschwiegen |
+| Eine Schlüsselrotation ist vorgesehen, aber nie gelaufen | § 5a.2; geprüft ist die Logik, nicht der Vorgang |
+| `ai-gateway/index.ts` (Deno-Mantel) ungeprüft | bekannt; darin stehen nur zwei Dinge, die nirgends sonst stehen können – `redirect: 'manual'` und das strömende Lesen |
 | Übungsseite im Portal und `SessionPage` können auseinanderlaufen | bewusst, § 5.5.9; die gemeinsame Grundlage ist die Domainschicht, doppelt ist nur das Zusammenstecken |
 
 ## 8. Größenwacht
@@ -1051,12 +1190,12 @@ dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
 Die Lernlaufzeit lag beim Start bei **674,6 KiB**. Jede Phase misst neu; ein
 Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 
-| Artefakt | Start | nach Phase 6 |
+| Artefakt | Start | nach Phase 7 |
 | --- | --- | --- |
 | `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,3 KiB** |
 | `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,7 KiB** |
 | kontofreie PWA (`index-*.js`) | 441,53 kB | 441,59 kB |
-| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → 574,85 kB (Phase 5) → **579,86 kB** (Phase 6b) |
+| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → 574,85 kB (Phase 5) → 579,86 kB (Phase 6b) → **582,98 kB** (Phase 7) |
 
 Nach Phase 4 sind Lehrkraftdatei und Lernlaufzeit weiterhin bei **9482,1 KiB**
 und **674,6 KiB**. Einmal wären sie um 0,5 und 0,2 KiB gewachsen: Eine
@@ -1079,8 +1218,15 @@ Fehler – das Portal ist nicht portabel –, aber es ist beobachtet: Für ein
 Telefon im Schulnetz sind 575 kB spürbar. Zwei Hebel liegen bereit und sind
 noch nicht gezogen: den Supabase-Client und die Paketprüfung erst beim ersten
 Bedarf laden. Die Übernahme vom Gerät ist bereits abgetrennt (98,8 kB), die Übungsseite
-ebenfalls (22,1 kB): Eine Lehrkraft, die nur Material verwaltet, lädt sie nie.
-Phase 6 hat dem Hauptbündel deshalb nur 4 kB hinzugefügt.
+ebenfalls (22,6 kB) und die KI-Seite auch (5,5 kB): Eine Lehrkraft, die nur
+Material verwaltet, lädt keine davon. Phase 6 hat dem Hauptbündel 4 kB
+hinzugefügt, Phase 7 noch einmal 3 kB.
+
+**Phase 7 kostet die portablen Dateien nichts** – 9482,3 KiB und 674,7 KiB,
+unverändert. Der ganze KI-Zugang des Kontos liegt in
+`supabase/functions/ai-gateway/` und in `src/cloud/aiGateway.ts`, und ein Test
+am Importgraphen hält fest, dass beides von keiner portablen Datei aus
+erreichbar ist.
 
 Einmal ist dabei etwas durchgerutscht und wurde bemerkt: Das Portal band
 anfangs die Datenschutzseite der kontofreien Anwendung ein, und an der hing
@@ -1106,6 +1252,7 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 | 5 | `085b0c8` | Pakete im Konto, unveränderliche Revisionen, Zuweisung, Übernahme vom Gerät (§ 5) | 2539 Tests, 159 E2E unverändert, 29 Portable-E2E, **22** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 6 | `bfc41e9` | Lernstand im Konto, geräteübergreifend und idempotent; Üben im Portal (§ 5.5) | 2589 Tests, 159 E2E unverändert, 29 Portable-E2E, **26** Portal-E2E, 32 Prüfungen; portable Dateien +0,1 KiB (§ 8) |
 | 6b | `3adef03` | Korrektur: Fassung statt Client-Zeitstempel; serverseitige Eingangsprüfung (§ 5.5.3, § 5.5.4, § 5.5.8) | 2625 Tests, davon Lernstandsvertrag 2 × 32; 159 E2E unverändert, 26 Portal-E2E |
+| 7 | *(folgt)* | KI-Zugang: Tresor (AES-GCM), Adressprüfung, Freigabeliste, vier Anbieter (§ 5a) | 2792 Tests, davon 123 für die Serverfunktion; 159 E2E unverändert, **31** Portal-E2E; portable Dateien unverändert |
 
 Die Zeile der jeweils letzten Phase trägt ihre Commit-ID mit dem **folgenden**
 Commit nach – vorher gibt es sie nicht. Jede Abnahme ist eine tatsächlich
@@ -1282,8 +1429,36 @@ darunter die, die den fachlichen Rückfall von Fach 5 auf Fach 1 verlangt.
 Ersetzt man ihn durch einen Vergleich der Client-Zeitstempel, fallen ebenfalls
 fünf – darunter die mit der vorgestellten Uhr.
 
-**Als Nächstes:** Phase 7 – KI-Zugang mit Verschlüsselung und SSRF-Schutz
-(ADR-8, ADR-9).
+- Phase 7 – KI-Zugang: Tresor mit AES-GCM und gebundenen Zusatzdaten,
+  Adressprüfung gegen SSRF, administrative Freigabeliste, vier Anbieter,
+  Lehrkraftseite. Siehe § 5a, ADR-8 und ADR-9.
+
+**Messung nach Phase 7** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2792** Tests in **157** Dateien, alle grün |
+| davon Serverfunktion `ai-gateway` | **123** – 53 Adressprüfung, 29 Tresor, 41 Abläufe |
+| davon `npm run test:db` | 103 gegen PostgreSQL 17.5 |
+| `npm run build` | beide Web-Auslieferungen erfolgreich |
+| `npm run build:portable` | 9482,3 KiB / 674,7 KiB – **unverändert** |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | **159** E2E – unverändert, nicht angefasst |
+| `npm run e2e:portable` | 29 Portable-E2E, alle grün |
+| `npm run e2e:portal` | **31** Portal-E2E, alle grün |
+
+Eine Gegenprobe: Entfernt man die zweite Adressprüfung – die unmittelbar vor
+dem Aufruf, zusätzlich zu der beim Speichern –, fällt genau die Prüfung um,
+die beschreibt, warum es sie gibt. Eine Freigabe, die nur beim Eintragen gilt,
+ist keine.
+
+**In keinem Test dieser Phase steht ein echter Schlüssel, und keiner ruft
+einen Anbieter an.** Der Hauptschlüssel ist eine Folge von Siebenen, die
+Anbieterschlüssel heißen `sk-test-…`, und der Transport ist eine Funktion, die
+ein Objekt zurückgibt.
+
+**Als Nächstes:** Phase 8 – CI und GitHub Pages (§ 6 vervollständigen).
 
 **Nicht vergessen:**
 

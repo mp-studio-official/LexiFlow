@@ -4,6 +4,8 @@ import { alsLernstand } from './progressEvents';
 import type { EntryProgress, PackProgress, VocabPack } from '../domain/schema';
 import {
   type AccountRepository,
+  type AiConnectionSummary,
+  type AiGateway,
   type AuthRepository,
   type Course,
   type CourseInvite,
@@ -167,6 +169,10 @@ export interface FakeCloudState {
   packProgress: Map<string, PackProgress>;
   entryProgress: Map<string, EntryProgress[]>;
   seenEvents: Set<string>;
+  /** KI-Verbindungen – der Schlüssel liegt hier **im Klartext**, siehe unten. */
+  aiConnections: Map<string, AiConnectionSummary & { ownerId: string; secret: string }>;
+  /** Von einer Verwaltung freigegebene KI-Hosts. */
+  aiAllowedHosts: string[];
   /**
    * Welches Ereignis welchen Lernstand zuletzt erzeugt hat.
    *
@@ -192,6 +198,8 @@ function leererStand(): FakeCloudState {
     entryProgress: new Map(),
     seenEvents: new Set(),
     lastEventIds: new Map(),
+    aiConnections: new Map(),
+    aiAllowedHosts: [],
   };
 }
 
@@ -867,6 +875,78 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     },
   };
 
+  /**
+   * Der KI-Zugang, gefälscht.
+   *
+   * **Hier liegt der Schlüssel im Klartext**, und das ist Absicht: In dieser
+   * Datei soll nichts so aussehen, als wäre es das Sicherheitsmodell. Das
+   * echte steht in `supabase/functions/ai-gateway/tresor.ts` (AES-GCM,
+   * Bindung, Schlüsselfassungen) und ist dort mit 29 Prüfungen abgenommen.
+   *
+   * Es geht **kein** Aufruf ins Netz. `testConnection` und `invoke` antworten
+   * aus dem Nichts, denn eine Testfassung, die einen echten Anbieter
+   * ansprechen könnte, wäre eine Testfassung mit echtem Schlüssel.
+   */
+  const ai: AiGateway = {
+    async listConnections() {
+      const mich = ich();
+      return [...state.aiConnections.values()]
+        .filter((eintrag) => eintrag.ownerId === mich.profile.id)
+        .map(({ ownerId: _o, secret: _s, ...rest }) => rest);
+    },
+
+    async saveConnection(input) {
+      const mich = ich();
+      if (mich.profile.role === 'student') throw new Error('Dieser Bereich ist Lehrkräften vorbehalten.');
+
+      const id = input.id ?? newId();
+      const maske =
+        input.secret.trim().length <= 4
+          ? '••••'
+          : `${'•'.repeat(Math.min(8, input.secret.trim().length - 4))}${input.secret.trim().slice(-4)}`;
+
+      const zusammenfassung: AiConnectionSummary = {
+        id,
+        label: input.label,
+        adapter: input.adapter,
+        model: input.model,
+        maskedSecret: input.adapter === 'browsermodell' ? '' : maske,
+        capabilities: [],
+        active: true,
+      };
+      state.aiConnections.set(id, {
+        ...zusammenfassung,
+        ownerId: mich.profile.id,
+        secret: input.secret,
+      });
+      return zusammenfassung;
+    },
+
+    async deleteConnection(id) {
+      const mich = ich();
+      const eintrag = state.aiConnections.get(id);
+      if (eintrag && eintrag.ownerId === mich.profile.id) state.aiConnections.delete(id);
+    },
+
+    async testConnection(id) {
+      const mich = ich();
+      const eintrag = state.aiConnections.get(id);
+      if (!eintrag || eintrag.ownerId !== mich.profile.id) {
+        return { ok: false, message: 'Diese Verbindung gibt es nicht.' };
+      }
+      return {
+        ok: false,
+        message:
+          'In dieser Testfassung wird kein Anbieter angerufen. Die Verbindung lässt sich hier nicht prüfen.',
+      };
+    },
+
+    async invoke() {
+      ich();
+      throw new Error('In dieser Testfassung wird kein Anbieter angerufen.');
+    },
+  };
+
   const account: AccountRepository = {
     async exportMyData() {
       const mich = ich();
@@ -890,12 +970,7 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
   };
 
   return {
-    /*
-      Kein `ai`. Das Gateway kommt in Phase 7, und ein Platzhalter hier hieße,
-      dass eine Ansicht heute schon einen Knopf zeigen könnte, hinter dem
-      nichts steht.
-    */
-    repositories: { auth, profile, courses, invitations, packs, publication, progress, account },
+    repositories: { auth, profile, courses, invitations, packs, publication, progress, account, ai },
     state,
     signInAs(userId) {
       setze(userId);

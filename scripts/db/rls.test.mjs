@@ -885,3 +885,211 @@ describe('kein Weg, ein fremdes Kennwort zu setzen', () => {
     );
   });
 });
+
+/* ======================================================== KI (Phase 7) === */
+
+describe('KI-Verbindungen', () => {
+  async function verbindungAnlegen(person, label = 'Meine Verbindung') {
+    await alsPerson(db, person);
+    return db.query(
+      `insert into ai_connections (owner_id, label, adapter, base_url, model)
+       values ($1, $2, 'gemini', 'https://generativelanguage.googleapis.com/v1beta/', 'gemini-3.5-flash-lite')
+       returning id`,
+      [person, label],
+    );
+  }
+
+  /*
+    Ausdrücklich benannte Spalten – `select *` schlägt hier fehl, und zwar
+    absichtlich: Die Siegelspalten haben kein Leserecht (siehe unten).
+  */
+  const SICHTBAR = 'select id, label, adapter, masked_secret from ai_connections';
+
+  it('gehören ihrer Eigentümerin', async () => {
+    await verbindungAnlegen(LEHRERIN);
+    expect(await zaehle(SICHTBAR)).toBe(1);
+  });
+
+  it('eine zweite Lehrkraft sieht sie nicht', async () => {
+    await verbindungAnlegen(LEHRERIN);
+    await alsPerson(db, ZWEITE_LEHRKRAFT);
+    expect(await zaehle(SICHTBAR)).toBe(0);
+  });
+
+  it('eine lernende Person legt keine an', async () => {
+    /*
+      ADR-1 an dieser Stelle: KI gibt es im Lehrkraftbereich. Nicht, weil die
+      Oberfläche den Knopf verbirgt, sondern weil die Regel ablehnt.
+    */
+    await alsPerson(db, LERNENDE);
+    const fehler = await fehlerVon(
+      db.query(
+        `insert into ai_connections (owner_id, label, adapter) values ($1, 'Meine', 'gemini')`,
+        [LERNENDE],
+      ),
+    );
+    expect(fehler).toMatch(/row-level security/i);
+  });
+
+  it('niemand legt eine auf fremden Namen an', async () => {
+    await alsPerson(db, LEHRERIN);
+    const fehler = await fehlerVon(
+      db.query(
+        `insert into ai_connections (owner_id, label, adapter) values ($1, 'Untergeschoben', 'gemini')`,
+        [ZWEITE_LEHRKRAFT],
+      ),
+    );
+    expect(fehler).toMatch(/row-level security/i);
+  });
+
+  it('und keine lässt sich nachträglich jemand anderem zuschreiben', async () => {
+    await verbindungAnlegen(LEHRERIN);
+    const fehler = await fehlerVon(
+      db.query('update ai_connections set owner_id = $1', [ZWEITE_LEHRKRAFT]),
+    );
+    // Entweder die Regel oder das fehlende Spaltenrecht – beides hält.
+    expect(fehler).toMatch(/row-level security|permission denied/i);
+  });
+});
+
+describe('der Anbieterschlüssel ist für den Browser nicht lesbar', () => {
+  beforeEach(async () => {
+    /*
+      Die Serverfunktion schreibt mit Service Role, also hier als Einrichtung.
+      Der Inhalt ist offensichtlich erfunden – es gibt keinen echten Schlüssel
+      in diesem Projekt und keine Verschlüsselung in dieser Prüfung.
+    */
+    await alsEinrichtung(db);
+    await db.query(
+      `insert into ai_connections
+         (id, owner_id, label, adapter, base_url, model, masked_secret,
+          secret_ciphertext, secret_iv, secret_key_version)
+       values ($1, $2, 'Meine Verbindung', 'gemini',
+               'https://generativelanguage.googleapis.com/v1beta/', 'gemini-3.5-flash-lite',
+               '••••••••1234', 'TESTCHIFFRETEXT-OHNE-BEDEUTUNG', 'TESTIV', 1)`,
+      [testId(7001), LEHRERIN],
+    );
+  });
+
+  it('die Eigentümerin sieht ihre Verbindung', async () => {
+    await alsPerson(db, LEHRERIN);
+    const zeilen = await db.query(
+      'select id, label, masked_secret from ai_connections',
+    );
+    expect(zeilen.rows).toHaveLength(1);
+    expect(zeilen.rows[0].masked_secret).toBe('••••••••1234');
+  });
+
+  it('aber nicht den Chiffretext – das Spaltenrecht fehlt', async () => {
+    /*
+      Der eigentliche Riegel. Ohne ihn hinge die Zusage „der Browser sieht den
+      Schlüssel nie" an der Serverfunktion allein – und jede Abfrage über
+      PostgREST ginge daran vorbei.
+    */
+    await alsPerson(db, LEHRERIN);
+    for (const spalte of ['secret_ciphertext', 'secret_iv', 'secret_key_version']) {
+      const fehler = await fehlerVon(db.query(`select ${spalte} from ai_connections`));
+      expect(fehler, spalte).toMatch(/permission denied/i);
+    }
+  });
+
+  it('auch nicht über `select *`', async () => {
+    await alsPerson(db, LEHRERIN);
+    expect(await fehlerVon(db.query('select * from ai_connections'))).toMatch(/permission denied/i);
+  });
+
+  it('und lässt sich auch nicht überschreiben', async () => {
+    // Wer den Chiffretext setzen könnte, könnte einen fremden hineinlegen.
+    await alsPerson(db, LEHRERIN);
+    expect(
+      await fehlerVon(db.query(`update ai_connections set secret_ciphertext = 'anderer'`)),
+    ).toMatch(/permission denied/i);
+  });
+
+  it('die Verwaltung kommt genauso wenig heran', async () => {
+    await alsPerson(db, VERWALTUNG);
+    expect(await fehlerVon(db.query('select secret_ciphertext from ai_connections'))).toMatch(
+      /permission denied/i,
+    );
+  });
+});
+
+describe('die Freigabeliste für eigene KI-Hosts', () => {
+  it('legt nur die Verwaltung an', async () => {
+    await alsPerson(db, LEHRERIN);
+    const fehler = await fehlerVon(
+      db.query('insert into ai_allowed_hosts (host, approved_by) values ($1, $2)', [
+        'ki.schule.example',
+        LEHRERIN,
+      ]),
+    );
+    expect(fehler).toMatch(/row-level security/i);
+
+    await alsPerson(db, VERWALTUNG);
+    await db.query('insert into ai_allowed_hosts (host, approved_by) values ($1, $2)', [
+      'ki.schule.example',
+      VERWALTUNG,
+    ]);
+    expect(await zaehle('select * from ai_allowed_hosts')).toBe(1);
+  });
+
+  it('und trägt sich dabei selbst als freigebend ein', async () => {
+    // Sonst stünde in der Liste, jemand anderes habe es gewesen sein können.
+    await alsPerson(db, VERWALTUNG);
+    const fehler = await fehlerVon(
+      db.query('insert into ai_allowed_hosts (host, approved_by) values ($1, $2)', [
+        'ki2.schule.example',
+        LEHRERIN,
+      ]),
+    );
+    expect(fehler).toMatch(/row-level security/i);
+  });
+
+  it('jede Lehrkraft darf sie lesen – sie enthält nichts Geheimes', async () => {
+    await alsPerson(db, VERWALTUNG);
+    await db.query('insert into ai_allowed_hosts (host, approved_by) values ($1, $2)', [
+      'ki.schule.example',
+      VERWALTUNG,
+    ]);
+
+    await alsPerson(db, LEHRERIN);
+    expect(await zaehle('select * from ai_allowed_hosts')).toBe(1);
+  });
+
+  it('eine Lehrkraft entfernt nichts daraus', async () => {
+    await alsPerson(db, VERWALTUNG);
+    await db.query('insert into ai_allowed_hosts (host, approved_by) values ($1, $2)', [
+      'ki.schule.example',
+      VERWALTUNG,
+    ]);
+
+    await alsPerson(db, LEHRERIN);
+    await db.query('delete from ai_allowed_hosts');
+
+    await alsPerson(db, VERWALTUNG);
+    expect(await zaehle('select * from ai_allowed_hosts')).toBe(1);
+  });
+
+  it.each([
+    ['Großschreibung', 'KI.Schule.Example'],
+    ['mit Schema', 'https://ki.schule.example'],
+    ['mit Pfad', 'ki.schule.example/v1'],
+    ['mit Port', 'ki.schule.example:8443'],
+    ['mit Platzhalter', '*.schule.example'],
+    ['mit Leerzeichen', 'ki schule example'],
+  ])('nimmt keinen Eintrag mit %s an', async (unused, host) => {
+    /*
+      Was hier hineingerät, ist das, womit die Serverfunktion vergleicht. Ein
+      Eintrag mit Schema oder Pfad verglich nie gleich – ein Platzhalter
+      dagegen verglich zu viel.
+    */
+    await alsPerson(db, VERWALTUNG);
+    const fehler = await fehlerVon(
+      db.query('insert into ai_allowed_hosts (host, approved_by) values ($1, $2)', [
+        host,
+        VERWALTUNG,
+      ]),
+    );
+    expect(fehler, host).toBeTruthy();
+  });
+});
