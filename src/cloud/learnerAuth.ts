@@ -32,6 +32,12 @@ export interface LearnerTokens {
   refreshToken: string;
 }
 
+/** Was bei einer Registrierung zusätzlich zurückkommt – genau einmal. */
+export interface LearnerRegistrierung extends LearnerTokens {
+  learnerId: string;
+  recoveryCode: string;
+}
+
 /** Die Adresse der Funktion, abgeleitet aus der Projektadresse. */
 export function learnerAuthEndpoint(supabaseUrl: string): string {
   return `${supabaseUrl.replace(/\/+$/, '')}/functions/v1/learner-auth`;
@@ -46,6 +52,7 @@ export function learnerAuthEndpoint(supabaseUrl: string): string {
  */
 export const ANMELDUNG_FEHLGESCHLAGEN = 'Lern-ID oder Kennwort stimmen nicht.';
 export const WIEDERHERSTELLUNG_FEHLGESCHLAGEN = 'Diese Angaben passen nicht zusammen.';
+export const REGISTRIERUNG_FEHLGESCHLAGEN = 'Dieser Code gilt nicht.';
 const NETZ_FEHLER = 'Der Anmeldedienst ist gerade nicht erreichbar. Bitte später noch einmal.';
 
 function tokensAus(body: unknown): LearnerTokens | undefined {
@@ -88,6 +95,12 @@ async function rufe(
   return tokens;
 }
 
+function textFeld(body: unknown, name: string): string | undefined {
+  if (typeof body !== 'object' || body === null) return undefined;
+  const wert = (body as Record<string, unknown>)[name];
+  return typeof wert === 'string' && wert.length > 0 ? wert : undefined;
+}
+
 export function createLearnerAuth(options: {
   supabaseUrl: string;
   transport: LearnerAuthTransport;
@@ -128,6 +141,46 @@ export function createLearnerAuth(options: {
         },
         WIEDERHERSTELLUNG_FEHLGESCHLAGEN,
       );
+    },
+    /**
+     * Ein Konto anlegen – mit einem Einladungscode als Eintrittskarte.
+     *
+     * Die Lern-ID vergibt der Server, nicht der Browser: Sie muss eindeutig
+     * sein, und Eindeutigkeit entscheidet sich dort, wo die Tabelle steht.
+     */
+    async registrieren(input: {
+      inviteCode: string;
+      displayName: string;
+      password: string;
+    }): Promise<LearnerRegistrierung> {
+      let antwort: { status: number; body: unknown };
+      try {
+        antwort = await options.transport({
+          url,
+          body: {
+            aktion: 'registrieren',
+            inviteCode: input.inviteCode.trim(),
+            displayName: input.displayName.trim(),
+            password: input.password,
+          },
+        });
+      } catch {
+        throw new Error(NETZ_FEHLER);
+      }
+      if (antwort.status >= 500) throw new Error(NETZ_FEHLER);
+
+      const tokens = tokensAus(antwort.body);
+      const learnerId = textFeld(antwort.body, 'learnerId');
+      const recoveryCode = textFeld(antwort.body, 'recoveryCode');
+      /*
+        Alle drei oder keines. Eine Registrierung ohne Wiederherstellungscode
+        wäre ein Konto, das beim ersten vergessenen Kennwort verloren ist –
+        und niemand würde es merken, bis es zu spät ist.
+      */
+      if (antwort.status !== 200 || !tokens || !learnerId || !recoveryCode) {
+        throw new Error(REGISTRIERUNG_FEHLGESCHLAGEN);
+      }
+      return { ...tokens, learnerId, recoveryCode };
     },
   };
 }

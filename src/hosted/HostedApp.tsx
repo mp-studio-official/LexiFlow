@@ -168,8 +168,16 @@ function Testband() {
       style={{
         margin: 0,
         padding: '0.5rem 1rem',
-        background: 'var(--tomato, #FF2E2D)',
-        color: '#fff',
+        /*
+          Aubergine mit Pergamentschrift und einer Tomatenkante – nicht
+          Tomate mit Weiß. Das war der erste Entwurf, und er fiel in der
+          Barrierefreiheitsprüfung durch: Weiß auf #FF2E2D ergibt rund 3,7:1
+          und damit weniger als die geforderten 4,5:1. Ein Warnband, das
+          manche Menschen nicht lesen können, ist kein Warnband.
+        */
+        background: 'var(--brand-aubergine, #2f092d)',
+        color: 'var(--brand-parchment, #f8efe3)',
+        borderBottom: '4px solid var(--brand-tomato, #ff2e2d)',
         fontWeight: 600,
         textAlign: 'center',
       }}

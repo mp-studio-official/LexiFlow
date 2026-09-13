@@ -72,6 +72,8 @@ export function createSupabaseAuthRepository(deps: {
   auth: SupabaseAuthSlice;
   ladeRolle: RolleLaden;
   learner: LearnerAuth;
+  /** Ruft `confirm_recovery_code` in der Datenbank. */
+  bestaetigeCode(code: string): Promise<boolean>;
   /** Wohin der Verweis aus der Wiederherstellungs-E-Mail führt. */
   recoveryRedirect: string;
 }): AuthRepository {
@@ -172,6 +174,21 @@ export function createSupabaseAuthRepository(deps: {
       });
       if (error) throw new Error('Die Anmeldung konnte nicht übernommen werden.');
       return erwarteSitzung(data.session, 'Die Anmeldung konnte nicht übernommen werden.');
+    },
+
+    async registerWithInviteCode(input) {
+      const ergebnis = await deps.learner.registrieren(input);
+      const { data, error } = await deps.auth.setSession({
+        access_token: ergebnis.accessToken,
+        refresh_token: ergebnis.refreshToken,
+      });
+      if (error) throw new Error('Die Anmeldung konnte nicht übernommen werden.');
+      const session = await erwarteSitzung(data.session, 'Die Anmeldung konnte nicht übernommen werden.');
+      return { session, learnerId: ergebnis.learnerId, recoveryCode: ergebnis.recoveryCode };
+    },
+
+    async confirmRecoveryCode(code) {
+      return deps.bestaetigeCode(code.trim());
     },
 
     async setPassword(newPassword) {

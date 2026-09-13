@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 /**
@@ -164,5 +165,207 @@ test.describe('die Rückkehr aus einer Wiederherstellungs-E-Mail', () => {
       .toBeNull();
     // Der Grundpfad bleibt dabei unangetastet.
     expect(new URL(page.url()).pathname).toBe('/LexiFlow/portal/');
+  });
+});
+
+/* ================================================ Kurse (Phase 4) ======== */
+
+/**
+ * Der Kursablauf von beiden Seiten – im Browser, unter dem Unterpfad.
+ *
+ * Was hier läuft, läuft gegen die kontrollierte Fälschung; die inhaltliche
+ * Abnahme des Ablaufs steht im Kursvertrag gegen echtes PostgreSQL. Geprüft
+ * wird hier, was **nur** ein Browser zeigen kann: ob der Code groß genug
+ * dasteht, ob die Seite auf einem Telefon hält und ob eine Vorlesehilfe
+ * durchkommt.
+ */
+
+/** Als Lehrkraft anmelden – der Weg, den auch eine echte Person nimmt. */
+async function alsLehrkraft(page: import('@playwright/test').Page) {
+  await page.goto('./portal/#/anmelden');
+  await page.getByRole('button', { name: 'Ich unterrichte' }).click();
+  await page.getByLabel('E-Mail-Adresse').fill('lehrerin@beispiel.invalid');
+  await page.getByLabel('Kennwort').fill('testkennwort');
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await page.getByRole('heading', { name: 'Kurse', level: 1 }).waitFor();
+}
+
+async function kursAnlegen(page: import('@playwright/test').Page, titel: string) {
+  await page.getByRole('button', { name: 'Kurs anlegen' }).click();
+  await page.getByLabel('Name des Kurses').fill(titel);
+  await page.getByRole('button', { name: 'Anlegen' }).click();
+  await page.getByRole('link', { name: titel }).click();
+  await page.getByRole('heading', { name: titel, level: 1 }).waitFor();
+}
+
+async function codeErzeugen(page: import('@playwright/test').Page): Promise<string> {
+  await page.getByRole('button', { name: 'Code erzeugen' }).click();
+  const anzeige = page.locator('.alert', { hasText: 'Diesen Code jetzt weitergeben' });
+  await anzeige.waitFor();
+  const code = (await anzeige.locator('p').first().innerText()).trim();
+  expect(code).toMatch(/^[A-Z2-9]{8}$/);
+  return code;
+}
+
+test.describe('Kurse und Einladungen', () => {
+  test('@smoke eine Lehrkraft legt einen Kurs an und bekommt einen Code – genau einmal', async ({
+    page,
+  }) => {
+    await alsLehrkraft(page);
+    await kursAnlegen(page, 'Englisch 7b');
+    const code = await codeErzeugen(page);
+
+    /*
+      Einmal weg und zurück – und der Code ist fort. Kein `page.reload()`:
+      Diese Auslieferung läuft gegen die Fälschung im Arbeitsspeicher, und ein
+      Neuladen nähme ihr auch den Kurs. Geprüft werden soll die Zusage der
+      Oberfläche („er steht nur jetzt hier"), nicht die Haltbarkeit einer
+      Testfassung.
+    */
+    await page.getByRole('link', { name: 'Alle Kurse' }).click();
+    await page.getByRole('link', { name: 'Englisch 7b' }).click();
+    await expect(page.getByRole('heading', { name: 'Englisch 7b', level: 1 })).toBeVisible();
+
+    await expect(page.locator('body')).not.toContainText(code);
+    // Übrig bleibt das Kürzel – drei Zeichen sind kein Code.
+    await expect(page.getByRole('cell', { name: `${code.slice(0, 3)}…` })).toBeVisible();
+  });
+
+  test('@smoke die Mitgliederliste nennt keine Zahl über das Üben', async ({ page }) => {
+    await alsLehrkraft(page);
+    await kursAnlegen(page, 'Englisch 7b');
+    await codeErzeugen(page);
+
+    /*
+      Geprüft wird die **Tabelle**, nicht die Seite. Der erste Entwurf suchte
+      das Wort „geübt" im ganzen `main` – und fand es im Satz, der erklärt,
+      warum dort nichts steht. Eine Prüfung, die an der eigenen Begründung
+      scheitert, prüft die falsche Stelle.
+    */
+    const tabelle = page.getByRole('table', { name: /Mitglieder dieses Kurses/ });
+    // `allInnerTexts` liefert, was zu sehen ist – und die Kopfzeilen sind per
+    // CSS in Versalien gesetzt. Verglichen wird deshalb der Wortlaut, nicht
+    // die Schreibweise.
+    const spalten = await tabelle.locator('thead th').allInnerTexts();
+    expect(spalten.map((eintrag) => eintrag.trim().toLowerCase())).toEqual([
+      'name',
+      'kennung',
+      'rolle',
+      'entfernen',
+    ]);
+    for (const wort of ['geübt', 'Fortschritt', 'zuletzt aktiv', '%']) {
+      await expect(tabelle).not.toContainText(wort);
+    }
+
+    // Und die Begründung steht daneben, damit niemand sie später „ergänzt".
+    await expect(page.locator('main')).toContainText('Lernstände gehören den Lernenden');
+  });
+
+  test('@smoke ein neues Konto entsteht nur mit Code – und bekommt einen Wiederherstellungscode', async ({
+    page,
+  }) => {
+    await alsLehrkraft(page);
+    await kursAnlegen(page, 'Englisch 7b');
+    const code = await codeErzeugen(page);
+
+    // Abmelden und als neue Person beitreten.
+    await page.getByRole('button', { name: 'Abmelden' }).click();
+    await page.goto('./portal/#/beitreten');
+
+    await page.getByLabel('Einladungscode').fill(code);
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await page.getByRole('button', { name: 'Konto anlegen' }).click();
+
+    await page.getByLabel('Wie sollst du heißen?').fill('Luchs');
+    await page.getByLabel('Kennwort', { exact: true }).fill('testkennwort');
+    await page.getByLabel('Kennwort noch einmal').fill('testkennwort');
+    await page.getByRole('button', { name: 'Konto anlegen' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Dein Zugang' })).toBeVisible();
+    await expect(page.getByText(/Schreib diesen Code auf/)).toBeVisible();
+    // Der Satz, der die Zusage trägt.
+    await expect(page.getByText(/kann dir kein neues Kennwort geben/)).toBeVisible();
+  });
+
+  test('@smoke ohne Code gibt es keinen Weg zu einem Konto', async ({ page }) => {
+    await page.goto('./portal/');
+    const seite = page.locator('main');
+    await expect(seite).not.toContainText('Registrieren');
+    await expect(page.getByRole('link', { name: 'Mit Code beitreten' })).toBeVisible();
+  });
+});
+
+test.describe('Kursseiten auf dem Telefon', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('@a11y die Kursseite sprengt das Fenster nicht', async ({ page }) => {
+    await alsLehrkraft(page);
+    await kursAnlegen(page, 'Englisch 7b');
+    await codeErzeugen(page);
+
+    const ueberlauf = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(ueberlauf).toBeLessThanOrEqual(1);
+  });
+
+  test('@a11y auch der Beitritt hält auf schmalen Fenstern', async ({ page }) => {
+    await page.goto('./portal/#/beitreten');
+    await page.getByLabel('Einladungscode').waitFor();
+
+    const ueberlauf = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(ueberlauf).toBeLessThanOrEqual(1);
+  });
+});
+
+test.describe('Barrierefreiheit', () => {
+  const SCHWERWIEGEND = new Set(['serious', 'critical']);
+
+  async function pruefe(page: import('@playwright/test').Page) {
+    const ergebnis = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    return ergebnis.violations
+      .filter((verstoss) => SCHWERWIEGEND.has(verstoss.impact ?? ''))
+      .map((verstoss) => ({
+        regel: verstoss.id,
+        wirkung: verstoss.impact,
+        /*
+          Der Auswahlpfad gehört in die Meldung. Ohne ihn steht im Bericht
+          „color-contrast, serious" – und die Suche nach dem betroffenen
+          Element beginnt bei null.
+        */
+        wo: verstoss.nodes.map((knoten) => knoten.target.join(' ')).slice(0, 4),
+      }));
+  }
+
+  test('@a11y die öffentlichen Seiten ohne schwerwiegende Befunde', async ({ page }) => {
+    for (const route of ['#/', '#/anmelden', '#/beitreten', '#/wiederherstellen', '#/datenschutz']) {
+      await page.goto(`./portal/${route}`);
+      await page.getByRole('main').waitFor();
+      expect(await pruefe(page), route).toEqual([]);
+    }
+  });
+
+  test('@a11y die Kursseiten ohne schwerwiegende Befunde', async ({ page }) => {
+    await alsLehrkraft(page);
+    expect(await pruefe(page), 'Kursliste').toEqual([]);
+
+    await kursAnlegen(page, 'Englisch 7b');
+    await codeErzeugen(page);
+    expect(await pruefe(page), 'Kursseite').toEqual([]);
+  });
+
+  test('@a11y der Lernbereich ohne schwerwiegende Befunde', async ({ page }) => {
+    await page.goto('./portal/#/anmelden');
+    await page.getByRole('button', { name: 'Ich lerne' }).click();
+    await page.getByLabel('Lern-ID').fill('fuchs-7390');
+    await page.getByLabel('Kennwort').fill('testkennwort');
+    await page.getByRole('button', { name: 'Anmelden' }).click();
+    await page.getByRole('heading', { name: 'Deine Kurse' }).waitFor();
+
+    expect(await pruefe(page)).toEqual([]);
   });
 });

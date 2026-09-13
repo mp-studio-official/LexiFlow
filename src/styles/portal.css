@@ -1,0 +1,42 @@
+/**
+ * Was nur das Portal braucht.
+ *
+ * Getrennt von `global.css`, und zwar aus einem messbaren Grund: Diese Datei
+ * wird ausschließlich von `src/portal-main.tsx` importiert. Läge sie in
+ * `global.css`, wanderte sie in jede Lerndatei mit – und die Lernlaufzeit
+ * wüchse um Regeln für eine Schaltfläche, die es dort nicht gibt.
+ *
+ * Aufgefallen ist das an 0,2 KiB: § 8 der Sprintdokumentation misst nach jeder
+ * Phase, und „Wachstum durch Portalcode" ist dort ein Fehler und kein Preis.
+ * Bei 0,2 KiB klingt das kleinlich; die Gewohnheit ist der Punkt.
+ */
+/*
+  „Abmelden" führt nirgendwohin, es tut etwas – also ein `<button>` und kein
+  Link. Ohne diesen Ausgleich brächte er die Voreinstellungen des Browsers
+  mit: hellgraue Fläche und dunkler Text, mitten auf dunklem Aubergine.
+
+  Aufgefallen ist das nicht beim Hinsehen, sondern der Kontrastprüfung im
+  Portal (`e2e-portal`, axe, `color-contrast`) – ein guter Beleg dafür, dass
+  diese Prüfungen etwas finden, das Menschen übersehen.
+*/
+button.app-nav__link {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--nav-ink-muted);
+  cursor: pointer;
+}
+
+/*
+  Hinter der Schranke wie jede andere Hover-Regel im Projekt: Auf einem
+  Touchgerät bliebe ein Hover-Zustand nach dem Tippen kleben (`src/styles/press.test.ts`).
+*/
+@media (hover: hover) {
+  button.app-nav__link:hover {
+    color: var(--nav-ink);
+  }
+}

@@ -121,7 +121,14 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     // Die Bau-Orchestrierung gehört mit in die Standardsuite: Sie ist reine
     // Logik mit injizierbaren Seiteneffekten und braucht keinen Build.
-    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
+    include: [
+      'src/**/*.test.{ts,tsx}',
+      'scripts/**/*.test.mjs',
+      // Der Kern der Serverfunktionen. Er läuft später unter Deno, ist aber
+      // reine Logik mit injizierten Seiteneffekten – und genau deshalb hier
+      // prüfbar. Der Deno-Mantel (`index.ts`) bleibt außen vor.
+      'supabase/functions/*/*.test.ts',
+    ],
     exclude: [
       'e2e/**',
       'e2e-portable/**',

@@ -8,6 +8,8 @@ import {
   type ProfilZeile,
   type ProfileQueries,
 } from './supabaseProfileRepository';
+import { createSqlCourseRepositories } from './courseGateway';
+import { createSupabaseCourseGateway } from './supabaseCourseGateway';
 import { createSupabaseClient } from './supabaseClient';
 import type { HostedConfig } from '../runtime/hostedConfig';
 import type { Repositories } from '../application/repositories';
@@ -17,12 +19,11 @@ import type { Repositories } from '../application/repositories';
  *
  * ## Was hier absichtlich fehlt
  *
- * `courses`, `invitations`, `packs`, `publication`, `progress`, `account`,
- * `ai`. Sie kommen in den Phasen 4 bis 7. Bis dahin sind sie **nicht
- * vorhanden**, und das ist besser als eine Fassung, die Fehler wirft: Die
- * Oberfläche fragt mit `useOptionalRepository` und sagt dann ehrlich, dass es
- * Kurse in dieser Fassung noch nicht gibt, statt einen Knopf anzubieten, der
- * in einen Absturz führt.
+ * `packs`, `publication`, `progress`, `account`, `ai`. Sie kommen in den
+ * Phasen 5 bis 7. Bis dahin sind sie **nicht vorhanden**, und das ist besser
+ * als eine Fassung, die Fehler wirft: Die Oberfläche fragt mit
+ * `useOptionalRepository` und sagt dann ehrlich, dass es das in dieser Fassung
+ * noch nicht gibt, statt einen Knopf anzubieten, der in einen Absturz führt.
  *
  * ## Die Rückkehradresse
  *
@@ -86,6 +87,10 @@ export function createCloudRepositories(input: {
       supabaseUrl: input.config.supabaseUrl,
       transport: createFetchTransport(input.config.supabasePublishableKey),
     }),
+    async bestaetigeCode(code) {
+      const { data, error } = await client.rpc('confirm_recovery_code', { p_code: code });
+      return !error && data === true;
+    },
     recoveryRedirect: callbackUrl(input.origin, input.base, KENNWORT_NEU_ROUTE),
   });
 
@@ -96,5 +101,9 @@ export function createCloudRepositories(input: {
     },
   });
 
-  return { auth, profile };
+  const { courses, invitations } = createSqlCourseRepositories(
+    createSupabaseCourseGateway(client),
+  );
+
+  return { auth, profile, courses, invitations };
 }

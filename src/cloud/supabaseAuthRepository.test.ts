@@ -46,6 +46,7 @@ function fakeLearner(over: Partial<LearnerAuth> = {}): LearnerAuth {
   return {
     anmelden: async () => TOKENS,
     wiederherstellen: async () => TOKENS,
+    registrieren: async () => ({ ...TOKENS, learnerId: 'fuchs-1234', recoveryCode: 'AAAA-BBBB-CCCC-DDDD' }),
     ...over,
   };
 }
@@ -55,12 +56,14 @@ function baue(options: {
   rolle?: Role | undefined;
   ladeRolle?: (userId: string) => Promise<Role | undefined>;
   learner?: LearnerAuth;
+  bestaetigeCode?: (code: string) => Promise<boolean>;
 } = {}) {
   const { auth } = options.auth ? { auth: options.auth } : fakeAuth();
   return createSupabaseAuthRepository({
     auth,
     ladeRolle: options.ladeRolle ?? (async () => options.rolle ?? 'teacher'),
     learner: options.learner ?? fakeLearner(),
+    bestaetigeCode: options.bestaetigeCode ?? (async () => true),
     recoveryRedirect: 'https://beispiel.invalid/LexiFlow/portal/#/kennwort-neu',
   });
 }

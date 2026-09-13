@@ -63,7 +63,7 @@ describe('als lernende Person', () => {
     setup('/kurse', 'u-lernend');
     expect(await screen.findByText(/nicht für dieses Konto/)).toBeInTheDocument();
     // Kein Weiterleiten: Wortloses Zurückschieben liest sich wie ein Defekt.
-    expect(screen.queryByText(/Lerngruppen anlegen/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kurs anlegen' })).not.toBeInTheDocument();
   });
 
   it('bekommt die Verwaltung nicht', async () => {
@@ -90,7 +90,8 @@ describe('als lernende Person', () => {
 describe('als Lehrkraft', () => {
   it('kommt in den Lehrkraftbereich', async () => {
     setup('/kurse', 'u-lehrerin');
-    expect(await screen.findByText(/Lerngruppen anlegen/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Kurse', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Kurs anlegen' })).toBeInTheDocument();
   });
 
   it('darf auch lernen – der Lernstand dabei ist der eigene', async () => {

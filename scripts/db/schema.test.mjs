@@ -72,9 +72,19 @@ describe('jede Tabelle ist geschützt', () => {
     expect(offen.map((zeile) => zeile.tablename)).toEqual([]);
   });
 
-  it('jede Tabelle hat mindestens eine Regel', async () => {
-    // Eingeschaltete Zeilensicherheit ohne Regel heißt: niemand sieht etwas.
-    // Das ist sicher und meistens ein Versehen.
+  it('jede Tabelle hat mindestens eine Regel – oder steht hier mit Begründung', async () => {
+    /*
+      Eingeschaltete Zeilensicherheit ohne Regel heißt: niemand sieht etwas.
+      Das ist sicher und meistens ein Versehen – deshalb fällt es auf.
+
+      Eine Tabelle darf ohne Regel bleiben, wenn sie **niemandem** außer der
+      Serverfunktion gehört. Dann steht sie hier, mit dem Grund daneben.
+    */
+    const absichtlichOhneRegel = {
+      auth_rate_limit:
+        'Der Versuchszähler gehört der Serverfunktion (Service Role). Wer ihn läse, sähe, welche Lern-IDs versucht wurden.',
+    };
+
     const ohne = await zeilen(`
       select t.tablename
       from pg_tables t
@@ -84,7 +94,17 @@ describe('jede Tabelle ist geschützt', () => {
       having count(p.policyname) = 0
       order by 1
     `);
-    expect(ohne.map((zeile) => zeile.tablename)).toEqual([]);
+    expect(ohne.map((zeile) => zeile.tablename)).toEqual(Object.keys(absichtlichOhneRegel));
+
+    // Und sie darf dann auch für Angemeldete kein einziges Recht haben.
+    for (const tabelle of Object.keys(absichtlichOhneRegel)) {
+      const rechte = await zeilen(
+        `select privilege_type from information_schema.role_table_grants
+          where grantee = 'authenticated' and table_schema = 'public' and table_name = $1`,
+        [tabelle],
+      );
+      expect(rechte, tabelle).toEqual([]);
+    }
   });
 
   it('die Rolle ohne Anmeldung hat auf keiner Tabelle ein Recht', async () => {
@@ -189,7 +209,47 @@ describe('die security-definer-Funktionen bleiben eng', () => {
     }
   });
 
-  it('sie geben Wahrheitswerte zurück, keine Zeilen – bis auf den Beitritt', async () => {
+  it('gibt jede von ihnen genau das zurück, was hier steht', async () => {
+    /*
+      Eine `security definer`-Funktion läuft mit erhöhten Rechten. Was sie
+      zurückgibt, ist damit an den Zugriffsregeln vorbei sichtbar – also
+      gehört jeder Rückgabetyp einzeln aufgeschrieben und begründet.
+
+      Kommt eine Funktion hinzu, fällt dieser Test auf. Das ist der Zweck:
+      Der Satz „gibt eine Tabelle zurück" soll nie unbemerkt entstehen.
+    */
+    const erwartet = {
+      // Ja/Nein über die **aufrufende** Person – geben keine Zeile heraus.
+      app_is_member_of: 'boolean',
+      app_is_teacher_of: 'boolean',
+      app_owns_course: 'boolean',
+      app_owns_pack: 'boolean',
+      app_sees_profile: 'boolean',
+      app_revision_is_assigned_to_me: 'boolean',
+      app_my_role: 'app_role',
+      confirm_recovery_code: 'boolean',
+      note_auth_attempt: 'boolean',
+
+      // Der Kurs, dem gerade beigetreten wurde – danach ohnehin sichtbar.
+      redeem_invite: 'courses',
+      create_course: 'courses',
+
+      // Die eben erzeugte Einladung samt Klartext. Sie ist der einzige
+      // Rückgabewert, der etwas enthält, das nirgends gespeichert wird –
+      // und genau deshalb gibt es ihn nur hier und nur einmal.
+      create_course_invite:
+        'TABLE(invite_id uuid, code text, label text, expires_at timestamp with time zone, max_uses integer)',
+
+      // Die Kurskennung einer belegten Einladung. Nicht für Angemeldete
+      // freigegeben – nur die Serverfunktion ruft sie auf.
+      consume_invite_by_hash: 'uuid',
+
+      // Schreiben, ohne etwas herauszugeben.
+      release_invite_by_hash: 'void',
+      create_learner_account: 'void',
+      rotate_recovery_code: 'void',
+    };
+
     const funktionen = await zeilen(`
       select p.proname, pg_get_function_result(p.oid) as ergebnis
       from pg_proc p
@@ -197,14 +257,11 @@ describe('die security-definer-Funktionen bleiben eng', () => {
       where n.nspname = 'public' and p.prosecdef
       order by 1
     `);
-    for (const funktion of funktionen) {
-      if (funktion.proname === 'redeem_invite') {
-        // Sie gibt einen Kurs zurück, den die Person danach ohnehin sehen darf.
-        expect(funktion.ergebnis).toBe('courses');
-        continue;
-      }
-      expect(['boolean', 'app_role'], `${funktion.proname}`).toContain(funktion.ergebnis);
-    }
+
+    const gefunden = Object.fromEntries(
+      funktionen.map((funktion) => [funktion.proname, funktion.ergebnis]),
+    );
+    expect(gefunden).toEqual(erwartet);
   });
 });
 

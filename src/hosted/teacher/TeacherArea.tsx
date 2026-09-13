@@ -1,4 +1,7 @@
+import { Route, Routes } from 'react-router-dom';
 import { Alert, Card } from '../../ui/components';
+import { CourseDetailPage } from './CourseDetailPage';
+import { CoursesPage } from './CoursesPage';
 
 /**
  * Der Lehrkraftbereich des Portals – das eine Bündel, das Lernende nie holen.
@@ -52,6 +55,21 @@ const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
 };
 
 export function TeacherArea({ section }: { section: TeacherSection }) {
+  if (section === 'kurse') {
+    /*
+      Der erste Abschnitt mit eigenen Unterseiten. Er bekommt deshalb einen
+      eigenen `Routes`-Block – innerhalb von `/kurse/*`, wo der Restpfad
+      eindeutig ist. Die anderen Abschnitte bekommen ihren, wenn sie Inhalt
+      haben; einer auf Vorrat wäre eine Route ohne Ziel.
+    */
+    return (
+      <Routes>
+        <Route index element={<CoursesPage />} />
+        <Route path=":courseId" element={<CourseDetailPage />} />
+      </Routes>
+    );
+  }
+
   const platz = PLAETZE[section];
 
   return (

@@ -99,6 +99,31 @@ export interface AuthRepository {
 
   /** Ein neues Kennwort setzen – für die laufende, bereits geprüfte Sitzung. */
   setPassword(newPassword: string): Promise<void>;
+
+  /**
+   * Ein Lernkonto anlegen – mit einem Einladungscode als Eintrittskarte.
+   *
+   * Ohne Code kein Konto: Ein offenes Portal wäre ein Einladungsdienst für
+   * jeden im Netz, und LexiFlow hat nichts, was einen anonymen Zugang
+   * rechtfertigte.
+   *
+   * Die Lern-ID vergibt der Server; der Wiederherstellungscode kommt genau
+   * **einmal** zurück und ist danach nur noch als Hash vorhanden.
+   */
+  registerWithInviteCode(input: {
+    inviteCode: string;
+    displayName: string;
+    password: string;
+  }): Promise<{ session: Session; learnerId: string; recoveryCode: string }>;
+
+  /**
+   * Bestätigen, den Wiederherstellungscode zu haben.
+   *
+   * Der Schritt, ohne den ADR-11 nicht trägt: Ein Code, den niemand
+   * aufgeschrieben hat, ist keine Wiederherstellung, sondern eine Zeile auf
+   * einem Bildschirm, den jemand weggeklickt hat.
+   */
+  confirmRecoveryCode(code: string): Promise<boolean>;
 }
 
 export interface ProfileRepository {

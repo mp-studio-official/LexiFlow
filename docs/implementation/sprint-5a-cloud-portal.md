@@ -215,9 +215,11 @@ ankommt: Rollenwechsel, `set role`, Policies je Operation, `auth.uid()` als
 Shim – und es verhält sich dabei wie Postgres, weil es Postgres **ist**.
 
 **Was damit ausdrücklich nicht geprüft ist.** GoTrue (die echte Anmeldung),
-PostgREST (die HTTP-Schicht), die Edge-Function-Laufzeit, Supabase-eigene
-Rollen und Erweiterungen. Die Policies sind echt geprüft, die Plattform
-darunter ist nachgebildet. Diese Unterscheidung gehört in jeden Bericht.
+echte JWT-Claims, PostgREST (das API-Gateway), die Edge-Function-Laufzeit,
+E-Mail-Versand, Supabase-eigene Rollen und Erweiterungen, das Deployment. Die
+Policies sind echt geprüft – in **simulierten** Rollenfällen; die Plattform
+darunter ist nachgebildet. § 7.1 führt beide Seiten vollständig auf, und diese
+Unterscheidung gehört in jeden Bericht.
 
 ### ADR-7 – Der Hosted-Modus ist im ersten Wurf online-only
 
@@ -293,11 +295,20 @@ wären mit einem Klick umgangen, und niemand würde es bemerken.
 Konto samt Lernstand. Das steht so auch auf der Wiederherstellungsseite. Die
 Lehrkraft kann ein neues Konto anlegen; der alte Stand ist dann fort.
 
-**Warum der Code nach Gebrauch gültig bleibt.** Er ist das Einzige, was
-zwischen dieser Person und einem verlorenen Konto steht. Ihn nach einmaligem
-Gebrauch zu verbrennen hieße, beim zweiten Vergessen endgültig auszusperren.
-Wertlos wird er durch einen neu erzeugten – und das entscheidet die lernende
-Person selbst.
+**Einmalnutzung mit Austausch (berichtigt in Phase 4).** Die erste Fassung
+dieser Entscheidung lautete: Der Code bleibt nach Gebrauch gültig, damit
+niemand beim zweiten Vergessen ausgesperrt ist. Das war die richtige Sorge und
+die falsche Antwort – ein Code, der nach einer Wiederherstellung weitergilt,
+ist ein zweiter Schlüssel, der irgendwo herumliegt.
+
+Jetzt wird er **ausgetauscht**: Der gebrauchte ist sofort wertlos, und im
+selben Schritt entsteht ein neuer, der einmal angezeigt wird. Damit ist er
+einmalig, ohne dass jemand ohne Code dasteht.
+
+**Bestätigen ist Pflicht.** Beim Anlegen wird der Code nicht abgehakt, sondern
+**abgeschrieben**: Ein Häkchen „habe ich notiert" setzt man in zwei Sekunden,
+ohne etwas notiert zu haben. Erst die richtige Abschrift schaltet weiter
+(`confirm_recovery_code`).
 
 ---
 
@@ -441,6 +452,119 @@ erfundene Konten, nichts wird gespeichert.“ Ein Test hält das fest.
 
 ---
 
+## 2d. Kurse, Mitgliedschaft und Einladungen (Phase 4)
+
+### 2d.1 Zwei Erfüllungen, eine Prüfung
+
+Der Kursablauf wird **zweimal** abgenommen, mit demselben Test:
+
+| Erfüllung | Wo | Was das belegt |
+| --- | --- | --- |
+| kontrollierte Fälschung | `application/fakeCloud.contract.test.ts` | dass die Verträge in sich stimmen – in Millisekunden, deshalb beim Bauen der Oberfläche ständig dabei |
+| SQL gegen PGlite | `cloud/courseRepositories.pglite.test.ts` | dass Schema, Bedingungen, Transaktionen und Zugriffsregeln dasselbe tun |
+
+Der gemeinsame Ablauf steht in `src/application/courseContract.ts`. Das ist die
+Antwort auf eine berechtigte Frage: Eine Fälschung beweist, dass die
+Oberfläche zu einer Map passt – nicht, dass sie zu einer Datenbank passt.
+Weicht eine der beiden ab, fällt es beim Ausführen auf und nicht beim
+Umstellen.
+
+An zwei Stellen antworten beide **verschieden**, und beide zu Recht: Die
+Fälschung wirft „nur Lehrkräfte dieses Kurses", die Datenbank gibt still nur
+die eigene Zeile heraus. Das Zweite ist das bessere – ein „Zugriff verweigert"
+verriete, dass es da etwas gibt. Der Vertrag prüft deshalb das Ergebnis und
+nicht die Form der Absage.
+
+### 2d.2 Die Abläufe liegen in SQL
+
+`create_course`, `create_course_invite`, `consume_invite_by_hash`,
+`release_invite_by_hash`, `redeem_invite`. Nicht aus Vorliebe für SQL, sondern
+weil zwei Dinge anders nicht richtig zu bekommen sind:
+
+**Der Code entsteht in der Datenbank.** Sein Klartext verlässt die Funktion
+genau einmal – als Rückgabewert. Entstünde er im Browser, müsste der Browser
+den Hash bilden, und wer den Hash bildet, kann auch etwas anderes
+hineinschreiben.
+
+**Die Höchstzahl ist atomar.** „Erst zählen, dann hochsetzen" ist zwischen zwei
+gleichzeitigen Beitritten eine Lücke: Beide lesen 4 von 5, beide schreiben 5,
+zwei Personen sitzen auf einem Platz. Prüfung und Hochzählen stehen deshalb im
+`where` **derselben** `update`-Anweisung.
+
+> **Ehrliche Grenze.** PGlite hat genau eine Verbindung; echte Gleichzeitigkeit
+> ist damit nicht herstellbar. Geprüft ist deshalb beides: der Ablauf
+> nacheinander (auf `max_uses = 1` kommt genau einer durch) **und** die Form
+> der Anweisung selbst – ein Test liest `prosrc` und hält fest, dass die
+> Bedingung im `update` steht und kein `select … into` davor.
+
+### 2d.3 Ein Code erteilt niemals Lehrkraftrechte
+
+In Phase 2 übernahm der Beitritt die globale Rolle der beitretenden Person.
+Eine Lehrkraft, die einen Code einlöste, wäre damit Lehrkraft *dieses* Kurses
+geworden – mit Mitgliederliste und Einladungen. Ein Code wird vorgelesen und
+weitergegeben; er hätte Rechte verteilt, die niemand vergeben wollte.
+
+Jetzt ist die Mitgliedschaft aus einem Code **immer** `student`. Weitere
+Lehrkräfte trägt die Kursleitung ausdrücklich ein – das Datenmodell sieht
+mehrere je Kurs vor, und der Vertrag prüft es.
+
+### 2d.4 Archivierte Kurse
+
+| | |
+| --- | --- |
+| Mitglieder | sehen ihn weiter, mit Vermerk |
+| Neue Beitritte | keine – auch nicht mit gültigem Code |
+| Platzverbrauch bei abgelehntem Beitritt | keiner (der eben gezählte wird zurückgedreht) |
+| Wieder öffnen | jederzeit, Codes gelten dann wieder |
+
+Archivieren heißt „das Halbjahr ist vorbei". Ein Code aus dem letzten Jahr soll
+dann nicht mehr hineinführen; wer drin ist, bleibt drin.
+
+### 2d.5 Registrierung
+
+Ohne Code kein Konto. Ein Portal, in dem sich jede Person im Netz ein Konto
+anlegen kann, wäre ein Einladungsdienst.
+
+Der Ablauf: Code eingeben → „neu hier?" → Anzeigename und Kennwort → Lern-ID
+und Wiederherstellungscode werden **einmal** angezeigt → der Code wird
+abgeschrieben → Lernbereich.
+
+### 2d.6 Die Serverfunktion ist jetzt prüfbar
+
+`supabase/functions/learner-auth/` ist getrennt in:
+
+| Datei | Inhalt | Stand |
+| --- | --- | --- |
+| `core.ts` | alle Entscheidungen, Seiteneffekte als `Ports` | **37 Prüfungen** mit Fakes |
+| `index.ts` | Deno-Mantel: Herkunft, JSON, Ports bauen, antworten | nie ausgeführt |
+
+Geprüft sind damit: Registrierung, Anmeldung, Wiederherstellung, Code-Hashing,
+Einmalnutzung mit Austausch, Rücknahme eines halb angelegten Kontos,
+Freigabe des Platzes bei jedem Fehlschlag, die Bremse je Aktion und je
+Herkunft, der Vergleich ohne Zeitverrat, und dass jede Ablehnung gleich
+aussieht.
+
+Offen bleibt der Mantel und das Deployment – dreißig Zeilen und ein Projekt,
+das es nicht gibt (§ 7.1).
+
+### 2d.7 Die Bremse liegt in der Datenbank
+
+`auth_rate_limit` und `note_auth_attempt`. Nicht im Arbeitsspeicher einer
+Serverfunktion: Edge-Laufzeiten starten kalt, laufen nebeneinander und enden
+ohne Vorwarnung. Ein Zähler darin wäre bei jedem zweiten Versuch wieder bei
+null – also keine Bremse, sondern die Behauptung einer.
+
+| Aktion | Versuche | Fenster |
+| --- | --- | --- |
+| Anmelden | 10 | 5 Minuten |
+| Wiederherstellen | 5 | 15 Minuten |
+| Registrieren | 10 | 1 Stunde |
+
+Die Bremse greift **vor** jeder Prüfung und zählt auch unsinnige Eingaben –
+sonst wäre sie mit einer ungültigen Lern-ID zu umgehen.
+
+---
+
 ## 3. Schema
 
 Drei Migrationen in `supabase/migrations/`, in dieser Reihenfolge:
@@ -462,6 +586,8 @@ Drei Migrationen in `supabase/migrations/`, in dieser Reihenfolge:
 | `course_packs` | Welche Revision in welchem Kurs, in welcher Reihenfolge |
 | `pack_progress`, `entry_progress` | Lernstand – immer der der aufrufenden Person |
 | `progress_events` | Verarbeitete Ereigniskennungen, für die Idempotenz |
+| `learner_accounts` | Lern-ID → Konto; nur der Hash des Wiederherstellungscodes (Phase 3) |
+| `auth_rate_limit` | Die Bremse gegen Durchprobieren – gehört der Serverfunktion (Phase 4) |
 
 ### 3.2 Drei Entscheidungen im Schema
 
@@ -511,6 +637,13 @@ eines davon.
 Veröffentlicht heißt nicht sichtbar: Ohne Zuweisung an einen Kurs sieht eine
 lernende Person eine Revision nicht.
 
+Seit Phase 4 kommen zwei Tabellen hinzu, die **niemandem** außer der
+Serverfunktion gehören: `auth_rate_limit` (ohne jede Regel und ohne jedes
+Recht – wer sie läse, sähe, welche Lern-IDs versucht wurden) und, mit einer
+einzigen Leseregel auf die eigene Zeile, `learner_accounts`. Von dieser ist
+der Hash des Wiederherstellungscodes per Spaltenrecht ausgenommen: Ein lesbarer
+Hash wäre eine Einladung, ihn offline durchzuprobieren.
+
 ### 4.3 Drei Feinheiten, die leicht übersehen werden
 
 **`with check` neben `using`.** `using` prüft, was man anfassen darf; `with
@@ -532,7 +665,9 @@ Durchprobieren nichts verrät.
 ### 4.4 Wie das geprüft wurde
 
 `scripts/db/` – PGlite mit PostgreSQL 17.5, die echten Migrationen, echte
-Rollenwechsel. 45 Verhaltensprüfungen und 14 strukturelle.
+Rollenwechsel. Nach Phase 4: **59** Verhaltensprüfungen und **14**
+strukturelle, dazu **29** Prüfungen des Kursvertrags gegen dieselbe Datenbank
+(`src/cloud/courseRepositories.pglite.test.ts`).
 
 **Gegenprobe.** Ein Test prüft die Prüfung: Dieselbe Zeile wird einmal mit
 Einrichtungsrechten gesehen und einmal als andere Person nicht. Ohne ihn könnte
@@ -589,7 +724,44 @@ mehr.
 | `npm run e2e:portal` | 11 Prüfungen unter `/LexiFlow/` |
 | `npm run test:db` | Zugriffsregeln gegen PostgreSQL 17.5 (PGlite) |
 
-## 7. Offene Risiken
+## 7. Beweislage und offene Risiken
+
+### 7.1 Was belegt ist – und wodurch
+
+**Mit PGlite belegt** (PostgreSQL 17.5, echte Migrationen, echte Rollenwechsel):
+
+- das Schema: Tabellen, Spalten, Typen, Fremdschlüssel
+- die Constraints: `check`, `unique`, Primärschlüssel
+- Transaktionen und die Atomarität einzelner Anweisungen
+- die Zugriffsregeln (RLS) in **simulierten** Rollenfällen: `set role` auf
+  `anon`/`authenticated` plus ein `auth.uid()`, das dieselben JWT-Claims liest,
+  die PostgREST setzen würde
+- Trigger und `security definer`-Funktionen
+
+**Mit Fakes belegt** (reine Logik, injizierte Seiteneffekte, kein Netz):
+
+- die Anmelde- und Wiederherstellungslogik der Serverfunktion
+- die Repository-Verträge gegen zwei Implementierungen
+- die Oberfläche des Portals
+
+**Nicht belegt – und zwar gar nicht:**
+
+- **reales Supabase Auth (GoTrue).** Ob eine Anmeldung dort so abläuft wie hier
+  angenommen, ist ungeprüft.
+- **echte JWT-Claims.** Der Shim liest dieselbe Einstellung, aber kein echtes
+  Token wurde je ausgestellt, signiert oder geprüft.
+- **das API-Gateway (PostgREST).** Die SQL-Ebene ist geprüft, die HTTP-Ebene
+  darüber nicht – einschließlich der Abbildung von Abfragen auf Anfragen.
+- **die Edge-Function-Laufzeit.** Der Kern ist getestet, der Deno-Mantel nie
+  ausgeführt.
+- **E-Mail-Versand.** Es wurde keine Nachricht verschickt und keine empfangen.
+- **Deployment.** Es gibt kein Supabase-Projekt, keinen Remote, kein GitHub
+  Pages. Nichts davon ist eingerichtet, und nichts wurde ausprobiert.
+
+Solange es kein echtes Projekt gibt, sagt dieses Dokument an keiner Stelle,
+dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
+
+### 7.2 Offene Risiken
 
 | Risiko | Stand |
 | --- | --- |
@@ -602,6 +774,9 @@ mehr.
 | `VITE_LEXIFLOW_FAKE_CLOUD=1` versehentlich deployt | eingegrenzt: rotes Band auf jeder Seite, Test hält es fest |
 | Die Serverfunktion `learner-auth` ist geschrieben, aber **nie gelaufen** | bekannt; ohne Supabase-Projekt nicht ausführbar |
 | Portalbündel 488 kB (Supabase-Client) | beobachtet; lazy laden ist eine Option für eine spätere Phase |
+| Echte Gleichzeitigkeit auf dem letzten freien Platz nicht nachstellbar | PGlite hat eine Verbindung; belegt ist die Atomarität der Anweisung, nicht das Rennen selbst (§ 2d.2) |
+| `supabaseCourseGateway.ts` (PostgREST) ungeprüft | bekannt; vier benannte offene Fragen stehen als Kommentar in der Datei |
+| Wiederherstellungscode wird beim Anlegen zwar abgeschrieben, aber nicht sicher aufbewahrt | bewusst; mehr kann Software an dieser Stelle nicht |
 
 ## 8. Größenwacht
 
@@ -613,7 +788,14 @@ Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 | `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,1 KiB** |
 | `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,6 KiB** |
 | kontofreie PWA (`index-*.js`) | 441,53 kB | 441,53 kB |
-| Portalbündel (`portal-*.js`) | – | 488,17 kB |
+| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) |
+
+Nach Phase 4 sind Lehrkraftdatei und Lernlaufzeit weiterhin bei **9482,1 KiB**
+und **674,6 KiB**. Einmal wären sie um 0,5 und 0,2 KiB gewachsen: Eine
+CSS-Regel für die Abmeldeschaltfläche des Portals lag zuerst in `global.css`
+und wanderte damit in jede Lerndatei mit. Sie steht jetzt in
+`src/styles/portal.css`, das nur `portal-main.tsx` importiert. Bei 0,2 KiB
+klingt das kleinlich; die Gewohnheit ist der Punkt.
 
 Einmal ist dabei etwas durchgerutscht und wurde bemerkt: Das Portal band
 anfangs die Datenschutzseite der kontofreien Anwendung ein, und an der hing
@@ -627,9 +809,23 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 
 ## 9. Fortsetzungsstand
 
-**Erledigt:**
+**Erledigt – mit Commit und Abnahme:**
 
-- Phase 0 – Audit, Ausgangsmessung, ADR-1 bis ADR-9 (`f8d5871`).
+| Phase | Commit | Inhalt | Abnahme |
+| --- | --- | --- | --- |
+| 0 | `f8d5871` | Audit, Ausgangsmessung, ADR-1 bis ADR-9 | 2114 Tests, 159 E2E, 29 Portable-E2E, 32 Prüfungen – alle grün (Ausgangsmessung, § 1.2) |
+| 1 | `b76a025` | Laufzeitmodus, Verträge, Injektion, Shells, Route Guards, Code-Split (§ 2b) | 2242 Tests, 159 E2E, 29 Portable-E2E, 32 Prüfungen; Größen unverändert |
+| 2 | `6946139` | Schema, Hilfsfunktionen, Zugriffsregeln (§ 3, § 4) | 2301 Tests, davon 59 gegen PostgreSQL 17.5; Größen unverändert; Mutationsprobe bestanden |
+| 3 | `a8a44a8` | Zweiter Web-Einstieg, vierter Modus, Anmeldung, Wiederherstellung (§ 2c, ADR-10/11) | 2384 Tests, 159 E2E unverändert, 29 Portable-E2E, 11 neue Portal-E2E, 32 Prüfungen; Größen unverändert |
+| 4 | *dieser Commit* | Kurse, Mitgliedschaft, Einladungen; Kursvertrag gegen zwei Erfüllungen; Serverfunktion aufgetrennt und geprüft (§ 2d) | 2487 Tests, 159 E2E unverändert, 29 Portable-E2E, **20** Portal-E2E, 32 Prüfungen; Größen unverändert |
+
+Jede Abnahme ist eine tatsächlich ausgeführte Messung; die Einzelheiten stehen
+in den Abschnitten darunter. Was dabei **nicht** geprüft wurde, steht in § 7.1 –
+und zwar vollständig.
+
+**Im Einzelnen:**
+
+- Phase 0 – Audit, Ausgangsmessung, ADR-1 bis ADR-9.
 - Phase 1 – Laufzeitmodus, Hosted-Konfiguration, Repository-Verträge,
   Injektion, lokale Adapter, kontrollierte Cloudfassung, Rollenmodell,
   Route Guards, getrennte Shells, öffentliche Routen, Code-Split. Siehe § 2b.
@@ -688,8 +884,35 @@ Service-Worker-Prüfung fehl (also prüft sie etwas), und der Wörterbuch-Einzug
 ins Portalbündel wurde an der Größe bemerkt, bevor ein Test danach fragte –
 seitdem fragt einer.
 
-**Als Nächstes:** Phase 4 – Kurse, Mitgliedschaft und Einladungen im Portal,
-gegen die Zugriffsregeln aus Phase 2 statt gegen die Fälschung.
+- Phase 4 – Kurse, Mitgliedschaft und Einladungen. Abläufe in SQL, Kursvertrag
+  gegen Fälschung **und** echtes PostgreSQL, Registrierung mit Code,
+  aufgetrennte und geprüfte Serverfunktion, Bremse in der Datenbank.
+  Siehe § 2d und ADR-11.
+
+**Messung nach Phase 4** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2487** Tests in **145** Dateien, alle grün |
+| davon `npm run test:db` | 73 gegen PostgreSQL 17.5 |
+| davon Kursvertrag | 2 × 23 – einmal Fälschung, einmal PostgreSQL |
+| davon Serverfunktion | 37 mit Fakes |
+| `npm run build` | beide Web-Auslieferungen erfolgreich |
+| `npm run build:portable` | 9482,1 KiB / 674,6 KiB – beide unverändert |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | **159** E2E – unverändert, nicht angefasst |
+| `npm run e2e:portable` | 29 Portable-E2E, alle grün |
+| `npm run e2e:portal` | **20** Portal-E2E unter `/LexiFlow/`, alle grün |
+
+Drei Befunde in dieser Phase stammen von Prüfungen, nicht vom Hinsehen: Das
+Warnband der Testfassung fiel mit 3,7 : 1 durch die Kontrastprüfung; die
+Abmeldeschaltfläche in der Navigationsschiene brachte als `<button>` die
+Voreinstellungen des Browsers mit; und die Kursoberfläche wäre um 0,2 KiB in
+jede Lerndatei gewandert.
+
+**Als Nächstes:** Phase 5 – Pakete im Konto, unveränderliche Revisionen und
+Zuweisung an Kurse. Danach § 5 dieses Dokuments füllen.
 
 **Nicht vergessen:**
 
