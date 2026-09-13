@@ -1,4 +1,4 @@
-# Sprint 5A in Betrieb nehmen: Staging und GitHub Pages
+# Sprint 5A in Betrieb nehmen: lokales Staging, dann GitHub Pages
 
 Eine nummerierte Anleitung für Marc. **Nichts davon ist gelaufen.** Wer sie
 abarbeitet, führt jeden Schritt zum ersten Mal aus und prüft damit zum ersten
@@ -6,8 +6,7 @@ Mal, was bisher nur lokal geprüft ist.
 
 Ergänzt `docs/portal-uebergabe.md` (der kurze Überblick) und
 `docs/portal-datenschutz-und-sicherheit.md` (was gespeichert wird und wer es
-sieht). Diese Datei hier ist die ausführliche, abhakbare Fassung für ein
-**Staging**.
+sieht). Diese Datei hier ist die ausführliche, abhakbare Fassung.
 
 ---
 
@@ -16,8 +15,8 @@ sieht). Diese Datei hier ist die ausführliche, abhakbare Fassung für ein
 | | |
 | --- | --- |
 | Branch | `sprint/5a-cloud-portal-foundation` |
-| HEAD | `9987b70c371da6ed1f64784bcb350eb8852d69ba` |
-| Working Tree | sauber, keine uncommitteten Änderungen |
+| HEAD | `9987b70` (vor diesem Dokumentationscommit) |
+| Working Tree | sauber |
 | `main` | `20d5338` – **unverändert**, und Vorfahr von HEAD (Fast-Forward möglich) |
 | Remote | **keiner** |
 | Tags | `v0.1.0-sprint1`, `v0.2.0`, `v0.3.0` – **kein** 5A-Tag |
@@ -56,28 +55,55 @@ einer der drei Stufen zugeordnet.
 | **P – mit PGlite simuliert** | Echtes PostgreSQL 17.5, echte Migrationen, echte Regeln – aber `auth.uid()`, die Rollen und das Schema `auth` sind **nachgebaut**. GoTrue, PostgREST und die Edge-Laufzeit fehlen. | 109 Prüfungen |
 | **S – nur mit echtem Supabase nachweisbar** | Alles, was zwischen Browser und SQL liegt. | **offen** |
 
-Was unter **S** fällt: reales Supabase Auth (GoTrue), echte JWT-Claims,
-PostgREST, beide Edge-Laufzeiten, Function Secrets, E-Mail-Versand,
-Schlüsselrotation, jeder KI-Anbieter, das Deployment.
+### 0.3 Die Reihenfolge – und warum GitHub Pages erst spät kommt
 
-### 0.3 Zwei Lücken, die dieses Dokument schließt
+**Vor dem Merge wird nicht über GitHub Pages geprüft.** Der Grund ist eine
+Eigenheit von GitHub Actions, nicht eine Vorsichtsmaßnahme:
 
-Beim Zusammenstellen dieser Anleitung sind zwei Dinge aufgefallen, die im Code
-**absichtlich** fehlen und deshalb im Staging von Hand zu tun sind:
+> Ein Ablauf mit `workflow_dispatch` bekommt seinen „Run workflow"-Knopf in der
+> Oberfläche nur, wenn **seine Datei auf dem Default-Branch liegt**. Für einen
+> Zweig lässt er sich dann zwar auswählen, aber der Knopf selbst erscheint erst
+> mit der Datei auf `main`. `deploy.yml` liegt heute ausschließlich auf dem
+> Sprintzweig – und `main` soll unangetastet bleiben.
+
+Daraus folgt die Reihenfolge:
+
+| Schritt | Wo | Abschnitt |
+| --- | --- | --- |
+| 1 | Supabase-Stagingprojekt anlegen | 2, 3 |
+| 2 | **Lokal gebautes Portal** dagegen laufen lassen | 5 |
+| 3 | Vollständige Abnahme gegen das lokale Portal | 6, 7, 8 |
+| 4 | Erst wenn grün: **Fast-Forward nach `main`** | 9 |
+| 5 | Erstes GitHub-Pages-Deployment | 10 |
+| 6 | Abschließende Abnahme auf den echten Adressen | 11 |
+
+Was sich damit **nicht** verschiebt: Das lokale Portal läuft gegen dasselbe
+echte Supabase-Projekt. Auth, JWT, PostgREST, Zugriffsregeln, Edge Functions,
+Wiederherstellung, Lernstandsfassungen und das KI-Gateway sind damit vollständig
+geprüft, bevor irgendetwas nach `main` geht. Offen bleibt nur, was an der
+**Auslieferung** hängt: echte Adressen, Grundpfad, Direktaufrufe, Neuladen,
+Service Worker.
+
+### 0.4 Zwei Lücken, die dieses Dokument schließt
+
+Beim Zusammenstellen sind zwei Dinge aufgefallen, die im Code **absichtlich**
+fehlen und deshalb im Staging von Hand zu tun sind:
 
 1. **Es gibt keine Selbstregistrierung für Lehrkräfte.** Die Anmeldeseite kann
    nur `signInWithEmail`. Ein Lehrkraftkonto entsteht im Supabase-Dashboard –
    nicht in der Anwendung. Das ist richtig so (wer sich selbst zur Lehrkraft
-   machen kann, sieht fremde Kursmitglieder), heißt aber: Schritt 5.3 unten ist
-   Pflicht.
+   machen kann, sieht fremde Kursmitglieder).
 2. **Es gibt keinen Trigger, der beim Anlegen eines Kontos ein Profil
    erzeugt.** Für Lernende macht das `create_learner_account`; für Lehrkräfte
    macht es niemand. Ohne Profilzeile gibt `app_my_role()` nichts zurück, und
-   die Lehrkraft kann keinen Kurs anlegen. Auch das steht in Schritt 5.3.
+   die Lehrkraft kann keinen Kurs anlegen.
 
-> **Ob daraus später ein Trigger werden soll, ist eine fachliche Frage und hier
-> nicht entschieden.** Für ein Staging mit drei Lehrkräften ist Handarbeit
-> richtig; für eine Schule mit dreißig wäre sie es nicht.
+**Für dieses Staging mit *einer* Lehrkraft ist Handarbeit freigegeben** –
+Dashboard plus das dokumentierte SQL in 6.1/6.2.
+
+> **Aber sie ist ein Blocker für mehr.** Siehe Abschnitt 14: Vor einer
+> Weitergabe an mehrere Lehrkräfte muss die manuelle Konto- und
+> Profilerstellung durch einen kontrollierten Admin-Prozess ersetzt werden.
 
 ---
 
@@ -89,8 +115,8 @@ Beim Zusammenstellen dieser Anleitung sind zwei Dinge aufgefallen, die im Code
 | --- | --- | --- | --- |
 | 1.1.1 | Supabase-Konto | supabase.com | falls noch nicht vorhanden |
 | 1.1.2 | GitHub-Konto `mp-studio-official` | github.com | vorhanden |
-| 1.1.3 | Eine E-Mail-Adresse für das **Admin**-Testkonto | frei wählbar | erreichbar sein muss sie nur, wenn E-Mail-Wiederherstellung geprüft wird |
-| 1.1.4 | Eine E-Mail-Adresse für das **Lehrkraft**-Testkonto | frei wählbar | dito, muss von 1.1.3 verschieden sein |
+| 1.1.3 | E-Mail für das **Admin**-Testkonto | frei wählbar | erreichbar nur nötig, wenn E-Mail-Wiederherstellung geprüft wird |
+| 1.1.4 | E-Mail für das **Lehrkraft**-Testkonto | frei wählbar | muss von 1.1.3 verschieden sein |
 
 Lernende brauchen **keine** E-Mail-Adresse. Sie bekommen eine Lern-ID.
 
@@ -106,10 +132,17 @@ Lernende brauchen **keine** E-Mail-Adresse. Sie bekommen eine Lern-ID.
 | Nr. | Wert | Beispiel |
 | --- | --- | --- |
 | 1.3.1 | Projekt-URL | `https://<ref>.supabase.co` |
-| 1.3.2 | Pages-Ursprung | `https://mp-studio-official.github.io` |
-| 1.3.3 | Kontofreie PWA | `https://mp-studio-official.github.io/LexiFlow/` |
-| 1.3.4 | Portal | `https://mp-studio-official.github.io/LexiFlow/portal/` |
-| 1.3.5 | Rückkehradresse Kennwort | `https://mp-studio-official.github.io/LexiFlow/portal/#/kennwort-neu` |
+| 1.3.2 | **Lokale Herkunft** (Phase 2–3 der Reihenfolge) | `http://localhost:4173` |
+| 1.3.3 | Lokal: kontofreie PWA | `http://localhost:4173/LexiFlow/` |
+| 1.3.4 | Lokal: Portal | `http://localhost:4173/LexiFlow/portal/` |
+| 1.3.5 | Lokal: Rückkehradresse Kennwort | `http://localhost:4173/LexiFlow/portal/#/kennwort-neu` |
+| 1.3.6 | Später: Pages-Herkunft | `https://mp-studio-official.github.io` |
+| 1.3.7 | Später: kontofreie PWA | `https://mp-studio-official.github.io/LexiFlow/` |
+| 1.3.8 | Später: Portal | `https://mp-studio-official.github.io/LexiFlow/portal/` |
+| 1.3.9 | Später: Rückkehradresse Kennwort | `https://mp-studio-official.github.io/LexiFlow/portal/#/kennwort-neu` |
+
+**Beide Herkünfte** (1.3.2 und 1.3.6) gehören in die Allowlists – die lokale
+von Anfang an, die Pages-Herkunft spätestens vor Abschnitt 10.
 
 ### 1.4 Secrets und Werte
 
@@ -118,8 +151,8 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 
 | Nr. | Name | Art | Wo eintragen |
 | --- | --- | --- | --- |
-| 1.4.1 | Projekt-URL | öffentlich | GitHub → Variables **und** Supabase-Funktionen |
-| 1.4.2 | Publishable Key (früher „anon") | öffentlich | GitHub → Variables |
+| 1.4.1 | Projekt-URL | öffentlich | lokale `.env`, später GitHub → Variables, und Supabase-Funktionen |
+| 1.4.2 | Publishable Key (früher „anon") | öffentlich | dito |
 | 1.4.3 | Secret Key (früher „service_role") | **geheim** | nur Supabase → Edge Function Secrets |
 | 1.4.4 | `LEXIFLOW_ALLOWED_ORIGINS` | unkritisch | Supabase → Edge Function Secrets |
 | 1.4.5 | `LEXIFLOW_AI_MASTER_KEY_V1` | **geheim** | nur Supabase → Edge Function Secrets |
@@ -143,11 +176,11 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 | Nr. | Schritt | Prüfen |
 | --- | --- | --- |
 | 2.1 | Neues Projekt anlegen, Name „LexiFlow Staging" | |
-| 2.2 | Region **Frankfurt (eu-central-1)** wählen | Region steht nachträglich nicht mehr um |
-| 2.3 | Datenbankkennwort erzeugen und im Passwortmanager ablegen | nicht im Chat, nicht in einer Datei im Repository |
+| 2.2 | Region **Frankfurt (eu-central-1)** wählen | steht nachträglich nicht mehr um |
+| 2.3 | Datenbankkennwort erzeugen, in den Passwortmanager | nicht im Chat, nicht in einer Datei im Repository |
 | 2.4 | Warten, bis das Projekt bereit ist | |
 | 2.5 | Projekt-URL notieren (1.3.1) | |
-| 2.6 | Publishable Key und Secret Key aus den Projekteinstellungen holen | **nur der Publishable Key** darf später ins Bündel |
+| 2.6 | Publishable Key und Secret Key holen | **nur der Publishable Key** darf ins Bündel |
 
 > **Zur Region.** Frankfurt ist richtig und ist trotzdem **kein
 > Datenschutznachweis**. Ohne sie fängt die Prüfung nicht an; mit ihr ist sie
@@ -155,7 +188,7 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 
 > **Zu den Schlüsselnamen.** Supabase hat die Benennung gewechselt: ältere
 > Projekte zeigen `anon` und `service_role`, neuere `publishable` und `secret`.
-> Gemeint ist jeweils dasselbe Paar. Der Code liest sie unter den Namen
+> Gemeint ist dasselbe Paar. Der Code liest sie als
 > `SUPABASE_PUBLISHABLE_KEY` und `SUPABASE_SECRET_KEY`.
 
 ---
@@ -179,8 +212,8 @@ Acht Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer Namen**:
 | 3.1.7 | `20260913120600_lernstand.sql` | Schreibweg + Eingangsprüfung |
 | 3.1.8 | `20260913120700_ki.sql` | KI-Verbindungen, Freigabeliste |
 
-Entweder über die Supabase-CLI (`supabase db push`) oder durch Einfügen in den
-SQL-Editor, Datei für Datei.
+Entweder über die Supabase-CLI (`supabase db push`) oder Datei für Datei im
+SQL-Editor.
 
 > **Ab dem ersten Anwenden sind Migrationen additiv.** Bis hierher wurden sie
 > beim Weiterbauen in sich geändert – das ging, weil es nirgends eine Datenbank
@@ -189,8 +222,8 @@ SQL-Editor, Datei für Datei.
 
 ### 3.2 Zugriffsregeln prüfen (nicht einschalten)
 
-Die Regeln kommen **mit** den Migrationen. Es gibt nichts einzuschalten. Zu
-prüfen ist nur, dass sie angekommen sind:
+Die Regeln kommen **mit** den Migrationen. Zu prüfen ist nur, dass sie
+angekommen sind:
 
 ```sql
 -- Erwartet: keine Zeile.
@@ -202,7 +235,7 @@ select tablename from pg_tables
         and c.relrowsecurity
    );
 
--- Erwartet: 'ALL' und je eine Regel.
+-- Erwartet: je eine Regel, cmd = 'ALL'.
 select tablename, cmd, count(*) from pg_policies
  where schemaname = 'public'
    and tablename in ('pack_progress','entry_progress','progress_events')
@@ -213,35 +246,36 @@ select tablename, cmd, count(*) from pg_policies
 
 | Nr. | Einstellung | Wert |
 | --- | --- | --- |
-| 3.3.1 | Site URL | `https://mp-studio-official.github.io/LexiFlow/portal/` |
-| 3.3.2 | Redirect URLs (Allowlist) | `https://mp-studio-official.github.io/LexiFlow/portal/**` |
-| 3.3.3 | E-Mail-Bestätigung | für Staging **aus** – sonst ist jedes Testkonto von einem Postfach abhängig |
+| 3.3.1 | Site URL | `http://localhost:4173/LexiFlow/portal/` (später auf 1.3.8 umstellen) |
+| 3.3.2 | Redirect URLs | `http://localhost:4173/LexiFlow/portal/**` **und** `https://mp-studio-official.github.io/LexiFlow/portal/**` |
+| 3.3.3 | E-Mail-Bestätigung | für Staging **aus** – sonst hängt jedes Testkonto an einem Postfach |
 | 3.3.4 | Selbstregistrierung („Allow new users to sign up") | **aus** |
 
-Zu 3.3.4: Die Anwendung bietet ohnehin keinen Weg dazu (siehe 0.3.1). Es
+Zu 3.3.4: Die Anwendung bietet ohnehin keinen Weg dazu (0.4.1). Es
 abzuschalten ist der zweite Riegel – sonst könnte jemand mit dem Publishable
 Key direkt an der API ein Konto anlegen.
 
-Zu 3.3.2: Die genaue Rückkehradresse ist 1.3.5. Sie entsteht im Code aus
-`location.origin` plus Grundpfad plus `#/kennwort-neu` und steht nirgends fest
-geschrieben – deshalb muss die Allowlist den Pfad mit `**` abdecken.
+Zu 3.3.2: Beide Einträge gleich von Anfang an. Die Rückkehradresse entsteht im
+Code aus `location.origin` plus Grundpfad plus `#/kennwort-neu` und steht
+nirgends fest geschrieben – deshalb muss die Allowlist den Pfad mit `**`
+abdecken.
 
 > **E-Mail-Versand** wird nur für die Kennwortwiederherstellung von
 > **Lehrkräften** gebraucht. Für Lernende gibt es sie nicht (ADR-5, ADR-11) –
 > dort ist der Wiederherstellungscode der Weg. Ohne SMTP-Einrichtung ist
-> Abnahme 7.9 unten nicht durchführbar; alles andere schon.
+> Abnahme 7.9 nicht durchführbar; alles andere schon.
 
 ### 3.4 Function Secrets
 
-Vor dem Deployen der Funktionen setzen – eine Funktion ohne ihre Secrets läuft
-los und bricht beim ersten Aufruf ab.
+Vor dem Deployen setzen – eine Funktion ohne ihre Secrets läuft los und bricht
+beim ersten Aufruf ab.
 
 | Nr. | Name | Wert |
 | --- | --- | --- |
 | 3.4.1 | `SUPABASE_URL` | die Projekt-URL |
 | 3.4.2 | `SUPABASE_PUBLISHABLE_KEY` | der Publishable Key |
 | 3.4.3 | `SUPABASE_SECRET_KEY` | der Secret Key |
-| 3.4.4 | `LEXIFLOW_ALLOWED_ORIGINS` | `https://mp-studio-official.github.io` |
+| 3.4.4 | `LEXIFLOW_ALLOWED_ORIGINS` | `http://localhost:4173,https://mp-studio-official.github.io` |
 | 3.4.5 | `LEXIFLOW_AI_MASTER_KEY_V1` | 32 Byte, base64 – siehe unten |
 
 Den Hauptschlüssel erzeugen, **nicht** von Hand und nicht in einem
@@ -262,9 +296,10 @@ ausgelieferten JavaScript.
 > Aufruf an einem fehlenden Wert scheitert; im Zweifel alle drei ausdrücklich
 > setzen.
 
-> **`LEXIFLOW_ALLOWED_ORIGINS` ist der Ursprung, nicht der Pfad.** Beide
-> Funktionen vergleichen den `Origin`-Header, und der enthält nie einen Pfad.
-> Mehrere Werte mit Komma trennen (etwa für eine lokale Entwicklungsadresse).
+> **`LEXIFLOW_ALLOWED_ORIGINS` sind Herkünfte, keine Pfade.** Beide Funktionen
+> vergleichen den `Origin`-Header, und der enthält nie einen Pfad. Mit Komma
+> getrennt, ohne Leerzeichen dahinter ist am sichersten (der Code trimmt,
+> aber darauf muss man sich nicht verlassen).
 
 ### 3.5 Edge Functions deployen
 
@@ -285,94 +320,106 @@ abgenommen; die Deno-Mäntel darum sind es nicht.
 
 ## 4. Welcher Wert wohin
 
+### 4.1 Für das lokale Staging (Abschnitte 5–8)
+
+Eine `.env` im Projektwurzelverzeichnis, nach dem Muster von `.env.example`.
+Sie ist von Git ausgeschlossen.
+
+```
+VITE_SUPABASE_URL=https://<ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key>
+```
+
+**`VITE_LEXIFLOW_FAKE_CLOUD` darf dort nicht stehen.** Steht es doch, baut das
+Portal gegen erfundene Konten – erkennbar am roten Band auf jeder Seite.
+
+### 4.2 Für GitHub Pages (ab Abschnitt 10)
+
 | Wert aus Supabase | Wohin | Als was |
 | --- | --- | --- |
 | Projekt-URL | GitHub → Settings → Secrets and variables → Actions → **Variables** → `VITE_SUPABASE_URL` | Variable, nicht Secret |
-| Publishable Key | GitHub → dieselbe Stelle → `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable, nicht Secret |
-| Projekt-URL | Supabase → Edge Functions → Secrets → `SUPABASE_URL` | Secret |
-| Publishable Key | dito → `SUPABASE_PUBLISHABLE_KEY` | Secret |
-| Secret Key | dito → `SUPABASE_SECRET_KEY` | **Secret, nirgendwo sonst** |
-| – | dito → `LEXIFLOW_ALLOWED_ORIGINS` | Secret |
-| – | dito → `LEXIFLOW_AI_MASTER_KEY_V1` | **Secret, nirgendwo sonst** |
+| Publishable Key | dieselbe Stelle → `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable, nicht Secret |
 
-**Warum Variables und nicht Secrets bei GitHub:** Beide Werte stehen ohnehin im
+**Warum Variables und nicht Secrets:** Beide Werte stehen ohnehin im
 ausgelieferten Bündel und lassen sich aus jedem Browser auslesen. Als Secret
 wären sie in den Actions-Protokollen maskiert – das erschwert das Nachsehen,
 ohne etwas zu schützen.
 
-**Für lokale Entwicklung** zusätzlich eine `.env` nach dem Muster von
-`.env.example` (von Git ausgeschlossen). Dort gehören **nur** die beiden
-öffentlichen Werte hinein.
+### 4.3 In Supabase (immer)
+
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
+`LEXIFLOW_ALLOWED_ORIGINS`, `LEXIFLOW_AI_MASTER_KEY_V1` – siehe 3.4.
+
+**Der Secret Key und der Hauptschlüssel gehören ausschließlich dorthin.**
 
 ---
 
-## 5. GitHub Pages und Actions
+## 5. Das lokale Portal gegen echtes Supabase
 
-### 5.1 Repository und Remote
+Das ist der Prüfstand für alles vor dem Merge.
 
-| Nr. | Schritt |
+### 5.1 Warum der gebaute Stand und nicht der Entwicklungsserver
+
+| | Entwicklungsserver | Gebauter Stand, lokal ausgeliefert |
+| --- | --- | --- |
+| Bauzeitfahnen | eine Konfiguration für beide Einstiege – der kontofreie Teil liefe im Portalmodus | je Einstieg richtig |
+| Herkunft | eine, aber mit falschen Fahnen | **eine**, mit richtigen Fahnen |
+| Grundpfad | `/` | `/LexiFlow/` – wie später |
+| Code | unminifiziert, anders gebündelt | **derselbe**, der später deployt wird |
+
+Der zweite Weg ist derselbe, den die Portal-E2E-Suite seit Phase 3 benutzt. Er
+ist erprobt.
+
+### 5.2 Starten
+
+```
+LEXIFLOW_BASE=/LexiFlow/ npm run build
+LEXIFLOW_BASE=/LexiFlow/ npx vite preview --port 4173 --strictPort
+```
+
+Danach erreichbar:
+
+| Adresse | Was |
 | --- | --- |
-| 5.1.1 | Prüfen, ob `github.com/mp-studio-official/LexiFlow` existiert und **leer** ist |
-| 5.1.2 | Falls es Inhalt hat: **nicht** überschreiben. Erst klären, was dort liegt |
-| 5.1.3 | `git remote add origin git@github.com:mp-studio-official/LexiFlow.git` |
-| 5.1.4 | `git push -u origin sprint/5a-cloud-portal-foundation` – **nur den Sprintzweig** |
-| 5.1.5 | `main` erst später und erst nach Abschnitt 10 |
+| `http://localhost:4173/LexiFlow/` | die kontofreie PWA |
+| `http://localhost:4173/LexiFlow/portal/` | das Portal gegen **echtes** Supabase |
 
-**Niemals `--force`.** Wenn ein Push abgelehnt wird, ist das die Auskunft, dass
-dort Historie liegt, die niemand angesehen hat.
+Beide unter **einer** Herkunft – das ist die Voraussetzung dafür, dass das
+Portal Pakete aus dem lokalen Speicher der kontofreien Anwendung übernehmen
+kann (ADR-10).
 
-### 5.2 Pages einschalten
+### 5.3 Vor der ersten Anmeldung prüfen
 
-| Nr. | Einstellung | Wert |
+| Nr. | Prüfung | Erwartung |
 | --- | --- | --- |
-| 5.2.1 | Settings → Pages → Source | **GitHub Actions** (nicht „Deploy from a branch") |
-| 5.2.2 | Variables setzen | siehe Abschnitt 4 |
+| 5.3.1 | `LEXIFLOW_BASE=/LexiFlow/ npm run verify:deploy` | „Die Auslieferung ist in Ordnung." |
+| 5.3.2 | Portal öffnen | **kein** rotes Band „Testfassung ohne Server" |
+| 5.3.3 | Portal öffnen | **keine** Seite „LexiFlow ist noch nicht eingerichtet" – sonst fehlt die `.env` |
+| 5.3.4 | Entwicklerwerkzeuge → Netzwerk | Anfragen gehen an `<ref>.supabase.co`, nicht ins Leere |
 
-### 5.3 Die beiden Adressen
+Schlägt 5.3.2 an: **abbrechen**. Es ist mit `VITE_LEXIFLOW_FAKE_CLOUD=1`
+gebaut worden, und dann prüft die ganze Abnahme darunter eine Fälschung.
 
-Ein Build erzeugt **beide** Auslieferungen in einem `dist/`:
+### 5.4 Was hier **nicht** geprüft werden kann
 
-| Adresse | Was | Woraus |
-| --- | --- | --- |
-| `/LexiFlow/` | die bestehende kontofreie PWA, **unverändert** | `vite.config.ts` → `dist/` |
-| `/LexiFlow/portal/` | das gehostete Portal | `vite.portal.config.ts` → `dist/portal/` |
+Und deshalb in Abschnitt 11 wiederkommt:
 
-Der Grundpfad kommt aus `LEXIFLOW_BASE=/LexiFlow/` und steht nirgends fest
-geschrieben. Beide liegen unter **einem** Ursprung – deshalb kann das Portal
-Pakete aus dem lokalen Speicher der kontofreien Anwendung übernehmen (ADR-10).
-
-### 5.4 Die zwei Abläufe
-
-| Datei | Wann | Was |
-| --- | --- | --- |
-| `.github/workflows/ci.yml` | jeder Zweig, jeder PR | Typen, 2830 Prüfungen, drei E2E-Suiten, Größenwacht |
-| `.github/workflows/deploy.yml` | nur `main` | dieselbe Kette, dann frischer Build, dann `verify:deploy`, dann erst Pages |
-
-**Erst grünes `ci.yml` auf dem Sprintzweig abwarten.** Das ist der erste Lauf
-der ganzen Kette auf fremder Hardware und findet erfahrungsgemäß Dinge, die
-lokal nie auffallen.
-
-### 5.5 Der erste Deploy
-
-Da `deploy.yml` nur auf `main` läuft und `main` noch nicht bewegt werden soll,
-gibt es für ein Staging zwei Wege:
-
-| Weg | Vorgehen | Bewertung |
-| --- | --- | --- |
-| **A** | `deploy.yml` von Hand über „Run workflow" auf dem Sprintzweig starten | einfach; der Ablauf hat `workflow_dispatch` |
-| **B** | warten, bis nach Abschnitt 10 gemergt wird | sauberer, aber dann ist Staging = Produktion |
-
-**Empfehlung: Weg A.** Ein Staging, das erst nach dem Merge entsteht, ist kein
-Staging.
+- die echten Adressen und ob der Grundpfad dort trägt
+- Direktaufrufe tiefer Adressen und Neuladen auf einer Unterseite
+- der Service Worker der PWA gegenüber dem Portal (er braucht HTTPS oder
+  `localhost` – und hier ist beides teilweise gegeben, aber nicht die
+  Pages-Situation)
+- die PWA-Installation
+- Safari und Mobilgeräte auf der echten Adresse
 
 ---
 
 ## 6. Staging-Abnahme mit echten Konten
 
-Alles hier ist **Stufe S** – zum ersten Mal gegen echtes Supabase. Was in
-Klammern steht, ist der Stand vorher.
+**Gegen das lokale Portal aus Abschnitt 5.** Alles hier ist **Stufe S** – zum
+ersten Mal gegen echtes Supabase. In Klammern steht, was vorher schon galt.
 
-### 6.1 Das Admin-Konto anlegen (Hand)
+### 6.1 Das Admin-Konto anlegen (Hand, einmalig freigegeben)
 
 | Nr. | Schritt |
 | --- | --- |
@@ -387,21 +434,29 @@ values ('<uuid>', 'Verwaltung', 'LX-0001', 'admin');
 
 `short_code` muss `^LX-[0-9A-Z]{4}$` erfüllen und eindeutig sein.
 
-### 6.2 Das Lehrkraftkonto anlegen (Hand)
+### 6.2 Das Lehrkraftkonto anlegen (Hand, einmalig freigegeben)
 
 Wie 6.1, mit E-Mail 1.1.4, `display_name` etwa `A. Beispiel`, `short_code`
 `LX-4821`, Rolle `teacher`.
 
+```sql
+insert into profiles (id, display_name, short_code, role)
+values ('<uuid>', 'A. Beispiel', 'LX-4821', 'teacher');
+```
+
 > Ohne Profilzeile gibt `app_my_role()` nichts zurück, und der Kursanlegeknopf
-> scheitert. Das ist die Lücke aus 0.3.2.
+> scheitert – ohne erkennbaren Grund. Das ist die Lücke aus 0.4.2, und sie ist
+> für **dieses** Staging mit einer Lehrkraft ausdrücklich freigegeben.
+> Abschnitt 14 sagt, was vor einer Weitergabe an mehrere Lehrkräfte an ihre
+> Stelle treten muss.
 
 ### 6.3 Anmelden als Lehrkraft
 
 | Nr. | Erwartung |
 | --- | --- |
-| 6.3.1 | `/LexiFlow/portal/#/anmelden` → „Ich unterrichte" → E-Mail + Kennwort |
+| 6.3.1 | `…/portal/#/anmelden` → „Ich unterrichte" → E-Mail + Kennwort |
 | 6.3.2 | Landet auf „Kurse"; in der Navigation **kein** Punkt „Verwaltung" |
-| 6.3.3 | **Kein rotes Band** „Testfassung ohne Server" (sonst wurde mit `VITE_LEXIFLOW_FAKE_CLOUD=1` gebaut – abbrechen, siehe 9) |
+| 6.3.3 | Im Netzwerkverlauf: ein Token kommt von `…/auth/v1/token` |
 
 ### 6.4 Mehrere Kurse
 
@@ -419,12 +474,13 @@ Wie 6.1, mit E-Mail 1.1.4, `display_name` etwa `A. Beispiel`, `short_code`
 | 6.5.2 | Code notieren | **Er wird genau einmal angezeigt** |
 | 6.5.3 | Weg und zurück navigieren | Code weg, nur dreistelliges Kürzel bleibt |
 | 6.5.4 | Zweiten Code für „Englisch 8a" erzeugen | |
+| 6.5.5 | In der Datenbank: `select code_hash, label from course_invites` | nur Hash und Kürzel, **kein Klartext** |
 
 ### 6.6 Zwei Lernende anlegen
 
 | Nr. | Schritt |
 | --- | --- |
-| 6.6.1 | Abmelden. `/LexiFlow/portal/#/beitreten` |
+| 6.6.1 | Abmelden. `…/portal/#/beitreten` |
 | 6.6.2 | Code aus 6.5.1, „Weiter", „Konto anlegen" |
 | 6.6.3 | Name „Fuchs", Kennwort zweimal |
 | 6.6.4 | **Wiederherstellungscode notieren** – er wird genau einmal gezeigt |
@@ -434,11 +490,14 @@ Wie 6.1, mit E-Mail 1.1.4, `display_name` etwa `A. Beispiel`, `short_code`
 **Zu prüfen:** In der Mitgliederliste steht **keine** Zahl über das Üben –
 keine Spalte „geübt", „Fortschritt", „zuletzt aktiv" oder „%". (L, P)
 
+**Und:** `select * from auth.users` – die Lernenden haben eine technische
+Adresse unter `.invalid`, keine echte (ADR-5).
+
 ### 6.7 Paket veröffentlichen, beide Lernrichtungen
 
 | Nr. | Schritt |
 | --- | --- |
-| 6.7.1 | In `/LexiFlow/` (kontofrei) ein Paket anlegen, Lernrichtung **„beide Richtungen"** |
+| 6.7.1 | In `http://localhost:4173/LexiFlow/` ein Paket anlegen, Lernrichtung **„beide Richtungen"** |
 | 6.7.2 | Als Lehrkraft ins Portal, „Material" → „Alle übernehmen" |
 | 6.7.3 | Paket erscheint mit „nur Entwurf" |
 | 6.7.4 | „Veröffentlichen" → „als Fassung 1 veröffentlicht" |
@@ -470,7 +529,7 @@ privates Fenster), beide als „Fuchs" angemeldet.
 | 6.9.1 | In beiden dieselbe Runde öffnen, **noch nicht antworten** | beide zeigen denselben Stand |
 | 6.9.2 | In Fenster A eine Vokabel **richtig** beantworten | |
 | 6.9.3 | In Fenster B **dieselbe** Vokabel **falsch** beantworten | **kein sichtbarer Fehler** |
-| 6.9.4 | In beiden neu laden | derselbe Stand; die falsche Antwort hat gewonnen, weil sie später kam |
+| 6.9.4 | In beiden neu laden | derselbe Stand; die später gesendete Antwort hat gewonnen |
 | 6.9.5 | In der Datenbank nachsehen: | |
 
 ```sql
@@ -486,10 +545,9 @@ lernende Person etwas merkt, und die Antwort zählt **genau einmal**. Lokal ist
 das der Test `verbraucht die Ereigniskennung nicht, wenn der Schreibvorgang
 abgelehnt wird` (L, P) – hier zum ersten Mal über echtes PostgREST.
 
-**Gegenprobe:** Eine falsch gestellte Uhr darf nicht gewinnen. In einem Fenster
-die Systemuhr um zwei Stunden vorstellen, dort antworten, dann im anderen
-Fenster antworten – der **zuletzt gesendete** Stand gilt, nicht der mit der
-späteren Uhrzeit.
+**Gegenprobe zur Uhr:** In einem Fenster die Systemuhr um zwei Stunden
+vorstellen, dort antworten, dann im anderen Fenster antworten – der **zuletzt
+gesendete** Stand gilt, nicht der mit der späteren Uhrzeit.
 
 ### 6.10 Kurs archivieren und weiterlernen (ADR-12)
 
@@ -509,7 +567,7 @@ späteren Uhrzeit.
 
 | Nr. | Schritt | Erwartung |
 | --- | --- | --- |
-| 6.11.1 | Als Lehrkraft `/LexiFlow/portal/#/ki` | Satz „kommt nie wieder heraus" steht **vor** dem Feld |
+| 6.11.1 | Als Lehrkraft `…/portal/#/ki` | Satz „kommt nie wieder heraus" steht **vor** dem Feld |
 | 6.11.2 | Anbieter „Google Gemini" | **kein** Adressfeld |
 | 6.11.3 | Name + neuer Schlüssel + Modell, speichern | „Der Schlüssel ist von hier an nicht mehr lesbar" |
 | 6.11.4 | Angezeigt wird nur `••••••••` + letzte vier Zeichen | |
@@ -530,7 +588,8 @@ späteren Uhrzeit.
 
 ## 7. Sicherheitsabnahme
 
-Alles Stufe **S**, sofern nicht anders vermerkt.
+Gegen dasselbe lokale Portal und dieselbe Supabase-Instanz. Alles Stufe **S**,
+sofern nicht anders vermerkt.
 
 ### 7.1 Zugriffsregeln über PostgREST
 
@@ -540,7 +599,7 @@ S über HTTP)
 
 | Nr. | Anfrage | Erwartung |
 | --- | --- | --- |
-| 7.1.1 | `GET /rest/v1/pack_progress` als Lehrkraft | **leer**, nicht die Zeilen der Lernenden |
+| 7.1.1 | `GET /rest/v1/pack_progress` als Lehrkraft | **leer** |
 | 7.1.2 | `GET /rest/v1/entry_progress?user_id=eq.<fuchs>` als Lehrkraft | **leer** |
 | 7.1.3 | `GET /rest/v1/pack_progress?select=count` als Lehrkraft | **0** – eine Zahl über jemanden ist auch eine Auskunft |
 | 7.1.4 | dasselbe als Admin | **leer** – es gibt keine Rolle mit dieser Einsicht |
@@ -575,10 +634,9 @@ S über HTTP)
 | Nr. | Prüfung | Erwartung |
 | --- | --- | --- |
 | 7.4.1 | Im Browser: Quelltext aller Portal-Bündel nach `sk-`, `sb_secret`, `service_role` durchsuchen | nichts |
-| 7.4.2 | Nach `testkennwort`, `fuchs-7390`, `Testfassung ohne Server` | **nichts** – sonst wurde eine Testfassung deployt |
+| 7.4.2 | Nach `testkennwort`, `fuchs-7390`, `Testfassung ohne Server` | **nichts** |
 | 7.4.3 | Nach `LEXIFLOW_AI_MASTER_KEY` | nichts |
-| 7.4.4 | Actions-Protokoll des Deploys durchsehen | keine Werte, nur Namen |
-| 7.4.5 | `npm run verify:deploy` lokal nach `npm run build` | „Die Auslieferung ist in Ordnung." (L) |
+| 7.4.4 | `LEXIFLOW_BASE=/LexiFlow/ npm run verify:deploy` | „Die Auslieferung ist in Ordnung." (L) |
 
 ### 7.5 SSRF-Schutz
 
@@ -624,7 +682,7 @@ erfahren), beim Aufruf nicht – dort wäre er ein Scanner für das interne Netz
 | 7.6.2 | `select secret_ciphertext …` | **permission denied** |
 | 7.6.3 | Mit Service Role: `secret_ciphertext` ansehen | Base64, **nicht** der Klartext |
 | 7.6.4 | `secret_iv` bei zwei Verbindungen vergleichen | **verschieden** |
-| 7.6.5 | Chiffretext von Verbindung A auf Verbindung B kopieren (Service Role), dann B aufrufen | **409**, „lässt sich nicht entsiegeln" |
+| 7.6.5 | Chiffretext von Verbindung A auf B kopieren (Service Role), dann B aufrufen | **409**, „lässt sich nicht entsiegeln" |
 | 7.6.6 | `LEXIFLOW_AI_MASTER_KEY_V1` löschen, Verbindung aufrufen | **503**; die Zeile **bleibt stehen** |
 | 7.6.7 | Schlüssel wieder setzen | funktioniert wieder |
 
@@ -639,13 +697,14 @@ erfahren), beim Aufruf nicht – dort wäre er ein Scanner für das interne Netz
 | 7.7.3 | Netzwerkverlauf einer lernenden Person | **kein** `TeacherArea`-Bündel geladen |
 | 7.7.4 | `update profiles set role='teacher' where id=<selbst>` per PostgREST | **abgelehnt** |
 
-### 7.8 Der Service Worker
+### 7.8 Wiederherstellung
 
 | Nr. | Prüfung | Erwartung |
 | --- | --- | --- |
-| 7.8.1 | `/LexiFlow/` besuchen, warten bis der Worker aktiv ist | |
-| 7.8.2 | Dann `/LexiFlow/portal/` aufrufen | **das Portal**, nicht die PWA (L) |
-| 7.8.3 | PWA installieren, dann 7.8.2 wiederholen | dasselbe |
+| 7.8.1 | Als „Fuchs" abmelden, „Zugang verloren", Lern-ID + Wiederherstellungscode | neues Kennwort setzbar |
+| 7.8.2 | **Denselben** Code ein zweites Mal benutzen | **abgelehnt** – er wird bei Benutzung gewechselt |
+| 7.8.3 | Der neue Code wird genau einmal angezeigt | |
+| 7.8.4 | Mit falschem Code | dieselbe Meldung wie mit falscher Lern-ID |
 
 ### 7.9 E-Mail-Wiederherstellung (nur mit SMTP)
 
@@ -653,143 +712,319 @@ erfahren), beim Aufruf nicht – dort wäre er ein Scanner für das interne Netz
 | --- | --- | --- |
 | 7.9.1 | Als Lehrkraft „Kennwort vergessen" | E-Mail kommt an |
 | 7.9.2 | Link öffnen | landet auf `#/kennwort-neu`, Route hat überlebt |
-| 7.9.3 | Adresszeile nach dem Laden ansehen | **kein** `?code=` mehr |
-| 7.9.4 | Als **Lernende** nach Wiederherstellung suchen | Weg über den Wiederherstellungscode, **keine** E-Mail |
+| 7.9.3 | Adresszeile nach dem Laden | **kein** `?code=` mehr |
+| 7.9.4 | Als **Lernende** nach E-Mail-Wiederherstellung suchen | gibt es nicht – nur der Code |
 
 ---
 
-## 8. Safari und Mobil
+## 8. Safari und Mobil, lokal
 
-Safari ist Pflichtfall seit Sprint 1.
+Was ohne echte Adresse geht. Der Rest steht in Abschnitt 11.
 
 | Nr. | Gerät / Browser | Prüfung |
 | --- | --- | --- |
-| 8.1 | Safari (macOS) | `/LexiFlow/` – Paket anlegen, üben, Lernstand bleibt nach Neuladen |
-| 8.2 | Safari (macOS) | `/LexiFlow/portal/` – anmelden, üben, Lernstand bleibt |
+| 8.1 | Safari (macOS) | `…/LexiFlow/` – Paket anlegen, üben, Lernstand bleibt nach Neuladen |
+| 8.2 | Safari (macOS) | `…/LexiFlow/portal/` – anmelden, üben, Lernstand bleibt |
 | 8.3 | Safari (macOS), privates Fenster | Portal lädt und sagt verständlich, wenn Speicher fehlt |
-| 8.4 | Safari (iOS) | beide Adressen, Anmeldung, eine Übungsrunde |
-| 8.5 | Safari (iOS) | kein horizontaler Überlauf auf keiner Portalseite |
-| 8.6 | Chrome (Android) | dasselbe |
-| 8.7 | iOS, 390 px | Kursseite, Beitrittsseite, Übungsseite, KI-Seite |
-| 8.8 | iOS | die untere Navigationsleiste erscheint statt der Seitenschiene |
-| 8.9 | iOS | **Abmelden** ist erreichbar – auf schmalen Fenstern nicht in der Leiste (bekannt) |
-| 8.10 | Safari | eine portable Lerndatei per `file://` öffnen und üben |
-| 8.11 | iOS | eine portable Lerndatei aus „Dateien" öffnen |
-| 8.12 | VoiceOver (iOS) | eine Übungsrunde bedienen |
+| 8.4 | Safari (macOS), 390 px Fensterbreite | Kursseite, Beitrittsseite, Übungsseite, KI-Seite ohne horizontalen Überlauf |
+| 8.5 | Safari | eine portable Lerndatei per `file://` öffnen und üben |
+| 8.6 | iOS-Gerät im selben Netz | `http://<Rechner-IP>:4173/LexiFlow/portal/` – Anmeldung, eine Übungsrunde |
 
-Zu 8.9: In der unteren Leiste gibt es kein „Abmelden". Für Staging genügt es,
-das zu wissen; ob es ein Mangel ist, ist eine fachliche Frage.
+Zu 8.6: Dafür muss die Rechner-IP in `LEXIFLOW_ALLOWED_ORIGINS` und in den
+Auth-Redirect-URLs stehen. Wer das nicht einrichten will, verschiebt die
+Mobilabnahme vollständig auf Abschnitt 11 – dort ist sie ohnehin Pflicht.
 
-Zu 8.10/8.11: Die portablen Dateien sind von Supabase unabhängig. Sie müssen
-sich genauso verhalten wie vor Sprint 5A – die Größen sind unverändert
+---
+
+## 9. Fast-Forward nach `main`
+
+**Erst wenn Abschnitt 6, 7 und 8 grün sind.**
+
+| Nr. | Schritt |
+| --- | --- |
+| 9.1 | Prüfen, dass `github.com/mp-studio-official/LexiFlow` existiert und **leer** ist. Hat es Inhalt: **nicht** überschreiben, erst klären |
+| 9.2 | `git remote add origin git@github.com:mp-studio-official/LexiFlow.git` |
+| 9.3 | `git push -u origin sprint/5a-cloud-portal-foundation` |
+| 9.4 | **Grünes `ci.yml` abwarten** – der erste Lauf der Kette auf fremder Hardware |
+| 9.5 | Variables setzen (4.2) und das Environment schützen (10.1) – **vor** dem Merge |
+| 9.6 | `git checkout main && git merge --ff-only sprint/5a-cloud-portal-foundation` |
+| 9.7 | `git push origin main` |
+
+**Niemals `--force`.** Wird ein Push abgelehnt, ist das die Auskunft, dass dort
+Historie liegt, die niemand angesehen hat.
+
+**`--ff-only` und kein `--squash`.** Die 17 Commits erzählen den Sprint; ein
+Quetschcommit wirft die Begründungen weg, die in jeder Nachricht stehen.
+
+> **Der Push auf `main` löst das Deployment aus.** `deploy.yml` hört auf
+> `push: main`. Deshalb muss 9.5 vorher erledigt sein – sonst deployt der erste
+> Lauf ein Portal ohne Konfiguration.
+
+---
+
+## 10. Erstes GitHub-Pages-Deployment
+
+### 10.1 Das Environment schützen (vor dem Merge)
+
+| Nr. | Schritt |
+| --- | --- |
+| 10.1.1 | Settings → Environments → `github-pages` |
+| 10.1.2 | „Deployment branches and tags" → **Selected branches and tags** |
+| 10.1.3 | Regel hinzufügen: nur `main` |
+
+Damit kann kein Zweig und kein Pull Request aus Versehen nach Pages
+ausliefern – auch dann nicht, wenn jemand später einen zweiten Ablauf schreibt.
+
+### 10.2 Pages einschalten
+
+| Nr. | Einstellung | Wert |
+| --- | --- | --- |
+| 10.2.1 | Settings → Pages → Source | **GitHub Actions** (nicht „Deploy from a branch") |
+| 10.2.2 | Variables | siehe 4.2 |
+
+### 10.3 Der erste Lauf
+
+`deploy.yml` läuft auf den Push nach `main`: erst die vollständige Prüfkette,
+dann ein **frischer** Build, dann `npm run verify:deploy`, dann erst das
+Hochladen.
+
+| Zeichen | Bedeutung |
+| --- | --- |
+| Portal zeigt „noch nicht eingerichtet" | Variables fehlen (4.2) |
+| `verify:deploy` bricht ab | Es liegt etwas in `dist/`, das dort nicht hingehört – **nicht** übergehen |
+| Rotes Band auf der Live-Seite | eine Testfassung wurde deployt – **sofort** Pages abschalten (12.2) |
+
+Die Meldung von `verify:deploy` sagt absichtlich nicht, *welcher Wert* gefunden
+wurde: Ein CI-Protokoll ist der letzte Ort, an dem ein Schlüssel landen sollte.
+
+### 10.4 Nachziehen
+
+| Nr. | Schritt |
+| --- | --- |
+| 10.4.1 | Supabase → Auth → Site URL auf 1.3.8 umstellen |
+| 10.4.2 | Prüfen, dass beide Herkünfte in `LEXIFLOW_ALLOWED_ORIGINS` stehen |
+| 10.4.3 | Prüfen, dass beide Redirect-URLs in der Allowlist stehen |
+
+---
+
+## 11. Abnahme auf GitHub Pages
+
+Das, was Abschnitt 5.4 offengelassen hat.
+
+### 11.1 Die echten Adressen
+
+| Nr. | Prüfung | Erwartung |
+| --- | --- | --- |
+| 11.1.1 | `https://…/LexiFlow/` | die kontofreie PWA, **ohne** Anmeldung |
+| 11.1.2 | `https://…/LexiFlow/portal/` | das Portal, **ohne** `portal.html` im Pfad |
+| 11.1.3 | `https://…/LexiFlow/portal/portal.html` | existiert nicht |
+| 11.1.4 | Netzwerkverlauf beider Seiten | **keine** Anfrage außerhalb von `/LexiFlow/` |
+
+### 11.2 Grundpfad und Direktaufrufe
+
+| Nr. | Prüfung | Erwartung |
+| --- | --- | --- |
+| 11.2.1 | `…/LexiFlow/portal/#/anmelden` direkt aufrufen | Anmeldeseite, keine 404 |
+| 11.2.2 | `…/LexiFlow/portal/#/beitreten` direkt | Beitrittsseite |
+| 11.2.3 | Auf einer Kursseite **neu laden** | dieselbe Seite, angemeldet |
+| 11.2.4 | Mitten in einer Übungsrunde neu laden | Runde beginnt neu, **Lernstand ist erhalten** |
+| 11.2.5 | Zurück- und Vorwärts-Knopf des Browsers | funktionieren |
+| 11.2.6 | Ein Link aus dem Portal auf „LexiFlow ohne Konto" | landet auf `…/LexiFlow/`, nicht auf `/` |
+
+11.2.6 ist der Fehler, den ein Unterpfad-Deployment typischerweise hat und den
+lokal unter `/` nie auffällt.
+
+### 11.3 Service-Worker-Abgrenzung
+
+| Nr. | Prüfung | Erwartung |
+| --- | --- | --- |
+| 11.3.1 | `…/LexiFlow/` besuchen, warten bis der Worker aktiv ist | in den Entwicklerwerkzeugen sichtbar |
+| 11.3.2 | Dann `…/LexiFlow/portal/` aufrufen | **das Portal**, nicht die PWA (L) |
+| 11.3.3 | Portal neu laden | weiterhin das Portal |
+| 11.3.4 | PWA installieren, dann 11.3.2 wiederholen | dasselbe |
+| 11.3.5 | Aus der installierten PWA heraus auf die Portaladresse | das Portal |
+
+### 11.4 Übernahme vom Gerät (ADR-10)
+
+| Nr. | Prüfung | Erwartung |
+| --- | --- | --- |
+| 11.4.1 | In `…/LexiFlow/` ein Paket anlegen | |
+| 11.4.2 | Im Portal „Material" → „Alle übernehmen" | das Paket erscheint |
+| 11.4.3 | Das Paket in `…/LexiFlow/` ist **noch da** | es wird nichts verschoben |
+
+### 11.5 Safari und Mobil auf der echten Adresse
+
+| Nr. | Gerät | Prüfung |
+| --- | --- | --- |
+| 11.5.1 | Safari (macOS) | beide Adressen, Anmeldung, eine Übungsrunde |
+| 11.5.2 | Safari (macOS), privates Fenster | Portal lädt und erklärt fehlenden Speicher |
+| 11.5.3 | Safari (iOS) | beide Adressen, Anmeldung, eine Übungsrunde |
+| 11.5.4 | Safari (iOS) | kein horizontaler Überlauf auf **keiner** Portalseite |
+| 11.5.5 | Safari (iOS) | die untere Navigationsleiste erscheint statt der Seitenschiene |
+| 11.5.6 | Safari (iOS) | **Abmelden** ist erreichbar – siehe Hinweis unten |
+| 11.5.7 | Chrome (Android) | dasselbe wie 11.5.3 bis 11.5.5 |
+| 11.5.8 | iOS | eine portable Lerndatei aus „Dateien" öffnen und üben |
+| 11.5.9 | VoiceOver (iOS) | eine Übungsrunde bedienen |
+| 11.5.10 | iOS | PWA über „Zum Home-Bildschirm" installieren, dann 11.3.2 |
+
+Zu 11.5.6: In der unteren Leiste gibt es heute **kein** „Abmelden". Für das
+Staging genügt es, das festzuhalten; ob es ein Mangel ist, ist eine fachliche
+Frage und steht in der Liste vor dem Merge (13.4).
+
+Zu 11.5.8: Die portablen Dateien sind von Supabase unabhängig und müssen sich
+verhalten wie vor Sprint 5A – die Größen sind unverändert
 (9482,3 KiB / 674,7 KiB).
 
 ---
 
-## 9. Rückbauplan
+## 12. Rückbauplan
 
-**Voraussetzung: Es ist nichts zu verlieren.** `main` ist unangetastet, es gibt
-keinen Remote, und das Staging enthält nur Testdaten.
+**Voraussetzung: Es ist wenig zu verlieren.** Vor Abschnitt 9 ist `main`
+unangetastet und es gibt keinen Remote; danach enthält das Staging nur
+Testdaten.
 
-### 9.1 Sofort abbrechen, wenn
+### 12.1 Sofort abbrechen, wenn
 
 | Zeichen | Bedeutung |
 | --- | --- |
-| Rotes Band „Testfassung ohne Server" auf der Live-Seite | eine Testfassung wurde deployt – **sofort** Pages abschalten |
+| Rotes Band „Testfassung ohne Server" auf einer erreichbaren Seite | eine Testfassung läuft – sofort abschalten |
 | Ein Anbieterschlüssel im Bündel auffindbar | Schlüssel widerrufen, dann Ursache suchen |
-| Eine Lehrkraft sieht einen fremden Lernstand | die Kernzusage ist verletzt – Projekt stilllegen, nichts löschen |
-| `verify:deploy` bricht ab | **nicht** übergehen; die Meldung sagt, was gefunden wurde |
+| Eine Lehrkraft sieht einen fremden Lernstand | die Kernzusage ist verletzt – stilllegen, nichts löschen |
+| `verify:deploy` bricht ab | **nicht** übergehen |
 
-### 9.2 Pages zurücknehmen
-
-| Nr. | Schritt |
-| --- | --- |
-| 9.2.1 | Settings → Pages → Source auf „None" |
-| 9.2.2 | Laufende Actions abbrechen |
-| 9.2.3 | Der Zweig bleibt; nur die Auslieferung endet |
-
-### 9.3 Supabase zurückbauen
+### 12.2 Wenn das **lokale** Staging scheitert (vor dem Merge)
 
 | Nr. | Schritt |
 | --- | --- |
-| 9.3.1 | Edge Functions löschen (`learner-auth`, `ai-gateway`) |
-| 9.3.2 | Alle Function Secrets löschen – **besonders** `LEXIFLOW_AI_MASTER_KEY_V1` |
-| 9.3.3 | Publishable und Secret Key rotieren |
-| 9.3.4 | Jeden KI-Anbieterschlüssel **beim Anbieter widerrufen**, der eingetragen war |
-| 9.3.5 | Staging-Projekt löschen, wenn es nicht weiterverwendet wird |
+| 12.2.1 | `vite preview` beenden, `.env` löschen |
+| 12.2.2 | Supabase-Projekt behalten oder löschen – es hängt nichts daran |
+| 12.2.3 | **Nichts** am Git zu tun: kein Remote, kein Push, `main` unberührt |
+| 12.2.4 | Befund aufschreiben, korrigieren, von Abschnitt 5 an wiederholen |
 
-Zu 9.3.4: Ein Schlüssel, der auf einem Server lag, ist durch Löschen der
+Das ist der ganze Vorteil dieser Reihenfolge: Ein gescheitertes Staging kostet
+nichts als Zeit.
+
+### 12.3 Wenn das **Pages**-Deployment scheitert (nach dem Merge)
+
+| Nr. | Schritt |
+| --- | --- |
+| 12.3.1 | Settings → Pages → Source auf „None" |
+| 12.3.2 | Laufende Actions abbrechen |
+| 12.3.3 | `main` **nicht** zurücksetzen – der Stand war lokal abgenommen |
+| 12.3.4 | Den Fehler auf einem Zweig beheben, erneut per Fast-Forward |
+| 12.3.5 | **Kein** `push --force`, **kein** History-Rewrite |
+
+### 12.4 Supabase zurückbauen
+
+| Nr. | Schritt |
+| --- | --- |
+| 12.4.1 | Edge Functions löschen (`learner-auth`, `ai-gateway`) |
+| 12.4.2 | Alle Function Secrets löschen – **besonders** `LEXIFLOW_AI_MASTER_KEY_V1` |
+| 12.4.3 | Publishable und Secret Key rotieren |
+| 12.4.4 | Jeden KI-Anbieterschlüssel **beim Anbieter widerrufen**, der eingetragen war |
+| 12.4.5 | Staging-Projekt löschen, wenn es nicht weiterverwendet wird |
+
+Zu 12.4.4: Ein Schlüssel, der auf einem Server lag, ist durch Löschen der
 Datenbank nicht widerrufen.
 
-### 9.4 Git zurückbauen
+### 12.5 Was bleibt
 
-| Nr. | Schritt |
-| --- | --- |
-| 9.4.1 | `git remote remove origin` |
-| 9.4.2 | Den Zweig auf GitHub löschen – **nicht** lokal |
-| 9.4.3 | `main` war nie beteiligt und bleibt, wie es ist |
-| 9.4.4 | **Kein** `push --force`, **kein** History-Rewrite |
-
-### 9.5 Was bleibt
-
-Das Produkt. `/LexiFlow/` ohne Konto und beide portablen Dateien brauchen nichts
-von alledem. Ein gescheitertes Staging nimmt LexiFlow nichts weg.
+Das Produkt. `/LexiFlow/` ohne Konto und beide portablen Dateien brauchen
+nichts von alledem. Ein gescheitertes Staging nimmt LexiFlow nichts weg.
 
 ---
 
-## 10. Checkliste „bereit für den Merge nach main"
+## 13. Checkliste „bereit für den Merge nach main"
 
 Erst abhaken, dann mergen. Ein „fast" zählt nicht.
 
-### Werkstatt
+### 13.1 Werkstatt
 
 - [ ] `ci.yml` grün auf dem Sprintzweig, auf GitHubs Hardware
 - [ ] 2830 Prüfungen grün, keine übersprungen
 - [ ] 159 E2E der kontofreien Anwendung **unverändert**
 - [ ] 29 portable, 31 Portal-E2E grün
 - [ ] `npm run verify:portable` – 32 Prüfungen, Größen 9482,3 / 674,7 KiB
-- [ ] `npm run verify:deploy` in Ordnung
+- [ ] `LEXIFLOW_BASE=/LexiFlow/ npm run verify:deploy` in Ordnung
 
-### Staging
+### 13.2 Lokales Staging gegen echtes Supabase
 
+- [ ] Abschnitt 5.3 grün – **kein** rotes Band, **keine** Einrichtungsseite
 - [ ] Abschnitt 6 vollständig, jeder Punkt einmal wirklich getan
 - [ ] 6.9 (Revisionskonflikt) bestanden, auch die Uhren-Gegenprobe
 - [ ] 6.10 (archivierter Kurs) bestanden
 - [ ] 6.12 (Mitgliedschaft entfernt) bestanden
 - [ ] Abschnitt 7 vollständig, besonders 7.1, 7.4, 7.5, 7.6
-- [ ] Abschnitt 8 auf **echter** Safari-Hardware, nicht nur im Simulator
+- [ ] Abschnitt 8, mindestens Safari auf macOS
 
-### Ehrlichkeit
+### 13.3 Vorbereitet für Pages
+
+- [ ] Repository-Variables gesetzt (4.2)
+- [ ] Environment `github-pages` auf `main` beschränkt (10.1)
+- [ ] Pages-Source auf „GitHub Actions" (10.2)
+- [ ] Beide Herkünfte in `LEXIFLOW_ALLOWED_ORIGINS`
+- [ ] Beide Redirect-URLs in der Auth-Allowlist
+
+### 13.4 Entscheidungen, die vor dem Merge fallen sollten
+
+- [ ] Soll ein Trigger Profile für neue Konten anlegen? (0.4.2, Abschnitt 14)
+- [ ] Soll „Abmelden" auch in die untere Navigationsleiste? (11.5.6)
+- [ ] Bleibt `deploy.yml` auf `push: main`?
+
+### 13.5 Ehrlichkeit
 
 - [ ] Was im Staging **nicht** geprüft werden konnte, ist aufgeschrieben
 - [ ] Kein Punkt gilt als bestanden, weil er „eigentlich klar" ist
 - [ ] Der kompromittierte Gemini-Schlüssel ist beim Anbieter widerrufen
 - [ ] Kein Secret steht in einer Datei im Repository
-- [ ] `docs/portal-datenschutz-und-sicherheit.md`, Abschnitt 1, ist auf den
-      Stand nach dem Staging gebracht – dort steht heute, dass nichts gelaufen
-      ist
 
-### Entscheidungen, die vor dem Merge fallen sollten
+### 13.6 Der Merge selbst
 
-- [ ] Soll ein Trigger Profile für neue Konten anlegen? (0.3.2)
-- [ ] Soll „Abmelden" auch in die untere Navigationsleiste? (8.9)
-- [ ] Bleibt `deploy.yml` auf `push: main`, oder nur `workflow_dispatch`?
-
-### Der Merge
-
-- [ ] `main` ist weiterhin Vorfahr von HEAD → Fast-Forward
-- [ ] Merge **ohne** `--squash` – die 17 Commits erzählen den Sprint
-- [ ] Tag erst **nach** grünem Deploy
-- [ ] Erst dann ist `docs/portal-uebergabe.md`, Abschnitt 8, überholt
+- [ ] `main` ist weiterhin Vorfahr von HEAD → `--ff-only` geht durch
+- [ ] **Kein** `--squash` – die 17 Commits erzählen den Sprint
+- [ ] Tag erst **nach** grünem Deploy und grüner Abnahme aus Abschnitt 11
+- [ ] Danach ist `docs/portal-uebergabe.md`, Abschnitt 8, überholt und gehört
+      nachgezogen – dort steht heute, dass nichts gelaufen ist
 
 ---
 
-## 11. Was dieses Dokument nicht kann
+## 14. Blocker vor einer Weitergabe an mehrere Lehrkräfte
+
+**Für dieses Staging mit einer Lehrkraft ist die Handarbeit aus 6.1/6.2
+freigegeben. Für mehr ist sie es nicht.**
+
+Was heute passiert, wenn eine zweite Lehrkraft dazukommt: Jemand legt im
+Supabase-Dashboard ein Konto an, kopiert eine UUID, denkt sich eine
+Kurzkennung aus und schreibt ein `insert` in den SQL-Editor. Das hat drei
+Probleme, und keines davon ist Bequemlichkeit:
+
+| Problem | Folge |
+| --- | --- |
+| Wer das tut, braucht die **Service Role** | also den Schlüssel, mit dem man an jeder Zugriffsregel vorbeikommt |
+| Eine Kurzkennung von Hand | Tippfehler, Dopplungen, und `LX-0002` beschreibt Reihenfolge statt nichts |
+| Kein Protokoll | niemand kann später sagen, wer wen zur Lehrkraft gemacht hat |
+
+**Was an ihre Stelle treten muss** (eigener Sprint, nicht dieser):
+
+1. Ein Weg in der Verwaltungsoberfläche, mit dem eine Person mit Rolle `admin`
+   ein Lehrkraftkonto anlegt – ohne Service Role im Browser.
+2. Profil und Kurzkennung entstehen dabei **serverseitig**, mit derselben
+   Erzeugung wie bei Lernenden (`kurzkennungAus`, aus kryptografischem
+   Zufall).
+3. Ein nachvollziehbarer Vermerk, wer eine Rolle vergeben hat.
+4. Ein Weg, eine Rolle wieder zu entziehen.
+
+Solange das fehlt, gilt: **ein Staging, eine Lehrkraft, Handarbeit
+dokumentiert.** Kein Pilotbetrieb an einer Schule.
+
+---
+
+## 15. Was dieses Dokument nicht kann
 
 Es kann nicht sagen, ob das Staging gelingt. Jede Zeile über Supabase, GitHub
 Pages und die Edge-Laufzeit ist aus dem Code abgeleitet, nicht aus Erfahrung
 mit diesem Projekt in Betrieb – es gibt keine.
 
-Der erste Mensch, der Abschnitt 6 und 7 abarbeitet, wird Dinge finden, die hier
-nicht stehen. Das ist kein Mangel der Anleitung, sondern der Grund, warum es
-ein Staging gibt.
+Der erste Mensch, der Abschnitt 6, 7 und 11 abarbeitet, wird Dinge finden, die
+hier nicht stehen. Das ist kein Mangel der Anleitung, sondern der Grund, warum
+es ein Staging gibt.
