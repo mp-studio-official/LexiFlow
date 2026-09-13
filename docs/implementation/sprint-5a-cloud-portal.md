@@ -1382,7 +1382,8 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 | 5 | `085b0c8` | Pakete im Konto, unveränderliche Revisionen, Zuweisung, Übernahme vom Gerät (§ 5) | 2539 Tests, 159 E2E unverändert, 29 Portable-E2E, **22** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 6 | `bfc41e9` | Lernstand im Konto, geräteübergreifend und idempotent; Üben im Portal (§ 5.5) | 2589 Tests, 159 E2E unverändert, 29 Portable-E2E, **26** Portal-E2E, 32 Prüfungen; portable Dateien +0,1 KiB (§ 8) |
 | 6b | `3adef03` | Korrektur: Fassung statt Client-Zeitstempel; serverseitige Eingangsprüfung (§ 5.5.3, § 5.5.4, § 5.5.8) | 2625 Tests, davon Lernstandsvertrag 2 × 32; 159 E2E unverändert, 26 Portal-E2E |
-| 8 | *(folgt)* | Prüfkette, Pages-Deployment, Riegel vor dem Netz; ADR-12 (§ 6.4–6.6) | 2830 Tests, 159 E2E unverändert, 29 Portable-E2E, 31 Portal-E2E; Portalbündel −15 kB |
+| 9 | *(folgt)* | Datenschutz-, Sicherheits- und Übergabedokument (§ 9a) | Zahlen darin gegengeprüft; keine Codeänderung |
+| 8 | `9a19cd8` | Prüfkette, Pages-Deployment, Riegel vor dem Netz; ADR-12 (§ 6.4–6.6) | 2830 Tests, 159 E2E unverändert, 29 Portable-E2E, 31 Portal-E2E; Portalbündel −15 kB |
 | 7 | `0144644` | KI-Zugang: Tresor (AES-GCM), Adressprüfung, Freigabeliste, vier Anbieter (§ 5a) | 2792 Tests, davon 123 für die Serverfunktion; 159 E2E unverändert, **31** Portal-E2E; portable Dateien unverändert |
 
 Die Zeile der jeweils letzten Phase trägt ihre Commit-ID mit dem **folgenden**
@@ -1612,8 +1613,24 @@ Der Befund dieser Phase kam nicht von einem Test, sondern von der neuen Wache
 bei ihrem ersten Lauf: Die kontrollierte Fälschung lag im produktiven
 Portalbündel. Die Begründung und die Gegenprobe stehen in § 6.5.
 
-**Als Nächstes:** Phase 9 – Datenschutz-, Sicherheits- und Übergabedokumente.
-Danach der Abschlussbericht.
+- Phase 9 – zwei Dokumente zum Mitnehmen, außerhalb dieses Arbeitsdokuments:
+
+| Datei | Für wen | Was drinsteht |
+| --- | --- | --- |
+| `docs/portal-datenschutz-und-sicherheit.md` | Schulleitung, Datenschutzbeauftragte, Marc | was gespeichert wird (vollständig, aus dem Schema abgeleitet), wer was sehen kann, wodurch das abgesichert ist – und in **Abschnitt 1**, ganz vorn, was nie gelaufen ist |
+| `docs/portal-uebergabe.md` | wer es in Betrieb nimmt | Supabase, Secrets, GitHub, der erste Lauf, eine Fehlertabelle, die Schlüsselrotation und der Rückbau |
+
+Beide sagen denselben Satz, und er steht in beiden am Ende: Bis ein echtes
+Projekt existiert, behauptet kein Dokument dieses Projekts, dass LexiFlow im
+Portalbetrieb funktioniert.
+
+Das Datenschutzdokument nennt außerdem ausdrücklich, was eine
+datenschutzrechtliche Prüfung **nicht** von dort beziehen kann –
+Auftragsverarbeitung, Rechtsgrundlage, Aufbewahrung in Backups, Information von
+Eltern und Lernenden. Diese Liste ist nicht kürzer als die andere, und das ist
+der Punkt.
+
+**Damit endet Sprint 5A.** Der Abschlussbericht steht darunter.
 
 **Nicht vergessen:**
 
