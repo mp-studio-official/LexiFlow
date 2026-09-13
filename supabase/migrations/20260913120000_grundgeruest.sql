@@ -222,12 +222,30 @@ create table entry_progress (
   streak integer not null default 0 check (streak >= 0),
   last_answered_at timestamptz,
   due_at timestamptz not null,
+
+  -- Die Fassung dieses Lernstands. Sie zählt bei jeder übernommenen Änderung
+  -- um eins hoch und ist der Schiedsrichter zwischen zwei Geräten: Wer
+  -- schreibt, nennt die Fassung, von der er ausging.
+  rev integer not null default 0 check (rev >= 0),
+
+  -- Welches Ereignis diese Fassung erzeugt hat. Damit ist eine Wiederholung
+  -- desselben Schreibvorgangs von einem echten Konflikt unterscheidbar –
+  -- ohne sie würde ein erneut gesendetes Ereignis entweder doppelt angewandt
+  -- oder als Konflikt gemeldet, obwohl es längst drinsteht.
+  last_event_id uuid,
+
   primary key (user_id, course_id, pack_id, entry_id, direction)
 );
 
 comment on column entry_progress.direction is
   'Lernstände werden je Abfragerichtung getrennt geführt – genauso wie lokal '
   'in IndexedDB seit Sprint 1.';
+
+comment on column entry_progress.rev is
+  'Fassungszähler. Entschieden wird nach ihr und nach nichts sonst – nicht '
+  'nach der Fachnummer (ein Rückfall von Fach 5 auf Fach 1 ist ein richtiges '
+  'Ergebnis) und nicht nach einem Zeitstempel vom Gerät (Geräteuhren sind '
+  'nicht überprüfbar).';
 
 create table progress_events (
   -- Die vom Client vergebene Kennung. Sie ist der ganze Trick an der

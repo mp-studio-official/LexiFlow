@@ -1,5 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { EntryProgressRow, PackProgressRow, ProgressGateway } from './progressGateway';
+import type {
+  ConflictRow,
+  EntryProgressRow,
+  PackProgressRow,
+  ProgressGateway,
+} from './progressGateway';
 
 /**
  * Der `ProgressGateway` über PostgREST – wie seine Geschwister **ungeprüft**
@@ -55,7 +60,13 @@ export function createSupabaseProgressGateway(client: SupabaseClient): ProgressG
         p_events: events,
       });
       if (error) throw new Error('Dein Lernstand wurde nicht gespeichert.');
-      return typeof data === 'number' ? data : 0;
+      /*
+        Offene Frage: Eine Funktion mit `returns table` liefert über PostgREST
+        eine Liste – eine leere, wenn nichts abgelehnt wurde. Kommt dort etwas
+        anderes an, ist eine leere Liste die sichere Auslegung: Sie behauptet
+        keinen Konflikt, den es nicht gibt.
+      */
+      return Array.isArray(data) ? (data as ConflictRow[]) : [];
     },
 
     async rpcReset(courseId, packId) {

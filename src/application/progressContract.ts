@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { antwortEreignis } from './progressEvents';
+import { antwortEreignis, erneutRechnen } from './progressEvents';
 import type { ProgressEvent, Repositories } from './repositories';
 import type { AnswerVerdict } from '../domain/answerCheck';
 import type { EntryProgress, TaskDirection } from '../domain/schema';
@@ -14,8 +14,12 @@ import type { EntryProgress, TaskDirection } from '../domain/schema';
  * - Dasselbe Ereignis zweimal zu senden ist dasselbe wie einmal – sonst
  *   zählte ein Wackler im WLAN eine Vokabel doppelt.
  * - Der Leitner-Stand kommt vom Gerät und wird abgelegt, nicht nachgerechnet.
- * - Ein **älteres** Ereignis dreht nichts zurück. Zwei Geräte, die kurz
- *   nacheinander senden, laufen nicht rückwärts.
+ * - Wer bei zwei Geräten gewinnt, entscheidet die **Fassung** – nicht die
+ *   Fachnummer (ein Rückfall von Fach 5 auf Fach 1 muss durchkommen) und nicht
+ *   die Uhr des Geräts (Geräteuhren sind nicht überprüfbar).
+ * - Ein veralteter Schreibvorgang wird gemeldet, nicht stillschweigend
+ *   verworfen: Das Gerät lädt neu, rechnet erneut und sendet dasselbe Ereignis.
+ * - Der Server nimmt nur Werte an, die diese Anwendung kennt.
  * - Zurücksetzen löscht den eigenen Stand – aber nicht den Schutz gegen
  *   Doppelzählung, sonst ließe sich eine alte Runde erneut einreichen.
  *
@@ -34,8 +38,14 @@ export interface LernstandSzenario {
     lernende: string;
     zweiteLernende: string;
   };
-  /** Ein Kurs mit einem zugewiesenen Paket, in dem beide Mitglied sind. */
-  kursMitPaket(): Promise<{ courseId: string; packId: string }>;
+  /**
+   * Ein Kurs mit einem zugewiesenen Paket, in dem beide Mitglied sind.
+   *
+   * `entryIds` sind die Vokabeln **aus der zugewiesenen Fassung**. Sie stehen
+   * hier, weil der Server prüft, ob eine Vokabel überhaupt dazugehört –
+   * erfundene Kennungen im Vertrag prüften sonst nur noch diese Prüfung.
+   */
+  kursMitPaket(): Promise<{ courseId: string; packId: string; entryIds: string[] }>;
 }
 
 export function describeProgressContract(
@@ -47,6 +57,10 @@ export function describeProgressContract(
     let szenario: LernstandSzenario;
     let kurs = '';
     let paket = '';
+    let vokabeln: string[] = [];
+
+    /** Die n-te Vokabel der zugewiesenen Fassung – keine erfundene Kennung. */
+    const v = (nummer: number) => vokabeln[nummer % vokabeln.length]!;
 
     const progress = () => szenario.repositories().progress!;
 
@@ -55,6 +69,7 @@ export function describeProgressContract(
       const gebaut = await szenario.kursMitPaket();
       kurs = gebaut.courseId;
       paket = gebaut.packId;
+      vokabeln = gebaut.entryIds;
       await szenario.alsPerson(szenario.personen.lernende);
     });
 
@@ -99,9 +114,9 @@ export function describeProgressContract(
     describe('Zählen', () => {
       it('zählt Antworten und richtige Antworten je Paket', async () => {
         await progress().recordEvents([
-          ereignis({ entryId: 'e1', outcome: 'correct' }),
-          ereignis({ entryId: 'e2', outcome: 'wrong' }),
-          ereignis({ entryId: 'e3', outcome: 'correct' }),
+          ereignis({ entryId: v(0), outcome: 'correct' }),
+          ereignis({ entryId: v(1), outcome: 'wrong' }),
+          ereignis({ entryId: v(2), outcome: 'correct' }),
         ]);
 
         const paketstand = await progress().myPackProgress(kurs, paket);
@@ -123,23 +138,31 @@ export function describeProgressContract(
         expect(paketstand?.answeredCount).toBe(0);
       });
 
-      it('dreht den Zeitpunkt der letzten Übung nicht zurück', async () => {
-        const spaet = new Date('2026-09-14T10:00:00.000Z');
-        const frueh = new Date('2026-09-14T08:00:00.000Z');
+      it('nimmt den Zeitpunkt der letzten Übung nicht vom Gerät', async () => {
+        /*
+          Ein Gerät mit einer Uhr, die zehn Jahre vorgeht, darf nicht „zuletzt
+          geübt: 2036" hinterlassen. Der Zeitpunkt kommt vom Server, und die
+          zweite Übung liegt nicht vor der ersten.
+        */
+        const vorgestellt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 
-        await progress().recordEvents([ereignis({ entryId: 'e1', outcome: 'correct', now: spaet })]);
-        await progress().recordEvents([ereignis({ entryId: 'e2', outcome: 'correct', now: frueh })]);
+        await progress().recordEvents([
+          ereignis({ entryId: v(0), outcome: 'correct', now: vorgestellt }),
+        ]);
+        const erster = (await progress().myPackProgress(kurs, paket))!.lastPracticedAt!;
+        expect(Date.parse(erster)).toBeLessThan(Date.parse(vorgestellt.toISOString()));
 
-        const paketstand = await progress().myPackProgress(kurs, paket);
-        expect(paketstand?.lastPracticedAt).toBe(spaet.toISOString());
-        // Gezählt wurde die späte Antwort trotzdem – nur der Zeitpunkt bleibt.
-        expect(paketstand?.answeredCount).toBe(2);
+        await progress().recordEvents([ereignis({ entryId: v(1), outcome: 'correct' })]);
+        const zweiter = (await progress().myPackProgress(kurs, paket))!.lastPracticedAt!;
+
+        expect(Date.parse(zweiter)).toBeGreaterThanOrEqual(Date.parse(erster));
+        expect((await progress().myPackProgress(kurs, paket))?.answeredCount).toBe(2);
       });
     });
 
     describe('Idempotenz', () => {
       it('zählt dasselbe Ereignis nur einmal, auch in zwei Aufrufen', async () => {
-        const einmal = ereignis({ entryId: 'e1', outcome: 'correct' });
+        const einmal = ereignis({ entryId: v(0), outcome: 'correct' });
 
         await progress().recordEvents([einmal]);
         await progress().recordEvents([einmal]);
@@ -148,7 +171,7 @@ export function describeProgressContract(
       });
 
       it('zählt dasselbe Ereignis nur einmal, auch im selben Aufruf', async () => {
-        const einmal = ereignis({ entryId: 'e1', outcome: 'correct' });
+        const einmal = ereignis({ entryId: v(0), outcome: 'correct' });
 
         await progress().recordEvents([einmal, einmal]);
 
@@ -160,12 +183,367 @@ export function describeProgressContract(
           Zwei Antworten auf dieselbe Vokabel in derselben Sekunde sind zwei
           Antworten. Nur die Kennung entscheidet – nicht der Inhalt.
         */
-        const erste = ereignis({ entryId: 'e1', outcome: 'correct' });
-        const zweite = { ...erste, eventId: ereignis({ entryId: 'e1', outcome: 'correct' }).eventId };
+        const erste = ereignis({ entryId: v(0), outcome: 'correct' });
+        const zweite = { ...erste, eventId: ereignis({ entryId: v(0), outcome: 'correct' }).eventId };
 
         await progress().recordEvents([erste, zweite]);
 
         expect((await progress().myPackProgress(kurs, paket))?.answeredCount).toBe(2);
+      });
+    });
+
+    /**
+     * Der Kern der Mehrgeräte-Zusage – Marcs sieben Punkte.
+     *
+     * Die Reihenfolge ist nicht beliebig: Zuerst muss feststehen, dass ein
+     * **fachlicher** Rückfall durchkommt. Ein Riegel, der Fach 5 gegen Fach 1
+     * verteidigt, wäre schlimmer als gar keiner – die Vokabel bliebe oben und
+     * käme nie wieder dran, obwohl die Person sie nicht konnte.
+     */
+    describe('Wer gewinnt, wenn zwei Geräte schreiben', () => {
+      /** Ein Stand, wie er nach längerem Üben dasteht: Fach 5, Fassung 4. */
+      function fachFuenf(rev: number): EntryProgress {
+        return {
+          key: `${paket}::${v(0)}::en-de`,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          box: 5,
+          correctCount: 4,
+          wrongCount: 0,
+          streak: 4,
+          dueAt: new Date(Date.UTC(2026, 8, 20)).toISOString(),
+          rev,
+        };
+      }
+
+      /** Den Stand auf Fach 5 / Fassung 1 bringen – über den Vertrag. */
+      async function aufFachFuenf(): Promise<EntryProgress> {
+        const gesetzt = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'correct',
+          vorher: { ...fachFuenf(0), box: 4, streak: 3, correctCount: 3 },
+          now: zeit(),
+        });
+        expect(await progress().recordEvents([gesetzt.event])).toEqual([]);
+        return gesetzt.nachher;
+      }
+
+      it('nimmt einen fachlichen Rückfall von Fach 5 auf Fach 1 an', async () => {
+        /*
+          Punkt 1. Das neuere Ergebnis ist schlechter – und genau deshalb
+          richtig: Die Person konnte die Vokabel gerade nicht.
+        */
+        const oben = await aufFachFuenf();
+        expect((await stand(v(0)))?.box).toBe(5);
+
+        const rueckfall = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'wrong',
+          vorher: oben,
+          now: zeit(),
+        });
+        expect(await progress().recordEvents([rueckfall.event])).toEqual([]);
+
+        const jetzt = await stand(v(0));
+        expect(jetzt?.box).toBe(1);
+        expect(jetzt?.streak).toBe(0);
+      });
+
+      it('weist einen veralteten, scheinbar besseren Stand ab', async () => {
+        /*
+          Punkt 2. Gerät A hat gerade eine falsche Antwort geschrieben; Gerät B
+          meldet sich mit Fach 5 aus der Zeit davor. „Besser" ist hier kein
+          Argument – der Schreibvorgang ist veraltet.
+        */
+        const oben = await aufFachFuenf();
+        const geraetA = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'wrong',
+          vorher: oben,
+          now: zeit(),
+        });
+        await progress().recordEvents([geraetA.event]);
+
+        // Gerät B ging von derselben Fassung aus wie Gerät A – und kommt zu spät.
+        const geraetB = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'correct',
+          vorher: oben,
+          now: zeit(),
+        });
+        const konflikte = await progress().recordEvents([geraetB.event]);
+
+        expect(konflikte).toHaveLength(1);
+        expect(konflikte[0]!.eventId).toBe(geraetB.event.eventId);
+        expect(konflikte[0]!.entryId).toBe(v(0));
+        expect((await stand(v(0)))?.box).toBe(1);
+      });
+
+      it('weist einen veralteten, scheinbar schlechteren Stand ebenso ab', async () => {
+        // Punkt 3. Dieselbe Lage, nur andersherum – dieselbe Antwort.
+        const oben = await aufFachFuenf();
+        const geraetA = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'correct',
+          vorher: oben,
+          now: zeit(),
+        });
+        await progress().recordEvents([geraetA.event]);
+
+        const geraetB = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'wrong',
+          vorher: oben,
+          now: zeit(),
+        });
+        const konflikte = await progress().recordEvents([geraetB.event]);
+
+        expect(konflikte).toHaveLength(1);
+        // Der Stand von Gerät A steht noch, unverändert.
+        expect((await stand(v(0)))?.box).toBe(5);
+      });
+
+      it('entscheidet nach der Fassung und nicht nach der Uhr des Geräts', async () => {
+        /*
+          Punkt 4. Gerät B hat eine weit vorgestellte Uhr und sendet **nach**
+          Gerät A. Mit einem Zeitstempelvergleich gewänne es; mit der Fassung
+          verliert es, denn es ging von einem überholten Stand aus.
+        */
+        const oben = await aufFachFuenf();
+        const geraetA = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'wrong',
+          vorher: oben,
+          now: new Date(),
+        });
+        await progress().recordEvents([geraetA.event]);
+
+        const geraetB = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'correct',
+          vorher: oben,
+          /*
+            Eine Uhr, die zwei Stunden vorgeht – und damit **nach** Gerät A
+            liegt. Weiter vorstellen geht nicht: Eine grob falsche Uhr
+            erzeugt eine Fälligkeit außerhalb der zulässigen Fächer und wird
+            schon an der Eingangsprüfung abgewiesen (siehe unten). Hier soll
+            eine Uhr geprüft werden, die plausibel aussieht und trotzdem
+            nicht entscheidet.
+          */
+          now: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        });
+        const konflikte = await progress().recordEvents([geraetB.event]);
+
+        expect(konflikte).toHaveLength(1);
+        expect((await stand(v(0)))?.box).toBe(1);
+      });
+
+      it('macht aus zwei Geräten mit derselben Ausgangsfassung einen erkennbaren Konflikt', async () => {
+        // Punkt 5 – samt der Fassung, die der Server jetzt hat.
+        const oben = await aufFachFuenf();
+        const a = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'correct', vorher: oben, now: zeit(),
+        });
+        const b = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'wrong', vorher: oben, now: zeit(),
+        });
+
+        expect(await progress().recordEvents([a.event])).toEqual([]);
+        const konflikte = await progress().recordEvents([b.event]);
+
+        expect(konflikte).toEqual([
+          {
+            eventId: b.event.eventId,
+            entryId: v(0),
+            direction: 'en-de',
+            currentRev: (await stand(v(0)))!.rev,
+          },
+        ]);
+        expect(b.event.baseRev).toBeLessThan(konflikte[0]!.currentRev);
+      });
+
+      it('nimmt dieselbe Bewertung an, sobald sie auf dem frischen Stand gerechnet ist', async () => {
+        /*
+          Punkt 6 – die Auflösung. Das Gerät lädt neu, rechnet mit derselben
+          Domainfunktion noch einmal und sendet **dasselbe** Ereignis.
+        */
+        const oben = await aufFachFuenf();
+        const a = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'correct', vorher: oben, now: zeit(),
+        });
+        const b = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'wrong', vorher: oben, now: zeit(),
+        });
+        await progress().recordEvents([a.event]);
+        expect(await progress().recordEvents([b.event])).toHaveLength(1);
+
+        const frisch = await stand(v(0));
+        const zweiterVersuch = erneutRechnen(b.event, frisch);
+
+        expect(await progress().recordEvents([zweiterVersuch])).toEqual([]);
+        const endstand = await stand(v(0));
+        // Die falsche Antwort ist angekommen – auf dem Stand von Gerät A.
+        expect(endstand?.box).toBe(1);
+        expect(endstand?.rev).toBe(frisch!.rev! + 1);
+      });
+
+      it('zählt dabei nichts doppelt', async () => {
+        /*
+          Punkt 7. Das Ereignis geht dreimal über die Leitung: einmal
+          abgelehnt, einmal neu gerechnet, einmal als bloße Wiederholung.
+          Gezählt wird es genau einmal, und die Wiederholung ist kein
+          Konflikt.
+        */
+        const oben = await aufFachFuenf();
+        const vorZaehler = (await progress().myPackProgress(kurs, paket))!.answeredCount;
+
+        const a = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'correct', vorher: oben, now: zeit(),
+        });
+        const b = antwortEreignis({
+          courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+          outcome: 'wrong', vorher: oben, now: zeit(),
+        });
+        await progress().recordEvents([a.event]);
+        await progress().recordEvents([b.event]);
+
+        const zweiterVersuch = erneutRechnen(b.event, await stand(v(0)));
+        await progress().recordEvents([zweiterVersuch]);
+        // Und noch einmal – die reine Wiederholung.
+        expect(await progress().recordEvents([zweiterVersuch])).toEqual([]);
+
+        const nachher = await progress().myPackProgress(kurs, paket);
+        expect(nachher!.answeredCount).toBe(vorZaehler + 2);
+      });
+
+      it('lässt eine Kette von Antworten in einer Runde unangetastet durch', async () => {
+        /*
+          Der Alltagsfall neben den Konfliktfällen: Ein Gerät beantwortet
+          dieselbe Vokabel dreimal hintereinander. Jede Antwort baut auf der
+          vorigen Fassung auf; keine davon ist ein Konflikt.
+        */
+        let vorher: EntryProgress | undefined;
+        const ereignisse: ProgressEvent[] = [];
+        for (let i = 0; i < 3; i += 1) {
+          const schritt = antwortEreignis({
+            courseId: kurs, packId: paket, entryId: v(0), direction: 'en-de',
+            outcome: 'correct', vorher, now: zeit(),
+          });
+          ereignisse.push(schritt.event);
+          vorher = schritt.nachher;
+        }
+
+        expect(await progress().recordEvents(ereignisse)).toEqual([]);
+        const endstand = await stand(v(0));
+        expect(endstand?.box).toBe(4);
+        expect(endstand?.rev).toBe(3);
+      });
+    });
+
+    describe('Was der Server nicht annimmt', () => {
+      function mitStand(aenderung: Partial<ProgressEvent['entryState']>, rest: Partial<ProgressEvent> = {}) {
+        const gebaut = ereignis({ entryId: v(0), outcome: 'correct' });
+        return { ...gebaut, ...rest, entryState: { ...gebaut.entryState, ...aenderung } };
+      }
+
+      it('kein Fach außerhalb von 1 bis 5', async () => {
+        await expect(progress().recordEvents([mitStand({ box: 9 })])).rejects.toThrow();
+        await expect(progress().recordEvents([mitStand({ box: 0 })])).rejects.toThrow();
+      });
+
+      it('keine unbekannte Abfragerichtung', async () => {
+        const falsch = { ...ereignis({ entryId: v(0), outcome: 'correct' }), direction: 'kl-ng' };
+        await expect(
+          progress().recordEvents([falsch as unknown as ProgressEvent]),
+        ).rejects.toThrow();
+      });
+
+      it('keine negativen Zähler', async () => {
+        await expect(progress().recordEvents([mitStand({ correctCount: -1 })])).rejects.toThrow();
+        await expect(progress().recordEvents([mitStand({ wrongCount: -3 })])).rejects.toThrow();
+        await expect(progress().recordEvents([mitStand({ streak: -1 })])).rejects.toThrow();
+      });
+
+      it('keine negative Fassung', async () => {
+        await expect(progress().recordEvents([mitStand({}, { baseRev: -1 })])).rejects.toThrow();
+      });
+
+      it('keine Fälligkeit jenseits des längsten Fachs', async () => {
+        /*
+          Der Weg, eine Vokabel für immer loszuwerden: sie auf das Jahr 2099
+          legen. Das längste Leitner-Fach sind 21 Tage.
+        */
+        await expect(
+          progress().recordEvents([mitStand({ dueAt: '2099-01-01T00:00:00.000Z' })]),
+        ).rejects.toThrow();
+      });
+
+      it('keine Runde von einer grob falsch gestellten Uhr', async () => {
+        /*
+          Die andere Hälfte derselben Zusage: Eine Uhr, die Jahre vorgeht,
+          rechnet eine Fälligkeit aus, die es in keinem Fach gibt. Sie gewinnt
+          also nicht nur nicht – sie kommt gar nicht erst an.
+        */
+        const weitVoraus = antwortEreignis({
+          courseId: kurs,
+          packId: paket,
+          entryId: v(0),
+          direction: 'en-de',
+          outcome: 'correct',
+          now: new Date('2099-01-01T00:00:00.000Z'),
+        }).event;
+
+        await expect(progress().recordEvents([weitVoraus])).rejects.toThrow();
+      });
+
+      it('aber eine Fälligkeit in der Vergangenheit sehr wohl', async () => {
+        // Sie heißt schlicht „jetzt dran" und schadet niemandem.
+        const konflikte = await progress().recordEvents([
+          mitStand({ dueAt: '2020-01-01T00:00:00.000Z' }),
+        ]);
+        expect(konflikte).toEqual([]);
+      });
+
+      it('lehnt die ganze Liste ab, wenn ein Ereignis darin nicht taugt', async () => {
+        /*
+          Alles oder nichts. Eine halb übernommene Runde wäre schlimmer als
+          eine abgelehnte: Niemand wüsste hinterher, welche Hälfte drin ist.
+        */
+        const gut = ereignis({ entryId: v(1), outcome: 'correct' });
+        await expect(
+          progress().recordEvents([gut, mitStand({ box: 9 })]),
+        ).rejects.toThrow();
+        expect(await progress().myPackProgress(kurs, paket)).toBeUndefined();
       });
     });
 
@@ -174,36 +552,38 @@ export function describeProgressContract(
         const { event, nachher } = antwortEreignis({
           courseId: kurs,
           packId: paket,
-          entryId: 'e1',
+          entryId: v(0),
           direction: 'en-de',
           outcome: 'correct',
           now: zeit(),
         });
         await progress().recordEvents([event]);
 
-        const abgelegt = await stand('e1');
+        const abgelegt = await stand(v(0));
         expect(abgelegt?.box).toBe(nachher.box);
         expect(abgelegt?.correctCount).toBe(nachher.correctCount);
         expect(abgelegt?.streak).toBe(nachher.streak);
         expect(abgelegt?.dueAt).toBe(nachher.dueAt);
-        expect(abgelegt?.lastAnsweredAt).toBe(event.occurredAt);
+        // Nicht `event.occurredAt`: Der Zeitpunkt kommt vom Server.
+        expect(abgelegt?.lastAnsweredAt).toBeDefined();
+        expect(abgelegt?.rev).toBe(1);
       });
 
       it('wird je Abfragerichtung getrennt geführt', async () => {
         await progress().recordEvents([
-          ereignis({ entryId: 'e1', outcome: 'correct', direction: 'en-de' }),
-          ereignis({ entryId: 'e1', outcome: 'wrong', direction: 'de-en' }),
+          ereignis({ entryId: v(0), outcome: 'correct', direction: 'en-de' }),
+          ereignis({ entryId: v(0), outcome: 'wrong', direction: 'de-en' }),
         ]);
 
-        expect((await stand('e1', 'en-de'))?.box).toBe(2);
-        expect((await stand('e1', 'de-en'))?.box).toBe(1);
+        expect((await stand(v(0), 'en-de'))?.box).toBe(2);
+        expect((await stand(v(0), 'de-en'))?.box).toBe(1);
       });
 
       it('läuft über mehrere Antworten hinweg weiter', async () => {
         const erste = antwortEreignis({
           courseId: kurs,
           packId: paket,
-          entryId: 'e1',
+          entryId: v(0),
           direction: 'en-de',
           outcome: 'correct',
           now: zeit(),
@@ -211,7 +591,7 @@ export function describeProgressContract(
         const zweite = antwortEreignis({
           courseId: kurs,
           packId: paket,
-          entryId: 'e1',
+          entryId: v(0),
           direction: 'en-de',
           outcome: 'correct',
           vorher: erste.nachher,
@@ -220,64 +600,18 @@ export function describeProgressContract(
 
         await progress().recordEvents([erste.event, zweite.event]);
 
-        const abgelegt = await stand('e1');
+        const abgelegt = await stand(v(0));
         expect(abgelegt?.box).toBe(3);
         expect(abgelegt?.streak).toBe(2);
       });
 
-      it('übernimmt einen älteren Stand nicht über einen neueren', async () => {
-        /*
-          Der Zwei-Geräte-Fall: Das Tablet war offline und sendet nach, was
-          älter ist als das, was das Telefon schon geschickt hat. Der Zähler
-          steigt – die Vokabel wurde ja zweimal geübt –, aber das Fach läuft
-          nicht rückwärts.
-        */
-        const spaet = new Date('2026-09-14T10:00:00.000Z');
-        const frueh = new Date('2026-09-14T08:00:00.000Z');
-
-        const neuer = antwortEreignis({
-          courseId: kurs,
-          packId: paket,
-          entryId: 'e1',
-          direction: 'en-de',
-          outcome: 'correct',
-          vorher: {
-            key: `${paket}::e1::en-de`,
-            packId: paket,
-            entryId: 'e1',
-            direction: 'en-de',
-            box: 3,
-            correctCount: 3,
-            wrongCount: 0,
-            streak: 3,
-            dueAt: spaet.toISOString(),
-          },
-          now: spaet,
-        });
-        const aelter = antwortEreignis({
-          courseId: kurs,
-          packId: paket,
-          entryId: 'e1',
-          direction: 'en-de',
-          outcome: 'wrong',
-          now: frueh,
-        });
-
-        await progress().recordEvents([neuer.event]);
-        await progress().recordEvents([aelter.event]);
-
-        const abgelegt = await stand('e1');
-        expect(abgelegt?.box).toBe(4);
-        expect(abgelegt?.lastAnsweredAt).toBe(spaet.toISOString());
-        expect((await progress().myPackProgress(kurs, paket))?.answeredCount).toBe(2);
-      });
     });
 
     describe('Wessen Lernstand', () => {
       it('bleibt zwischen zwei Personen im selben Kurs getrennt', async () => {
         await progress().recordEvents([
-          ereignis({ entryId: 'e1', outcome: 'correct' }),
-          ereignis({ entryId: 'e2', outcome: 'correct' }),
+          ereignis({ entryId: v(0), outcome: 'correct' }),
+          ereignis({ entryId: v(1), outcome: 'correct' }),
         ]);
 
         await szenario.alsPerson(szenario.personen.zweiteLernende);
@@ -292,7 +626,7 @@ export function describeProgressContract(
     describe('Zurücksetzen', () => {
       it('löscht den eigenen Stand vollständig', async () => {
         await progress().beginSession(kurs, paket);
-        await progress().recordEvents([ereignis({ entryId: 'e1', outcome: 'correct' })]);
+        await progress().recordEvents([ereignis({ entryId: v(0), outcome: 'correct' })]);
 
         await progress().resetMyProgress(kurs, paket);
 
@@ -306,7 +640,7 @@ export function describeProgressContract(
           einreichen – und ein Lernstand entstünde aus einem Wiederholung
           statt aus Üben.
         */
-        const einmal = ereignis({ entryId: 'e1', outcome: 'correct' });
+        const einmal = ereignis({ entryId: v(0), outcome: 'correct' });
         await progress().recordEvents([einmal]);
         await progress().resetMyProgress(kurs, paket);
         await progress().recordEvents([einmal]);
@@ -315,10 +649,10 @@ export function describeProgressContract(
       });
 
       it('lässt den Stand der anderen Person unberührt', async () => {
-        await progress().recordEvents([ereignis({ entryId: 'e1', outcome: 'correct' })]);
+        await progress().recordEvents([ereignis({ entryId: v(0), outcome: 'correct' })]);
 
         await szenario.alsPerson(szenario.personen.zweiteLernende);
-        await progress().recordEvents([ereignis({ entryId: 'e1', outcome: 'correct' })]);
+        await progress().recordEvents([ereignis({ entryId: v(0), outcome: 'correct' })]);
         await progress().resetMyProgress(kurs, paket);
 
         await szenario.alsPerson(szenario.personen.lernende);
@@ -328,8 +662,8 @@ export function describeProgressContract(
 
     describe('Grenzen', () => {
       it('nimmt nicht beliebig viele Ereignisse auf einmal', async () => {
-        const zuviele = Array.from({ length: 201 }, (_, index) =>
-          ereignis({ entryId: `e${index}`, outcome: 'correct' }),
+        const zuviele = Array.from({ length: 201 }, (_ignoriert, index) =>
+          ereignis({ entryId: v(index), outcome: 'correct' }),
         );
 
         await expect(progress().recordEvents(zuviele)).rejects.toThrow();

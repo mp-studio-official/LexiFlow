@@ -1,6 +1,10 @@
 import { progressKey } from '../domain/ids';
 import type { EntryProgress, PackProgress, TaskDirection } from '../domain/schema';
-import type { ProgressEvent, ProgressRepository } from '../application/repositories';
+import type {
+  ProgressConflict,
+  ProgressEvent,
+  ProgressRepository,
+} from '../application/repositories';
 
 /**
  * Der Lernstand im Konto – wieder eine Logik, zwei Anbindungen.
@@ -43,14 +47,23 @@ export interface EntryProgressRow {
   streak: number;
   last_answered_at: string | Date | null;
   due_at: string | Date;
+  rev: number;
+}
+
+/** Eine abgelehnte Übernahme, so wie die Datenbank sie meldet. */
+export interface ConflictRow {
+  event_id: string;
+  entry_id: string;
+  direction: string;
+  current_rev: number;
 }
 
 export interface ProgressGateway {
   selectPackProgress(courseId: string, packId: string): Promise<PackProgressRow | undefined>;
   selectEntryProgress(courseId: string, packId: string): Promise<EntryProgressRow[]>;
   rpcBeginSession(courseId: string, packId: string): Promise<void>;
-  /** Gibt zurück, wie viele Ereignisse **neu** waren – der Rest war Wiederholung. */
-  rpcRecordEvents(events: readonly ProgressEvent[]): Promise<number>;
+  /** Gibt zurück, was **nicht** übernommen wurde – leer heißt: alles angekommen. */
+  rpcRecordEvents(events: readonly ProgressEvent[]): Promise<ConflictRow[]>;
   rpcReset(courseId: string, packId: string): Promise<void>;
 }
 
@@ -80,6 +93,15 @@ export function alsPaketstand(zeile: PackProgressRow): PackProgress {
   };
 }
 
+export function alsKonflikt(zeile: ConflictRow): ProgressConflict {
+  return {
+    eventId: zeile.event_id,
+    entryId: zeile.entry_id,
+    direction: zeile.direction as TaskDirection,
+    currentRev: zeile.current_rev,
+  };
+}
+
 export function alsVokabelstand(zeile: EntryProgressRow): EntryProgress {
   const direction = zeile.direction as TaskDirection;
   return {
@@ -95,6 +117,7 @@ export function alsVokabelstand(zeile: EntryProgressRow): EntryProgress {
       ? {}
       : { lastAnsweredAt: alsZeitpunkt(zeile.last_answered_at) }),
     dueAt: alsZeitpunkt(zeile.due_at),
+    rev: zeile.rev,
   };
 }
 
@@ -121,8 +144,8 @@ export function createSqlProgressRepository(gateway: ProgressGateway): ProgressR
         Runde, in der alles schon unterwegs war. Ein leerer Aufruf wäre ein
         Umlauf ohne Wirkung.
       */
-      if (events.length === 0) return;
-      await gateway.rpcRecordEvents(events);
+      if (events.length === 0) return [];
+      return (await gateway.rpcRecordEvents(events)).map(alsKonflikt);
     },
 
     async resetMyProgress(courseId, packId) {

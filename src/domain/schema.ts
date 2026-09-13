@@ -200,6 +200,24 @@ export const entryProgressSchema = z.object({
   lastAnsweredAt: z.iso.datetime().optional(),
   /** Zeitpunkt der nächsten Fälligkeit (ISO). */
   dueAt: z.iso.datetime(),
+  /**
+   * Die Fassung dieses Lernstands im Konto – der Schiedsrichter bei
+   * gleichzeitigen Geräten.
+   *
+   * Sie zählt bei jeder übernommenen Änderung um eins hoch. Ein Gerät sendet
+   * mit, von welcher Fassung es ausgegangen ist; stimmt sie nicht mehr, lehnt
+   * der Server ab und nennt die aktuelle. Das Gerät lädt dann neu und rechnet
+   * seine Bewertung mit derselben Domainfunktion noch einmal.
+   *
+   * **Warum nicht der Zeitstempel.** Geräteuhren sind nicht überprüfbar. Eine
+   * falsch gestellte Uhr entschiede sonst darüber, wessen Lernstand gilt – und
+   * zwar dauerhaft und unbemerkt.
+   *
+   * **Warum optional.** In einer portablen Datei gibt es genau ein Gerät und
+   * genau einen Speicher. Dort gibt es nichts, womit eine Fassung in Konflikt
+   * geraten könnte, und ein Pflichtfeld wäre eine Zahl ohne Bedeutung.
+   */
+  rev: z.number().int().min(0).optional(),
 });
 export type EntryProgress = z.infer<typeof entryProgressSchema>;
 

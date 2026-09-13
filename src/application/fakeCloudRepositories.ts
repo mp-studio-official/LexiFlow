@@ -14,6 +14,7 @@ import {
   type PackRevision,
   type PackSummary,
   type Profile,
+  type ProgressConflict,
   type ProgressEvent,
   type ProgressRepository,
   type ProfileRepository,
@@ -122,6 +123,36 @@ function kursSchluessel(courseId: string, packId: string): string {
 /** Dieselbe Obergrenze wie in `record_progress_events` – siehe Migration 6. */
 const MAX_EREIGNISSE = 200;
 
+/** Die längste Leitner-Frist (Fach 5) plus ein Tag Zugabe – wie in SQL. */
+const MAX_FAELLIGKEIT_TAGE = 22;
+
+/**
+ * Dieselbe Eingangsprüfung wie `app_check_progress_events`.
+ *
+ * Sie steht hier noch einmal, weil der Vertrag beides prüft und beide
+ * Erfüllungen sich gleich verhalten müssen. Was sie **nicht** prüft, ist die
+ * Zugehörigkeit zu Kurs und Fassung: Dafür bräuchte die Fälschung ein Abbild
+ * der Zuweisungen, und eine nachgebaute Zugriffsprüfung prüfte am Ende sich
+ * selbst. Diese Zusage nimmt der Vertrag deshalb nur gegen PostgreSQL ab.
+ */
+function pruefeEreignisse(events: readonly ProgressEvent[]): void {
+  const grenze = Date.now() + MAX_FAELLIGKEIT_TAGE * 24 * 60 * 60 * 1000;
+  for (const event of events) {
+    const stand = event.entryState;
+    if (event.direction !== 'en-de' && event.direction !== 'de-en') {
+      throw new Error('Unbekannte Abfragerichtung.');
+    }
+    if (stand.box < 1 || stand.box > 5) throw new Error('Fach außerhalb 1 bis 5.');
+    if (stand.correctCount < 0 || stand.wrongCount < 0 || stand.streak < 0) {
+      throw new Error('Ein Zähler ist negativ.');
+    }
+    if (event.baseRev < 0) throw new Error('Unbekannte Fassung.');
+    if (Date.parse(stand.dueAt) > grenze) {
+      throw new Error('Fälligkeit außerhalb der zulässigen Fächer.');
+    }
+  }
+}
+
 export interface FakeCloudState {
   /** Angeforderte Wiederherstellungen – damit ein Test sie sehen kann. */
   recoveryRequests: string[];
@@ -136,6 +167,15 @@ export interface FakeCloudState {
   packProgress: Map<string, PackProgress>;
   entryProgress: Map<string, EntryProgress[]>;
   seenEvents: Set<string>;
+  /**
+   * Welches Ereignis welchen Lernstand zuletzt erzeugt hat.
+   *
+   * Das Gegenstück zu `entry_progress.last_event_id`. Ohne diese Zuordnung
+   * wäre ein zweites Mal gesendetes Ereignis nicht von einem echten Konflikt
+   * zu unterscheiden – und würde entweder doppelt angewandt oder fälschlich
+   * abgelehnt.
+   */
+  lastEventIds: Map<string, string>;
 }
 
 function leererStand(): FakeCloudState {
@@ -151,6 +191,7 @@ function leererStand(): FakeCloudState {
     packProgress: new Map(),
     entryProgress: new Map(),
     seenEvents: new Set(),
+    lastEventIds: new Map(),
   };
 }
 
@@ -749,53 +790,74 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     async recordEvents(events: readonly ProgressEvent[]) {
       const mich = ich();
       if (events.length > MAX_EREIGNISSE) throw new Error('Zu viele Ereignisse auf einmal.');
+      pruefeEreignisse(events);
+
+      const konflikte: ProgressConflict[] = [];
 
       for (const event of events) {
-        /*
-          Der Riegel – dasselbe, was in SQL `on conflict do nothing` tut: Ist
-          die Kennung schon da, passiert nichts weiter. Damit ist dasselbe
-          Ereignis zweimal gesendet dasselbe wie einmal.
-        */
-        if (state.seenEvents.has(event.eventId)) continue;
-        state.seenEvents.add(event.eventId);
-
         const schluessel = `${mich.profile.id}::${kursSchluessel(event.courseId, event.packId)}`;
-        const bisher = state.packProgress.get(schluessel) ?? {
-          packId: event.packId,
-          sessionCount: 0,
-          answeredCount: 0,
-          correctCount: 0,
-        };
-        state.packProgress.set(schluessel, {
-          ...bisher,
-          answeredCount: bisher.answeredCount + 1,
-          correctCount: bisher.correctCount + (event.outcome === 'correct' ? 1 : 0),
-          // `greatest`: Ein spät eintreffendes Ereignis darf den Zeitpunkt
-          // nicht zurückdrehen.
-          lastPracticedAt:
-            bisher.lastPracticedAt !== undefined && bisher.lastPracticedAt > event.occurredAt
-              ? bisher.lastPracticedAt
-              : event.occurredAt,
-        });
+
+        /*
+          Der Riegel gegen Doppelzählung – dasselbe, was in SQL
+          `on conflict do nothing` tut. Er gilt für die **Zähler**; der
+          Lernstand wird trotzdem versucht, denn ein Ereignis kann gezählt und
+          sein Stand wegen eines Konflikts offen sein.
+        */
+        if (!state.seenEvents.has(event.eventId)) {
+          state.seenEvents.add(event.eventId);
+          const bisher = state.packProgress.get(schluessel) ?? {
+            packId: event.packId,
+            sessionCount: 0,
+            answeredCount: 0,
+            correctCount: 0,
+          };
+          state.packProgress.set(schluessel, {
+            ...bisher,
+            answeredCount: bisher.answeredCount + 1,
+            correctCount: bisher.correctCount + (event.outcome === 'correct' ? 1 : 0),
+            // Die Uhr der Fälschung, nicht die des Ereignisses: `occurredAt`
+            // kommt vom Gerät und entscheidet hier über nichts.
+            lastPracticedAt: jetzt(),
+          });
+        }
 
         const stand = alsLernstand(event);
         const staende = state.entryProgress.get(schluessel) ?? [];
         const vorhanden = staende.findIndex((eintrag) => eintrag.key === stand.key);
-        if (vorhanden === -1) {
-          state.entryProgress.set(schluessel, [...staende, stand]);
+        const alt = vorhanden === -1 ? undefined : staende[vorhanden]!;
+
+        // Schon angewandt. Eine Wiederholung ist kein Konflikt.
+        const merkmal = `${schluessel}::${stand.key}`;
+        if (alt !== undefined && state.lastEventIds.get(merkmal) === event.eventId) continue;
+
+        /*
+          Die Fassung entscheidet – und sonst nichts. Weder die Fachnummer
+          (ein Rückfall von Fach 5 auf Fach 1 ist ein richtiges Ergebnis) noch
+          ein Zeitstempel vom Gerät.
+        */
+        const aktuell = alt?.rev ?? 0;
+        if (aktuell !== event.baseRev) {
+          konflikte.push({
+            eventId: event.eventId,
+            entryId: event.entryId,
+            direction: event.direction,
+            currentRev: aktuell,
+          });
           continue;
         }
-        /*
-          Ein Stand, der **älter** ist als der gespeicherte, wird nicht
-          übernommen. Zwei Geräte, die kurz nacheinander senden, sollen nicht
-          rückwärtslaufen.
-        */
-        const alt = staende[vorhanden]!;
-        if (alt.lastAnsweredAt !== undefined && alt.lastAnsweredAt > event.occurredAt) continue;
-        const kopie = [...staende];
-        kopie[vorhanden] = stand;
-        state.entryProgress.set(schluessel, kopie);
+
+        const uebernommen: EntryProgress = { ...stand, lastAnsweredAt: jetzt(), rev: aktuell + 1 };
+        state.lastEventIds.set(merkmal, event.eventId);
+        if (vorhanden === -1) {
+          state.entryProgress.set(schluessel, [...staende, uebernommen]);
+        } else {
+          const kopie = [...staende];
+          kopie[vorhanden] = uebernommen;
+          state.entryProgress.set(schluessel, kopie);
+        }
       }
+
+      return konflikte;
     },
     async resetMyProgress(courseId, packId) {
       const mich = ich();

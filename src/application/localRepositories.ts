@@ -149,6 +149,14 @@ export function createLocalProgressRepository(): ProgressRepository {
         */
         verarbeitet.add(event.eventId);
       }
+      /*
+        Nie ein Konflikt. `baseRev` wird hier nicht geprüft, und das ist keine
+        Lücke, sondern die Lage: In einer portablen Datei gibt es ein Gerät und
+        einen Speicher. Es gibt niemanden, mit dem man in Konflikt geraten
+        könnte, und eine nachgebaute Fassungsprüfung prüfte hier nur sich
+        selbst. Die Zusage nimmt der Lernstandsvertrag gegen das Konto ab.
+      */
+      return [];
     },
     async resetMyProgress(courseId, packId) {
       ohneKurs(courseId);

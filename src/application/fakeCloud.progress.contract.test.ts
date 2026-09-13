@@ -41,7 +41,11 @@ describeProgressContract('kontrollierte Fälschung', async (): Promise<Lernstand
         await cloud.repositories.invitations!.redeemCode(code);
       }
 
-      return { courseId: kurs.id, packId: pack.meta.id };
+      return {
+        courseId: kurs.id,
+        packId: pack.meta.id,
+        entryIds: pack.entries.map((eintrag) => eintrag.id),
+      };
     },
   };
 });

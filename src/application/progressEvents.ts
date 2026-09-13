@@ -73,7 +73,20 @@ export function antwortEreignis(eingabe: AntwortEingabe): {
   const vorher =
     eingabe.vorher ??
     createEntryProgress(eingabe.packId, eingabe.entryId, eingabe.direction, now);
-  const nachher = applyAnswer(vorher, eingabe.outcome, now);
+  /*
+    Die Fassung, von der aus gerechnet wird. Ohne vorigen Stand ist sie 0 –
+    das heißt „für diese Vokabel und Richtung gab es im Konto noch nichts",
+    und der Server übernimmt nur dann, wenn das noch stimmt.
+  */
+  const baseRev = vorher.rev ?? 0;
+  const gerechnet = applyAnswer(vorher, eingabe.outcome, now);
+  /*
+    Die erwartete nächste Fassung. Sie ist eine Annahme – der Server prüft
+    sie. Sie wird trotzdem hier gesetzt, damit eine Folge von Antworten auf
+    dieselbe Vokabel innerhalb einer Runde die richtige Kette bildet, ohne
+    zwischen zwei Aufgaben auf das Netz zu warten.
+  */
+  const nachher: EntryProgress = { ...gerechnet, rev: baseRev + 1 };
 
   return {
     event: {
@@ -85,6 +98,7 @@ export function antwortEreignis(eingabe: AntwortEingabe): {
       outcome: eingabe.outcome,
       occurredAt: now.toISOString(),
       entryState: alsEntryState(nachher),
+      baseRev,
     },
     nachher,
   };
@@ -111,5 +125,34 @@ export function alsLernstand(event: ProgressEvent): EntryProgress {
     streak: event.entryState.streak,
     lastAnsweredAt: event.occurredAt,
     dueAt: event.entryState.dueAt,
+    rev: event.baseRev + 1,
   };
+}
+
+/**
+ * Nach einem Konflikt: dieselbe Bewertung, auf dem frischen Stand gerechnet.
+ *
+ * Der Kern der Auflösung, und er ist bewusst kein eigener Rechenweg: Es ist
+ * derselbe `antwortEreignis`-Aufruf wie beim ersten Mal, nur mit dem Stand,
+ * den der Server inzwischen hat – und mit **derselben** `eventId`, damit die
+ * Antwort nicht ein zweites Mal gezählt wird.
+ *
+ * Der Zeitpunkt bleibt ebenfalls der ursprüngliche. Die Person hat damals
+ * geantwortet, nicht jetzt; ihn zu erneuern hieße, die Fälligkeit um die
+ * Dauer des Konflikts zu verschieben.
+ */
+export function erneutRechnen(
+  event: ProgressEvent,
+  frischerStand: EntryProgress | undefined,
+): ProgressEvent {
+  return antwortEreignis({
+    eventId: event.eventId,
+    courseId: event.courseId,
+    packId: event.packId,
+    entryId: event.entryId,
+    direction: event.direction,
+    outcome: event.outcome,
+    vorher: frischerStand,
+    now: new Date(event.occurredAt),
+  }).event;
 }

@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
-import { antwortEreignis } from '../../application/progressEvents';
+import {
+  alsLernstand,
+  antwortEreignis,
+  erneutRechnen,
+} from '../../application/progressEvents';
 import { buildTasksForTargets, planSession } from '../../domain/exercises';
 import {
   createSessionState,
@@ -40,6 +44,18 @@ import type { ProgressEvent } from '../../application/repositories';
  * Gerechnet wird deshalb hier (mit derselben Funktion wie überall), gesendet
  * wird nebenher – und geht das Senden schief, steht es als Hinweis da, statt
  * still zu verschwinden.
+ *
+ * ## Was passiert, wenn zwei Geräte dieselbe Vokabel üben
+ *
+ * Der Server lehnt den zweiten Schreibvorgang ab und nennt die Fassung, die
+ * er hat. Diese Seite lädt dann den frischen Stand, rechnet **dieselbe**
+ * Bewertung mit **derselben** Domainfunktion noch einmal (`erneutRechnen`)
+ * und sendet dasselbe Ereignis erneut. Die `eventId` bleibt dabei gleich –
+ * deshalb zählt die Antwort trotzdem nur einmal.
+ *
+ * Gelöst wird das ohne ein Wort an die lernende Person. Ein Hinweis „dein
+ * anderes Gerät war schneller" wäre eine Erklärung für ein Problem, das sie
+ * nicht hat: Geübt hat sie, gezählt ist es, und der Stand stimmt danach.
  *
  * ## Warum die Seite lazy geladen wird
  *
@@ -155,7 +171,8 @@ export function PracticePage() {
 
   async function senden(event: ProgressEvent) {
     try {
-      await progress!.recordEvents([event]);
+      const konflikte = await progress!.recordEvents([event]);
+      if (konflikte.length > 0) await aufloesen(event);
       setFehler('');
     } catch {
       /*
@@ -167,6 +184,30 @@ export function PracticePage() {
         'Deine letzte Antwort konnte nicht gespeichert werden. Prüfe deine Verbindung – geübt hast du sie trotzdem.',
       );
     }
+  }
+
+  /**
+   * Einen abgelehnten Schreibvorgang auflösen.
+   *
+   * Genau ein zweiter Versuch. Ein dritter wäre eine Schleife, und in der
+   * Lage, in der er nötig wäre – ein drittes Gerät, das im selben Moment übt –
+   * ist der Lernstand ohnehin gleich wieder offen. Bleibt es beim Konflikt,
+   * steht der Hinweis da; die nächste Runde liest den Stand neu.
+   */
+  async function aufloesen(event: ProgressEvent) {
+    const frisch = await progress!.myEntryProgress(courseId!, packId!);
+    const schluessel = directionKey(event.entryId, event.direction);
+    const stand = frisch.find(
+      (eintrag) => directionKey(eintrag.entryId, eintrag.direction) === schluessel,
+    );
+
+    const zweiterVersuch = erneutRechnen(event, stand);
+    const offen = await progress!.recordEvents([zweiterVersuch]);
+    if (offen.length > 0) throw new Error('Der Lernstand ist gerade nicht zu setzen.');
+
+    // Die Runde rechnet ab jetzt auf dem Stand weiter, der wirklich im Konto
+    // steht – sonst wäre die nächste Antwort der nächste Konflikt.
+    staende.current.set(schluessel, alsLernstand(zweiterVersuch));
   }
 
   function weiter() {

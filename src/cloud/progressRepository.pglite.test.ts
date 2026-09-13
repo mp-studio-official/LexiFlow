@@ -10,7 +10,11 @@ import { describeProgressContract, type LernstandSzenario } from '../application
 import { makePack } from '../test/fixtures';
 import { createSqlCourseRepositories } from './courseGateway';
 import { createSqlPackRepositories } from './packGateway';
-import { createSqlProgressRepository, type ProgressGateway } from './progressGateway';
+import {
+  createSqlProgressRepository,
+  type ConflictRow,
+  type ProgressGateway,
+} from './progressGateway';
 import { pgliteCourseGateway, pglitePackGateway } from './pgliteGateways';
 
 /**
@@ -57,13 +61,11 @@ function pgliteProgressGateway(db: TestDatenbank): ProgressGateway {
     },
 
     async rpcRecordEvents(events) {
-      const zeile = (
-        await db.query<{ record_progress_events: number }>(
-          'select record_progress_events($1) as record_progress_events',
-          [JSON.stringify(events)],
-        )
-      ).rows[0];
-      return zeile?.record_progress_events ?? 0;
+      return (
+        await db.query<ConflictRow>('select * from record_progress_events($1)', [
+          JSON.stringify(events),
+        ])
+      ).rows;
     },
 
     async rpcReset(courseId, packId) {
@@ -127,7 +129,11 @@ describeProgressContract(
           await invitations.redeemCode(code);
         }
 
-        return { courseId: kurs.id, packId: pack.meta.id };
+        return {
+          courseId: kurs.id,
+          packId: pack.meta.id,
+          entryIds: pack.entries.map((eintrag) => eintrag.id),
+        };
       },
     };
   },

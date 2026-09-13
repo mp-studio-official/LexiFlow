@@ -79,6 +79,7 @@ beforeEach(async () => {
     'insert into pack_drafts (pack_id, format_version, pack) values ($1, 2, $2)',
     [paket, JSON.stringify({ meta: { title: 'Unit 3 – City life' }, entries: [] })],
   );
+
 });
 
 afterEach(async () => {
@@ -88,6 +89,34 @@ afterEach(async () => {
 async function zaehle(sql, werte = []) {
   const ergebnis = await db.query(sql, werte);
   return ergebnis.rows.length;
+}
+
+/**
+ * Eine veröffentlichte, dem Kurs zugewiesene Fassung mit drei Vokabeln.
+ *
+ * Nur dort aufgerufen, wo sie gebraucht wird – seit der Schreibweg prüft, ob
+ * eine Vokabel überhaupt in der zugewiesenen Fassung vorkommt. Im allgemeinen
+ * Aufbau stünde sie den Prüfungen im Weg, die das Veröffentlichen selbst
+ * durchspielen.
+ */
+async function fassungZuweisen() {
+  await alsPerson(db, LEHRERIN);
+  await db.query(
+    `insert into pack_revisions (pack_id, revision, format_version, pack, published_by)
+     values ($1, 1, 2, $2, $3)`,
+    [
+      paket,
+      JSON.stringify({
+        meta: { title: 'Unit 3 – City life' },
+        entries: [{ id: 'v-1' }, { id: 'v-2' }, { id: 'v-3' }],
+      }),
+      LEHRERIN,
+    ],
+  );
+  await db.query(
+    'insert into course_packs (course_id, pack_id, revision, sort_order) values ($1, $2, 1, 0)',
+    [kurs, paket],
+  );
 }
 
 /* ===================================================== Lernstand ======== */
@@ -198,6 +227,10 @@ describe('Lernstände – die Zusage, um die es geht', () => {
 /* ================================================ Der Schreibweg ======== */
 
 describe('Der Schreibweg für Lernstände', () => {
+  beforeEach(async () => {
+    await fassungZuweisen();
+  });
+
   /**
    * Ein Ereignis, wie der Client es schickt.
    *
@@ -215,22 +248,63 @@ describe('Der Schreibweg für Lernstände', () => {
       direction: 'en-de',
       outcome: 'correct',
       occurredAt: '2026-09-14T09:00:00.000Z',
-      entryState: { box: 2, correctCount: 1, wrongCount: 0, streak: 1, dueAt: '2026-09-15T09:00:00.000Z' },
+      entryState: {
+        box: 2,
+        correctCount: 1,
+        wrongCount: 0,
+        streak: 1,
+        // Relativ zu jetzt: Die Prüfung lässt keine Fälligkeit jenseits des
+        // längsten Fachs zu, und ein festes Datum veraltet.
+        dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      },
+      baseRev: 0,
       ...felder,
     };
   }
 
+  /** Gibt die abgelehnten Übernahmen zurück – leer heißt: alles angekommen. */
   async function sende(ereignisse) {
-    const ergebnis = await db.query('select record_progress_events($1) as neu', [
+    const ergebnis = await db.query('select * from record_progress_events($1)', [
       JSON.stringify(ereignisse),
     ]);
-    return ergebnis.rows[0].neu;
+    return ergebnis.rows;
   }
 
-  it('meldet, wie viele Ereignisse neu waren', async () => {
+  it('nimmt an, was zur zugewiesenen Fassung gehört', async () => {
     await alsPerson(db, LERNENDE);
-    expect(await sende([ereignis(1), ereignis(2)])).toBe(2);
-    expect(await sende([ereignis(1), ereignis(3)])).toBe(1);
+    expect(await sende([ereignis(1), ereignis(2)])).toEqual([]);
+    expect(await zaehle('select * from entry_progress')).toBe(2);
+  });
+
+  it('nimmt keine Vokabel an, die nicht in der Fassung steht', async () => {
+    /*
+      Der Weg, sich einen Lernstand zu etwas anzulegen, das es nicht gibt –
+      und damit auch der Weg, die Tabelle beliebig wachsen zu lassen.
+    */
+    await alsPerson(db, LERNENDE);
+    expect(await fehlerVon(sende([ereignis(1, { entryId: 'v-erfunden' })]))).toMatch(
+      /nicht in der zugewiesenen Fassung/,
+    );
+  });
+
+  it('nimmt kein Paket an, das nicht in einem Kurs dieser Person liegt', async () => {
+    // Die zweite lernende Person ist in keinem Kurs.
+    await alsPerson(db, ZWEITE_LERNENDE);
+    expect(await fehlerVon(sende([ereignis(1)]))).toMatch(/nicht in einem deiner Kurse/);
+  });
+
+  it('verliert den Schreibweg mit der Mitgliedschaft', async () => {
+    await alsPerson(db, LERNENDE);
+    await sende([ereignis(1)]);
+
+    await alsPerson(db, LEHRERIN);
+    await db.query('delete from course_members where course_id = $1 and user_id = $2', [
+      kurs,
+      LERNENDE,
+    ]);
+
+    await alsPerson(db, LERNENDE);
+    expect(await fehlerVon(sende([ereignis(2)]))).toMatch(/nicht in einem deiner Kurse/);
   });
 
   it('schreibt auf die aufrufende Person – und nur auf sie', async () => {

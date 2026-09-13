@@ -293,6 +293,48 @@ export interface ProgressEvent {
    * Gebaut wird dieses Feld an genau einer Stelle: `progressEvents.ts`.
    */
   entryState: EntryState;
+  /**
+   * Von welcher Fassung des gespeicherten Lernstands dieses Gerät ausging.
+   *
+   * `0` heißt: Für diese Vokabel und Richtung gab es noch nichts. Der Server
+   * übernimmt den Stand **nur**, wenn seine eigene Fassung noch genau diese
+   * ist – sonst hat inzwischen ein anderes Gerät geschrieben, und er lehnt ab
+   * (`ProgressConflict`).
+   *
+   * ## Warum die Fassung entscheidet und nicht der Zeitstempel
+   *
+   * `occurredAt` kommt von einer Geräteuhr. Sie kann falsch gehen, und
+   * niemand kann das nachprüfen. Entschiede sie, wessen Schreibvorgang gilt,
+   * dann gewänne dauerhaft das Gerät mit der am weitesten vorgestellten Uhr –
+   * und zwar unbemerkt.
+   *
+   * ## Warum auch nicht „der bessere Stand gewinnt"
+   *
+   * Weil es keinen besseren gibt. Fach 5 nach einer falschen Antwort auf
+   * Fach 1 ist ein **richtiges** Ergebnis, und ein Riegel, der die Fachnummer
+   * ansähe, würde genau das verwerfen: Die Vokabel bliebe in Fach 5, obwohl
+   * die Person sie gerade nicht konnte. Verworfen wird ausschließlich ein
+   * **veralteter** Schreibvorgang – unabhängig davon, ob er besser oder
+   * schlechter aussieht.
+   */
+  baseRev: number;
+}
+
+/**
+ * Ein Schreibvorgang, der auf einer überholten Fassung beruhte.
+ *
+ * Das Ereignis selbst ist trotzdem angekommen und gezählt – geübt wurde ja.
+ * Offen ist nur der abgeleitete Lernstand: Das Gerät lädt `currentRev` samt
+ * Stand neu, rechnet seine Bewertung mit derselben Domainfunktion erneut und
+ * sendet **dasselbe** Ereignis noch einmal. Dass es dabei nicht doppelt
+ * zählt, sichert die `eventId`.
+ */
+export interface ProgressConflict {
+  eventId: string;
+  entryId: string;
+  direction: TaskDirection;
+  /** Die Fassung, die der Server jetzt hat. */
+  currentRev: number;
 }
 
 /**
@@ -310,8 +352,16 @@ export interface ProgressRepository {
   myEntryProgress(courseId: string, packId: string): Promise<EntryProgress[]>;
   /** Zählt eine begonnene Übungsrunde – mehr wird über Runden nicht geführt. */
   beginSession(courseId: string, packId: string): Promise<void>;
-  /** Idempotent: dieselbe `eventId` zweimal zu senden ändert nichts. */
-  recordEvents(events: readonly ProgressEvent[]): Promise<void>;
+  /**
+   * Ereignisse einreichen.
+   *
+   * Idempotent: Dieselbe `eventId` zählt genau einmal – egal wie oft sie
+   * ankommt und egal, ob der Lernstand dabei übernommen wurde.
+   *
+   * Zurück kommt, was **nicht** übernommen werden konnte, weil ein anderes
+   * Gerät schneller war. Eine leere Liste heißt: alles angekommen.
+   */
+  recordEvents(events: readonly ProgressEvent[]): Promise<ProgressConflict[]>;
   /** Der eigene Lernstand, zurückgesetzt – nach ausdrücklicher Bestätigung. */
   resetMyProgress(courseId: string, packId: string): Promise<void>;
 }

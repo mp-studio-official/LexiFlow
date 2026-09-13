@@ -352,7 +352,7 @@ Phase 6, wo der geräteübergreifende Lernstand dazukommt.
 
 > **Nachtrag aus Phase 6.** So ist es nicht gekommen, und das ist eine
 > bewusste Abweichung: Die bestehenden Lernseiten blieben, wo sie waren.
-> Begründung in § 5.5.6.
+> Begründung in § 5.5.9.
 
 ### Die Prüfungen aus Phase 1
 
@@ -785,24 +785,75 @@ Einladungscode (§ 2d.2).
 Zurücksetzen löscht den Lernstand, **nicht** die Ereigniskennungen. Sonst
 ließe sich eine alte Runde danach erneut einreichen.
 
-#### 5.5.3 Nichts läuft rückwärts
+#### 5.5.3 Wer gewinnt, wenn zwei Geräte schreiben
 
-Zwei Geräte, die kurz nacheinander senden, dürfen den Stand nicht zurückdrehen.
-Zwei Riegel dafür:
+> **Korrektur nach Phase 6.** Der erste Entwurf entschied diesen Fall am
+> Zeitstempel des Geräts (`occurredAt`). Das war falsch, Marc hat es gefunden,
+> und es ist vor Phase 7 repariert worden. Was hier steht, ist die korrigierte
+> Fassung; was falsch war und warum, steht in § 5.5.8.
 
-| Wert | Regel |
+**Die Fassung entscheidet – `entry_progress.rev`, und sonst nichts.**
+
+Ein Gerät nennt beim Schreiben die Fassung, von der es ausging (`baseRev`).
+Stimmt sie noch, wird übernommen und hochgezählt. Stimmt sie nicht, wird
+**abgelehnt** und die aktuelle Fassung gemeldet.
+
+Was ausdrücklich **nicht** entscheidet:
+
+| Nicht | Warum nicht |
 | --- | --- |
-| `pack_progress.last_practiced_at` | `greatest(alt, neu)` – ein spät eintreffendes Ereignis setzt den Zeitpunkt nicht zurück |
-| `entry_progress` (Box, Serie, Fälligkeit) | Übernahme nur, wenn das Ereignis **nicht älter** ist als der gespeicherte Stand |
+| die Fachnummer | Fach 5, dann eine falsche Antwort, Ergebnis Fach 1 – das ist ein **richtiges** Ergebnis. Ein Riegel, der „den besseren Stand" behielte, ließe die Vokabel in Fach 5 stehen, obwohl die Person sie gerade nicht konnte. Genau diese Vokabel käme dann nie wieder dran. |
+| der Zeitstempel des Geräts | Geräteuhren gehen falsch, und niemand kann das nachprüfen. Entschiede `occurredAt`, gewänne dauerhaft das Gerät mit der am weitesten vorgestellten Uhr – unbemerkt. |
+| Zähler oder Serien | Aus demselben Grund wie die Fachnummer. |
 
-Gezählt wird das späte Ereignis trotzdem: Die Vokabel wurde ja geübt. Nur das
-Fach bleibt, wo das jüngere Gerät es hingesetzt hat.
+`occurredAt` wird deshalb **weder gespeichert noch verglichen**. Alle
+Zeitstempel in dieser Datenbank kommen aus `now()`. Der Preis ist benannt:
+Eine Runde, die offline entstand, trägt den Zeitpunkt des Hochladens.
 
-#### 5.5.4 Die Abläufe
+**Eine Wiederholung ist kein Konflikt.** Die Zeile merkt sich in
+`last_event_id`, welches Ereignis sie erzeugt hat. Ohne das würde ein zweites
+Mal gesendetes Ereignis entweder doppelt angewandt oder fälschlich abgelehnt.
+
+**Die Auflösung.** Das abgelehnte Gerät lädt den frischen Stand, rechnet
+dieselbe Bewertung mit **derselben** Domainfunktion noch einmal
+(`erneutRechnen` → `antwortEreignis` → `applyAnswer`) und sendet **dasselbe**
+Ereignis erneut. Dass es dabei nicht doppelt zählt, sichert die `eventId`:
+Sie schützt die **Zähler**, die Fassung schützt den **Stand**. Zwei
+Idempotenzen in zwei Dimensionen, und beide werden gebraucht.
+
+An der Oberfläche passiert das ohne ein Wort an die lernende Person. Ein
+Hinweis „dein anderes Gerät war schneller" wäre die Erklärung für ein Problem,
+das sie nicht hat.
+
+#### 5.5.4 Was der Server nicht annimmt
+
+Der Client rechnet (§ 5.5.1), aber er darf nicht alles schicken. Geprüft wird
+in `app_check_progress_events` – **alles oder nichts**, bevor die erste Zeile
+entsteht; eine halb übernommene Runde wäre schlimmer als eine abgelehnte.
+
+| Prüfung | Warum |
+| --- | --- |
+| höchstens 200 Ereignisse | damit ein Aufruf nicht beliebig lange läuft |
+| Fach 1 bis 5 | außerhalb ist es kein Leitner-Stand |
+| Richtung `en-de` / `de-en` | die einzigen, die es gibt |
+| Zähler und Fassung nicht negativ | dasselbe |
+| Fälligkeit höchstens 22 Tage voraus | das längste Fach sind 21 Tage. Sonst legte jemand eine Vokabel auf das Jahr 2099 und wäre sie los. Nach hinten gibt es **keine** Grenze: „überfällig" heißt schlicht „jetzt dran". |
+| Vokabel steht in der zugewiesenen Fassung | sonst entstünde ein Lernstand zu etwas, das es nicht gibt |
+| Paket liegt in einem Kurs dieser Person | die Mitgliedschaft, nicht die Behauptung |
+| keine fremde Personenkennung | es gibt keinen Parameter dafür – auch nicht in der inneren Prüfung |
+
+Eine Folge davon, die eher hilft als stört: Eine grob falsch gestellte Uhr
+gewinnt nicht nur nicht – sie kommt gar nicht erst an, weil sie eine
+Fälligkeit außerhalb jedes Fachs errechnet.
+
+**Zum abgeschlossenen Kurs siehe § 5.5.7** – dort steht eine offene Frage.
+
+#### 5.5.5 Die Abläufe
 
 | Funktion | Was sie tut |
 | --- | --- |
-| `record_progress_events(jsonb)` | nimmt bis zu 200 Ereignisse, gibt zurück, wie viele **neu** waren |
+| `app_check_progress_events(jsonb)` | die Eingangsprüfung; sie schreibt nichts, sie lehnt ab. Nicht freigegeben – sie ist der Innenteil |
+| `record_progress_events(jsonb)` | nimmt bis zu 200 Ereignisse, gibt zurück, was **nicht** übernommen wurde |
 | `begin_practice_session(uuid, text)` | zählt eine begonnene Runde – mehr wird über Runden nicht geführt |
 | `reset_my_progress(uuid, text)` | löscht den eigenen Lernstand, ohne Umweg über jemanden |
 
@@ -812,7 +863,7 @@ halten das fest: eine Liste der Funktionen, die Lernstandstabellen überhaupt
 anfassen dürfen (mit Begründung je Eintrag), und eine Prüfung, dass jeder
 Vergleich auf `user_id` in ihnen gegen `v_me := auth.uid()` läuft.
 
-#### 5.5.5 Üben im Portal
+#### 5.5.6 Üben im Portal
 
 `src/hosted/learner/PracticePage.tsx`, lazy geladen (22,1 kB). Neu ist daran
 **nichts außer dem Ziel des Lernstands**: Rundenplanung
@@ -830,7 +881,50 @@ Der Lernstand wird während der Runde im Speicher mitgeführt. Ihn nach jeder
 Antwort neu vom Server zu holen hieße, mitten in der Übung auf das Netz zu
 warten.
 
-#### 5.5.6 Was Phase 6 **nicht** getan hat – und warum
+#### 5.5.7 Eine offene Frage: der abgeschlossene Kurs
+
+Marcs Vorgabe für die Korrektur lautete, das Paket müsse zu einem **aktiven**
+Kurs der lernenden Person gehören. Umgesetzt ist: Mitgliedschaft ja,
+Zuweisung ja, Fassung nicht zurückgezogen ja – **archiviert spielt keine
+Rolle**.
+
+Der Grund ist eine Zusage, die seit Phase 4 auf der Kursseite steht und die
+eine lernende Person dort liest: „Dieser Kurs ist abgeschlossen. Du kannst
+weiter üben. Neue Pakete kommen hier keine mehr dazu." Sie jetzt zu brechen
+hieße, jemandem den Lernstand wegzunehmen, während auf dem Bildschirm das
+Gegenteil steht.
+
+Das ist eine fachliche Entscheidung, und sie wird hier nicht stillschweigend
+getroffen: **Marc entscheidet.** Soll ein abgeschlossener Kurs auch das Üben
+beenden, sind es zwei Zeilen in `app_check_progress_events` und ein anderer
+Satz auf der Kursseite.
+
+#### 5.5.8 Was am ersten Entwurf falsch war
+
+Der erste Entwurf aus Phase 6 entschied den Mehrgerätefall so:
+
+```sql
+where entry_progress.last_answered_at is null
+   or entry_progress.last_answered_at <= excluded.last_answered_at
+```
+
+`excluded.last_answered_at` kam aus `occurredAt` – **einem Zeitstempel vom
+Gerät**. Damit hing die Frage, wessen Lernstand gilt, an einer Uhr, die
+niemand überprüfen kann. Ein Telefon, dessen Uhr um Jahre vorgeht, hätte
+dauerhaft gewonnen und jeden späteren Stand von jedem anderen Gerät verworfen.
+
+Zwei Dinge waren dabei **nicht** falsch, und das ist der Grund, warum es lange
+unauffällig blieb: Die Fachnummer stand nie in der Bedingung, ein fachlicher
+Rückfall von Fach 5 auf Fach 1 kam also immer durch. Und einen Bericht darüber
+gab es auch nicht – ein abgelehnter Schreibvorgang verschwand still, und das
+Gerät übte auf einem Stand weiter, den es gar nicht mehr gab.
+
+Der Befund kam nicht von einer Prüfung, sondern von Marc. Die Prüfung, die ihn
+gefunden hätte, gibt es jetzt: sieben Fälle im Lernstandsvertrag, zweimal
+abgenommen, plus eine Prüfung am Quelltext, die den zweiten Riegel verhindert,
+den später jemand „nur schnell" danebenstellt.
+
+#### 5.5.9 Was Phase 6 **nicht** getan hat – und warum
 
 Phase 1 hatte angekündigt, die bestehenden Lernseiten (`src/routes/student/`)
 in Phase 6 an die Verträge zu hängen. Das ist nicht geschehen, und zwar
@@ -944,11 +1038,13 @@ dass LexiFlow im Portalbetrieb funktioniert. Es sagt, was geprüft wurde.
 | Wiederherstellungscode wird beim Anlegen zwar abgeschrieben, aber nicht sicher aufbewahrt | bewusst; mehr kann Software an dieser Stelle nicht |
 | `supabasePackGateway.ts` (PostgREST) ungeprüft | bekannt; die abweichenden Stellen stehen als Kommentar in der Datei |
 | Zwei gleichzeitige Veröffentlichungen ergeben einen Fehler statt einer Wartezeit | bewusst; der Primärschlüssel verhindert die Dopplung, die Wiederholung liegt beim Aufruf |
-| Portalbündel 579 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
+| Portalbündel 580 kB | beobachtet, § 8; zwei Hebel benannt und nicht gezogen |
 | `supabaseProgressGateway.ts` (PostgREST) ungeprüft | bekannt; dieselbe Lage wie bei Kursen und Paketen |
 | Der eigene Lernstand lässt sich beschönigen | bewusst, § 5.5.1; die Alternative wären zwei Leitner-Rechnungen, die auseinanderlaufen |
-| Ein Gerät, das lange offline war, sendet nach – die Zähler steigen, die Fächer nicht | bewusst, § 5.5.3; die Alternative wäre ein Rückwärtslauf des Lernstands |
-| Übungsseite im Portal und `SessionPage` können auseinanderlaufen | bewusst, § 5.5.6; die gemeinsame Grundlage ist die Domainschicht, doppelt ist nur das Zusammenstecken |
+| Eine offline entstandene Runde trägt den Zeitpunkt des Hochladens | bewusst, § 5.5.3; die Alternative wäre ein Zeitstempel vom Gerät, und der ist nicht überprüfbar |
+| Abgeschlossene Kurse erlauben weiterhin das Üben | **offene fachliche Frage**, § 5.5.7 – Marc entscheidet |
+| Ein drittes Gerät im selben Moment bleibt beim Konflikt | bewusst; ein zweiter Versuch, kein dritter. Der Hinweis steht dann da, die nächste Runde liest neu |
+| Übungsseite im Portal und `SessionPage` können auseinanderlaufen | bewusst, § 5.5.9; die gemeinsame Grundlage ist die Domainschicht, doppelt ist nur das Zusammenstecken |
 
 ## 8. Größenwacht
 
@@ -957,10 +1053,10 @@ Wachstum durch Cloudcode wäre ein Fehler, kein Preis.
 
 | Artefakt | Start | nach Phase 6 |
 | --- | --- | --- |
-| `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,2 KiB** |
+| `LexiFlow-Lehrkraft.html` | 9482,1 KiB | **9482,3 KiB** |
 | `LexiFlow-Lernlaufzeit.html` | 674,6 KiB | **674,7 KiB** |
 | kontofreie PWA (`index-*.js`) | 441,53 kB | 441,59 kB |
-| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → 574,85 kB (Phase 5) → **578,83 kB** (Phase 6) |
+| Portalbündel (`portal-*.js`) | – | 488,17 kB (Phase 3) → 574,85 kB (Phase 5) → **579,86 kB** (Phase 6b) |
 
 Nach Phase 4 sind Lehrkraftdatei und Lernlaufzeit weiterhin bei **9482,1 KiB**
 und **674,6 KiB**. Einmal wären sie um 0,5 und 0,2 KiB gewachsen: Eine
@@ -1009,6 +1105,7 @@ die es ohnehin braucht, weil die andere hier schlicht nicht stimmt.
 | 4 | `56faa8c` | Kurse, Mitgliedschaft, Einladungen; Kursvertrag gegen zwei Erfüllungen; Serverfunktion aufgetrennt und geprüft (§ 2d) | 2487 Tests, 159 E2E unverändert, 29 Portable-E2E, **20** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 5 | `085b0c8` | Pakete im Konto, unveränderliche Revisionen, Zuweisung, Übernahme vom Gerät (§ 5) | 2539 Tests, 159 E2E unverändert, 29 Portable-E2E, **22** Portal-E2E, 32 Prüfungen; Größen unverändert |
 | 6 | `bfc41e9` | Lernstand im Konto, geräteübergreifend und idempotent; Üben im Portal (§ 5.5) | 2589 Tests, 159 E2E unverändert, 29 Portable-E2E, **26** Portal-E2E, 32 Prüfungen; portable Dateien +0,1 KiB (§ 8) |
+| 6b | *(folgt)* | Korrektur: Fassung statt Client-Zeitstempel; serverseitige Eingangsprüfung (§ 5.5.3, § 5.5.4, § 5.5.8) | 2625 Tests, davon Lernstandsvertrag 2 × 32; 159 E2E unverändert, 26 Portal-E2E |
 
 Die Zeile der jeweils letzten Phase trägt ihre Commit-ID mit dem **folgenden**
 Commit nach – vorher gibt es sie nicht. Jede Abnahme ist eine tatsächlich
@@ -1159,6 +1256,31 @@ Die neue Portal-E2E beginnt bewusst in der **kontofreien** Anwendung: Sie legt
 dort ein Paket an, übernimmt es im Portal, veröffentlicht, weist zu und übt
 damit. Das ist der einzige Ort, an dem die Zusage aus § 5.4 – beide
 Auslieferungen, ein Ursprung, ein IndexedDB – tatsächlich nachprüfbar ist.
+
+- Phase 6b – Korrektur des Mehrgerätefalls. Der Riegel hing am Zeitstempel des
+  Geräts; er hängt jetzt an einer Fassung. Dazu die serverseitige
+  Eingangsprüfung. Siehe § 5.5.3, § 5.5.4 und § 5.5.8.
+
+**Messung nach Phase 6b** (13.09.2026):
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| `npx tsc --noEmit` | fehlerfrei |
+| `npx vitest run` | **2625** Tests in **152** Dateien, alle grün |
+| davon `npm run test:db` | 83 gegen PostgreSQL 17.5 |
+| davon Lernstandsvertrag | 2 × 32 – einmal Fälschung, einmal PostgreSQL |
+| `npm run build` | beide Web-Auslieferungen erfolgreich |
+| `npm run build:portable` | 9482,3 KiB / 674,7 KiB |
+| `npm run verify:portable` | 32 Prüfungen, alle grün |
+| `npx playwright test` | **159** E2E – unverändert, nicht angefasst |
+| `npm run e2e:portable` | 29 Portable-E2E, alle grün |
+| `npm run e2e:portal` | **26** Portal-E2E, alle grün |
+
+Zwei Gegenproben, beide bestanden. Ersetzt man den Fassungsvergleich durch
+„der bessere Stand gewinnt" (`v_zeile.box > …`), fallen fünf Prüfungen um –
+darunter die, die den fachlichen Rückfall von Fach 5 auf Fach 1 verlangt.
+Ersetzt man ihn durch einen Vergleich der Client-Zeitstempel, fallen ebenfalls
+fünf – darunter die mit der vorgestellten Uhr.
 
 **Als Nächstes:** Phase 7 – KI-Zugang mit Verschlüsselung und SSRF-Schutz
 (ADR-8, ADR-9).

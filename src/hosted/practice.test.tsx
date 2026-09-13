@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { RepositoryProvider } from '../application/RepositoryContext';
 import { createFakeCloud, type FakeCloud } from '../application/fakeCloudRepositories';
+import { antwortEreignis } from '../application/progressEvents';
 import { makePack } from '../test/fixtures';
 import { HostedRoutes } from './HostedApp';
 import { SessionProvider } from './SessionContext';
@@ -100,6 +101,56 @@ describe('Üben im Portal', () => {
     await eineAntwort(user);
 
     expect(await screen.findByText(/konnte nicht gespeichert werden/)).toBeInTheDocument();
+    cloud.repositories.progress!.recordEvents = echt;
+  });
+
+  it('löst einen Konflikt mit einem zweiten Gerät auf, ohne die Person zu behelligen', async () => {
+    /*
+      Der Mehrgerätefall an der Oberfläche. Während diese Runde läuft, hat
+      dasselbe Konto auf einem anderen Gerät dieselbe Vokabel beantwortet –
+      der Server lehnt den Schreibvorgang hier also ab.
+
+      Die Seite lädt dann den frischen Stand, rechnet **dieselbe** Bewertung
+      mit derselben Domainfunktion noch einmal und sendet dasselbe Ereignis
+      erneut. Zu sehen ist davon nichts, und das ist der Punkt: Geübt hat die
+      Person, gezählt ist es, der Stand stimmt danach.
+    */
+    const { cloud, courseId, packId } = await kursMitPaket();
+    const user = zeige(cloud, `/lernen/kurs/${courseId}/ueben/${packId}`);
+    await screen.findByText(/Noch \d+ in dieser Runde/);
+
+    // Das andere Gerät kommt zuerst – mit derselben Ausgangsfassung 0.
+    const echt = cloud.repositories.progress!.recordEvents.bind(cloud.repositories.progress);
+    let einmal = false;
+    cloud.repositories.progress!.recordEvents = async (events) => {
+      if (!einmal && events[0]) {
+        einmal = true;
+        await echt([
+          antwortEreignis({
+            courseId,
+            packId,
+            entryId: events[0].entryId,
+            direction: events[0].direction,
+            outcome: 'wrong',
+          }).event,
+        ]);
+      }
+      return echt(events);
+    };
+
+    await eineAntwort(user);
+
+    expect(screen.queryByText(/konnte nicht gespeichert werden/)).not.toBeInTheDocument();
+
+    // Zwei Antworten sind gezählt – die vom anderen Gerät und diese eine.
+    const paketstand = await cloud.repositories.progress!.myPackProgress(courseId, packId);
+    expect(paketstand?.answeredCount).toBe(2);
+
+    // Und der Stand trägt die Fassung, die aus beiden entstanden ist.
+    const staende = await cloud.repositories.progress!.myEntryProgress(courseId, packId);
+    expect(staende).toHaveLength(1);
+    expect(staende[0]!.rev).toBe(2);
+
     cloud.repositories.progress!.recordEvents = echt;
   });
 

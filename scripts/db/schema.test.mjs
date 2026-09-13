@@ -174,6 +174,39 @@ describe('Lernstände sind an die aufrufende Person gebunden', () => {
     reset_my_progress: 'Löscht den eigenen Lernstand, auf ausdrücklichen Wunsch.',
   };
 
+  it('entscheidet den Mehrgerätefall nach der Fassung – und nach nichts sonst', async () => {
+    /*
+      Marcs Punkt 4, als Prüfung am Quelltext statt am Verhalten. Das
+      Verhalten steht im Lernstandsvertrag; hier geht es darum, dass niemand
+      später „nur schnell" einen zweiten Riegel danebenstellt.
+
+      Ein Vergleich auf `box`, `streak`, einen Zähler oder auf `occurredAt`
+      wäre genau dieser zweite Riegel – und der auf `box` wäre der schlimmste:
+      Er ließe eine Vokabel in Fach 5 stehen, obwohl die Person sie gerade
+      nicht konnte.
+    */
+    const [funktion] = await zeilen(
+      `select prosrc from pg_proc where proname = 'record_progress_events'`,
+    );
+
+    // Die Fassung kommt vor – das ist der Riegel.
+    expect(funktion.prosrc).toContain('v_zeile.rev <> v_basis');
+
+    /*
+      `occurredAt` wird nirgends **gelesen**. Gesucht wird der Zugriff
+      (`->> 'occurredAt'`) und nicht das Wort: Im Quelltext steht daneben der
+      Kommentar, der erklärt, warum es dort nicht steht – und `prosrc` enthält
+      Kommentare mit.
+    */
+    expect(funktion.prosrc).not.toContain(">> 'occurredAt'");
+
+    // Und kein Vergleich auf Werte, die den Lernstand beschreiben.
+    for (const feld of ['box', 'streak', 'correct_count', 'wrong_count', 'last_answered_at']) {
+      const vergleiche = [...funktion.prosrc.matchAll(new RegExp(`${feld}\\s*(<=|>=|<|>)`, 'g'))];
+      expect(vergleiche.map((treffer) => treffer[0]), `${feld} wird verglichen`).toEqual([]);
+    }
+  });
+
   it('nur die aufgeschriebenen Funktionen fassen Lernstände überhaupt an', async () => {
     const gefunden = await zeilen(`
       select p.proname
@@ -302,11 +335,13 @@ describe('die security-definer-Funktionen bleiben eng', () => {
       // Lernstand (Phase 6). Nur der eigene, und nur Zahlen über ihn.
       begin_practice_session: 'void',
       reset_my_progress: 'void',
-      // Wie viele Ereignisse **neu** waren. Eine Zahl über das, was die
-      // aufrufende Person gerade selbst geschickt hat – sie verrät nichts,
-      // was diese Person nicht schon wusste, und sagt ihr, ob eine
-      // Wiederholung dabei war.
-      record_progress_events: 'integer',
+      // Die Eingangsprüfung. Sie gibt nichts zurück – sie lehnt ab.
+      app_check_progress_events: 'void',
+      // Was **nicht** übernommen wurde, samt der Fassung, die jetzt gilt.
+      // Alles darin hat die aufrufende Person gerade selbst geschickt; die
+      // Fassung ist eine Zahl über ihren eigenen Lernstand.
+      record_progress_events:
+        'TABLE(event_id uuid, entry_id text, direction text, current_rev integer)',
     };
 
     const funktionen = await zeilen(`

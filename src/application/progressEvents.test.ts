@@ -30,7 +30,19 @@ describe('antwortEreignis', () => {
     const { nachher } = antwortEreignis(eingabe());
     const erwartet = applyAnswer(createEntryProgress('pack-1', 'v-1', 'en-de', JETZT), 'correct', JETZT);
 
-    expect(nachher).toEqual(erwartet);
+    // Bis auf die Fassung: Die gehört nicht zum Leitner-Rechnen, sondern zur
+    // Frage, wer bei zwei Geräten gewinnt.
+    expect(nachher).toEqual({ ...erwartet, rev: 1 });
+  });
+
+  it('nennt die Fassung, von der es ausging – und die erwartete nächste', async () => {
+    const ohneVorher = antwortEreignis(eingabe());
+    expect(ohneVorher.event.baseRev).toBe(0);
+    expect(ohneVorher.nachher.rev).toBe(1);
+
+    const darauf = antwortEreignis({ ...eingabe(), vorher: ohneVorher.nachher });
+    expect(darauf.event.baseRev).toBe(1);
+    expect(darauf.nachher.rev).toBe(2);
   });
 
   it('trägt den gerechneten Stand vollständig ins Ereignis', async () => {
