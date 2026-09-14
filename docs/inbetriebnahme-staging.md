@@ -167,23 +167,49 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 > nicht von Hand eingetragen und ist kein gemeinsames Projekt-Secret. Die
 > Unterscheidung ist nicht akademisch, denn sie entscheidet, wer ihn lesen kann.
 >
-> | Schlüssel | Wo er eingegeben wird | Wo er liegt | Wer ihn im Klartext sieht |
+> | Schlüssel | Wo er eingegeben wird | Wo er liegt | Wer ihn im Klartext bekommt |
 > | --- | --- | --- | --- |
-> | **Anbieterschlüssel** (je Lehrkraft) | Portalformular der Lehrkraft | `ai_connections.secret_ciphertext`, AES-GCM-versiegelt | **niemand** – die Edge Function entsiegelt ihn im Arbeitsspeicher für einen Aufruf |
+> | **Anbieterschlüssel** (je Lehrkraft) | Portalformular der Lehrkraft | `ai_connections.secret_ciphertext`, AES-GCM-versiegelt | nur die vorgesehene Edge Function, im Arbeitsspeicher, für einen Aufruf |
 > | **Hauptschlüssel** `LEXIFLOW_AI_MASTER_KEY_V1` | Supabase → Edge Function Secrets | nur dort | nur die Laufzeit der Funktion |
 > | **Publishable Key** | `.env`, GitHub → Variables | im ausgelieferten Bündel | jeder – **so gedacht** |
 > | **Secret Key** (`service_role`) | Supabase → Edge Function Secrets | nur dort | nur die Laufzeit der Funktion |
 >
 > Der Weg des Anbieterschlüssels ist also: **Browser → Edge Function →
-> versiegelt in die Datenbank.** Er geht durch Supabase hindurch und bleibt
-> dort, aber in keiner Form, die jemand lesen kann – auch Marc nicht, auch mit
-> Dashboard-Zugang nicht. Das ist 7.6.3: Wer im SQL-Editor nachsieht, findet
-> Base64 und nicht den Schlüssel.
+> versiegelt in die Datenbank.**
 >
 > Was daraus **nicht** folgt: dass er als Function Secret abgelegt werden
 > dürfte. Ein Function Secret gilt projektweit; der Anbieterschlüssel gehört
 > einer Lehrkraft und wird pro Verbindung an ihre Kennung gebunden (AAD,
-> siehe 7.6.5).
+> siehe 7.6.3 bis 7.6.5).
+
+> ### Wogegen die Verschlüsselung schützt – und wogegen nicht
+>
+> Eine frühere Fassung dieses Abschnitts behauptete, den Anbieterschlüssel
+> könne **niemand** lesen, „auch nicht mit Dashboard-Zugang". Das war zu viel
+> versprochen. Was tatsächlich gilt:
+>
+> | | |
+> | --- | --- |
+> | Der Schlüssel liegt **nicht im Klartext** in der Datenbank | |
+> | Reiner Datenbankzugriff, ein `select`, ein Dump oder ein Backup zeigen **nur den Chiffretext** | der Hauptschlüssel liegt nicht in der Datenbank, sondern in den Function Secrets |
+> | Entsiegelt wird **ausschließlich** innerhalb der vorgesehenen Edge Function | und nur für die Dauer eines Aufrufs |
+>
+> **Die Grenze.** Wer vollständige Kontrolle über das Supabase-Projekt hat –
+> also über Function-Code *und* Function Secrets – kann eine Funktion
+> deployen, die den Hauptschlüssel liest und Anbieterschlüssel im Klartext
+> ausgibt. Dagegen schützt keine Verschlüsselung, die den Schlüssel im selben
+> Projekt aufbewahrt, und dieses Dokument behauptet das auch nicht.
+>
+> Die Verschlüsselung schützt also gegen **Datenbanklecks, weitergegebene
+> Dumps, Backups in falschen Händen und versehentliche Offenlegung** – nicht
+> gegen einen böswilligen oder kompromittierten Projektadministrator. Wer das
+> auch abdecken will, braucht ein Schlüsselmaterial außerhalb von Supabase
+> (KMS/HSM); das ist bewusst nicht Teil dieses Sprints.
+>
+> Für Lehrkräfte heißt das im Klartext: Ihr Anbieterschlüssel ist vor anderen
+> Lehrkräften, vor Lernenden und vor einem Datenbankleck geschützt. Er ist
+> nicht vor dem geschützt, der das Projekt betreibt. Die Portaltexte dürfen
+> nicht mehr versprechen als das.
 
 > ### Zum Secret Key: zwei Dinge, die oft verwechselt werden
 >
@@ -266,6 +292,21 @@ SQL-Editor.
 > beim Weiterbauen in sich geändert – das ging, weil es nirgends eine Datenbank
 > gab, auf der sie schon gelaufen wären. Ab jetzt wäre eine geänderte Datei
 > zwei verschiedene Schemata unter demselben Namen.
+>
+> **Was das genau heißt – und was nicht.** Es heißt: Eine bereits angewandte
+> Datei wird nicht mehr nachträglich verändert. Korrekturen kommen als **neue**
+> Migration mit neuem Zeitstempel dazu; die alte bleibt stehen, auch wenn sie
+> etwas anlegt, das die neue sofort wieder ändert. Das ist unbequem zu lesen
+> und dafür überall gleich.
+>
+> Es heißt **nicht**, dass ein Fehler unumkehrbar wäre. Für ein Stagingprojekt
+> ohne echte Daten bleiben zwei Wege offen: ein Backup einspielen, oder das
+> Projekt wegwerfen und die acht Migrationen auf einem frischen anwenden. Das
+> zweite kostet eine halbe Stunde und ist oft das ehrlichere Ergebnis.
+>
+> Teuer wird das Zurückrollen erst, wenn echte Lernstände in der Datenbank
+> liegen. Genau deshalb steht in Abschnitt 14, dass vor einem Pilotbetrieb
+> mehr zu klären ist als die Kontoanlage.
 
 ### 3.2 Zugriffsregeln prüfen (nicht einschalten)
 
@@ -633,11 +674,18 @@ gesendete** Stand gilt, nicht der mit der späteren Uhrzeit.
 | 6.11.5 | „Verbindung prüfen" | erster echter Anbieteraufruf überhaupt |
 | 6.11.6 | Entwicklerwerkzeuge → Netzwerk | **kein** Aufruf an den Anbieter aus dem Browser; nur an `functions/v1/ai-gateway` |
 | 6.11.7 | Anbieter „OpenAI-kompatibel", eigene Adresse `https://beliebig.example/v1/` | **„Dieser Host ist nicht freigegeben."** |
-| 6.11.8 | Im SQL-Editor `select secret_ciphertext from ai_connections` | Base64 – der eingegebene Schlüssel liegt jetzt **in Supabase**, aber versiegelt |
 
-> 6.11.8 ist die Gegenprobe zum Kasten in 1.4: Der Anbieterschlüssel *wird* in
-> Supabase gespeichert. Die Zusage ist nicht, dass er das Haus nicht betritt,
-> sondern dass ihn dort niemand lesen kann.
+Die Gegenprobe zum Kasten in 1.4 steht in **7.6**: Der Anbieterschlüssel *wird*
+in Supabase gespeichert, und dort ist zu belegen, dass er unlesbar abgelegt
+ist. „Da steht Base64" ist dafür **kein** Nachweis – Base64 ist eine
+Kodierung, keine Verschlüsselung. Ein im Klartext hinterlegter Schlüssel sähe
+base64-kodiert genauso unverdächtig aus.
+
+> **Nebenbei zu prüfen** (6.11.1): Der Hinweistext sagt „kommt nie wieder
+> heraus – **auch nicht für dich**". Die Einschränkung „für dich" ist das,
+> was den Satz richtig macht; ohne sie verspräche er mehr, als der Kasten in
+> 1.4 hält. Falls jemand ihn je kürzt, wird aus einer wahren Aussage eine
+> falsche.
 
 ### 6.12 Mitgliedschaft entfernen → Schreibzugriff endet
 
@@ -740,22 +788,67 @@ erfahren), beim Aufruf nicht – dort wäre er ein Scanner für das interne Netz
 
 ### 7.6 KI-Schlüssel
 
+**Was hier zu belegen ist**, in dieser Reihenfolge: Der gespeicherte Wert
+enthält den Klartext nicht; zweimal derselbe Schlüssel ergibt zwei
+verschiedene Chiffretexte; entsiegeln geht nur mit der richtigen Bindung; ein
+verschobener Chiffretext scheitert; und über keine reguläre API kommt der
+Schlüssel zurück.
+
+> **„Es sieht nach Base64 aus" belegt nichts.** Base64 ist eine Kodierung.
+> `select encode('AIza…'::bytea, 'base64')` sieht genauso aus wie ein
+> Chiffretext. Die Prüfungen unten fragen deshalb nicht, wie der Wert
+> *aussieht*, sondern was er **nicht enthält** und was sich mit ihm **nicht
+> anstellen lässt**.
+
 | Nr. | Prüfung | Erwartung |
 | --- | --- | --- |
-| 7.6.1 | `select masked_secret from ai_connections` als Lehrkraft | nur die Maske |
-| 7.6.2 | `select secret_ciphertext …` | **permission denied** |
-| 7.6.3 | Im SQL-Editor: `secret_ciphertext` ansehen | Base64, **nicht** der Klartext |
-| 7.6.4 | `secret_iv` bei zwei Verbindungen vergleichen | **verschieden** |
-| 7.6.5 | Chiffretext von Verbindung A auf B kopieren (im SQL-Editor), dann B aufrufen | **409**, „lässt sich nicht entsiegeln" |
-| 7.6.6 | `LEXIFLOW_AI_MASTER_KEY_V1` löschen, Verbindung aufrufen | **503**; die Zeile **bleibt stehen** |
-| 7.6.7 | Schlüssel wieder setzen | funktioniert wieder |
+| 7.6.1 | **Kein Klartext im gespeicherten Wert** – die Abfrage steht unter der Tabelle | **0 Zeilen**, beide Male |
+| 7.6.2 | **Zufälliges Siegel.** Denselben Testschlüssel ein zweites Mal als neue Verbindung speichern, dann beide vergleichen: `select count(distinct secret_ciphertext), count(distinct secret_iv) from ai_connections` | **2 und 2** – gleicher Eingabewert, verschiedene Chiffretexte und IVs |
+| 7.6.3 | **Bindung an die Verbindung.** Chiffretext, IV und `secret_key_version` von Verbindung A auf B schreiben, dann B „prüfen" | **409**, „lässt sich nicht entsiegeln" |
+| 7.6.4 | **Bindung an die Lehrkraft.** `owner_id` einer Verbindung auf die zweite Lehrkraft ändern, dann als diese „prüfen" | **409** – derselbe Chiffretext, andere Kennung, keine Entsiegelung |
+| 7.6.5 | **Bindung an Anbieter und Schlüsselversion.** `adapter` auf einen anderen Wert ändern, „prüfen"; danach `secret_key_version` verstellen, „prüfen" | jeweils **409** |
+| 7.6.6 | **Keine reguläre API gibt ihn zurück.** Als Lehrkraft über PostgREST: `GET /rest/v1/ai_connections?select=*`, dann gezielt `select=secret_ciphertext`, `select=secret_iv`, `select=secret_key_version` | `*` liefert die Zeile **ohne** die drei Spalten; die gezielten Abfragen **permission denied** |
+| 7.6.7 | dasselbe als Admin und als Lernende | ebenso |
+| 7.6.8 | Die Portalseite „KI-Zugang" nach dem Speichern neu laden, Netzwerkverlauf ansehen | nur `masked_secret`; in keiner Antwort ein vollständiger Schlüssel |
+| 7.6.9 | `LEXIFLOW_AI_MASTER_KEY_V1` löschen, Verbindung aufrufen | **503**; die Zeile **bleibt stehen** |
+| 7.6.10 | Schlüssel wieder setzen | funktioniert wieder |
 
-7.6.5 ist die Abnahme der AAD-Bindung, 7.6.6 die des kontrollierten Fehlers.
+**Die Abfrage zu 7.6.1** – `:klartext` durch den Testschlüssel ersetzen, beide
+Zeilen müssen `0` ergeben:
 
-> **7.6.3 und 7.6.5 laufen im SQL-Editor des Dashboards**, nicht mit dem Secret
+```sql
+-- Steht der Schlüssel so in der Spalte?
+select count(*) from ai_connections
+ where secret_ciphertext like '%' || :klartext || '%';
+
+-- Und steht er drin, nachdem die Base64-Hülle abgezogen ist?
+select count(*) from ai_connections
+ where encode(decode(secret_ciphertext, 'base64'), 'escape')
+       like '%' || :klartext || '%';
+```
+
+Die zweite Zeile ist die wichtigere. Sie fängt den Fall ab, dass jemand den
+Schlüssel nur kodiert statt verschlüsselt hat – dann sähe die Spalte aus wie
+ein Chiffretext, und die erste Abfrage fände trotzdem nichts.
+
+7.6.1 und 7.6.2 sind die eigentliche Verschlüsselungsabnahme, 7.6.3 bis 7.6.5
+die der AAD-Bindung, 7.6.6 bis 7.6.8 die der Spaltenrechte, 7.6.9 die des
+kontrollierten Fehlers.
+
+> **Warum 7.6.2 kein Detail ist.** Zwei gleiche Eingaben, die zwei gleiche
+> Chiffretexte ergeben, verraten schon, *dass* zwei Lehrkräfte denselben
+> Schlüssel benutzen – und bei einem festen IV wäre das Verfahren gebrochen,
+> nicht nur schwach. Der Test misst, ob der 96-Bit-IV wirklich je
+> Verschlüsselung neu gezogen wird.
+
+> **7.6.1 bis 7.6.5 laufen im SQL-Editor des Dashboards**, nicht mit dem Secret
 > Key in einem lokalen Werkzeug. Dass die Zugriffsregeln dort nicht greifen,
-> ist genau der Punkt der Prüfung – erhöhte Rechte braucht sie, den
+> ist genau der Punkt – erhöhte Rechte braucht die Prüfung, den
 > herauskopierten Schlüssel nicht.
+
+> **Nach 7.6.3 bis 7.6.5 die verstellten Zeilen löschen**, nicht
+> zurückschreiben. Es sind Testverbindungen mit einem Testschlüssel; eine
+> halb reparierte Zeile ist später schwerer zu deuten als eine fehlende.
 
 ### 7.7 Rollen
 
