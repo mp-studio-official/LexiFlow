@@ -128,12 +128,48 @@ export async function alsUnangemeldet(db) {
 /**
  * Zurück in die Rolle, die alles darf – zum Einrichten von Testdaten.
  *
- * Kein Teil des Produkts: Der Browser bekommt diese Rechte nie. Sie entspricht
- * dem, was eine Migration oder eine Edge Function mit Service Role tut.
+ * Kein Teil des Produkts: Der Browser bekommt diese Rechte nie. Das ist der
+ * **Besitzer** der Objekte, also die Rolle, unter der die Migrationen laufen.
+ *
+ * ## Wofür sie ausdrücklich nicht taugt
+ *
+ * Bis September 2026 stand hier, diese Rolle entspreche dem, „was eine
+ * Migration oder eine Edge Function mit Service Role tut". Der erste Teil
+ * stimmt, der zweite nicht – und der Unterschied hat eine echte Lücke
+ * durchgelassen.
+ *
+ * Der Besitzer hat auf seinen eigenen Objekten **implizit jedes Recht**. Ein
+ * `grant` an ihn ändert nichts, ein fehlendes `grant` fällt ihm nicht auf.
+ * Eine Edge Function ist dagegen `service_role`: eine ganz gewöhnliche Rolle,
+ * die nur darf, was ihr jemand gegeben hat. Wer den Dienst als Besitzer
+ * nachstellt, prüft jede Zugriffsregel – und keine einzige Rechtevergabe.
+ *
+ * Für den Dienst gibt es deshalb `alsDienst`. Diese hier bleibt, wofür sie
+ * gedacht war: Testdaten hinstellen, bevor die eigentliche Prüfung anfängt.
  */
 export async function alsEinrichtung(db) {
   await db.exec('reset role;');
   await db.exec(`set request.jwt.claims = '';`);
+}
+
+/**
+ * Als Serverfunktion weiterarbeiten – die Rolle hinter dem Secret Key.
+ *
+ * PostgREST setzt für einen Client mit Secret Key die Rolle `service_role`.
+ * Sie umgeht die Zugriffsregeln (`bypassrls`), aber **nicht** die
+ * Rechtevergabe: Ohne `grant` gibt es „permission denied", und zwar bevor
+ * eine Regel überhaupt befragt wird.
+ *
+ * Die Ansprüche werden geleert, und das ist keine Nachlässigkeit, sondern der
+ * Punkt: Unter `service_role` ist `auth.uid()` leer. Jede Funktion, die sich
+ * auf die angemeldete Person verlässt, kann hier nicht laufen – was genau der
+ * Grund ist, warum die Serverfunktionen ihre Personenkennung als Parameter
+ * übergeben, statt sie zu erfragen.
+ */
+export async function alsDienst(db) {
+  await db.exec('reset role;');
+  await db.exec(`set request.jwt.claims = '';`);
+  await db.exec('set role service_role;');
 }
 
 let zaehler = 0;

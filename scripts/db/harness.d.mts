@@ -23,6 +23,8 @@ export function neueDatenbank(): Promise<TestDatenbank>;
 export function alsPerson(db: TestDatenbank, userId: string): Promise<void>;
 export function alsUnangemeldet(db: TestDatenbank): Promise<void>;
 export function alsEinrichtung(db: TestDatenbank): Promise<void>;
+/** Die Rolle hinter dem Secret Key – `service_role`, nicht der Besitzer. */
+export function alsDienst(db: TestDatenbank): Promise<void>;
 export function testId(nummer?: number): string;
 export function legePersonAn(
   db: TestDatenbank,

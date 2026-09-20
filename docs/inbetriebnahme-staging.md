@@ -272,7 +272,8 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 
 ### 3.1 Migrationen (zuerst)
 
-Acht Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer Namen**:
+**Neun** Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer
+Namen**:
 
 | Nr. | Datei | Was entsteht |
 | --- | --- | --- |
@@ -284,9 +285,30 @@ Acht Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer Namen**:
 | 3.1.6 | `20260913120500_pakete_und_revisionen.sql` | Pakete, Fassungen, Zuweisung |
 | 3.1.7 | `20260913120600_lernstand.sql` | Schreibweg + Eingangsprüfung |
 | 3.1.8 | `20260913120700_ki.sql` | KI-Verbindungen, Freigabeliste |
+| 3.1.9 | `20260920090000_dienstrechte.sql` | die Rechte der **Serverfunktionen** |
 
 Entweder über die Supabase-CLI (`supabase db push`) oder Datei für Datei im
 SQL-Editor.
+
+> ### Zu 3.1.9 – die neunte Datei und warum sie später dazukam
+>
+> Die ersten acht vergeben Rechte an `anon` und `authenticated` – die beiden
+> Rollen, als die ein Browser spricht. Die beiden Serverfunktionen sprechen
+> aber als **`service_role`**, und für die stand in keiner Migration ein
+> einziges `grant`.
+>
+> Das fällt nur in einem Projekt auf, in dem **„Automatically expose new
+> tables" abgeschaltet** ist. Ist die Automatik an, verteilt Supabase selbst
+> großzügige Rechte an `service_role`, und alles läuft – aus einem Grund, der
+> nicht im Repository steht. Wer dieses Projekt später auf einem anderen
+> Supabase-Konto neu aufsetzt, bekommt ohne 3.1.9 eine Anmeldung, die mit
+> „permission denied for function" abbricht.
+>
+> **Wer bei Migration 5 unterbrochen hat**, wendet einfach 5 bis 9 in dieser
+> Reihenfolge an. 3.1.9 ist rein additiv: Sie legt nichts an, ändert keine
+> Zeile und vergibt ausschließlich Rechte. Die bereits angewandten 1 bis 4
+> bleiben unangetastet – das ist der Grund, warum die Korrektur eine neue
+> Datei ist und keine Änderung an der alten.
 
 > **Ab dem ersten Anwenden sind Migrationen additiv.** Bis hierher wurden sie
 > beim Weiterbauen in sich geändert – das ging, weil es nirgends eine Datenbank
@@ -301,7 +323,7 @@ SQL-Editor.
 >
 > Es heißt **nicht**, dass ein Fehler unumkehrbar wäre. Für ein Stagingprojekt
 > ohne echte Daten bleiben zwei Wege offen: ein Backup einspielen, oder das
-> Projekt wegwerfen und die acht Migrationen auf einem frischen anwenden. Das
+> Projekt wegwerfen und die neun Migrationen auf einem frischen anwenden. Das
 > zweite kostet eine halbe Stunde und ist oft das ehrlichere Ergebnis.
 >
 > Teuer wird das Zurückrollen erst, wenn echte Lernstände in der Datenbank
@@ -329,6 +351,40 @@ select tablename, cmd, count(*) from pg_policies
    and tablename in ('pack_progress','entry_progress','progress_events')
  group by 1,2;
 ```
+
+### 3.2.1 Die Rechte der Serverfunktionen prüfen
+
+Eigener Schritt, weil hier die Lücke saß, die beim ersten echten Staging
+aufgefallen ist. Nach 3.1.9 müssen **genau diese** Zeilen kommen – nicht
+weniger und nicht mehr:
+
+```sql
+-- Erwartet: ai_allowed_hosts SELECT | ai_connections DELETE,INSERT,SELECT,UPDATE
+--           | learner_accounts SELECT | profiles SELECT
+select table_name, string_agg(distinct privilege_type, ',' order by privilege_type)
+  from information_schema.role_table_grants
+ where grantee = 'service_role' and table_schema = 'public'
+ group by table_name
+ order by table_name;
+
+-- Erwartet: die fünf Funktionen aus 3.1.9, sonst keine.
+select p.proname
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public'
+   and has_function_privilege('service_role', p.oid, 'execute')
+ order by 1;
+
+-- Erwartet: true. Ohne das ist jedes Recht oben wirkungslos.
+select has_schema_privilege('service_role', 'public', 'usage');
+```
+
+> **Mehr Zeilen sind hier ein Befund, nicht Bequemlichkeit.** Stehen in der
+> ersten Abfrage `courses`, `entry_progress` oder `pack_progress`, dann ist
+> „Automatically expose new tables" eingeschaltet und Supabase hat großzügig
+> verteilt. Das Portal liefe damit – und ein Dienst mit Leserecht auf
+> Lernstände wäre genau die Einsicht, die dieses Produkt niemandem gibt.
+> Die Einstellung gehört dann abgeschaltet und die Prüfung wiederholt.
 
 ### 3.3 Auth konfigurieren
 

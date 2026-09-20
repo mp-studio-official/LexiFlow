@@ -13,7 +13,7 @@ letzte Abschnitt sagt, woran man merkt, dass einer davon schiefgegangen ist.
 
 | | |
 | --- | --- |
-| **Es gibt** | acht Migrationen, zwei Serverfunktionen, zwei Web-Auslieferungen, zwei portable Dateien, 2830 Prüfungen |
+| **Es gibt** | neun Migrationen, zwei Serverfunktionen, zwei Web-Auslieferungen, zwei portable Dateien, 2857 Prüfungen |
 | **Es gibt nicht** | ein Supabase-Projekt, einen Hauptschlüssel, einen Remote, ein Deployment |
 
 LexiFlow ist **ohne all das vollständig benutzbar**. Die kontofreie Anwendung
@@ -33,7 +33,7 @@ ohne sie fängt die Prüfung gar nicht erst an.
 
 ### 1.2 Migrationen anwenden
 
-Acht Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
+Neun Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
 
 | Datei | Was |
 | --- | --- |
@@ -45,6 +45,14 @@ Acht Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
 | `…120500_pakete_und_revisionen.sql` | Pakete, Fassungen, Zuweisung |
 | `…120600_lernstand.sql` | der Schreibweg samt Eingangsprüfung |
 | `…120700_ki.sql` | Verbindungen und Freigabeliste |
+| `20260920090000_dienstrechte.sql` | die Rechte der Serverfunktionen |
+
+> **Die neunte kam nach.** Die ersten acht vergeben Rechte an `anon` und
+> `authenticated` – die Rollen des Browsers. Die Serverfunktionen sprechen als
+> `service_role`, und für die stand nirgends ein `grant`. Das fällt nur auf,
+> wenn „Automatically expose new tables" abgeschaltet ist; sonst verteilt
+> Supabase die Rechte selbst, und das Portal läuft aus einem Grund, der nicht
+> im Repository steht.
 
 > **Ab jetzt sind Migrationen additiv.** Bis hierher wurden sie beim
 > Weiterbauen in sich geändert – das ging, weil es nirgends eine Datenbank
