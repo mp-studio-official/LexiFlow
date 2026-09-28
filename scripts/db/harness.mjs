@@ -74,6 +74,62 @@ const SUPABASE_VORLAGE = `
   grant usage on schema auth to anon, authenticated, service_role;
   grant execute on function auth.uid() to anon, authenticated, service_role;
   grant execute on function auth.role() to anon, authenticated, service_role;
+
+  /*
+    Und jetzt der Teil, der hier lange gefehlt hat.
+
+    Im echten Stagingprojekt waren beim Anlegen der Tabellen breite
+    Vorgaberechte wirksam: Alles, was die Rolle "postgres" im Schema "public"
+    anlegt, bekam volle Tabellenrechte für "anon", "authenticated" und
+    "service_role". Migrationen laufen als "postgres". Jede Tabelle, die eine
+    Migration anlegt, war damit in dem Moment ihrer Entstehung bereits
+    freigegeben – bevor irgendein "grant" in einer Migration steht.
+
+    Das ist keine Kleinigkeit für die Prüfungen, sondern ihr Ausgangspunkt:
+    Ohne diese vier Zeilen prüft der Harness eine Datenbank, in der die
+    Migrationen Rechte **aufbauen**. Im echten Projekt bauen sie Rechte
+    **ab** – und wo eine Migration nur hinzufügt, bleibt der Ausgangszustand
+    stehen. Genau daran ist Migration 9 vorbeigelaufen.
+
+    Warum sie wirksam waren, ist offen und für diese Nachbildung auch nicht
+    nötig: Gemessen ist, DASS sie es waren. Ob eine Projekteinstellung nicht
+    gespeichert wurde, anders gesetzt war oder die Plattform sich anders
+    verhielt, entscheidet diese Datei nicht.
+
+    Für die Prüfungen zählt allein: Ein Projekt kann so aussehen. Wer eine
+    Datenbank nachbildet, in der es nicht so aussehen KANN, prüft den
+    freundlichsten Fall und nennt ihn den einzigen.
+
+    Bewusst **nicht** nachgebildet: Vorgaberechte auf Funktionen. Die
+    Kontrollabfrage im echten Projekt hat für Browserrollen null ausführbare
+    Server-RPCs gezeigt. Etwas nachzubilden, was dort messbar nicht existiert,
+    hieße die Prüfungen gegen eine erfundene Plattform laufen zu lassen.
+  */
+  grant usage on schema public to anon, authenticated, service_role;
+
+  /*
+    Beide Geltungsbereiche, absichtlich.
+
+    "alter default privileges" kennt eine Vorgabe MIT Schemabezug und eine
+    OHNE. Das sind zwei getrennte Eintraege in pg_default_acl, und ein
+    "revoke" trifft nur den Bereich, den es nennt.
+
+    Welche Form das Stagingprojekt hat, ist nicht bekannt — die
+    Kontrollabfrage auf pg_default_acl gibt den Geltungsbereich mit aus,
+    aber sie wurde erst nachtraeglich eingefuehrt. Der Harness setzt deshalb
+    BEIDE: Was hier gruen wird, haelt in jedem der beiden Faelle.
+
+    Das ist eine Entscheidung ueber die Pruefumgebung, keine Behauptung
+    ueber Supabase. Die ungünstigere Annahme ist hier die billigere.
+  */
+  alter default privileges for role postgres in schema public
+    grant all on tables to anon, authenticated, service_role;
+  alter default privileges for role postgres in schema public
+    grant all on sequences to anon, authenticated, service_role;
+  alter default privileges for role postgres
+    grant all on tables to anon, authenticated, service_role;
+  alter default privileges for role postgres
+    grant all on sequences to anon, authenticated, service_role;
 `;
 
 /** Die Migrationen in der Reihenfolge, in der sie auch Supabase anwendet. */

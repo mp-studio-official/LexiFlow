@@ -13,7 +13,7 @@ letzte Abschnitt sagt, woran man merkt, dass einer davon schiefgegangen ist.
 
 | | |
 | --- | --- |
-| **Es gibt** | neun Migrationen, zwei Serverfunktionen, zwei Web-Auslieferungen, zwei portable Dateien, 2857 Prüfungen |
+| **Es gibt** | zehn Migrationen, zwei Serverfunktionen, zwei Web-Auslieferungen, zwei portable Dateien, 2875 Prüfungen |
 | **Es gibt nicht** | ein Supabase-Projekt, einen Hauptschlüssel, einen Remote, ein Deployment |
 
 LexiFlow ist **ohne all das vollständig benutzbar**. Die kontofreie Anwendung
@@ -33,7 +33,7 @@ ohne sie fängt die Prüfung gar nicht erst an.
 
 ### 1.2 Migrationen anwenden
 
-Neun Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
+Zehn Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
 
 | Datei | Was |
 | --- | --- |
@@ -46,13 +46,21 @@ Neun Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
 | `…120600_lernstand.sql` | der Schreibweg samt Eingangsprüfung |
 | `…120700_ki.sql` | Verbindungen und Freigabeliste |
 | `20260920090000_dienstrechte.sql` | die Rechte der Serverfunktionen |
+| `20260920140000_rechte_zuruecksetzen.sql` | Rechte abräumen und neu aufbauen |
 
-> **Die neunte kam nach.** Die ersten acht vergeben Rechte an `anon` und
-> `authenticated` – die Rollen des Browsers. Die Serverfunktionen sprechen als
-> `service_role`, und für die stand nirgends ein `grant`. Das fällt nur auf,
-> wenn „Automatically expose new tables" abgeschaltet ist; sonst verteilt
-> Supabase die Rechte selbst, und das Portal läuft aus einem Grund, der nicht
-> im Repository steht.
+> **Die letzten beiden kamen nach.** Die ersten acht vergeben Rechte an
+> `anon` und `authenticated` – die Rollen des Browsers. Die Serverfunktionen
+> sprechen als `service_role`, und für die stand nirgends ein `grant`; das
+> holt die neunte nach.
+>
+> Die zehnte räumt vorher ab. Im Stagingprojekt waren Vorgaberechte wirksam,
+> die allen drei Rollen volle Tabellenrechte gaben, sobald eine Migration eine
+> Tabelle anlegte. `grant` kann davon nichts wegnehmen – erst `revoke`.
+>
+> Warum sie wirksam waren, ist nicht geklärt und für den Betrieb auch nicht
+> nötig: Die zehnte entzieht, vergibt die genaue Matrix neu und setzt eigene
+> Vorgaberechte. Der Rechtestand hängt danach nicht mehr davon ab, wie ein
+> Projekt erstellt wurde. Siehe `inbetriebnahme-staging.md`, 3.1 und 3.2.1.
 
 > **Ab jetzt sind Migrationen additiv.** Bis hierher wurden sie beim
 > Weiterbauen in sich geändert – das ging, weil es nirgends eine Datenbank
@@ -91,7 +99,9 @@ der erste Test ihrer Mäntel.
 ### 1.5 Die erste Lehrkraft
 
 Es gibt **absichtlich keinen Weg in der Oberfläche**, sich selbst zur Lehrkraft
-zu machen. Die erste Rolle wird in der Datenbank gesetzt, mit Service Role:
+zu machen. Die erste Rolle wird in der Datenbank gesetzt – im **SQL-Editor des
+Dashboards**, nicht mit dem Secret Key in einem lokalen Werkzeug. Der Editor
+läuft innerhalb von Supabase; der Schlüssel wird dabei nirgendwohin kopiert:
 
 ```sql
 update profiles set role = 'teacher' where id = '<die uuid aus auth.users>';

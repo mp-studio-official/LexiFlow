@@ -272,7 +272,7 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 
 ### 3.1 Migrationen (zuerst)
 
-**Neun** Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer
+**Zehn** Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer
 Namen**:
 
 | Nr. | Datei | Was entsteht |
@@ -286,29 +286,60 @@ Namen**:
 | 3.1.7 | `20260913120600_lernstand.sql` | Schreibweg + Eingangsprüfung |
 | 3.1.8 | `20260913120700_ki.sql` | KI-Verbindungen, Freigabeliste |
 | 3.1.9 | `20260920090000_dienstrechte.sql` | die Rechte der **Serverfunktionen** |
+| 3.1.10 | `20260920140000_rechte_zuruecksetzen.sql` | Rechte **abräumen** und neu aufbauen |
 
 Entweder über die Supabase-CLI (`supabase db push`) oder Datei für Datei im
 SQL-Editor.
 
-> ### Zu 3.1.9 – die neunte Datei und warum sie später dazukam
+> ### Zu 3.1.9 und 3.1.10 – zwei Nachzügler, ein Grund
 >
-> Die ersten acht vergeben Rechte an `anon` und `authenticated` – die beiden
-> Rollen, als die ein Browser spricht. Die beiden Serverfunktionen sprechen
-> aber als **`service_role`**, und für die stand in keiner Migration ein
-> einziges `grant`.
+> Die ersten acht vergeben Rechte an `anon` und `authenticated`. Die beiden
+> Serverfunktionen sprechen aber als **`service_role`**, und für die stand in
+> keiner Migration ein `grant`. **3.1.9** hat das nachgeholt.
 >
-> Das fällt nur in einem Projekt auf, in dem **„Automatically expose new
-> tables" abgeschaltet** ist. Ist die Automatik an, verteilt Supabase selbst
-> großzügige Rechte an `service_role`, und alles läuft – aus einem Grund, der
-> nicht im Repository steht. Wer dieses Projekt später auf einem anderen
-> Supabase-Konto neu aufsetzt, bekommt ohne 3.1.9 eine Anmeldung, die mit
-> „permission denied for function" abbricht.
+> Beim echten Staging zeigte sich, dass das die halbe Antwort war. Im
+> Stagingprojekt waren Vorgaberechte dieser Form wirksam:
 >
-> **Wer bei Migration 5 unterbrochen hat**, wendet einfach 5 bis 9 in dieser
-> Reihenfolge an. 3.1.9 ist rein additiv: Sie legt nichts an, ändert keine
-> Zeile und vergibt ausschließlich Rechte. Die bereits angewandten 1 bis 4
-> bleiben unangetastet – das ist der Grund, warum die Korrektur eine neue
-> Datei ist und keine Änderung an der alten.
+> ```sql
+> alter default privileges for role postgres in schema public
+>   grant all on tables to anon, authenticated, service_role;
+> ```
+>
+> Migrationen laufen als `postgres`. **Jede Tabelle, die eine Migration
+> anlegt, ist im Moment ihrer Entstehung bereits für alle drei Rollen
+> freigegeben** – mit `select, insert, update, delete, truncate, references,
+> trigger`, bevor in der Migration ein `grant` steht.
+>
+> **Was belegt ist:** Die Kontrollabfrage zeigt diese Rechte im echten
+> Projekt. Beim Anlegen der Tabellen waren die Vorgaberechte also wirksam.
+>
+> **Was nicht belegt ist:** *warum*. Die Einstellung „Automatically expose new
+> tables" im Erstellungsdialog – in Supabases Dokumentation „Default
+> privileges for new entities" – beschreibt genau diese Vergabe an die
+> Data-API-Rollen, und sie war beim Anlegen des Projekts abgewählt. Ob sie
+> nicht gespeichert wurde, anders gesetzt war oder die Plattform sich anders
+> verhielt, lässt sich aus der Datenbank nicht ablesen. Die Liste
+> veröffentlichter Schemata ist eine **andere** Einstellung und hat damit
+> nichts zu tun.
+>
+> **Was folgt:** LexiFlow verlässt sich nicht mehr darauf. `grant` ergänzt
+> nur, 3.1.9 konnte davon also nichts wegnehmen. **3.1.10** räumt zuerst ab,
+> vergibt die genaue Matrix neu und setzt eigene Vorgaberechte. Der
+> Rechtestand ist danach unabhängig davon, wie ein Projekt erstellt wurde.
+>
+> Dabei kam ein zweiter Fall heraus, der nicht gemeldet war: `…120200` räumt
+> für `anon` und `authenticated` ab – aber als **dritte von zehn**.
+> `learner_accounts` (4), `auth_rate_limit` (5), `ai_connections` und
+> `ai_allowed_hosts` (8) entstehen danach und behielten ihre Vorgaberechte.
+> Gemessen hieß das: eine lernende Person konnte ihren eigenen
+> `recovery_code_hash` lesen, eine Lehrkraft die Siegelspalten ihrer eigenen
+> KI-Verbindungen lesen **und schreiben**. Beides Zusagen aus den Migrationen
+> 4 und 8, beide wirkungslos. 3.1.10 stellt sie her.
+>
+> **Wer bei Migration 5 oder 9 stehen geblieben ist**, wendet einfach die
+> fehlenden der Reihe nach an. Beide Nachzügler legen nichts an und ändern
+> keine Datenzeile – sie vergeben und entziehen ausschließlich Rechte. Die
+> bereits angewandten bleiben unangetastet.
 
 > **Ab dem ersten Anwenden sind Migrationen additiv.** Bis hierher wurden sie
 > beim Weiterbauen in sich geändert – das ging, weil es nirgends eine Datenbank
@@ -323,7 +354,7 @@ SQL-Editor.
 >
 > Es heißt **nicht**, dass ein Fehler unumkehrbar wäre. Für ein Stagingprojekt
 > ohne echte Daten bleiben zwei Wege offen: ein Backup einspielen, oder das
-> Projekt wegwerfen und die neun Migrationen auf einem frischen anwenden. Das
+> Projekt wegwerfen und die zehn Migrationen auf einem frischen anwenden. Das
 > zweite kostet eine halbe Stunde und ist oft das ehrlichere Ergebnis.
 >
 > Teuer wird das Zurückrollen erst, wenn echte Lernstände in der Datenbank
@@ -352,39 +383,169 @@ select tablename, cmd, count(*) from pg_policies
  group by 1,2;
 ```
 
-### 3.2.1 Die Rechte der Serverfunktionen prüfen
+### 3.2.1 Der Rechtestand – **eine** Abfrage
 
-Eigener Schritt, weil hier die Lücke saß, die beim ersten echten Staging
-aufgefallen ist. Nach 3.1.9 müssen **genau diese** Zeilen kommen – nicht
-weniger und nicht mehr:
+Eigener Schritt, weil hier zweimal eine Lücke saß. Diese Abfrage vergleicht
+den gesamten Rechtestand mit dem, was die Migrationen vorsehen, und liefert
+**nur Abweichungen**.
+
+> **Richtig ist: keine einzige Zeile.** Jede Zeile ist ein Befund – gleich,
+> ob sie zu viel oder zu wenig meldet.
 
 ```sql
--- Erwartet: ai_allowed_hosts SELECT | ai_connections DELETE,INSERT,SELECT,UPDATE
---           | learner_accounts SELECT | profiles SELECT
-select table_name, string_agg(distinct privilege_type, ',' order by privilege_type)
-  from information_schema.role_table_grants
- where grantee = 'service_role' and table_schema = 'public'
- group by table_name
- order by table_name;
-
--- Erwartet: die fünf Funktionen aus 3.1.9, sonst keine.
-select p.proname
-  from pg_proc p
-  join pg_namespace n on n.oid = p.pronamespace
- where n.nspname = 'public'
-   and has_function_privilege('service_role', p.oid, 'execute')
- order by 1;
-
--- Erwartet: true. Ohne das ist jedes Recht oben wirkungslos.
-select has_schema_privilege('service_role', 'public', 'usage');
+with erwartet (rolle, tabelle, rechte) as (values
+  ('service_role','profiles','SELECT'),
+  ('service_role','learner_accounts','SELECT'),
+  ('service_role','ai_connections','DELETE,INSERT,SELECT,UPDATE'),
+  ('service_role','ai_allowed_hosts','SELECT'),
+  ('authenticated','profiles','INSERT,SELECT'),
+  ('authenticated','courses','DELETE,INSERT,SELECT,UPDATE'),
+  ('authenticated','course_members','DELETE,INSERT,SELECT'),
+  ('authenticated','course_invites','INSERT,SELECT,UPDATE'),
+  ('authenticated','packs','DELETE,INSERT,SELECT,UPDATE'),
+  ('authenticated','pack_drafts','DELETE,INSERT,SELECT,UPDATE'),
+  ('authenticated','pack_revisions','INSERT,SELECT,UPDATE'),
+  ('authenticated','course_packs','DELETE,INSERT,SELECT,UPDATE'),
+  ('authenticated','pack_progress','DELETE,INSERT,SELECT,UPDATE'),
+  ('authenticated','entry_progress','DELETE,INSERT,SELECT,UPDATE'),
+  ('authenticated','progress_events','INSERT,SELECT'),
+  ('authenticated','ai_allowed_hosts','DELETE,INSERT,SELECT,UPDATE'),
+  ('authenticated','ai_connections','DELETE')
+  -- `anon` steht absichtlich nirgends: keine Tabelle, kein Recht.
+  -- `learner_accounts` und `ai_connections` haben für `authenticated`
+  -- zusätzlich Spaltenrechte; die prüft 3.2.2.
+),
+ist as (
+  select grantee::text as rolle, table_name::text as tabelle,
+         string_agg(distinct privilege_type, ',' order by privilege_type) as rechte
+    from information_schema.role_table_grants
+   where table_schema = 'public'
+     and grantee in ('anon','authenticated','service_role')
+   group by 1,2
+)
+select coalesce(i.rolle, e.rolle) as rolle,
+       coalesce(i.tabelle, e.tabelle) as tabelle,
+       coalesce(e.rechte, '— keines vorgesehen —') as soll,
+       coalesce(i.rechte, '— fehlt —') as ist
+  from ist i full outer join erwartet e
+    on e.rolle = i.rolle and e.tabelle = i.tabelle
+ where i.rechte is distinct from e.rechte
+ order by 1, 2;
 ```
 
-> **Mehr Zeilen sind hier ein Befund, nicht Bequemlichkeit.** Stehen in der
-> ersten Abfrage `courses`, `entry_progress` oder `pack_progress`, dann ist
-> „Automatically expose new tables" eingeschaltet und Supabase hat großzügig
-> verteilt. Das Portal liefe damit – und ein Dienst mit Leserecht auf
-> Lernstände wäre genau die Einsicht, die dieses Produkt niemandem gibt.
-> Die Einstellung gehört dann abgeschaltet und die Prüfung wiederholt.
+**Wie die Zeilen zu lesen sind:**
+
+| Was dasteht | Was es heißt |
+| --- | --- |
+| `soll` zeigt „keines vorgesehen" | ein Recht, das niemand geschrieben hat – 3.1.10 fehlt oder lief nicht durch |
+| `ist` nennt `TRUNCATE`, `TRIGGER` oder `REFERENCES` | Supabases Vorgaberechte stehen noch |
+| `ist` zeigt „fehlt" | eine Vergabe aus 3.1.10 ist nicht angekommen; das Portal wird Fehler werfen |
+| `anon` taucht überhaupt auf | `anon` soll **keine** Tabelle haben |
+
+> **Zwei frühere Fassungen dieses Abschnitts haben hier etwas Falsches
+> behauptet**, und beide Male war der Fehler derselbe: aus einer Beobachtung
+> eine Ursache zu machen.
+>
+> Zuerst hieß es, überzählige Rechte bedeuteten, „Automatically expose new
+> tables" sei eingeschaltet. Dann hieß es, diese Einstellung habe mit den
+> Vorgaberechten nichts zu tun. **Beides war unbelegt.** Der Erstellungsdialog
+> beschreibt die Einstellung ausdrücklich als die, die den Data-API-Rollen
+> Rechte auf neue Tabellen gibt; Supabases Dokumentation nennt sie „Default
+> privileges for new entities".
+>
+> Was diese Abfrage zeigt, ist der **Zustand**, nicht seine Ursache. Sie sagt,
+> ob der Rechtestand stimmt – und das ist alles, was sie für die Abnahme sagen
+> muss. Nach 3.1.10 hängt er nicht mehr an der Projekteinstellung.
+
+### 3.2.2 Die drei geschützten Spalten
+
+Die Abfrage oben sieht Tabellen, nicht Spalten. Zwei Zusagen hängen aber an
+Spaltenrechten:
+
+```sql
+-- Erwartet: keine Zeile.
+select grantee, table_name, column_name, privilege_type
+  from information_schema.role_column_grants
+ where table_schema = 'public'
+   and grantee in ('anon', 'authenticated')
+   and (
+     (table_name = 'learner_accounts' and column_name = 'recovery_code_hash')
+     or (table_name = 'ai_connections'
+         and column_name in ('secret_ciphertext','secret_iv','secret_key_version'))
+   );
+
+-- Erwartet: false, dreimal.
+select has_table_privilege('service_role','entry_progress','select') as lernstand,
+       has_table_privilege('anon','learner_accounts','truncate')     as anon_truncate,
+       has_function_privilege('anon','invite_code_hash(text)','execute') as anon_hash;
+```
+
+> Die erste Abfrage ist die, die im Stagingprojekt vor 3.1.10 Zeilen geliefert
+> hätte. Der Hash ist der, von dem `…120300` schreibt: „Ohne dieses
+> Spaltenrecht könnte jede lernende Person ihren eigenen Code-Hash lesen und
+> in Ruhe durchprobieren, bis der Klartext feststeht."
+
+### 3.2.3 Die Vorgaberechte selbst — die wichtigste Abfrage
+
+3.2.1 und 3.2.2 prüfen **bestehende** Objekte. Diese hier prüft, was die
+**nächste** Migration erben wird. Sie ist die einzige, die den Unterschied
+sichtbar macht, an dem eine frühere Fassung von 3.1.10 gescheitert wäre.
+
+```sql
+-- Erwartet: keine Zeile.
+select
+  eigentuemer.rolname as eigentuemer,
+  coalesce(schema_name.nspname, '(global)') as geltungsbereich,
+  case vorgabe.defaclobjtype
+    when 'r' then 'Tabellen'
+    when 'S' then 'Sequenzen'
+    when 'f' then 'Funktionen'
+    else vorgabe.defaclobjtype::text
+  end as objektart,
+  coalesce(empfaenger.rolname, 'PUBLIC') as empfaenger,
+  recht.privilege_type
+from pg_default_acl vorgabe
+join pg_roles eigentuemer
+  on eigentuemer.oid = vorgabe.defaclrole
+left join pg_namespace schema_name
+  on schema_name.oid = vorgabe.defaclnamespace
+cross join lateral aclexplode(vorgabe.defaclacl) recht
+left join pg_roles empfaenger
+  on empfaenger.oid = recht.grantee
+where eigentuemer.rolname = 'postgres'
+  and (
+    empfaenger.rolname in ('anon', 'authenticated', 'service_role')
+    or recht.grantee = 0
+  )
+order by geltungsbereich, objektart, empfaenger, recht.privilege_type;
+```
+
+**Warum die Spalte `geltungsbereich` das Entscheidende ist.**
+`alter default privileges` kennt zwei Formen: eine **mit** Schemabezug
+(`in schema public`) und eine **ohne**. Das sind zwei getrennte Einträge, und
+ein `revoke` trifft nur den Bereich, den es nennt.
+
+Eine frühere Fassung von 3.1.10 entzog nur `in schema public`. Gegen eine
+Vorgabe ohne Schemabezug wirkte sie **gar nicht** — die nächste angelegte
+Tabelle hätte weiter alle sieben Rechte für alle drei Rollen geerbt, und
+3.2.1 hätte davon nichts gesehen, weil sie bestehende Tabellen prüft. In
+PGlite nachgestellt und gemessen. 3.1.10 entzieht seither in **beiden**
+Bereichen.
+
+**Wie die Zeilen zu lesen sind:**
+
+| Was dasteht | Was es heißt |
+| --- | --- |
+| Zeilen mit `public` | eine schemabezogene Vorgabe steht noch — 3.1.10 fehlt oder lief nicht durch |
+| Zeilen mit `(global)` | eine Vorgabe ohne Schemabezug steht noch — dasselbe |
+| Empfänger `PUBLIC` bei `Funktionen` | jede künftige Funktion wäre für jeden ausführbar |
+| Ein anderer `eigentuemer` als `postgres` | die Abfrage filtert ihn weg. Setzt jemand Vorgaben unter einer anderen Rolle, entzieht 3.1.10 sie nicht — dann den Filter `where eigentuemer.rolname = 'postgres'` entfernen und nachsehen, wer sie gesetzt hat |
+
+> **Die letzte Zeile ist die Grenze dieses Dokuments.** `alter default
+> privileges for role X` wirkt nur auf Objekte, die **X** anlegt. Migrationen
+> laufen als `postgres`, deshalb steht das in 3.1.10. Eine Vorgabe unter
+> `supabase_admin` oder einer anderen Rolle bliebe stehen — sichtbar wird sie
+> nur, wenn der Filter fällt.
 
 ### 3.3 Auth konfigurieren
 
