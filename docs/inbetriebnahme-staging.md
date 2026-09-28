@@ -513,12 +513,37 @@ cross join lateral aclexplode(vorgabe.defaclacl) recht
 left join pg_roles empfaenger
   on empfaenger.oid = recht.grantee
 where eigentuemer.rolname = 'postgres'
+  -- Nur, was LexiFlow betrifft: ohne Schemabezug oder in `public`.
+  -- Alles andere gehört der Plattform. Siehe den Kasten unten.
+  and (vorgabe.defaclnamespace = 0 or schema_name.nspname = 'public')
   and (
     empfaenger.rolname in ('anon', 'authenticated', 'service_role')
     or recht.grantee = 0
   )
 order by geltungsbereich, objektart, empfaenger, recht.privilege_type;
 ```
+
+> ### `storage` und die übrigen Plattformschemata bleiben unangetastet
+>
+> Ein Supabase-Projekt hat mehr Schemata als `public`: `storage`, `graphql`,
+> `realtime`, `vault`, `extensions` und je nach Projekt weitere. Sie gehören
+> der Plattform, nicht dieser Anwendung, und **ihre Vorgaberechte dürfen nicht
+> verändert werden** — sie sind der Grund, warum Storage-Uploads, Realtime und
+> die GraphQL-Schnittstelle überhaupt funktionieren. Wer dort abräumt, um eine
+> Abfrage leer zu bekommen, repariert die Anzeige und zerbricht die Funktion.
+>
+> LexiFlow legt in keinem dieser Schemata etwas an. Migration 3.1.10 fasst sie
+> auch nicht an: Sie nennt `in schema public` und die Form ohne Schemabezug,
+> und beide berühren `storage` nicht.
+>
+> Deshalb die Zeile `defaclnamespace = 0 or nspname = 'public'`. Ohne sie
+> meldete die Abfrage Vorgaberechte aus `storage` als Befund — und der
+> naheliegende nächste Schritt wäre genau der falsche. Eine Kontrollabfrage,
+> die zum Abräumen fremder Schemata einlädt, ist schlimmer als keine.
+>
+> `scripts/db/rechtestand.test.mjs` hält das fest: Eine Prüfung legt ein
+> fremdes Schema mit eigenen Vorgaberechten an und besteht darauf, dass die
+> Kontrolle **weiterhin leer** bleibt.
 
 **Warum die Spalte `geltungsbereich` das Entscheidende ist.**
 `alter default privileges` kennt zwei Formen: eine **mit** Schemabezug
@@ -540,12 +565,19 @@ Bereichen.
 | Zeilen mit `(global)` | eine Vorgabe ohne Schemabezug steht noch — dasselbe |
 | Empfänger `PUBLIC` bei `Funktionen` | jede künftige Funktion wäre für jeden ausführbar |
 | Ein anderer `eigentuemer` als `postgres` | die Abfrage filtert ihn weg. Setzt jemand Vorgaben unter einer anderen Rolle, entzieht 3.1.10 sie nicht — dann den Filter `where eigentuemer.rolname = 'postgres'` entfernen und nachsehen, wer sie gesetzt hat |
+| Ein anderes Schema als `public` | die Abfrage filtert es weg, und das ist **Absicht**. `storage`, `graphql`, `realtime` und die übrigen gehören der Plattform; ihre Vorgaberechte bleiben, wie sie sind |
 
-> **Die letzte Zeile ist die Grenze dieses Dokuments.** `alter default
-> privileges for role X` wirkt nur auf Objekte, die **X** anlegt. Migrationen
-> laufen als `postgres`, deshalb steht das in 3.1.10. Eine Vorgabe unter
-> `supabase_admin` oder einer anderen Rolle bliebe stehen — sichtbar wird sie
-> nur, wenn der Filter fällt.
+> **Zwei Grenzen dieser Abfrage, beide bewusst.**
+>
+> **Die Rolle.** `alter default privileges for role X` wirkt nur auf Objekte,
+> die **X** anlegt. Migrationen laufen als `postgres`, deshalb steht das in
+> 3.1.10. Eine Vorgabe unter `supabase_admin` oder einer anderen Rolle bliebe
+> stehen — sichtbar wird sie nur, wenn der Filter fällt. Wer ihn fallen lässt,
+> sieht dann auch die Plattformrollen und sollte nichts davon anfassen.
+>
+> **Das Schema.** Alles außer `public` und der Form ohne Schemabezug ist
+> ausgeblendet. Diese Abfrage ist eine Abnahme für LexiFlow, keine
+> Bestandsaufnahme des Projekts.
 
 ### 3.3 Auth konfigurieren
 

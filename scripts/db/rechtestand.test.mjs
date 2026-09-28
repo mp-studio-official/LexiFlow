@@ -65,6 +65,46 @@ async function tabellenrechte() {
   return matrix;
 }
 
+/**
+ * Die Vorgaberechte, die LexiFlow betreffen – wörtlich die Abfrage aus
+ * `docs/inbetriebnahme-staging.md`, Abschnitt 3.2.3.
+ *
+ * ## Warum die Eingrenzung hier steht und nicht im Test
+ *
+ * Zwei Prüfungen unten benutzen sie: die eine erwartet nach den Migrationen
+ * eine leere Antwort, die andere baut ein fremdes Plattformschema daneben auf
+ * und erwartet **dieselbe** leere Antwort. Stünde die Abfrage zweimal da,
+ * könnte eine Fassung eingegrenzt sein und die andere nicht – und die
+ * Regressionprüfung bewiese dann nur sich selbst.
+ *
+ * ## Die beiden Filter
+ *
+ * `defaclrole = postgres`, weil `alter default privileges for role X` nur auf
+ * Objekte wirkt, die X anlegt; Migrationen laufen als `postgres`.
+ *
+ * `defaclnamespace = 0 or nspname = 'public'` – ohne Schemabezug oder
+ * `public`. Alles andere gehört der Plattform: `storage`, `graphql`,
+ * `realtime`, `vault`. Deren Vorgaberechte sind der Grund, warum
+ * Storage-Uploads und Realtime funktionieren, und sie werden nicht angefasst.
+ */
+async function vorgaberechte() {
+  const ergebnis = await db.query(`
+    select coalesce(bereich.nspname, '(global)') as geltungsbereich,
+           vorgabe.defaclobjtype::text as objektart,
+           coalesce(empfaenger.rolname, 'PUBLIC') as empfaenger,
+           recht.privilege_type
+      from pg_default_acl vorgabe
+      join pg_roles eigentuemer on eigentuemer.oid = vorgabe.defaclrole
+      left join pg_namespace bereich on bereich.oid = vorgabe.defaclnamespace
+      cross join lateral aclexplode(vorgabe.defaclacl) recht
+      left join pg_roles empfaenger on empfaenger.oid = recht.grantee
+     where eigentuemer.rolname = 'postgres'
+       and (vorgabe.defaclnamespace = 0 or bereich.nspname = 'public')
+       and (empfaenger.rolname in ('anon','authenticated','service_role')
+            or recht.grantee = 0)`);
+  return ergebnis.rows;
+}
+
 /* ------------------------------------------------------------------------ */
 /* Der Dienst: genau vier Tabellen, genau diese Rechte                       */
 /* ------------------------------------------------------------------------ */
@@ -386,23 +426,51 @@ describe('was als Nächstes angelegt wird', () => {
       den einen Bereich setzte. Ein Prüfstand, der nur den freundlichen Fall
       aufbaut, bestätigt nur den freundlichen Fall.
 
-      Diese Abfrage ist die aus der Inbetriebnahme, Abschnitt 3.2.3. Sie gibt
-      Eigentümer und Geltungsbereich mit aus – genau daran hing es.
+      Diese Abfrage ist die aus der Inbetriebnahme, Abschnitt 3.2.3 – mit
+      derselben Eingrenzung: ohne Schemabezug oder `public`. Alles andere
+      gehört der Plattform, und die Prüfung darunter sagt, warum das so
+      bleiben muss.
     */
-    const ergebnis = await db.query(`
-      select coalesce(bereich.nspname, '(global)') as geltungsbereich,
-             vorgabe.defaclobjtype::text as objektart,
-             coalesce(empfaenger.rolname, 'PUBLIC') as empfaenger,
-             recht.privilege_type
-        from pg_default_acl vorgabe
-        join pg_roles eigentuemer on eigentuemer.oid = vorgabe.defaclrole
-        left join pg_namespace bereich on bereich.oid = vorgabe.defaclnamespace
-        cross join lateral aclexplode(vorgabe.defaclacl) recht
-        left join pg_roles empfaenger on empfaenger.oid = recht.grantee
-       where eigentuemer.rolname = 'postgres'
-         and (empfaenger.rolname in ('anon','authenticated','service_role')
-              or recht.grantee = 0)`);
-    expect(ergebnis.rows).toEqual([]);
+    expect(await vorgaberechte()).toEqual([]);
+  });
+
+  it('und Vorgaben fremder Plattformschemata lösen keinen Fehlalarm aus', async () => {
+    /*
+      Ein Supabase-Projekt hat mehr Schemata als `public`: `storage`,
+      `graphql`, `realtime`, `vault` und weitere. Sie gehören der Plattform.
+      Ihre Vorgaberechte sind der Grund, warum Storage-Uploads und Realtime
+      funktionieren, und sie **dürfen nicht verändert werden**.
+
+      Ohne die Eingrenzung auf `public` und den Bereich ohne Schemabezug
+      meldete die Kontrolle solche Vorgaben als Befund. Der naheliegende
+      nächste Schritt wäre dann, sie abzuräumen – also die Anzeige zu
+      reparieren und die Funktion zu zerbrechen.
+
+      Diese Prüfung baut den Fall nach: ein fremdes Schema mit genau den
+      Vorgaberechten, die im echten Projekt dort stehen. Die Kontrolle muss
+      leer bleiben.
+    */
+    await alsEinrichtung(db);
+    await db.exec(`
+      create schema storage;
+      alter default privileges for role postgres in schema storage
+        grant all on tables to anon, authenticated, service_role;
+      alter default privileges for role postgres in schema storage
+        grant all on sequences to anon, authenticated, service_role;
+      alter default privileges for role postgres in schema storage
+        grant execute on functions to public;
+    `);
+
+    // Die Vorgaben stehen wirklich da – sonst prüfte der Test nichts.
+    const fremd = await db.query(`
+      select count(*)::int as n
+        from pg_default_acl v
+        join pg_namespace s on s.oid = v.defaclnamespace
+       where s.nspname = 'storage'`);
+    expect(fremd.rows[0].n, 'die Vorgaben im fremden Schema fehlen').toBeGreaterThan(0);
+
+    // Und die Kontrolle sieht sie trotzdem nicht.
+    expect(await vorgaberechte()).toEqual([]);
   });
 });
 
