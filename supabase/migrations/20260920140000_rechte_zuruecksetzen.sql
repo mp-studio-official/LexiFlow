@@ -51,7 +51,7 @@
 -- 1. **`service_role` fehlt in der Aufzählung.** Deshalb stand dort alles
 --    noch, was die Vorgabe gegeben hatte.
 -- 2. **`all tables` heißt „alle, die es jetzt gibt".** Migration 3 läuft als
---    dritte von neun. `learner_accounts` (4), `auth_rate_limit` (5),
+--    dritte von zehn. `learner_accounts` (4), `auth_rate_limit` (5),
 --    `ai_connections` und `ai_allowed_hosts` (8) entstehen danach – und
 --    behalten ihre Vorgaberechte, auch für `anon` und `authenticated`.
 --
