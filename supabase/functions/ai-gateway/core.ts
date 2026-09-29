@@ -4,8 +4,8 @@ import {
   kopfzeilenFuer,
   voreingestellteHosts,
   type Adapter,
-} from './anbieter';
-import { ABLEHNUNGSTEXT, pruefeZiel } from './ziel';
+} from './anbieter.ts';
+import { ABLEHNUNGSTEXT, pruefeZiel } from './ziel.ts';
 import {
   NICHT_LESBAR,
   SCHLUESSEL_FEHLT,
@@ -14,7 +14,7 @@ import {
   maskiere,
   versiegeln,
   type Geheimnis,
-} from './tresor';
+} from './tresor.ts';
 
 /**
  * Der Kern von `ai-gateway` – ohne Deno, ohne Netz, ohne Datenbank.
