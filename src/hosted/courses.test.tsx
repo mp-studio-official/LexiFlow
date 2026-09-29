@@ -113,6 +113,22 @@ describe('der Einladungscode', () => {
 
     expect(await screen.findByText('zurückgezogen')).toBeInTheDocument();
   });
+
+  it('kennzeichnet einen vollständig genutzten Code als ausgeschöpft', async () => {
+    const cloud = createFakeCloud();
+    cloud.signInAs('u-lehrerin');
+    const kurs = await cloud.repositories.courses!.createCourse({ title: 'Englisch 7b' });
+    const { code } = await cloud.repositories.invitations!.createInvite(kurs.id, { maxUses: 1 });
+
+    cloud.signInAs('u-lernend');
+    await cloud.repositories.invitations!.redeemCode(code);
+
+    setup(`/kurse/${kurs.id}`, 'u-lehrerin', cloud);
+    const tabelle = await screen.findByRole('table', { name: /Ausgegebene Einladungen/ });
+
+    expect(within(tabelle).getByText('ausgeschöpft')).toBeInTheDocument();
+    expect(within(tabelle).queryByRole('button', { name: /zurückziehen/ })).not.toBeInTheDocument();
+  });
 });
 
 describe('die Mitgliederliste', () => {

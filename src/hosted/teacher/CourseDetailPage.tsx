@@ -172,6 +172,10 @@ function Einladungen({ courseId, archiviert }: { courseId: string; archiviert: b
 
   if (!invitations) return null;
 
+  function istAusgeschoepft(einladung: CourseInvite) {
+    return einladung.maxUses !== undefined && einladung.usedCount >= einladung.maxUses;
+  }
+
   async function erzeugen(event: FormEvent) {
     event.preventDefault();
     setFehler('');
@@ -262,30 +266,39 @@ function Einladungen({ courseId, archiviert }: { courseId: string; archiviert: b
               </tr>
             </thead>
             <tbody>
-              {liste.map((einladung) => (
-                <tr key={einladung.id}>
-                  <td>{einladung.label}…</td>
-                  <td>
-                    {einladung.usedCount}
-                    {einladung.maxUses === undefined ? '' : ` von ${einladung.maxUses}`}
-                  </td>
-                  <td>{einladung.revoked ? 'zurückgezogen' : 'gültig'}</td>
-                  <td>
-                    {einladung.revoked ? null : (
-                      <Button
-                        small
-                        variant="quiet"
-                        aria-label={`Einladung ${einladung.label} zurückziehen`}
-                        onClick={() => {
-                          void invitations!.revokeInvite(einladung.id).then(laden);
-                        }}
-                      >
-                        Zurückziehen
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {liste.map((einladung) => {
+                const ausgeschoepft = istAusgeschoepft(einladung);
+                return (
+                  <tr key={einladung.id}>
+                    <td>{einladung.label}…</td>
+                    <td>
+                      {einladung.usedCount}
+                      {einladung.maxUses === undefined ? '' : ` von ${einladung.maxUses}`}
+                    </td>
+                    <td>
+                      {einladung.revoked
+                        ? 'zurückgezogen'
+                        : ausgeschoepft
+                          ? 'ausgeschöpft'
+                          : 'gültig'}
+                    </td>
+                    <td>
+                      {einladung.revoked || ausgeschoepft ? null : (
+                        <Button
+                          small
+                          variant="quiet"
+                          aria-label={`Einladung ${einladung.label} zurückziehen`}
+                          onClick={() => {
+                            void invitations!.revokeInvite(einladung.id).then(laden);
+                          }}
+                        >
+                          Zurückziehen
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
