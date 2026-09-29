@@ -909,9 +909,13 @@ die redaktionelle Stimme **im Material**, `--font-display` wird die Stimme
 
 - Es sagt nicht, dass eine dieser Ansichten existiert. Abschnitt 1 nennt je
   Punkt den Ist-Zustand.
-- Es sagt nicht, dass 5A abgenommen ist. Zum Zeitpunkt dieses Dokuments sind
-  die zehn Migrationen angewandt und die beiden Secrets gesetzt; deployt ist
-  nichts, und die Abnahme gegen die echte Laufzeit steht aus.
+- Es sagt nicht, dass 5A abgenommen ist. Stand 29.09.2026: elf Migrationen
+  angewandt, beide Secrets gesetzt, **beide Edge Functions deployt und
+  geprüft**, Konten, Kurs, Beitritt und der Entzug einer Mitgliedschaft im
+  echten Stagingprojekt abgenommen. Offen sind Veröffentlichung, Lernstand
+  über zwei Geräte, Archivierung, KI-Zugang, die Sicherheitsabnahme, Safari
+  und Mobil sowie Merge und Pages. Der vollständige Stand steht in
+  `inbetriebnahme-staging.md`, Abschnitt 0.5.
 - Es sagt **nicht**, dass eine Funktion im Cloud-Portal nutzbar ist, nur weil
   ihr Code im Repository liegt. Abschnitt 1.4 nennt je Schritt die Laufzeit.
   Im Portal existieren die Schritte 2 bis 6 der Paketerstellung gar nicht.

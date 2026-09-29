@@ -15,21 +15,31 @@ wichtigste, und er steht deshalb nicht am Ende, sondern in Abschnitt 1.
 
 ---
 
-## 1. Was noch nie gelaufen ist
+## 1. Was gelaufen ist – und was noch nie
 
-Es gibt **kein Supabase-Projekt**. Nicht eingerichtet, nicht ausprobiert, nicht
-angefasst.
+Seit dem 29.09.2026 gibt es ein **Supabase-Stagingprojekt**. Dieser Abschnitt
+hieß bis dahin „Was noch nie gelaufen ist" und zählte alles auf. Das stimmt so
+nicht mehr, und die Trennung ist zu wichtig, um sie stehen zu lassen.
+
+**Inzwischen gelaufen, im Staging:**
+
+| Gelaufen | Was daran belegt ist |
+| --- | --- |
+| Supabase Auth (GoTrue) | Anmeldung als Lehrkraft und als lernende Person, Rollenauflösung aus `profiles` |
+| echte JWT-Claims | Tokens werden ausgestellt und von PostgREST geprüft |
+| PostgREST | Die Zugriffsregeln greifen über HTTP, nicht nur in SQL – geprüft am Entzug einer Mitgliedschaft |
+| beide Edge-Laufzeiten | `learner-auth` und `ai-gateway` deployt; Herkunftsprüfung, Ablehnungen und CORS geprüft |
+| Function Secrets | `LEXIFLOW_ALLOWED_ORIGINS` und `LEXIFLOW_AI_MASTER_KEY_V1` gesetzt; dass `ai-gateway` die Schlüssel **findet**, ist belegt |
+
+**Weiterhin nie gelaufen:**
 
 | Nie gelaufen | Folge |
 | --- | --- |
-| Supabase Auth (GoTrue) | Ob eine Anmeldung dort so abläuft wie angenommen, ist ungeprüft |
-| echte JWT-Claims | Kein Token wurde je ausgestellt, signiert oder geprüft |
-| PostgREST | Die SQL-Ebene ist geprüft, die HTTP-Ebene darüber nicht |
-| beide Edge-Laufzeiten | Die Kerne sind getestet, die Deno-Mäntel nie ausgeführt |
-| Function Secrets | Kein Hauptschlüssel existiert; keine Rotation ist gelaufen |
+| der Hauptschlüssel im Einsatz | Er ist gesetzt, aber noch nie zum Ver- oder Entschlüsseln benutzt; keine Rotation ist gelaufen |
 | E-Mail-Versand | Keine Nachricht wurde verschickt oder empfangen |
 | jeder KI-Anbieter | Kein Aufruf hat je ein Netz gesehen |
 | das Deployment | Kein Remote, kein Push, kein GitHub Pages |
+| ein Produktivprojekt | Alles Obige gilt für **Staging**, mit erfundenen Namen und ohne echte Lerngruppe |
 
 **Solange das so ist, sagt dieser Bericht an keiner Stelle, dass das Portal
 funktioniert.** Er sagt, was geprüft wurde und wie.
@@ -270,7 +280,7 @@ kann die halbe Arbeit machen. Die andere Hälfte ist organisatorisch.
 | Der eigene Lernstand lässt sich beschönigen | bewusst; die Alternative wären zwei Leitner-Rechnungen, die auseinanderlaufen |
 | Eine offline entstandene Runde trägt den Zeitpunkt des Hochladens | bewusst; ein Zeitstempel vom Gerät ist nicht überprüfbar |
 | Backups des Hosters löschen nicht sofort mit | zu dokumentieren, nicht zu behaupten |
-| Alles aus Abschnitt 1 | nie gelaufen |
+| Was in Abschnitt 1 unter „weiterhin nie gelaufen" steht | ungeprüft, und zwar benannt |
 
 ---
 

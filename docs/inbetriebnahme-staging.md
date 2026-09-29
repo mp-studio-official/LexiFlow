@@ -53,7 +53,14 @@ einer der drei Stufen zugeordnet.
 | --- | --- | --- |
 | **L – lokal bewiesen** | Reine Logik, in dieser Werkstatt ausgeführt. Gilt unverändert auch im Staging. | 2830 Prüfungen, davon 160 für die Serverfunktionskerne |
 | **P – mit PGlite simuliert** | Echtes PostgreSQL 17.5, echte Migrationen, echte Regeln – aber `auth.uid()`, die Rollen und das Schema `auth` sind **nachgebaut**. GoTrue, PostgREST und die Edge-Laufzeit fehlen. | 109 Prüfungen |
-| **S – nur mit echtem Supabase nachweisbar** | Alles, was zwischen Browser und SQL liegt. | **offen** |
+| **S – nur mit echtem Supabase nachweisbar** | Alles, was zwischen Browser und SQL liegt. | **seit 29.09.2026 in weiten Teilen belegt** – siehe 0.5 |
+
+### 0.2b Was inzwischen wirklich gelaufen ist
+
+Dieses Dokument war bis zum 29.09.2026 eine Anleitung, deren Schritte niemand
+ausgeführt hatte. Das gilt nicht mehr, und wo es nicht mehr gilt, steht es
+jetzt auch da. Der Stand ist in **0.5** zusammengefasst; die einzelnen
+Abschnitte tragen ihn an Ort und Stelle.
 
 ### 0.3 Die Reihenfolge – und warum GitHub Pages erst spät kommt
 
@@ -106,6 +113,50 @@ Secret Key wird dafür nicht herausgegeben**, siehe den Kasten in 1.4.
 > **Aber sie ist ein Blocker für mehr.** Siehe Abschnitt 14: Vor einer
 > Weitergabe an mehrere Lehrkräfte muss die manuelle Konto- und
 > Profilerstellung durch einen kontrollierten Admin-Prozess ersetzt werden.
+
+---
+
+### 0.5 Stand 29.09.2026 – was im echten Stagingprojekt belegt ist
+
+Ein Stagingprojekt existiert. Dieser Abschnitt sagt, was dort **wirklich
+gelaufen** ist, und trennt es von dem, was weiterhin aussteht.
+
+| Schritt | Stand |
+| --- | --- |
+| Projekt in Frankfurt angelegt | **belegt** |
+| Migrationen 1–11 angewandt, über den SQL-Editor | **belegt** |
+| Rechtestand, geschützte Spalten, Vorgaberechte (3.2.1–3.2.3) | **belegt** |
+| Function Secrets `LEXIFLOW_ALLOWED_ORIGINS`, `LEXIFLOW_AI_MASTER_KEY_V1` gesetzt | **belegt** (dass der Hauptschlüssel *gelesen* wird, noch nicht) |
+| Beide Edge Functions deployt, `verify_jwt = false` aktiv | **belegt**, siehe 3.5 |
+| Portal als Produktionsbuild unter `/LexiFlow/portal/` | **belegt**, kein Testfassungsband, keine Schlüssel im Bündel |
+| Admin- und Lehrkraftkonto, Rollenauflösung, PostgREST, RLS | **belegt**, siehe 6.1–6.3 |
+| Kurs, Einladungscode, zwei Lernendenkonten, Beitritt | **belegt**, siehe 6.4–6.6 |
+| Mitgliedschaft entfernen → Zugriff endet, Lernstand bleibt | **belegt**, siehe 6.12 |
+| Paket veröffentlichen, beide Lernrichtungen (6.7) | offen |
+| Persönlicher Lernstand über zwei Geräte, Revisionskonflikt (6.8, 6.9) | offen |
+| Kurs archivieren und weiterlernen (6.10) | offen |
+| KI-Zugang mit echtem Anbieterschlüssel (6.11) | offen |
+| Sicherheitsabnahme (Abschnitt 7) | teilweise – siehe dort |
+| Safari und Mobil (Abschnitt 8) | offen |
+| Merge, Tag, GitHub Pages (9, 10) | offen |
+
+> ### Ein Befund, der dabei gefunden und behoben wurde
+>
+> Am 29.09.2026 zeigte sich beim Entfernen einer lernenden Person aus einem
+> Kurs: Kurs und Pakete verschwanden für sie, **der Lernstand nicht**. Er war
+> weiter lesbar, und `begin_practice_session` zählte weiter hoch.
+>
+> Ursache waren zwei verschiedene Löcher. Die Zugriffsregel auf
+> `pack_progress` und `entry_progress` fragte nur `user_id = auth.uid()` und
+> nie, ob die Person noch Mitglied ist. Und zwei RPCs sind `security definer`
+> – sie umgehen jede Zugriffsregel und prüften selbst nur, ob überhaupt jemand
+> angemeldet ist.
+>
+> **Migration 11** schließt beides über eine einzige Funktion
+> (`app_may_touch_progress`), nimmt `authenticated` die direkten Schreibrechte
+> auf den Lernstandstabellen und verlangt beim Anlegen einer Runde zusätzlich
+> eine gültige Paketzuweisung (`app_pack_is_assigned`). Die Abnahme dazu steht
+> in 6.12.
 
 ---
 
@@ -280,7 +331,7 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 
 ### 3.1 Migrationen (zuerst)
 
-**Zehn** Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer
+**Elf** Dateien aus `supabase/migrations/`, **in der Reihenfolge ihrer
 Namen**:
 
 | Nr. | Datei | Was entsteht |
@@ -295,9 +346,33 @@ Namen**:
 | 3.1.8 | `20260913120700_ki.sql` | KI-Verbindungen, Freigabeliste |
 | 3.1.9 | `20260920090000_dienstrechte.sql` | die Rechte der **Serverfunktionen** |
 | 3.1.10 | `20260920140000_rechte_zuruecksetzen.sql` | Rechte **abräumen** und neu aufbauen |
+| 3.1.11 | `20260929170000_lernstandszugriff.sql` | Lernstand braucht eine **Mitgliedschaft** |
 
-Entweder über die Supabase-CLI (`supabase db push`) oder Datei für Datei im
-SQL-Editor.
+**Datei für Datei im SQL-Editor.** Nicht über `supabase db push`.
+
+> ### Warum `db push` hier nicht benutzt werden darf
+>
+> **Belegt am 29.09.2026:** `npx supabase@latest migration list` zeigt für
+> alle elf lokalen Dateien eine **leere Remote-Spalte**. Die zehn ersten
+> wurden über den SQL-Editor eingespielt und stehen deshalb nicht in
+> `supabase_migrations.schema_migrations` – der Historie, aus der die CLI
+> ihren Abgleich bildet.
+>
+> Für die CLI sind damit **alle elf offen**. Ein `db push` spielte sie alle
+> ein: auf eine Datenbank, in der zehn davon längst wirken. Was dabei
+> passiert, hängt an jeder einzelnen Anweisung – `create table` bricht ab,
+> `create or replace function` läuft durch, ein `insert` verdoppelt.
+> Vorhersagen lässt sich das nicht, und eine Migration, deren Wirkung man
+> nicht vorhersagen kann, führt man nicht aus.
+>
+> **Der Weg dahin, dass `db push` wieder benutzbar wird**, ist eine
+> kontrollierte Angleichung der Historie: die bereits angewandten Dateien mit
+> `supabase migration repair --status applied <version>` als erledigt
+> eintragen und erst danach `migration list` zur Kontrolle. Das ist ein
+> eigener Vorgang mit eigener Abnahme und **nicht** Teil dieses Dokuments.
+>
+> Bis dahin gilt: **SQL-Editor, Datei für Datei, in der Reihenfolge der
+> Namen.**
 
 > ### Zu 3.1.9 und 3.1.10 – zwei Nachzügler, ein Grund
 >
@@ -362,7 +437,7 @@ SQL-Editor.
 >
 > Es heißt **nicht**, dass ein Fehler unumkehrbar wäre. Für ein Stagingprojekt
 > ohne echte Daten bleiben zwei Wege offen: ein Backup einspielen, oder das
-> Projekt wegwerfen und die zehn Migrationen auf einem frischen anwenden. Das
+> Projekt wegwerfen und die elf Migrationen auf einem frischen anwenden. Das
 > zweite kostet eine halbe Stunde und ist oft das ehrlichere Ergebnis.
 >
 > Teuer wird das Zurückrollen erst, wenn echte Lernstände in der Datenbank
@@ -727,8 +802,35 @@ supabase functions deploy ai-gateway
 > Bei `ai-gateway` steht im `Authorization`-Kopf dagegen das Token der
 > **angemeldeten Lehrkraft** — das ist genau der Wert, den die Funktion prüft.
 
-**Beide sind nie gelaufen** (Stufe S). Ihre Kerne sind mit 160 Prüfungen
-abgenommen; die Deno-Mäntel darum sind es nicht.
+> ### Stand 29.09.2026: beide sind deployt und geprüft
+>
+> Dieser Absatz sagte bis dahin „beide sind nie gelaufen". Das stimmt nicht
+> mehr.
+>
+> | Was | Ergebnis |
+> | --- | --- |
+> | `learner-auth` deployt | ja |
+> | `ai-gateway` deployt | ja, nach der Korrektur der endungslosen Importe (Commit `d89e79d`) |
+> | ohne `Origin`, beide | `403` mit `Nicht erlaubt.` – also hat **unser** Code geantwortet, nicht die Plattformprüfung |
+> | JWT-Prüfung im Dashboard, beide | aus |
+> | `learner-auth`, erlaubte Herkunft, ungültiger Code | `400` `{"fehler":"abgelehnt"}`, `Access-Control-Allow-Origin` exakt die erlaubte Adresse |
+> | `ai-gateway`, erlaubte Herkunft, ohne Token | `401` |
+> | `ai-gateway`, erfundenes Token | `401` |
+> | `ai-gateway`, `OPTIONS` | `204` mit den drei erwarteten `access-control-*`-Zeilen |
+> | `ai-gateway`, `GET` / unlesbarer Rumpf | `405` / `400`, beide `{"fehler":"abgelehnt"}` |
+>
+> Die Unterscheidung `403` gegen `401 Missing authorization header` ist dabei
+> der eigentliche Nachweis: Sie zeigt, dass `supabase/config.toml` übernommen
+> wurde und `verify_jwt = false` wirklich aktiv ist.
+>
+> Das saubere `401` bei `ai-gateway` belegt zusätzlich, dass die Funktion
+> `SUPABASE_URL` und den Secret Key in ihrer Umgebung **findet** – ein
+> fehlender Wert käme als Serverfehler heraus, nicht als Ablehnung. Noch
+> **nicht** belegt ist `LEXIFLOW_AI_MASTER_KEY_V1`: Er wird erst beim Ver- und
+> Entschlüsseln gelesen, also erst mit einer echten Anbieterverbindung.
+
+**Die Kerne** sind unabhängig davon mit 160 Prüfungen abgenommen; was oben
+dazugekommen ist, sind die Deno-Mäntel und die Plattform darum.
 
 ---
 
@@ -1025,6 +1127,48 @@ base64-kodiert genauso unverdächtig aus.
 | 6.12.2 | Als „Dachs" den Kurs öffnen | **nicht mehr sichtbar** |
 | 6.12.3 | Falls noch eine Übungsseite offen ist: antworten | Hinweis „konnte nicht gespeichert werden" |
 | 6.12.4 | In der Datenbank: alter Lernstand von Dachs | **bleibt stehen** – entfernt wurde der Zugriff, nicht die Vergangenheit |
+
+> ### Bestanden am 29.09.2026 – und beim ersten Versuch durchgefallen
+>
+> Der erste Durchgang deckte den Befund aus 0.5 auf. Nach **Migration 11**
+> wurde derselbe Ablauf wiederholt, mit demselben Konto.
+>
+> **Ausgangslage:** Dachs Mitglied von „Englisch 7b", Lernstand
+> `session_count = 1`, `answered_count = 1`, `correct_count = 1`.
+>
+> **Vor der Entfernung, als Mitglied:**
+>
+> | Versuch | Ergebnis |
+> | --- | --- |
+> | `begin_practice_session` mit einem **nicht zugewiesenen** Paket | `403` / `42501` |
+> | direkter `INSERT` in `pack_progress` | `403` / `42501` |
+>
+> **Nach der Entfernung aus dem Kurs:**
+>
+> | Weg | vorher | jetzt |
+> | --- | --- | --- |
+> | `courses` | 200, 0 Zeilen | 200, 0 Zeilen |
+> | `course_packs` | 200, 0 Zeilen | 200, 0 Zeilen |
+> | `pack_progress` | **200, 1 Zeile** | **200, 0 Zeilen** |
+> | `begin_practice_session` | **204, Zähler +1** | **403 / 42501** |
+> | `record_progress_events` | – | `403` / `42501` |
+> | `reset_my_progress` | – | `403` / `42501` |
+> | direkter `INSERT` in `pack_progress` | – | `403` / `42501` |
+>
+> **Nach der Wiederaufnahme** desselben Kontos mit einem neuen, auf **eine**
+> Nutzung begrenzten Einladungscode:
+>
+> - genau ein Kurs und genau ein Paket sichtbar;
+> - Lernstand weiterhin **exakt 1 / 1 / 1** – nicht neu angelegt, sondern
+>   wiedergefunden;
+> - **kein** neues Konto entstanden;
+> - Dachs wieder in der Mitgliederliste;
+> - Einladung „1 von 1, ausgeschöpft".
+>
+> Damit ist belegt: Entfernen sperrt sofort, löscht aber nichts, und die
+> Wiederaufnahme stellt den Zugriff auf **denselben** Lernstand her. Das
+> Archivierungsverhalten (ADR-12) bleibt davon unberührt – ein archivierter
+> Kurs ist abgeschlossen, nicht geschlossen.
 
 ---
 

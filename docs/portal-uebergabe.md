@@ -1,11 +1,21 @@
 # Übergabe: das Portal in Betrieb nehmen
 
 Stand: Sprint 5A, Phase 9. Branch `sprint/5a-cloud-portal-foundation`.
-Nicht nach `main` gemergt, kein Tag, kein Remote, nichts deployt.
+Nicht nach `main` gemergt, kein Tag, kein Remote, **kein Pages-Deployment**.
 
-Diese Datei ist eine **Anleitung**, kein Bericht. Kein Schritt darin ist
-gelaufen. Wer sie abarbeitet, tut jeden Schritt zum ersten Mal – und der
-letzte Abschnitt sagt, woran man merkt, dass einer davon schiefgegangen ist.
+> ### Was sich am 29.09.2026 geändert hat
+>
+> Diese Datei war eine Anleitung, deren Schritte niemand ausgeführt hatte.
+> Inzwischen gibt es ein **Stagingprojekt**, und die Abschnitte 1.1 bis 1.4
+> sind dort durchlaufen: elf Migrationen angewandt, beide Edge Functions
+> deployt und geprüft, Konten, Kurs, Einladung, Beitritt und der Entzug einer
+> Mitgliedschaft abgenommen.
+>
+> Was hier steht, gilt also weiterhin als Anleitung für das **nächste**
+> Projekt – aber nicht mehr als Aussage darüber, dass nichts davon je gelaufen
+> wäre. Wo ein Schritt inzwischen belegt ist, steht es an Ort und Stelle.
+> Der vollständige Stand samt offener Punkte steht in
+> `inbetriebnahme-staging.md`, Abschnitt 0.5.
 
 ---
 
@@ -13,8 +23,9 @@ letzte Abschnitt sagt, woran man merkt, dass einer davon schiefgegangen ist.
 
 | | |
 | --- | --- |
-| **Es gibt** | zehn Migrationen, zwei Serverfunktionen, zwei Web-Auslieferungen, zwei portable Dateien, 2875 Prüfungen |
-| **Es gibt nicht** | ein Supabase-Projekt, einen Hauptschlüssel, einen Remote, ein Deployment |
+| **Es gibt** | elf Migrationen, zwei Serverfunktionen, zwei Web-Auslieferungen, zwei portable Dateien, rund 2960 Prüfungen |
+| **Es gibt inzwischen auch** | ein Supabase-Stagingprojekt mit angewandten Migrationen, gesetzten Secrets und zwei deployten Serverfunktionen |
+| **Es gibt weiterhin nicht** | einen Remote, ein Pages-Deployment, ein Produktivprojekt |
 
 LexiFlow ist **ohne all das vollständig benutzbar**. Die kontofreie Anwendung
 und die portablen Dateien brauchen keinen Server. Was hier eingerichtet wird,
@@ -33,7 +44,8 @@ ohne sie fängt die Prüfung gar nicht erst an.
 
 ### 1.2 Migrationen anwenden
 
-Zehn Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
+Elf Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen —
+**im SQL-Editor, nicht über `supabase db push`** (die Begründung steht unten):
 
 | Datei | Was |
 | --- | --- |
@@ -47,6 +59,7 @@ Zehn Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
 | `…120700_ki.sql` | Verbindungen und Freigabeliste |
 | `20260920090000_dienstrechte.sql` | die Rechte der Serverfunktionen |
 | `20260920140000_rechte_zuruecksetzen.sql` | Rechte abräumen und neu aufbauen |
+| `20260929170000_lernstandszugriff.sql` | Lernstand braucht eine Mitgliedschaft |
 
 > **Die letzten beiden kamen nach.** Die ersten acht vergeben Rechte an
 > `anon` und `authenticated` – die Rollen des Browsers. Die Serverfunktionen
@@ -62,11 +75,38 @@ Zehn Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
 > Vorgaberechte. Der Rechtestand hängt danach nicht mehr davon ab, wie ein
 > Projekt erstellt wurde. Siehe `inbetriebnahme-staging.md`, 3.1 und 3.2.1.
 
-> **Ab jetzt sind Migrationen additiv.** Bis hierher wurden sie beim
-> Weiterbauen in sich geändert – das ging, weil es nirgends eine Datenbank
-> gab, auf der sie schon gelaufen wären. Mit dem ersten Anwenden endet das.
-> Wer danach eine bestehende Datei ändert, hat zwei verschiedene Schemata mit
-> demselben Namen.
+> **Die elfte kam am 29.09.2026 dazu.** Beim Staging zeigte sich, dass eine
+> aus einem Kurs entfernte Person ihren Lernstand weiter lesen und über
+> `begin_practice_session` weiter verändern konnte. Die Zugriffsregel fragte
+> nur nach der Person, nie nach der Mitgliedschaft, und zwei `security
+> definer`-Funktionen umgingen die Regel ohnehin. Migration 11 schließt
+> beides über **eine** Funktion und nimmt `authenticated` die direkten
+> Schreibrechte auf den Lernstandstabellen.
+
+> **Ab jetzt sind Migrationen additiv.** Bis zum ersten Anwenden wurden sie
+> beim Weiterbauen in sich geändert – das ging, weil es nirgends eine
+> Datenbank gab, auf der sie schon gelaufen wären. Mit dem ersten Anwenden
+> endet das. Wer danach eine bestehende Datei ändert, hat zwei verschiedene
+> Schemata mit demselben Namen.
+
+> ### Kein `supabase db push` – belegt am 29.09.2026
+>
+> `npx supabase@latest migration list` zeigt für **alle elf** lokalen Dateien
+> eine leere Remote-Spalte. Die Migrationen wurden über den SQL-Editor
+> eingespielt und stehen deshalb nicht in
+> `supabase_migrations.schema_migrations`, der Historie, aus der die CLI ihren
+> Abgleich bildet.
+>
+> Für die CLI sind damit alle elf offen. Ein `db push` spielte sie alle ein –
+> auf eine Datenbank, in der sie längst wirken. Das Ergebnis hängt an jeder
+> einzelnen Anweisung und lässt sich nicht vorhersagen.
+>
+> Bevor `db push` wieder benutzbar wird, muss die Historie **kontrolliert**
+> angeglichen werden (`supabase migration repair --status applied <version>`
+> je bereits angewandter Datei, danach `migration list` zur Kontrolle). Das
+> ist ein eigener Vorgang mit eigener Abnahme.
+>
+> Bis dahin: **SQL-Editor, Datei für Datei, in der Reihenfolge der Namen.**
 
 ### 1.3 Function Secrets
 
@@ -105,8 +145,22 @@ Eine Variable mit dem Präfix `VITE_` landet im ausgelieferten JavaScript.
 
 ### 1.4 Edge Functions deployen
 
-`learner-auth` und `ai-gateway`. Beide sind nie gelaufen; der erste Aufruf ist
-der erste Test ihrer Mäntel.
+`learner-auth` und `ai-gateway`.
+
+> **Stand 29.09.2026: beide sind im Stagingprojekt deployt und geprüft.**
+> Ohne `Origin` antworten beide mit `403 Nicht erlaubt.` – also aus dem
+> eigenen Code, nicht aus der Plattformprüfung; im Dashboard ist die
+> JWT-Prüfung bei beiden aus. `learner-auth` lehnt einen ungültigen
+> Einladungscode mit `400 {"fehler":"abgelehnt"}` ab und setzt
+> `Access-Control-Allow-Origin` exakt auf die erlaubte Adresse; `ai-gateway`
+> antwortet ohne Token und mit erfundenem Token je `401`, auf `OPTIONS` mit
+> `204`. Die Einzelheiten stehen in `inbetriebnahme-staging.md`, 3.5.
+>
+> `ai-gateway` ließ sich beim ersten Versuch **nicht** bündeln: `core.ts`
+> importierte drei Nachbarmodule ohne `.ts`-Endung. Vite und der
+> TypeScript-Dienst raten die Endung, Deno nicht. Behoben in `d89e79d`, samt
+> einer Wache, die endungslose relative Importe im produktiven
+> Modulgraphen findet.
 
 > **`supabase/config.toml` liegt im Repository** und setzt für beide
 > `verify_jwt = false`. Das ist kein Wegfall der Autorisierung, sondern die
