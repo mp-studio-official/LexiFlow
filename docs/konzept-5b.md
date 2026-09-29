@@ -80,7 +80,14 @@ Schriften: **Manrope Variable** und **Newsreader Variable** liegen lokal
 eingebettet vor; Satoshi wird nur benutzt, wenn jemand sie installiert hat
 (Lizenzlage für die Weitergabe ungeklärt). Die Forderung „freie Schriften
 lokal mitliefern, keine externe Schriftanforderung" ist damit **bereits
-erfüllt** und bleibt es.
+erfüllt** und bleibt es — die *unbestimmte* Erstwahl Satoshi fällt mit E10
+weg (Abschnitt 12).
+
+> **Damit kein Missverständnis entsteht:** Dass die Token gut sind und die
+> Kontrastprüfung grün läuft, heißt **nicht**, dass das sichtbare Design dem
+> Zielbild schon entspricht. Es entspricht ihm nicht. Gute Token sind die
+> Voraussetzung dafür, dass 5B das Aussehen ändern kann, ohne die Zugäng-
+> lichkeit zu verlieren — sie sind nicht das Ergebnis.
 
 ### 1.3 Lernendenseite
 
@@ -94,19 +101,79 @@ erfüllt** und bleibt es.
 | Lernserie (Tage in Folge) | **existiert nicht.** Das vorhandene `streak` zählt richtige Antworten hintereinander, nicht Tage. |
 | Wochenziel | **existiert nicht.** |
 
-### 1.4 Lehrkraftseite
+### 1.4 Lehrkraftseite — und in welcher Laufzeit
 
-Vorhanden: Import (PDF, Foto, Tabelle, Text), Textwerkstatt mit
-Kandidatenauswahl, Wörterbuch- und KI-Vorschläge, Beispielsatzassistent,
-Lernbereiche, Paketeditor, Veröffentlichung mit Revisionen, KI-Zugang mit
-verschlüsselter Schlüsselablage, Export als Lerndatei, Tabelle und
-Offline-HTML.
+Der vorige Stand dieses Dokuments sagte, der Lehrkraftablauf sei „überwiegend
+gebaut". Das war **irreführend**, weil es die entscheidende Frage nicht
+stellte: gebaut *wo*.
 
-Der in 5B beschriebene Ablauf ist damit **überwiegend gebaut**. Was fehlt, ist
-nicht der Ablauf, sondern seine Form: er verteilt sich über Seiten, die
-einzeln entstanden sind.
+LexiFlow hat drei Auslieferungen. Sie liegen unter demselben Ursprung, teilen
+sich die Domainlogik — und sonst fast nichts.
 
-Ausdrücklich **nicht** vorhanden: zeitgesteuerte Veröffentlichung.
+| Auslieferung | Adresse | wer sie benutzt |
+| --- | --- | --- |
+| **kontofreie Lehrkraft-App** | `/LexiFlow/` | eine Lehrkraft am eigenen Gerät, ohne Konto |
+| **Cloud-Portal** | `/LexiFlow/portal/` | Lehrkräfte und Lernende mit Konto |
+| **portable Lerndatei** | eine HTML-Datei | Lernende, auch offline und per `file://` |
+
+#### Die Werkstatt liegt nicht im Portal
+
+Das Portal kennt fünf Bereiche: `lernen`, `kurse`, `material`, `ki`,
+`verwaltung` (`src/hosted/HostedApp.tsx`). Eine Route zum Erstellen oder
+Bearbeiten eines Pakets ist **nicht** darunter.
+
+`src/hosted/teacher/MaterialPage.tsx` listet Pakete, veröffentlicht sie,
+friert Fassungen ein und weist sie Kursen zu. Zum Erstellen verweist es über
+`soloUrlFrom()` auf die kontofreie Anwendung. Daneben steht
+`LocalImportPanel`: Weil beide Auslieferungen denselben Ursprung haben und
+IndexedDB dem Ursprung gehört, kann das Portal die Pakete **übernehmen**, die
+in der kontofreien Anwendung entstanden sind — ohne Datei, ohne Hochladen.
+
+Das ist eine hübsche Lösung. Es ist aber keine Werkstatt im Portal, und für
+eine Lehrkraft, die das Portal von einem anderen Gerät aus benutzt, gibt es
+ihren Inhalt nicht.
+
+#### Die acht Schritte, je Laufzeit
+
+| # | Schritt | kontofreie App | Cloud-Portal | portable Lerndatei | gemeinsame Domainlogik | für 5B noch nötig |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Kurs/Lerngruppe, Thema, Niveau | Thema und Niveau ja (Lernbereiche); **Kurse nein** | Kurse ja; Thema/Niveau nur am übernommenen Paket | — | `cefr.ts`, `learningArea.ts` | Kurs, Thema und Niveau **im Portal** in einem Schritt |
+| 2 | PDF, Foto, Excel, Lerndatei, Text einlesen | ja (`ImportWizardPage`, `PdfSourcePanel`) | **nein** | — | `import/`, `textExtraction.ts` | vollständig ins Portal zu bringen |
+| 3 | KI analysiert und strukturiert | ja, am Gerät (Chrome-Modell) | **nein** für die Analyse; `ai-gateway` deckt bisher nur den Anbieterzugang | — | `ai/` | Analyse über das Portal, mit dem hinterlegten Anbieter |
+| 4 | Wörter im Quelltext auswählen | ja (`SourceTextPane`, `TextCandidateReview`) | **nein** | — | `textExtraction.ts` | vollständig ins Portal zu bringen |
+| 5 | Vorschläge: Übersetzung, Wortart, Lernform, Beispielsätze | ja (Wörterbuch + KI + `SentenceAssistant`) | **nein** | — | `dictionary/`, `import/enrichment.ts` | vollständig ins Portal zu bringen |
+| 6 | Lehrkraft prüft und bestätigt | ja (`PackEditorPage`, `DraftTable`) | **nein** | — | `schema.ts`, `packDiff.ts` | vollständig ins Portal zu bringen |
+| 7a | sofort veröffentlichen | — (kein Konto) | **ja**, mit Revisionen | — | `packDiff.ts` | — |
+| 7b | zeitgesteuert veröffentlichen | — | **nein** | — | — | neu, serverseitig |
+| 8 | Export als Lerndatei, Tabelle, Offline-HTML | ja | Lerndatei ja (`soloUrlFrom`), Tabelle/HTML **nein** | — | `portable/`, `ui/packDownloads.ts` | Export im Portal vervollständigen |
+
+**Die ehrliche Zusammenfassung:** Von den acht Schritten läuft im Portal heute
+**einer** vollständig (7a) und einer teilweise (1 und 8). Die Schritte 2 bis 6
+— also die eigentliche Paketerstellung — existieren im Portal **gar nicht**.
+Das Portal kann bisher nur übernehmen, was anderswo entstanden ist.
+
+„Im Repository vorhanden" heißt hier ausdrücklich **nicht** „im Portal
+nutzbar". Der Portalaufwand für 5B ist entsprechend groß; ihn kleinzurechnen,
+weil der Code existiert, wäre der teuerste Fehler dieses Konzepts.
+
+Ausdrücklich **nicht** vorhanden, in keiner Laufzeit: zeitgesteuerte
+Veröffentlichung, Titelbilder.
+
+#### Und auf der Lernendenseite
+
+| Funktion | kontofreie App | Cloud-Portal | portable Lerndatei | gemeinsame Domainlogik |
+| --- | --- | --- | --- | --- |
+| Paketliste, Paketdetail | ja | ja (über Kurse) | ja | `studyView.ts` |
+| Runde üben | ja | ja (`PracticePage`) | ja | `exercises.ts`, `session.ts` |
+| Karteikarten (`CardStudyPage`) | ja | **nein** | ja | `exercises.ts` |
+| Selbsttest (`SelfTestPage`) | ja | **nein** | ja | `selfTest.ts` |
+| Freies Üben (`FreePracticeSetupPage`) | ja | **nein** | ja | `freePractice.ts` |
+| Vokabelliste durchsehen | ja | **nein** | ja | `vocabTable.ts` |
+| Lernstand über Geräte hinweg | nein | ja | nein | `progressEvents.ts` |
+
+Auch hier gilt: Die Übungsformen **existieren**, aber im Portal ist bisher nur
+eine davon erreichbar. Der Bereich „Üben" aus Abschnitt 4.3 ist im Portal
+deshalb überwiegend Neubau, nicht Umbau.
 
 ### 1.5 Paketmodell
 
@@ -160,6 +227,24 @@ Vier Sätze, an denen sich jede Entscheidung in 5B messen lässt:
    darf großzügig sein. Ein Kandidateneditor mit 80 Wörtern darf es nicht.
 4. **Kein Marketing in der Arbeit.** Große Bildflächen gehören auf Landing-,
    Beitritts- und Startseiten. In „Üben" und im Paketeditor nicht.
+
+### Was sich sichtbar ändern muss
+
+5B ist keine Aufräumaktion unter der Oberfläche. Deutlich anzupassen sind:
+
+| Was | woran man die Änderung sieht |
+| --- | --- |
+| **Typografie** | eine editoriale Überschriftenstimme (Newsreader), ruhigere, größere Fließtextmaße, weniger Schriftgrade je Ansicht |
+| **Seitenaufbau** | ein Seitentitelbereich statt Überschrift-im-Fluss; breitere Ränder; ein Rhythmus statt handgesetzter Abstände |
+| **Navigation** | je vier Ziele, unten auf dem Telefon, seitlich am Schreibtisch |
+| **Karten** | Kurs- und Paketkarten mit Cover, Metadaten am Fuß, **einer** deutlichen Aktion |
+| **Bilder** | Cover gibt es überhaupt erst — heute ist jede Liste textgrau |
+| **Abstände** | mehr Weißraum, weniger Rahmen; Trennung durch Fläche statt durch Linien |
+| **mobile Bedienung** | einspaltig, 44 px, sticky Aktionen, umschaltbare Werkstattansichten |
+
+Die Wärme und Großzügigkeit kommen von Corely, die Lernkartenlogik und die
+Metadatenzeile von CourseSite. Kopiert wird nichts: kein Layout, kein
+Markenelement, keine Farbe.
 
 ### Farben — verbindlich und unverändert
 
@@ -272,14 +357,21 @@ ist.
 Eine Serie, die beim ersten freien Tag auf null fällt, bestraft Krankheit und
 Wochenenden. Die Regel für 5B:
 
-- Ein Tag zählt ab einer kleinen, erreichbaren Menge (Vorschlag: zehn
-  beantwortete Karten).
-- **Zwei Ruhetage je Kalenderwoche** unterbrechen die Serie nicht.
+- Ein Tag zählt nach **zehn regulär bewerteten Aufgaben** — in **jeder**
+  Übungsform, nicht nur mit Karteikarten (E1).
+- Dasselbe gespeicherte Ereignis zählt **nicht zweimal**. Wiederholt ein Gerät
+  nach einem Abbruch seine Ereignisse, steht der Tag danach so da wie vorher.
+- **Zwei automatische Ruhetage je Kalenderwoche** unterbrechen die Serie
+  nicht. Nicht ansammelbar, nicht vorher zu wählen (E2).
+- Maßgeblich ist die **Zeitzone der lernenden Person**; serverseitig
+  entscheidet nie die Gerätezeit.
 - Eine unterbrochene Serie wird ruhig gemeldet und die längste bisherige
   bleibt sichtbar.
 - Kein Zähler, der rot wird. Keine Erinnerung, die drängt.
 
-Die konkrete Schwelle ist eine fachliche Entscheidung — siehe Abschnitt 11.
+Damit ist die Serie eine Eigenschaft der **Ereignisse** und gehört neben
+`application/progressEvents.ts`, nicht in eine Ansicht. Die Zeitzone der
+Person muss dafür bekannt und gespeichert sein — das ist sie heute nicht.
 
 ### 4.6 Lehrkraft: Lernpakete und Paketwerkstatt
 
@@ -309,11 +401,17 @@ nicht eine Einstellung.
 **Bleibt unverändert:** Farben, Kontrastregeln, Laufweitenleiter, Radien,
 Fokus, Bewegung, Druckmaßstäbe. Die Token sind nicht das Problem.
 
+**Ändert sich:** `--font-sans` und `--font-display` verlieren Satoshi (E10).
+Manrope trägt die Oberfläche, Newsreader bekommt mit `--font-display` die
+editoriale Überschriftenrolle; `--font-quote` bleibt daneben die Stimme im
+Lernmaterial. Zwei Token, eine Schriftdatei. Eine Schrift, die nur auf manchen
+Geräten vorhanden ist, erzeugt ein Design, das sich nicht reproduzieren lässt.
+
 **Kommt dazu:**
 
 | Token | wofür |
 | --- | --- |
-| `--cover-ratio` | ein einziges Seitenverhältnis für alle Paketcover (Vorschlag 16 : 10) |
+| `--cover-ratio` | ein einziges Seitenverhältnis für alle Paketcover: **16 : 10** (E4) |
 | `--elevation-card`, `--elevation-card-hover` | Rollennamen statt `--shadow-2` in 40 Regeln |
 | `--stack-*` | senkrechter Rhythmus als Leiter statt handgesetzter Abstände |
 | `--skeleton-*` | Ladeflächen |
@@ -473,6 +571,18 @@ Titelfläche.
 2. **Eingebaute LexiFlow-Cover** — vorhanden, wird ausgebaut.
 3. **Unsplash** — Stufe 2, **nicht Teil von 5B**.
 
+Die drei sind **nicht derselbe Speicherfall** und werden nicht so behandelt
+(E6):
+
+| Quelle | Ablage | Auslieferung |
+| --- | --- | --- |
+| Upload | Supabase Storage, privat | kurzlebige signierte Adressen |
+| eingebautes Cover | gebündeltes Asset | öffentlich, wie jedes Asset |
+| Unsplash | nichts Eigenes, nur eine externe Kennung | nach Unsplashs API-Regeln |
+
+Ein öffentlich lesbarer Bucket wäre ein weitergebbarer Link — auch zu einem
+Bild, das eine Lehrkraft für **eine** Klasse hochgeladen hat.
+
 ### 8.3 Uploads
 
 | Anforderung | Festlegung |
@@ -480,11 +590,14 @@ Titelfläche.
 | Formate | JPEG, PNG, WebP; HEIC nur nach Konvertierung |
 | SVG | **nicht** ungeprüft. SVG ist ausführbares Markup. |
 | Prüfung | MIME-Typ **und** Dateisignatur, serverseitig; der Browser ist keine Instanz |
-| Größe | harte Obergrenze vor dem Hochladen und noch einmal danach |
-| Verarbeitung | automatische Kompression, mehrere Größen (Vorschlag: 400 / 800 / 1600 px Breite) |
+| lokale Auswahl | höchstens **10 MB** (E5). Nicht 5 MB: Smartphone-Fotos sind regelmäßig größer, und eine Grenze, die den Normalfall abweist, ist keine Grenze, sondern ein Fehler. |
+| vor dem Hochladen, im Browser | auf höchstens **1600 px Breite** skalieren, Metadaten entfernen, auf eine vernünftige Zielgröße komprimieren |
+| hochgeladen wird | **nur das verarbeitete Bild.** Das Original verlässt das Gerät nicht und wird nicht gespeichert. |
+| serverseitig erneut | Dateisignatur, MIME-Typ, **Pixelmaße** und **Ergebnisgröße** |
+| Größen | mehrere Breiten aus dem verarbeiteten Bild (400 / 800 / 1600 px) |
 | EXIF | vollständig entfernen, **einschließlich Standort** |
-| Ausschnitt | Fokuspunkt, den die Lehrkraft setzt; Standard Bildmitte |
-| Ablage | Supabase Storage, eigener Bucket, Zugriffsregeln wie die Pakete: lesen darf, wer das Paket sehen darf |
+| Ausschnitt | Fokuspunkt, den die Lehrkraft setzt; Standard Bildmitte. Er ist kein Feinschliff, sondern verhindert, dass ein Bild auf schmalen Geräten an der falschen Stelle beschnitten wird. |
+| Ablage | Supabase Storage, eigener Bucket, **privat**; ausgeliefert über kurzlebige signierte Adressen (E6) |
 | Offline-Export | komprimiert eingebettet |
 
 **Heute existiert dafür nichts** — weder Bucket noch Migration noch Feld. Das
@@ -540,7 +653,10 @@ Nutzungsbedingungen abgenommen sind.
 | R6 | Lernserie und Ziele | Druck statt Motivation | Ruhetage, kein Rot, Ziele freiwillig und standardmäßig aus |
 | R7 | Safari und Mobil ungeprüft | Fehler erst bei Lernenden | WebKit und vier Breiten in die E2E-Prüfung, **vor** dem ersten 5B-Block |
 | R8 | 5B beginnt vor 5A-Abnahme | zwei bewegliche Teile | 5B beginnt erst nach dem Merge von 5A |
-| R9 | Zeitgesteuerte Veröffentlichung | braucht serverseitige Zeit | Serverzeit, nie Gerätezeit; eigener Block |
+| R9 | Zeitgesteuerte Veröffentlichung | braucht serverseitige Zeit | Sichtbarkeit aus `freigegeben && publish_at <= now()` in der Zugriffsregel; kein Zustand, der umgeschaltet wird (E8) |
+| **R10** | **Der Portalaufwand wird unterschätzt** | Die Schritte 2 bis 6 existieren im Portal **gar nicht** (1.4). Wer „der Code ist da" mit „das Portal kann das" verwechselt, plant den größten Block von 5B weg. | Abschnitt 1.4 nennt je Schritt die Laufzeit; die Blöcke 5B.11 und 5B.12 tragen den Portalbau ausdrücklich |
+| R11 | Zeitzone der lernenden Person | Serie und Ruhetage sind ohne sie nicht berechenbar; es gibt sie heute nicht | eigener kleiner Schritt in 5B.5, vor der Serienlogik |
+| R12 | Zwei Rollen für Newsreader | editoriale Überschrift und Materialstimme verwischen | zwei Token (`--font-display`, `--font-quote`), im Designsystem benannt und geprüft |
 
 ---
 
@@ -562,7 +678,14 @@ alles danach.
 | **5B.7** | Grammatik in der Oberfläche: Eingabe im Paketeditor, Anzeige auf der Lernkarte, Übungsform „Zeitformen" | 5B.6, 5B.4 |
 | **5B.8** | Titelbilder Stufe 1: Bucket, Migration, Upload, Prüfung, Größen, Fokuspunkt, Einbettung im Offline-Export | 5B.1 |
 | **5B.9** | Mobile Sonderfälle: Tabellen als Karten, umschaltbare Werkstattansichten, sticky Aktionsleisten | 5B.2 |
-| **5B.10** | Zeitgesteuerte Veröffentlichung | — |
+| **5B.10** | Zeitgesteuerte Veröffentlichung: `publish_at`, Auswertung beim Abruf über die Zugriffsregel, serverseitige Zeit | — |
+| **5B.11** | **Werkstatt im Portal, erste Hälfte:** Einlesen (Schritt 2) und Quelltextauswahl (Schritt 4) unter `/portal/material` | 5B.2 |
+| **5B.12** | **Werkstatt im Portal, zweite Hälfte:** Vorschläge und Prüfschritt (Schritte 3, 5, 6); Export vervollständigen (Schritt 8) | 5B.11 |
+| **5B.13** | Übungsformen im Portal erreichbar machen: Karteikarten, Selbsttest, freies Üben, Vokabelliste | 5B.4 |
+
+**5B.11 bis 5B.13 sind der eigentliche Umfang.** Sie stehen hier unten, weil
+sie von der Hülle abhängen — nicht, weil sie klein wären. Wer 5B plant und
+diese drei Blöcke überliest, plant die Hälfte der Arbeit weg.
 
 Nicht Teil von 5B: Unsplash, kleine Spiele, Dunkelmodus.
 
@@ -587,6 +710,10 @@ Messbar heißt: eine Prüfung kann es entscheiden, nicht ein Eindruck.
       der Token.
 - [ ] Auf keinem Bildschirm steht Tomato als Text auf Papier.
 - [ ] Keine vierte Markenfarbe im Bündel.
+- [ ] `--font-sans` und `--font-display` nennen **keine** Schrift, die nicht
+      mitgeliefert wird — geprüft als Text in `tokens.css`.
+- [ ] Jede Ansicht sieht in Chromium und WebKit gleich aus, ohne dass jemand
+      eine Schrift installiert hat.
 
 ### Lernendenbereich
 
@@ -596,8 +723,14 @@ Messbar heißt: eine Prüfung kann es entscheiden, nicht ein Eindruck.
       kaputte Seite.
 - [ ] „Üben" zeigt ausschließlich Karten, deren Voraussetzung erfüllt ist.
 - [ ] „Mein Fortschritt" enthält keinen Wert über eine andere Person.
-- [ ] Zwei Ruhetage je Woche unterbrechen die Serie nicht — als Prüfung der
-      Domainfunktion, ohne Oberfläche.
+- [ ] Zehn bewertete Aufgaben lassen einen Tag zählen — **in jeder**
+      Übungsform, geprüft je Form.
+- [ ] Dieselben Ereignisse ein zweites Mal eingespielt ändern die Serie nicht.
+- [ ] Zwei Ruhetage je Woche unterbrechen die Serie nicht; ein dritter schon —
+      als Prüfung der Domainfunktion, ohne Oberfläche.
+- [ ] Die Serie rechnet in der Zeitzone der Person, nicht in der des Servers
+      und nicht in der des Geräts.
+- [ ] Ein neues Konto hat **kein** Wochenziel, bis jemand eines wählt.
 - [ ] Kein Element droht, mahnt oder zählt herunter.
 
 ### Lehrkraftbereich
@@ -605,7 +738,14 @@ Messbar heißt: eine Prüfung kann es entscheiden, nicht ein Eindruck.
 - [ ] Vier Navigationsziele; KI-Zugang unter Einstellungen.
 - [ ] Der Lernbereich ist für Lehrkräfte sichtbar als Vorschau gekennzeichnet.
 - [ ] Kein Weg führt von einer Lehrkraftansicht zum Lernstand einer
-      namentlichen Person.
+      namentlichen Person — **auch kein aggregierter** (E7).
+- [ ] Ein Paket lässt sich **im Portal** aus einem PDF, einem Foto, einer
+      Tabelle oder einem Text erzeugen, ohne die kontofreie Anwendung zu
+      öffnen.
+- [ ] Ein Paket mit `publish_at` in der Zukunft ist für die Lerngruppe nicht
+      abrufbar — geprüft über PostgREST, nicht nur in der Oberfläche.
+- [ ] Dasselbe Paket ist nach Erreichen des Zeitpunkts abrufbar, **ohne** dass
+      jemand oder etwas einen Zustand umgeschaltet hat.
 
 ### Datenmodell
 
@@ -624,6 +764,12 @@ Messbar heißt: eine Prüfung kann es entscheiden, nicht ein Eindruck.
 - [ ] Eine als JPEG umbenannte Datei anderen Typs wird serverseitig abgelehnt.
 - [ ] Ein SVG-Upload wird abgelehnt.
 - [ ] Ein Bild mit Standort-EXIF liegt ohne diese Daten im Bucket.
+- [ ] Eine Datei über 10 MB wird schon bei der Auswahl abgelehnt, mit einem
+      Satz, der sagt warum.
+- [ ] Was im Bucket ankommt, ist höchstens 1600 px breit — das Original ist
+      nirgends gespeichert.
+- [ ] Eine Adresse zu einem hochgeladenen Cover ist nach Ablauf der Signatur
+      nicht mehr abrufbar.
 - [ ] Ein Offline-Export mit Cover bleibt innerhalb des Größenbudgets.
 - [ ] Wer ein Paket nicht sehen darf, kann sein Cover nicht abrufen.
 
@@ -636,22 +782,126 @@ Messbar heißt: eine Prüfung kann es entscheiden, nicht ein Eindruck.
 
 ---
 
-## 12. Entscheidungen, die Marc treffen muss
+## 12. Entscheidungen E1 bis E10 — getroffen
 
-Diese sind **nicht** getroffen. Ich baue nichts davon auf Verdacht.
+Marc hat am 29.09.2026 entschieden. Die Entscheidungen sind für 5B verbindlich
+und stehen hier in der Fassung, die gilt — nicht als Vorschlag.
 
-| # | Frage | mein Vorschlag |
+### E1 — Wann ein Tag für die Lernserie zählt
+
+Ein Tag zählt nach **zehn regulär bewerteten Aufgaben**.
+
+- Es zählt **jede** Übungsform, nicht nur Karteikarten. Eine Serie, die nur
+  eine Form anerkennt, erzieht zu dieser Form.
+- Idempotenz ist Pflicht: Dasselbe gespeicherte Ereignis darf den Zähler nicht
+  ein zweites Mal erhöhen. Wiederholt ein Gerät nach einem Abbruch dieselben
+  Ereignisse, ist der Tag danach genauso gezählt wie vorher.
+- Damit ist die Serie eine Eigenschaft der **Ereignisse**, nicht der
+  Oberfläche, und gehört in die Domainlogik neben `progressEvents.ts`.
+
+### E2 — Ruhetage
+
+**Zwei automatische Ruhetage je Kalenderwoche.** Nicht ansammelbar, nicht
+vorher zu wählen, nicht zu beantragen.
+
+Maßgeblich ist die **Zeitzone der lernenden Person**. Für serverseitige
+Entscheidungen gilt nicht die Gerätezeit: Eine falsch gestellte Uhr darf nicht
+darüber entscheiden, ob eine Serie hält — dieselbe Überlegung wie bei `rev`
+gegen Zeitstempel im Lernstand.
+
+Daraus folgt eine Anforderung, die es heute nicht gibt: Die Zeitzone der
+Person muss bekannt und gespeichert sein.
+
+### E3 — Wochenziel
+
+**Standardmäßig aus.** Beim Einstieg darf LexiFlow freundlich anbieten, eines
+zu wählen; das Angebot ist einmalig und wegklickbar. Später jederzeit änderbar
+und abschaltbar.
+
+Ein voreingestelltes Ziel wäre eine Vorgabe, keine Wahl.
+
+### E4 — Coverformat
+
+**16 : 10**, als `--cover-ratio`. Der Fokuspunkt ist kein Feinschliff: Er
+verhindert, dass ein Bild auf schmalen Geräten an der falschen Stelle
+beschnitten wird.
+
+### E5 — Bild-Uploads: Grenzen und Verarbeitung
+
+Nicht 5 MB — normale Smartphone-Fotos sind regelmäßig größer, und eine Grenze,
+die den Normalfall abweist, ist keine Grenze, sondern ein Fehler.
+
+| Stufe | Regel |
+| --- | --- |
+| lokale Auswahl | höchstens **10 MB** |
+| vor dem Hochladen, im Browser | skalieren auf höchstens **1600 px Breite**, Metadaten entfernen, auf eine vernünftige Zielgröße komprimieren |
+| hochgeladen wird | **nur das verarbeitete Bild.** Das Original verlässt das Gerät nicht und wird nicht gespeichert. |
+| serverseitig erneut | Dateisignatur, MIME-Typ, **Pixelmaße** und **Ergebnisgröße** |
+
+Die serverseitige Prüfung wiederholt die Browserprüfung nicht aus Misstrauen
+gegen die Lehrkraft, sondern weil der Browser keine Instanz ist: Was dort
+geprüft wurde, kann auf dem Weg ersetzt worden sein.
+
+### E6 — Drei Bildquellen, drei Speicherfälle
+
+Sie sind **nicht** derselbe Fall und werden nicht so behandelt.
+
+| Quelle | Ablage | Auslieferung |
 | --- | --- | --- |
-| E1 | Ab wie vielen Karten zählt ein Tag für die Lernserie? | zehn beantwortete Karten |
-| E2 | Zwei Ruhetage je Kalenderwoche — richtig? | ja, und nicht ansammelbar |
-| E3 | Ist ein Wochenziel standardmäßig **aus**? | ja. Ein voreingestelltes Ziel ist eine Vorgabe, keine Wahl. |
-| E4 | Seitenverhältnis der Cover | 16 : 10 |
-| E5 | Obergrenze für Bild-Uploads | 5 MB vor der Verarbeitung |
-| E6 | Wird der Bucket öffentlich lesbar oder über signierte Adressen? | signierte Adressen — sonst ist jedes Cover ein öffentlicher Link |
-| E7 | Dürfen Lehrkräfte **aggregierte** Kursfortschritte sehen (ohne Namen)? | in 5B **nein**. Das ist eine eigene Entscheidung mit eigener Datenschutzfolge. |
-| E8 | Zeitgesteuerte Veröffentlichung: pg_cron oder Prüfung beim Abruf? | Prüfung beim Abruf — kein zusätzlicher Dienst, keine zusätzliche Fehlerquelle |
-| E9 | Wird die Navigation bei Lernenden wirklich auf vier Ziele begrenzt? | ja |
-| E10 | Bleibt Satoshi als nicht mitgelieferte Erstwahl? | ja, solange die Lizenzlage ungeklärt ist |
+| **Upload der Lehrkraft** | Supabase Storage, **privat** | kurzlebige signierte Adressen |
+| **eingebautes LexiFlow-Cover** | gebündeltes Asset | öffentlich, wie jedes Asset |
+| **Unsplash** (später) | nichts Eigenes; externe Kennung | nach Unsplashs API-Regeln |
+
+Ein öffentlich lesbarer Bucket wäre ein Link, den jede Person weitergeben
+kann — auch zu einem Bild, das eine Lehrkraft für eine Klasse hochgeladen hat.
+
+### E7 — Lernstände für Lehrkräfte
+
+**In 5B keine.** Weder individuell noch aggregiert.
+
+Eine spätere Änderung braucht eine eigene fachliche **und**
+datenschutzrechtliche Entscheidung und ist keine Designfrage. Dieses Konzept
+trifft sie nicht und bereitet sie auch nicht vor.
+
+### E8 — Zeitgesteuerte Veröffentlichung
+
+Ausgewertet **beim Abruf**, anhand der **serverseitigen Datenbankzeit**. Kein
+Gerätezeitstempel, zunächst kein `pg_cron`.
+
+Es wird kein Zustand umgeschaltet. Sichtbarkeit ergibt sich aus
+Freigabestatus **und** `publish_at <= now()` — beides in der Zugriffsregel.
+Ein Stand, der umgeschaltet werden muss, kann in einem falschen Zustand
+hängen bleiben; ein Stand, der sich aus einem Vergleich ergibt, kann das
+nicht.
+
+Benachrichtigungen („dein Paket ist jetzt da") wären ein eigener Prozess und
+sind nicht Teil davon.
+
+### E9 — Navigation der Lernenden
+
+Genau **vier** Ziele: Heute · Lernen · Üben · Mein Fortschritt.
+
+### E10 — Schriften
+
+Satoshi ist **nicht** mehr die unbestimmte erste Wahl. Eine Schrift, die nur
+auf manchen Geräten da ist, erzeugt ein Design, das sich nicht reproduzieren
+lässt — und genau das steht heute in `--font-sans` und `--font-display`.
+
+Verbindlich, beide bereits lokal eingebettet:
+
+| Rolle | Schrift |
+| --- | --- |
+| Oberfläche, Bedienelemente, Fließtext | **Manrope** |
+| editoriale Überschriften | **Newsreader**, gezielt |
+
+Satoshi kann entfernt werden, solange es keine eindeutig dokumentierte Lizenz
+und keine mitgelieferte Datei gibt. Das ist eine Änderung an `tokens.css` und
+gehört in Block 5B.1, nicht in einen Dokumentationscommit.
+
+Newsreader trägt damit zwei Rollen — Beispielsätze im Lernmaterial und
+editoriale Überschriften. Sie sind auseinanderzuhalten: `--font-quote` bleibt
+die redaktionelle Stimme **im Material**, `--font-display` wird die Stimme
+**der Oberfläche**. Zwei Token, eine Schriftdatei.
 
 ---
 
@@ -662,6 +912,15 @@ Diese sind **nicht** getroffen. Ich baue nichts davon auf Verdacht.
 - Es sagt nicht, dass 5A abgenommen ist. Zum Zeitpunkt dieses Dokuments sind
   die zehn Migrationen angewandt und die beiden Secrets gesetzt; deployt ist
   nichts, und die Abnahme gegen die echte Laufzeit steht aus.
-- Es legt keinen Termin fest.
+- Es sagt **nicht**, dass eine Funktion im Cloud-Portal nutzbar ist, nur weil
+  ihr Code im Repository liegt. Abschnitt 1.4 nennt je Schritt die Laufzeit.
+  Im Portal existieren die Schritte 2 bis 6 der Paketerstellung gar nicht.
+- Es sagt **nicht**, dass das sichtbare Design dem Zielbild schon nahekommt,
+  nur weil die Token und die Kontrastprüfung in Ordnung sind. Sie sind die
+  Voraussetzung, nicht das Ergebnis.
+- Es legt keinen Termin fest und keinen Aufwand.
 - Es ersetzt keine Datenschutzfolgenabschätzung für Bild-Uploads. Die ist ein
   eigener Vorgang, bevor Block 5B.8 beginnt.
+- Es trifft keine Entscheidung über Lernstände für Lehrkräfte. E7 sagt „in 5B
+  nicht" — das ist ein Aufschub, kein Nein für immer, und die spätere
+  Entscheidung braucht mehr als dieses Dokument.
