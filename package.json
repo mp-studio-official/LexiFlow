@@ -22,6 +22,8 @@
     "e2e:a11y": "playwright test --grep @a11y",
     "e2e:portable": "playwright test --config playwright.portable.config.ts",
     "e2e:portal": "playwright test --config playwright.portal.config.ts",
+    "e2e:breiten": "playwright test --grep @breiten",
+    "e2e:breiten:portal": "playwright test --config playwright.portal.config.ts --grep @breiten",
     "verify:deploy": "node scripts/verify-deploy.mjs"
   },
   "dependencies": {

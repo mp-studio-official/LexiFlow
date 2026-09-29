@@ -1,4 +1,6 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
+
+import { ablaufProjekt, breitenProjekte } from './e2e/pruefbank';
 
 const executablePath = process.env['PLAYWRIGHT_CHROMIUM_PATH'];
 
@@ -41,7 +43,12 @@ export default defineConfig({
     locale: 'de-DE',
     ...(executablePath ? { launchOptions: { executablePath } } : {}),
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  /*
+    Dieselbe Prüfbank wie in `playwright.config.ts` – und das ist der Punkt.
+    Zwei Konfigurationen mit je eigener Breitenliste wären zwei Listen, die
+    auseinanderlaufen, sobald jemand eine davon pflegt.
+  */
+  projects: [ablaufProjekt(), ...breitenProjekte()],
   webServer: {
     /*
       Bauen und ausliefern in einem Befehl, damit der Unterpfad in beiden
