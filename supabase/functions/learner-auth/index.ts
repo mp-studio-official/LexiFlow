@@ -25,6 +25,7 @@
 // @ts-nocheck -- Deno-Laufzeit mit URL-Importen, nicht Teil des Browser-Projekts.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { handle, type Ports } from './core.ts';
+import { leseSupabaseUmgebung } from '../_shared/umgebung.ts';
 
 function kopfzeilen(origin: string): Record<string, string> {
   return {
@@ -74,18 +75,21 @@ async function sha256Hex(text: string): Promise<string> {
 }
 
 function bastlePorts(): Ports {
-  const projektUrl = Deno.env.get('SUPABASE_URL')!;
-  const publishable = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
   /*
+    Die Laufzeit injiziert `SUPABASE_URL` sowie die beiden Wörterbücher
+    `SUPABASE_PUBLISHABLE_KEYS` und `SUPABASE_SECRET_KEYS`. Welcher Name
+    tatsächlich greift, entscheidet `../_shared/umgebung.ts` – und meldet
+    verständlich, wenn keiner greift.
+
     Der geheime Schlüssel steht ausschließlich in den Function Secrets. Er
     gelangt in kein Bündel, in keine Umgebungsvariable des Frontends und in
     keine Antwort.
   */
-  const geheim = Deno.env.get('SUPABASE_SECRET_KEY')!;
+  const umgebung = leseSupabaseUmgebung(Deno.env.toObject());
 
   const ohneSitzung = { auth: { persistSession: false, autoRefreshToken: false } };
-  const oeffentlich = createClient(projektUrl, publishable, ohneSitzung);
-  const dienst = createClient(projektUrl, geheim, ohneSitzung);
+  const oeffentlich = createClient(umgebung.url, umgebung.publishableKey, ohneSitzung);
+  const dienst = createClient(umgebung.url, umgebung.secretKey, ohneSitzung);
 
   return {
     now: () => new Date(),

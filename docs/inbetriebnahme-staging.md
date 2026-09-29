@@ -155,7 +155,7 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 | --- | --- | --- | --- |
 | 1.4.1 | Projekt-URL | öffentlich | lokale `.env`, später GitHub → Variables, und Supabase-Funktionen |
 | 1.4.2 | Publishable Key (früher „anon") | öffentlich | dito |
-| 1.4.3 | Secret Key (früher „service_role") | **geheim** | nur Supabase → Edge Function Secrets |
+| 1.4.3 | Secret Key (früher „service_role") | **geheim** | **nirgends von Hand** – die Edge-Laufzeit injiziert ihn (3.4) |
 | 1.4.4 | `LEXIFLOW_ALLOWED_ORIGINS` | unkritisch | Supabase → Edge Function Secrets |
 | 1.4.5 | `LEXIFLOW_AI_MASTER_KEY_V1` | **geheim** | nur Supabase → Edge Function Secrets |
 | 1.4.6 | KI-Anbieterschlüssel | **geheim** | **nicht hier** – die Lehrkraft trägt ihn im Portal ein (6.11); er landet verschlüsselt in der Datenbank |
@@ -261,8 +261,16 @@ Supabase beziehungsweise GitHub ein; unten steht jeweils, wo.
 
 > **Zu den Schlüsselnamen.** Supabase hat die Benennung gewechselt: ältere
 > Projekte zeigen `anon` und `service_role`, neuere `publishable` und `secret`.
-> Gemeint ist dasselbe Paar. Der Code liest sie als
-> `SUPABASE_PUBLISHABLE_KEY` und `SUPABASE_SECRET_KEY`.
+> Gemeint ist dasselbe Paar.
+>
+> In den Edge Functions kommt eine zweite Verschiebung dazu: Die Laufzeit
+> injiziert heute `SUPABASE_PUBLISHABLE_KEYS` und `SUPABASE_SECRET_KEYS` – in
+> der **Mehrzahl**, und als JSON-Wörterbuch mit dem Eintrag `default`. Welchen
+> Namen der Code in welcher Reihenfolge liest, steht im Kasten bei 3.4.
+>
+> Der Publishable Key wird trotzdem hier notiert: Das **Frontend** braucht ihn
+> als `VITE_SUPABASE_PUBLISHABLE_KEY` (4.1, 4.2), und dort injiziert ihn
+> niemand.
 
 ---
 
@@ -604,16 +612,12 @@ abdecken.
 
 ### 3.4 Function Secrets
 
-Vor dem Deployen setzen – eine Funktion ohne ihre Secrets läuft los und bricht
-beim ersten Aufruf ab.
+**Zu setzen sind genau zwei.** Alles Übrige injiziert die Edge-Laufzeit selbst.
 
 | Nr. | Name | Wert |
 | --- | --- | --- |
-| 3.4.1 | `SUPABASE_URL` | die Projekt-URL |
-| 3.4.2 | `SUPABASE_PUBLISHABLE_KEY` | der Publishable Key |
-| 3.4.3 | `SUPABASE_SECRET_KEY` | der Secret Key |
-| 3.4.4 | `LEXIFLOW_ALLOWED_ORIGINS` | `http://localhost:4173,https://mp-studio-official.github.io` |
-| 3.4.5 | `LEXIFLOW_AI_MASTER_KEY_V1` | 32 Byte, base64 – siehe unten |
+| 3.4.1 | `LEXIFLOW_ALLOWED_ORIGINS` | `http://localhost:4173,https://mp-studio-official.github.io` |
+| 3.4.2 | `LEXIFLOW_AI_MASTER_KEY_V1` | 32 Byte, base64 – siehe unten |
 
 Den Hauptschlüssel erzeugen, **nicht** von Hand und nicht in einem
 Web-Generator:
@@ -626,12 +630,42 @@ Direkt in das Supabase-Feld einfügen. Er gehört in **keine** `.env`, in keine
 GitHub-Variable und in kein Bündel – eine Variable mit Präfix `VITE_` landet im
 ausgelieferten JavaScript.
 
-> **Zu 3.4.1–3.4.3:** Supabase injiziert manche dieser Werte je nach
-> Projektalter automatisch, teils unter abweichenden Namen (`SUPABASE_ANON_KEY`
-> statt `SUPABASE_PUBLISHABLE_KEY`). Der Code liest ausschließlich die oben
-> genannten Namen. **Nach dem Deployen in den Function-Logs prüfen**, ob ein
-> Aufruf an einem fehlenden Wert scheitert; im Zweifel alle drei ausdrücklich
-> setzen.
+> ### Was Supabase selbst setzt – und warum man es nicht nachbauen kann
+>
+> Die Edge-Laufzeit injiziert in jede Funktion:
+>
+> | Name | Form |
+> | --- | --- |
+> | `SUPABASE_URL` | die Projekt-URL, eine gewöhnliche Zeichenkette |
+> | `SUPABASE_PUBLISHABLE_KEYS` | ein **JSON-Wörterbuch**; der übliche Eintrag heißt `default` |
+> | `SUPABASE_SECRET_KEYS` | dito |
+>
+> Die beiden Mehrzahlnamen tragen also nicht den Schlüssel, sondern ein
+> Wörterbuch davon: `{"default":"sb_secret_…"}`.
+>
+> **Eigene Secrets mit Präfix `SUPABASE_` lehnt das Dashboard ab.** Wer die
+> fehlende Einzahlform `SUPABASE_SECRET_KEY` von Hand nachtragen will, kommt
+> also nicht durch — und das ist gut so, denn der Wert wäre eine Kopie, die
+> beim nächsten Schlüsselwechsel veraltet.
+>
+> `supabase/functions/_shared/umgebung.ts` liest deshalb in dieser
+> Reihenfolge:
+>
+> | Wert | zuerst | dann | zuletzt |
+> | --- | --- | --- | --- |
+> | Publishable | `SUPABASE_PUBLISHABLE_KEYS.default` | `SUPABASE_PUBLISHABLE_KEY` | `SUPABASE_ANON_KEY` |
+> | Secret | `SUPABASE_SECRET_KEYS.default` | `SUPABASE_SECRET_KEY` | `SUPABASE_SERVICE_ROLE_KEY` |
+>
+> Die beiden Nachzügler sind für `supabase functions serve` und für ältere
+> Projekte da. Im Stagingprojekt greift die erste Spalte.
+>
+> **Ein gesetztes, aber kaputtes Wörterbuch fällt nicht still zurück.** Kein
+> gültiges JSON, kein Eintrag `default`, ein leerer Eintrag: Die Funktion
+> bricht mit einem Satz ab, der den Namen der Variablen und die Art des
+> Fehlers nennt — **nie einen Schlüsselwert**. Ein Function-Log ist der letzte
+> Ort, an dem ein Schlüssel stehen sollte. Still auf einen anderen Namen
+> auszuweichen hieße, womöglich mit einem veralteten Schlüssel
+> weiterzuarbeiten, und das fiele niemandem auf.
 
 > **`LEXIFLOW_ALLOWED_ORIGINS` sind Herkünfte, keine Pfade.** Beide Funktionen
 > vergleichen den `Origin`-Header, und der enthält nie einen Pfad. Mit Komma
@@ -684,10 +718,14 @@ ohne etwas zu schützen.
 
 ### 4.3 In Supabase (immer)
 
-`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
-`LEXIFLOW_ALLOWED_ORIGINS`, `LEXIFLOW_AI_MASTER_KEY_V1` – siehe 3.4.
+**Von Hand zu setzen sind genau zwei:** `LEXIFLOW_ALLOWED_ORIGINS` und
+`LEXIFLOW_AI_MASTER_KEY_V1` – siehe 3.4.
 
-**Der Secret Key und der Hauptschlüssel gehören ausschließlich dorthin.**
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS` und `SUPABASE_SECRET_KEYS`
+injiziert die Laufzeit selbst. Eigene Secrets mit Präfix `SUPABASE_` lehnt
+das Dashboard ohnehin ab.
+
+**Der Hauptschlüssel gehört ausschließlich dorthin.**
 
 **Der Anbieterschlüssel gehört ausdrücklich *nicht* in diese Liste** – aber
 nicht, weil er nicht nach Supabase käme. Er kommt dorthin, nur über einen

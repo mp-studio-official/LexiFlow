@@ -70,11 +70,23 @@ Zehn Dateien aus `supabase/migrations/`, in der Reihenfolge ihrer Namen:
 
 ### 1.3 Function Secrets
 
+**Zwei, mehr nicht.**
+
 | Name | Wert | Wo er herkommt |
 | --- | --- | --- |
-| `SUPABASE_SECRET_KEY` | der Secret Key des Projekts | Projekteinstellungen |
 | `LEXIFLOW_ALLOWED_ORIGINS` | die Pages-Adresse(n), mit Komma getrennt | siehe Abschnitt 2 |
 | `LEXIFLOW_AI_MASTER_KEY_V1` | 32 Byte, base64 | siehe unten |
+
+> **Was Supabase selbst mitbringt.** Die Edge-Laufzeit injiziert `SUPABASE_URL`
+> sowie `SUPABASE_PUBLISHABLE_KEYS` und `SUPABASE_SECRET_KEYS` – die beiden
+> letzten in der **Mehrzahl** und als JSON-Wörterbuch mit dem Eintrag
+> `default`. Nichts davon wird hier eingetragen.
+>
+> **Eigene Secrets mit Präfix `SUPABASE_` lehnt das Dashboard ab.** Wer die
+> fehlende Einzahlform nachtragen will, kommt nicht durch — und bräuchte es
+> auch nicht: `supabase/functions/_shared/umgebung.ts` liest zuerst
+> `…_KEYS.default`, dann die älteren Einzelnamen, und meldet verständlich,
+> wenn keiner greift. Ohne je einen Schlüsselwert auszugeben.
 
 Den Hauptschlüssel erzeugen – **nicht** in einem Passwortgenerator im Browser
 und nicht von Hand:

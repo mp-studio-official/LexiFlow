@@ -26,6 +26,7 @@
 // @ts-nocheck -- Deno-Laufzeit mit URL-Importen, nicht Teil des Browser-Projekts.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { handle, type Ports } from './core.ts';
+import { leseSupabaseUmgebung } from '../_shared/umgebung.ts';
 
 function kopfzeilen(origin: string): Record<string, string> {
   return {
@@ -86,9 +87,13 @@ async function liesBegrenzt(
 }
 
 function bastlePorts(): Ports {
-  const projektUrl = Deno.env.get('SUPABASE_URL')!;
-  const geheim = Deno.env.get('SUPABASE_SECRET_KEY')!;
-  const dienst = createClient(projektUrl, geheim, {
+  /*
+    Welche Variable den Secret Key trägt, entscheidet
+    `../_shared/umgebung.ts`: erst `SUPABASE_SECRET_KEYS.default`, dann die
+    älteren Einzelnamen.
+  */
+  const umgebung = leseSupabaseUmgebung(Deno.env.toObject());
+  const dienst = createClient(umgebung.url, umgebung.secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
@@ -227,9 +232,8 @@ async function wer(anfrage: Request): Promise<string | undefined> {
   const token = kopf.toLowerCase().startsWith('bearer ') ? kopf.slice(7).trim() : '';
   if (token === '') return undefined;
 
-  const projektUrl = Deno.env.get('SUPABASE_URL')!;
-  const publishable = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
-  const client = createClient(projektUrl, publishable, {
+  const umgebung = leseSupabaseUmgebung(Deno.env.toObject());
+  const client = createClient(umgebung.url, umgebung.publishableKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
