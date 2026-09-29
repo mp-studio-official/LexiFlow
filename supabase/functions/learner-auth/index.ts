@@ -182,6 +182,31 @@ function bastlePorts(): Ports {
 }
 
 Deno.serve(async (anfrage: Request) => {
+  /*
+    ## Warum diese Funktion ohne Nutzersitzung erreichbar ist
+
+    `supabase/config.toml` setzt für sie `verify_jwt = false`. Das ist kein
+    Wegfall der Autorisierung, sondern ihre Voraussetzung: Wer hier anruft,
+    hat noch kein Konto – er legt es gerade an oder holt es zurück. Eine
+    Sitzung, die geprüft werden könnte, gibt es zu diesem Zeitpunkt nicht.
+    Mit `verify_jwt = true` wäre die Funktion unerreichbar für genau die,
+    für die sie da ist.
+
+    Autorisiert wird stattdessen hier und in `core.ts`, vierfach:
+
+      1. **Herkunft** – die Zeile direkt darunter. Ein fremder Ursprung
+         bekommt 403, bevor der Rumpf überhaupt gelesen wird.
+      2. **Einladungscode** – ein Beitritt braucht einen gültigen, nicht
+         abgelaufenen, nicht widerrufenen Code mit freiem Platz
+         (`consume_invite_by_hash`).
+      3. **Wiederherstellungscode** – ein Kennwortwechsel braucht den Code
+         der lernenden Person, gegen den gespeicherten Hash geprüft.
+      4. **Bremse** – `note_auth_attempt` zählt Versuche je Lern-ID und
+         Herkunft. Fällt sie aus, wird gebremst, nicht durchgewinkt.
+
+    Der Browser schickt hierher deshalb **keinen** `Authorization`-Header.
+    Nur `apikey` mit dem Publishable Key – siehe `src/cloud/learnerAuth.ts`.
+  */
   const ursprung = erlaubterUrsprung(anfrage);
   if (!ursprung) return new Response('Nicht erlaubt.', { status: 403 });
   if (anfrage.method === 'OPTIONS') {

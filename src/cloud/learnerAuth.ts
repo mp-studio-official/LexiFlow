@@ -190,9 +190,23 @@ export type LearnerAuth = ReturnType<typeof createLearnerAuth>;
 /**
  * Der Transport für den Ernstfall.
  *
- * Der Publishable Key gehört in den Kopf, weil die Funktionsschicht von
- * Supabase ihn erwartet – er ist kein Geheimnis (ADR-3) und steht ohnehin im
- * Bündel.
+ * ## Warum hier kein `Authorization`-Kopf steht
+ *
+ * Er stand hier, mit dem Publishable Key als Wert. Das war aus zwei Gründen
+ * falsch.
+ *
+ * **Erstens ist ein neuer Publishable Key kein JWT.** Die alten `anon`-Keys
+ * waren welche, und daher stammt die Gewohnheit, sie als `Bearer` zu senden.
+ * Die neuen (`sb_publishable_…`) sind es nicht. Ein Empfänger, der dort ein
+ * JWT erwartet, lehnt ab – und die Meldung sagt dann „ungültiges Token", was
+ * in die falsche Richtung zeigt.
+ *
+ * **Zweitens braucht diese Funktion keinen.** Sie läuft mit
+ * `verify_jwt = false` (siehe `supabase/config.toml`) und autorisiert im
+ * eigenen Code: Herkunft, Einladungscode, Wiederherstellungscode, Bremse.
+ *
+ * Bleibt `apikey`. Der Publishable Key ist kein Geheimnis (ADR-3), steht
+ * ohnehin im Bündel, und die Funktionsschicht erwartet ihn dort.
  */
 export function createFetchTransport(publishableKey: string): LearnerAuthTransport {
   return async ({ url, body }) => {
@@ -201,7 +215,6 @@ export function createFetchTransport(publishableKey: string): LearnerAuthTranspo
       headers: {
         'content-type': 'application/json',
         apikey: publishableKey,
-        authorization: `Bearer ${publishableKey}`,
       },
       body: JSON.stringify(body),
       // Kein Cookie, kein Zwischenspeicher: Hier geht ein Kennwort hinaus.

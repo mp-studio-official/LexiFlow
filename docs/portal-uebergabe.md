@@ -108,6 +108,21 @@ Eine Variable mit dem Präfix `VITE_` landet im ausgelieferten JavaScript.
 `learner-auth` und `ai-gateway`. Beide sind nie gelaufen; der erste Aufruf ist
 der erste Test ihrer Mäntel.
 
+> **`supabase/config.toml` liegt im Repository** und setzt für beide
+> `verify_jwt = false`. Das ist kein Wegfall der Autorisierung, sondern die
+> Entscheidung, sie im Code zu behalten:
+>
+> - **`learner-auth`** wird von Menschen aufgerufen, die noch kein Konto
+>   haben. Eine Sitzung gibt es an dieser Stelle nicht — die Funktion ist der
+>   Weg zu ihr. Autorisiert wird über Herkunft, Einladungscode,
+>   Wiederherstellungscode und Bremse.
+> - **`ai-gateway`** prüft den Bearer-Token selbst und lehnt ohne gültige
+>   Nutzersitzung mit 401 ab; danach kommen nur Lehrkräfte und Verwaltung
+>   weiter.
+>
+> Ohne die Datei hinge das am Plattformstandard. Näheres in
+> `inbetriebnahme-staging.md`, Abschnitt 3.5.
+
 ### 1.5 Die erste Lehrkraft
 
 Es gibt **absichtlich keinen Weg in der Oberfläche**, sich selbst zur Lehrkraft

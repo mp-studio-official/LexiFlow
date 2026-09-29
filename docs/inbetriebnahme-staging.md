@@ -684,6 +684,49 @@ supabase functions deploy learner-auth
 supabase functions deploy ai-gateway
 ```
 
+> ### Zur Funktionsauthentifizierung – `supabase/config.toml`
+>
+> Die Datei liegt im Repository und wird beim Deployen mitgelesen. Sie setzt
+> für **beide** Funktionen `verify_jwt = false`:
+>
+> ```toml
+> [functions.learner-auth]
+> verify_jwt = false
+>
+> [functions.ai-gateway]
+> verify_jwt = false
+> ```
+>
+> **Das ist kein Wegfall der Autorisierung.** Es ist die Entscheidung, sie
+> dort zu behalten, wo sie die richtige Frage stellt.
+>
+> | Funktion | warum ohne Plattformprüfung | was stattdessen prüft |
+> | --- | --- | --- |
+> | `learner-auth` | Wer hier anruft, hat **noch kein Konto** – er legt es gerade an. Eine Sitzung, die geprüft werden könnte, gibt es nicht. Mit `verify_jwt = true` wäre die Funktion unerreichbar für genau die, für die sie da ist. | Herkunft (`LEXIFLOW_ALLOWED_ORIGINS`, 403 vor dem Lesen des Rumpfs), Einladungscode, Wiederherstellungscode, Bremse |
+> | `ai-gateway` | Die Plattformprüfung fragt „stammt das Token aus diesem Projekt?" — nicht „wer ist das?". In älteren Projekten akzeptierte sie sogar den Publishable Key, der selbst ein JWT ist. | `wer()` reicht den Bearer-Token an `auth.getUser()`; fehlt, verfällt oder erfindet ihn jemand, kommt `undefined` heraus, und `handle` lehnt in seiner ersten Zeile mit 401 ab. Danach kommen nur `teacher` und `admin` weiter. |
+>
+> **Ohne diese Datei hinge das Verhalten am Plattformstandard** — und was
+> heute voreingestellt ist, kann morgen anders voreingestellt sein, ohne dass
+> jemand im Repository etwas geändert hätte. Der Fehlschlag wäre ein „401"
+> beim ersten echten Aufruf, bei einer lernenden Person.
+>
+> `scripts/funktionskonfiguration.test.mjs` hält beide Zeilen fest und fällt
+> auf, wenn eine dritte Funktion dazukommt, ohne dass jemand über ihre
+> Authentifizierung entschieden hat.
+
+> ### Was der Browser an `learner-auth` schickt
+>
+> Nur `apikey` mit dem Publishable Key. **Keinen `Authorization`-Kopf.**
+>
+> Er stand dort einmal, mit dem Publishable Key als Wert — eine Gewohnheit aus
+> der Zeit der `anon`-Keys, die JWTs waren. Neue Publishable Keys
+> (`sb_publishable_…`) sind keine. Ein Empfänger, der dort ein JWT erwartet,
+> lehnt mit „ungültiges Token" ab, und die Meldung zeigt dann in die falsche
+> Richtung.
+>
+> Bei `ai-gateway` steht im `Authorization`-Kopf dagegen das Token der
+> **angemeldeten Lehrkraft** — das ist genau der Wert, den die Funktion prüft.
+
 **Beide sind nie gelaufen** (Stufe S). Ihre Kerne sind mit 160 Prüfungen
 abgenommen; die Deno-Mäntel darum sind es nicht.
 

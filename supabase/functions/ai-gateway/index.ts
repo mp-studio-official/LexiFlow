@@ -228,6 +228,24 @@ function alsZeile(zeile: Record<string, unknown>) {
  * Namen einer anderen Lehrkraft anrufen.
  */
 async function wer(anfrage: Request): Promise<string | undefined> {
+  /*
+    ## Warum `verify_jwt = false` hier nichts aufgibt
+
+    `supabase/config.toml` schaltet die Plattformprüfung ab. Die Prüfung, auf
+    die es ankommt, steht in dieser Funktion und in `core.ts`:
+
+      - Kein `Authorization`-Kopf, kein `Bearer`, leerer Token → `undefined`.
+      - Abgelaufener oder gefälschter Token → `auth.getUser()` liefert keine
+        Person → ebenfalls `undefined`.
+      - `handle` lehnt beides in seiner ersten Zeile mit 401 ab, und danach
+        kommen nur `teacher` und `admin` weiter.
+
+    Die Plattformprüfung stellt eine **andere** Frage. `verify_jwt`
+    akzeptiert jedes vom Projekt signierte Token – in älteren Projekten auch
+    den Publishable Key, der selbst ein JWT ist. Sie beantwortet „stammt das
+    aus diesem Projekt?", nicht „wer ist das?". Die zweite Frage ist die
+    hier entscheidende, und sie wird zwei Zeilen weiter unten gestellt.
+  */
   const kopf = anfrage.headers.get('authorization') ?? '';
   const token = kopf.toLowerCase().startsWith('bearer ') ? kopf.slice(7).trim() : '';
   if (token === '') return undefined;

@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ANMELDUNG_FEHLGESCHLAGEN,
   WIEDERHERSTELLUNG_FEHLGESCHLAGEN,
+  createFetchTransport,
   createLearnerAuth,
   learnerAuthEndpoint,
   type LearnerAuthTransport,
@@ -181,5 +182,82 @@ describe('was niemals gesendet wird', () => {
     await anmeldung.anmelden('fuchs-7390', 'testkennwort');
     const gesendeteFelder = Object.keys(gesendet[0]!.body as Record<string, unknown>);
     expect(gesendeteFelder.sort()).toEqual(['aktion', 'learnerId', 'password']);
+  });
+});
+
+describe('der Transport für den Ernstfall', () => {
+  /*
+    `createFetchTransport` ist das einzige Stück dieser Datei, das wirklich
+    `fetch` aufruft. Geprüft wird hier nicht, was zurückkommt, sondern was
+    **hinausgeht** – und vor allem, was nicht.
+  */
+  function abgefangen() {
+    const rufe: { url: string; init: RequestInit }[] = [];
+    const impl = vi.fn(async (url: string, init: RequestInit) => {
+      rufe.push({ url, init });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', impl);
+    return rufe;
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('sendet **keinen** `Authorization`-Kopf', async () => {
+    /*
+      Er stand hier einmal, mit dem Publishable Key als Wert. Neue
+      Publishable Keys (`sb_publishable_…`) sind keine JWTs; ein Empfänger,
+      der dort eines erwartet, lehnt mit „ungültiges Token" ab – und das
+      zeigt in die falsche Richtung.
+
+      Gebraucht wird er ohnehin nicht: `learner-auth` läuft mit
+      `verify_jwt = false` und autorisiert im eigenen Code.
+    */
+    const rufe = abgefangen();
+    const transport = createFetchTransport('sb_publishable_TESTWERT');
+    await transport({ url: 'https://beispiel.example/functions/v1/learner-auth', body: {} });
+
+    const kopf = new Headers(rufe[0]!.init.headers);
+    expect(kopf.get('authorization'), 'der Authorization-Kopf ist zurück').toBeNull();
+  });
+
+  it('sendet den Publishable Key als `apikey`', async () => {
+    const rufe = abgefangen();
+    const transport = createFetchTransport('sb_publishable_TESTWERT');
+    await transport({ url: 'https://beispiel.example/functions/v1/learner-auth', body: {} });
+
+    const kopf = new Headers(rufe[0]!.init.headers);
+    expect(kopf.get('apikey')).toBe('sb_publishable_TESTWERT');
+  });
+
+  it('schickt weder Cookies noch Zwischenspeicher mit', async () => {
+    // Hier geht ein Kennwort hinaus.
+    const rufe = abgefangen();
+    const transport = createFetchTransport('sb_publishable_TESTWERT');
+    await transport({ url: 'https://beispiel.example/functions/v1/learner-auth', body: {} });
+
+    expect(rufe[0]!.init.credentials).toBe('omit');
+    expect(rufe[0]!.init.cache).toBe('no-store');
+  });
+
+  it('gibt den Publishable Key in keinem Kopf zweimal aus', async () => {
+    /*
+      Die eigentliche Regressionswache: Egal, welcher Kopf später dazukommt –
+      der Schlüssel darf genau einmal vorkommen, nämlich in `apikey`.
+    */
+    const rufe = abgefangen();
+    const transport = createFetchTransport('sb_publishable_TESTWERT');
+    await transport({ url: 'https://beispiel.example/functions/v1/learner-auth', body: {} });
+
+    const mitSchluessel: string[] = [];
+    new Headers(rufe[0]!.init.headers).forEach((wert, name) => {
+      if (wert.includes('sb_publishable_TESTWERT')) mitSchluessel.push(name);
+    });
+    expect(mitSchluessel).toEqual(['apikey']);
   });
 });

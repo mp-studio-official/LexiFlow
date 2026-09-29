@@ -167,6 +167,52 @@ describe('wer diese Funktion überhaupt benutzen darf', () => {
     const { ports } = fakePorts({ rolle: 'admin' });
     expect((await handle({ aktion: 'liste' }, LEHRERIN, ports)).status).toBe(200);
   });
+
+  /*
+    ## Warum hier auch der ungültige Token steht
+
+    `supabase/config.toml` setzt für diese Funktion `verify_jwt = false`. Die
+    Plattform prüft den Token also nicht; `wer()` im Mantel tut es. Es reicht
+    ihn an `auth.getUser()` und gibt `undefined` zurück, wenn dabei keine
+    Person herauskommt – gleich, ob der Kopf fehlte, „Bearer" fehlte, der
+    Token abgelaufen war oder erfunden.
+
+    Für den Kern sehen deshalb **alle** diese Fälle gleich aus: keine
+    Personenkennung. Das ist keine Vereinfachung des Tests, sondern die
+    Bauform – und die beiden Prüfungen unten halten fest, dass sie trägt.
+  */
+  it('ein fehlender oder ungültiger Token endet bei jeder Aktion mit 401', async () => {
+    const { ports } = fakePorts();
+    const aktionen = [
+      { aktion: 'liste' },
+      { aktion: 'speichern', label: 'Z', adapter: 'gemini', model: 'm', secret: 'egal' },
+      { aktion: 'aufrufen', id: 'verbindung-1' },
+      { aktion: 'loeschen', id: 'verbindung-1' },
+      { aktion: 'pruefen', id: 'verbindung-1' },
+    ];
+    for (const eingabe of aktionen) {
+      const antwort = await handle(eingabe, undefined, ports);
+      expect(antwort.status, JSON.stringify(eingabe)).toBe(401);
+    }
+  });
+
+  it('und die Ablehnung kommt, bevor irgendetwas gefragt wird', async () => {
+    /*
+      Ohne Personenkennung darf der Kern nicht einmal die Rolle nachschlagen.
+      Diese Ports werfen bei jedem Zugriff; käme die Ablehnung später, stünde
+      hier der Fehler statt der 401.
+    */
+    const { ports } = fakePorts();
+    const sperrig: Ports = {
+      ...ports,
+      db: new Proxy({} as Ports['db'], {
+        get() {
+          throw new Error('Der Kern hat vor der 401 auf die Datenbank zugegriffen.');
+        },
+      }),
+    };
+    expect((await handle({ aktion: 'liste' }, undefined, sperrig)).status).toBe(401);
+  });
 });
 
 /* ======================================================= Der Schlüssel === */

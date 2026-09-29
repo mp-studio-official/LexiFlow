@@ -1,0 +1,68 @@
+# LexiFlow – die Konfiguration der Serverfunktionen.
+#
+# ## Warum es diese Datei gibt
+#
+# Bis hierher gab es sie nicht. Damit hing das Verhalten beim Deployen am
+# Plattformstandard: Was Supabase heute voreinstellt, könnte morgen anders
+# voreingestellt sein, und niemand im Repository hätte es geschrieben.
+#
+# Diese Datei schreibt genau eine Entscheidung auf, und zwar die, die sonst
+# beim ersten echten Aufruf mit „401" beantwortet würde.
+#
+# ## Was hier absichtlich NICHT steht
+#
+# Kein Projekt-Ref, keine URL, kein Schlüssel. Nichts, was an ein bestimmtes
+# Supabase-Projekt gebunden ist. Alles Weitere bleibt beim Standard der
+# Plattform – diese Datei pinnt, was gemeint ist, und nicht mehr.
+
+project_id = "lexiflow"
+
+# ─────────────────────────────────────────────────────── learner-auth ──
+#
+# `verify_jwt = false`, und das ist **kein Wegfall der Autorisierung**.
+#
+# Diese Funktion wird von Menschen aufgerufen, die noch kein Konto haben:
+# Sie legt es gerade erst an. Eine Nutzersitzung kann es an dieser Stelle
+# nicht geben – die Funktion ist der Weg zu ihr. Mit `verify_jwt = true`
+# wäre sie unerreichbar für genau die, für die sie da ist.
+#
+# Autorisiert wird im Code, vierfach:
+#
+#   1. Herkunft   – `LEXIFLOW_ALLOWED_ORIGINS`; alles andere bekommt 403,
+#                   bevor der Rumpf gelesen wird.
+#   2. Einladungscode – ein Beitritt braucht einen gültigen, nicht
+#                   abgelaufenen, nicht widerrufenen Code mit freiem Platz.
+#   3. Wiederherstellungscode – ein Kennwortwechsel braucht den Code der
+#                   lernenden Person, gegen den gespeicherten Hash geprüft.
+#   4. Bremse     – `note_auth_attempt` zählt Versuche je Lern-ID und
+#                   Herkunft; fällt sie aus, wird gebremst statt
+#                   durchgewinkt.
+#
+# Was `verify_jwt = true` zusätzlich prüfte, wäre ein Token, das der Browser
+# gar nicht hat. Es wäre kein Riegel, sondern eine verschlossene Tür ohne
+# Schlüssel.
+[functions.learner-auth]
+verify_jwt = false
+
+# ───────────────────────────────────────────────────────── ai-gateway ──
+#
+# `verify_jwt = false`, und auch hier bleibt die Autorisierung, wo sie ist.
+#
+# Diese Funktion prüft den Bearer-Token **selbst**: `wer()` reicht ihn an
+# `auth.getUser()` und gibt die Personenkennung zurück – oder `undefined`,
+# wenn der Token fehlt, abgelaufen oder gefälscht ist. Der Kern lehnt dann
+# mit 401 ab, in der ersten Zeile von `handle`:
+#
+#     if (!userId) return { status: 401, body: ABGELEHNT };
+#
+# Danach wird die Rolle geprüft: Nur `teacher` und `admin` kommen weiter,
+# eine lernende Person nicht.
+#
+# Warum die Plattformprüfung dann nicht zusätzlich? Weil sie eine andere
+# Frage stellt. `verify_jwt` akzeptiert **jedes** vom Projekt signierte
+# Token – auch den Publishable Key älterer Projekte, der selbst ein JWT ist.
+# Sie beantwortet „stammt das aus diesem Projekt?", nicht „wer ist das?".
+# Die zweite Frage ist die, auf die es hier ankommt, und sie wird eine Zeile
+# später gestellt.
+[functions.ai-gateway]
+verify_jwt = false
