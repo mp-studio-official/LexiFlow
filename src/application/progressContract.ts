@@ -48,6 +48,20 @@ export interface LernstandSzenario {
   kursMitPaket(): Promise<{ courseId: string; packId: string; entryIds: string[] }>;
   /** Den Kurs archivieren – für die Zusage aus ADR-12. */
   archiviereKurs(): Promise<void>;
+  /**
+   * Die lernende Person aus dem Kurs entfernen – und wieder aufnehmen.
+   *
+   * **Optional**, und das ist eine Aussage über die Fassung, nicht über die
+   * Regel: Durchgesetzt wird sie serverseitig, von der Zugriffsregel und von
+   * `app_may_touch_progress` in den drei Lernstands-RPCs. Eine Fassung, die
+   * keine Mitgliedschaften führt, kann das nicht nachstellen – und soll es
+   * nicht vortäuschen.
+   *
+   * Wer den Haken anbietet, bekommt die Prüfungen dazu; wer ihn weglässt,
+   * sieht sie übersprungen und weiß damit, was seine Fassung **nicht** zeigt.
+   */
+  entferneAusKurs?(): Promise<void>;
+  nimmWiederAuf?(): Promise<void>;
 }
 
 export function describeProgressContract(
@@ -711,6 +725,68 @@ export function describeProgressContract(
 
         await progress().beginSession(kurs, paket);
         expect((await progress().myPackProgress(kurs, paket))?.sessionCount).toBe(1);
+      });
+    });
+
+    /*
+      Der Gegenfall zur Archivierung – und er wird gern mit ihr verwechselt.
+
+      Archiviert heißt: Die organisatorische Arbeit am Kurs ist zu Ende, das
+      Lernen nicht. Entfernt heißt: Diese Person gehört nicht mehr dazu.
+
+      Beim Staging am 29.09.2026 tat das zweite nicht, was es sagte: Kurs und
+      Pakete verschwanden, der Lernstand blieb les- und änderbar. Migration 11
+      hat das geschlossen; hier steht es als Zusage des Vertrags.
+    */
+    describe('nach dem Entfernen aus dem Kurs', () => {
+      const hatHaken = () => Boolean(szenario.entferneAusKurs && szenario.nimmWiederAuf);
+
+      it('ist der Lernstand nicht mehr lesbar', async () => {
+        if (!hatHaken()) return;
+        await szenario.alsPerson(szenario.personen.lernende);
+        await progress().beginSession(kurs, paket);
+        await progress().recordEvents([ereignis({ entryId: v(0), outcome: 'correct' })]);
+
+        await szenario.entferneAusKurs!();
+        await szenario.alsPerson(szenario.personen.lernende);
+
+        expect(await progress().myPackProgress(kurs, paket)).toBeUndefined();
+        expect(await progress().myEntryProgress(kurs, paket)).toEqual([]);
+      });
+
+      it('sind alle drei Schreibwege versperrt', async () => {
+        if (!hatHaken()) return;
+        await szenario.alsPerson(szenario.personen.lernende);
+        await progress().beginSession(kurs, paket);
+
+        await szenario.entferneAusKurs!();
+        await szenario.alsPerson(szenario.personen.lernende);
+
+        await expect(progress().beginSession(kurs, paket)).rejects.toThrow();
+        await expect(
+          progress().recordEvents([ereignis({ entryId: v(0), outcome: 'correct' })]),
+        ).rejects.toThrow();
+        await expect(progress().resetMyProgress(kurs, paket)).rejects.toThrow();
+      });
+
+      it('steht nach der Wiederaufnahme genau der alte Stand wieder da', async () => {
+        if (!hatHaken()) return;
+        await szenario.alsPerson(szenario.personen.lernende);
+        await progress().beginSession(kurs, paket);
+        await progress().recordEvents([ereignis({ entryId: v(0), outcome: 'correct' })]);
+        const vorher = await progress().myPackProgress(kurs, paket);
+        const vorherEintraege = await progress().myEntryProgress(kurs, paket);
+
+        await szenario.entferneAusKurs!();
+        await szenario.alsPerson(szenario.personen.lernende);
+        expect(await progress().myPackProgress(kurs, paket)).toBeUndefined();
+
+        await szenario.nimmWiederAuf!();
+        await szenario.alsPerson(szenario.personen.lernende);
+
+        // Nicht „ungefähr wieder da": genau das, was vorher dastand.
+        expect(await progress().myPackProgress(kurs, paket)).toEqual(vorher);
+        expect(await progress().myEntryProgress(kurs, paket)).toEqual(vorherEintraege);
       });
     });
 

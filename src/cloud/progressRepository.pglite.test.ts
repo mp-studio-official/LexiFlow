@@ -141,6 +141,26 @@ describeProgressContract(
         await alsPerson(db, PERSONEN.lehrerin);
         await courses.setArchived(kursId, true);
       },
+      /*
+        Entfernen und wieder aufnehmen – über die Tabelle, nicht über ein
+        Repository: Es gibt dafür keinen Weg im Lernendenteil, und der
+        Lehrkraftweg würde hier die Lehrkraftoberfläche prüfen statt der
+        Zugriffsregel.
+      */
+      async entferneAusKurs() {
+        await alsPerson(db, PERSONEN.lehrerin);
+        await db.query('delete from course_members where course_id = $1 and user_id = $2', [
+          kursId,
+          PERSONEN.lernende,
+        ]);
+      },
+      async nimmWiederAuf() {
+        await alsPerson(db, PERSONEN.lehrerin);
+        await db.query(
+          "insert into course_members (course_id, user_id, role) values ($1, $2, 'student')",
+          [kursId, PERSONEN.lernende],
+        );
+      },
     };
   },
   async () => {

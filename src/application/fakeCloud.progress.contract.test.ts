@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { describe, expect, it } from 'vitest';
 import { describeProgressContract, type LernstandSzenario } from './progressContract';
 import { createFakeCloud } from './fakeCloudRepositories';
 import { makePack } from '../test/fixtures';
@@ -10,7 +11,7 @@ import { makePack } from '../test/fixtures';
  * Die inhaltliche steht daneben: derselbe Vertrag gegen echtes PostgreSQL in
  * `src/cloud/progressRepository.pglite.test.ts`.
  */
-describeProgressContract('kontrollierte Fälschung', async (): Promise<LernstandSzenario> => {
+const aufbau = async (): Promise<LernstandSzenario> => {
   const cloud = createFakeCloud();
   let kursId = '';
 
@@ -54,4 +55,28 @@ describeProgressContract('kontrollierte Fälschung', async (): Promise<Lernstand
       await cloud.repositories.courses!.setArchived(kursId, true);
     },
   };
+};
+
+describeProgressContract('kontrollierte Fälschung', aufbau);
+
+/*
+  Was die Fälschung nicht kann – benannt, damit ihr Grün nicht mehr sagt, als
+  es weiß.
+
+  Der Vertrag enthält seit Migration 11 drei Prüfungen zum Entfernen aus einem
+  Kurs. Sie hängen an zwei optionalen Haken, und diese Fassung bietet sie
+  nicht an: Sie führt keine Mitgliedschaften, an denen der Lernstand hinge.
+  Die drei Prüfungen laufen deshalb **nur** gegen PostgreSQL – dort, wo die
+  Regel auch durchgesetzt wird.
+
+  Diese Prüfung hält das fest. Bekäme die Fälschung eines Tages
+  Mitgliedschaften, fiele sie auf, und jemand müsste die Haken nachreichen,
+  statt sich auf ein Grün zu verlassen, hinter dem nichts steht.
+*/
+describe('Was die Fälschung beim Lernstand nicht abbildet', () => {
+  it('führt keine Mitgliedschaft und bietet deshalb die Entfernen-Haken nicht an', async () => {
+    const szenario = await aufbau();
+    expect(szenario.entferneAusKurs).toBeUndefined();
+    expect(szenario.nimmWiederAuf).toBeUndefined();
+  });
 });

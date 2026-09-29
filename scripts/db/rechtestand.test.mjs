@@ -217,7 +217,7 @@ describe('anon', () => {
 });
 
 describe('authenticated', () => {
-  it('hat genau die Tabellenrechte aus den Migrationen 3, 4 und 8', async () => {
+  it('hat genau die Tabellenrechte aus den Migrationen 3, 4, 8 und 11', async () => {
     const matrix = await tabellenrechte();
     expect(matrix.authenticated).toEqual({
       profiles: 'INSERT,SELECT',
@@ -228,9 +228,24 @@ describe('authenticated', () => {
       pack_drafts: 'DELETE,INSERT,SELECT,UPDATE',
       pack_revisions: 'INSERT,SELECT,UPDATE',
       course_packs: 'DELETE,INSERT,SELECT,UPDATE',
-      pack_progress: 'DELETE,INSERT,SELECT,UPDATE',
-      entry_progress: 'DELETE,INSERT,SELECT,UPDATE',
-      progress_events: 'INSERT,SELECT',
+      /*
+        Nur noch `select` – seit Migration 11.
+
+        Der Browser liest die beiden Lernstandstabellen und schreibt
+        ausschliesslich über `begin_practice_session`,
+        `record_progress_events` und `reset_my_progress`. Ein Schreibrecht
+        daneben wäre ein Weg an der Mitgliedschaftsprüfung vorbei: Die RPCs
+        prüfen sie, ein direktes `update` prüfte nur die Zugriffsregel – und
+        die kann kein `rev` schützen und keine Doppelzählung verhindern.
+      */
+      pack_progress: 'SELECT',
+      entry_progress: 'SELECT',
+      /*
+        Und hier auch kein `insert` mehr: Wer eine Ereigniskennung selbst
+        eintragen könnte, könnte ein echtes Ereignis vorab blockieren und die
+        Idempotenz zu einer Behauptung machen.
+      */
+      progress_events: 'SELECT',
       ai_allowed_hosts: 'DELETE,INSERT,SELECT,UPDATE',
       // Nur `delete` auf Tabellenebene – der Rest ist spaltenweise.
       ai_connections: 'DELETE',

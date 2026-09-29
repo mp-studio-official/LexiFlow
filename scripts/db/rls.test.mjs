@@ -123,7 +123,16 @@ async function fassungZuweisen() {
 
 describe('Lernstände – die Zusage, um die es geht', () => {
   beforeEach(async () => {
-    await alsPerson(db, LERNENDE);
+    /*
+      Gesät wird als **Eigentümer**, nicht als lernende Person.
+
+      Seit Migration 11 hat `authenticated` auf den beiden
+      Lernstandstabellen nur noch `select`; geschrieben wird
+      ausschliesslich über die drei RPCs. Ein `insert` als lernende Person
+      scheiterte hier also schon am Tabellenrecht – und diese Prüfungen
+      wollen die Zugriffsregel prüfen, nicht das Recht davor.
+    */
+    await alsEinrichtung(db);
     await db.query(
       'insert into pack_progress (user_id, course_id, pack_id, answered_count, correct_count) values ($1, $2, $3, 12, 9)',
       [LERNENDE, kurs, paket],
@@ -133,6 +142,7 @@ describe('Lernstände – die Zusage, um die es geht', () => {
        values ($1, $2, $3, 'v-1', 'en-de', now())`,
       [LERNENDE, kurs, paket],
     );
+    await alsPerson(db, LERNENDE);
   });
 
   it('die lernende Person sieht ihren eigenen', async () => {
@@ -184,6 +194,12 @@ describe('Lernstände – die Zusage, um die es geht', () => {
   });
 
   it('niemand kann einen Lernstand auf eine andere Person schreiben', async () => {
+    /*
+      Seit Migration 11 fällt dieser Versuch eine Stufe früher – am
+      Tabellenrecht statt an der Zugriffsregel. Das Ergebnis ist dasselbe und
+      die Begründung eine bessere: Wo es kein Schreibrecht gibt, muss keine
+      Regel mehr entscheiden.
+    */
     await alsPerson(db, LEHRERIN);
     const fehler = await fehlerVon(
       db.query(
@@ -191,14 +207,17 @@ describe('Lernstände – die Zusage, um die es geht', () => {
         [LERNENDE, kurs, paket],
       ),
     );
-    expect(fehler).toMatch(/row-level security/i);
+    expect(fehler).toMatch(/permission denied|denied for table/i);
   });
 
   it('niemand kann einen fremden Lernstand löschen', async () => {
     await alsPerson(db, LEHRERIN);
-    await db.query('delete from pack_progress where user_id = $1', [LERNENDE]);
+    const fehler = await fehlerVon(
+      db.query('delete from pack_progress where user_id = $1', [LERNENDE]),
+    );
+    expect(fehler).toMatch(/permission denied|denied for table/i);
 
-    // Kein Fehler, aber auch keine Wirkung: Die Zeile war nie sichtbar.
+    // Und die Zeile steht noch.
     await alsPerson(db, LERNENDE);
     expect(await zaehle('select * from pack_progress')).toBe(1);
   });
@@ -210,15 +229,16 @@ describe('Lernstände – die Zusage, um die es geht', () => {
     const fehler = await fehlerVon(
       db.query('update pack_progress set user_id = $1', [ZWEITE_LERNENDE]),
     );
-    expect(fehler).toMatch(/row-level security/i);
+    expect(fehler).toMatch(/permission denied|denied for table|row-level security/i);
   });
 
   it('eine Ereigniskennung lässt sich nicht löschen, um sie neu einzureichen', async () => {
-    await alsPerson(db, LERNENDE);
+    await alsEinrichtung(db);
     await db.query('insert into progress_events (event_id, user_id) values ($1, $2)', [
       testId(9001),
       LERNENDE,
     ]);
+    await alsPerson(db, LERNENDE);
     const fehler = await fehlerVon(db.query('delete from progress_events'));
     expect(fehler).toMatch(/permission denied|denied for table/i);
   });
@@ -1157,5 +1177,284 @@ describe('die Freigabeliste für eigene KI-Hosts', () => {
       ]),
     );
     expect(fehler, host).toBeTruthy();
+  });
+});
+
+/* ==================================== Lernstand und Mitgliedschaft ====== */
+
+/**
+ * Was beim Staging am 29.09.2026 gefunden wurde – und was Migration 11 daraus
+ * gemacht hat.
+ *
+ * Eine lernende Person wurde aus einem Kurs entfernt. Kurs und Pakete
+ * verschwanden für sie, der Lernstand nicht: Er ließ sich weiter lesen und
+ * über `begin_practice_session` weiter hochzählen.
+ *
+ * Zwei Löcher, verschiedener Art. Die Zugriffsregel fragte nur `user_id =
+ * auth.uid()` und nie, ob die Person noch Mitglied des Kurses ist. Und zwei
+ * RPCs sind `security definer` – sie umgehen jede Zugriffsregel und prüften
+ * selbst nur, ob überhaupt jemand angemeldet ist.
+ *
+ * Die Regel, die jetzt gilt: Ein Lernstand gehört der lernenden Person, und
+ * erreichbar ist er, solange sie Mitglied des Kurses ist, zu dem er gehört.
+ * Gelöscht wird beim Entfernen nichts.
+ */
+describe('Lernstand und Mitgliedschaft', () => {
+  beforeEach(async () => {
+    await fassungZuweisen();
+  });
+
+  function ereignis(nummer, felder = {}) {
+    return {
+      eventId: testId(9500 + nummer),
+      courseId: kurs,
+      packId: paket,
+      entryId: `v-${nummer}`,
+      direction: 'en-de',
+      outcome: 'correct',
+      occurredAt: '2026-09-29T09:00:00.000Z',
+      entryState: {
+        box: 2,
+        correctCount: 1,
+        wrongCount: 0,
+        streak: 1,
+        dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      },
+      baseRev: 0,
+      ...felder,
+    };
+  }
+
+  const sende = (ereignisse) =>
+    db.query('select * from record_progress_events($1)', [JSON.stringify(ereignisse)]);
+
+  /** Einen Lernstand anlegen – auf dem Weg, den auch der Browser nimmt. */
+  async function lernstandAnlegen() {
+    await alsPerson(db, LERNENDE);
+    await db.query('select begin_practice_session($1, $2)', [kurs, paket]);
+    await sende([ereignis(1)]);
+  }
+
+  async function entfernen() {
+    await alsPerson(db, LEHRERIN);
+    await db.query('delete from course_members where course_id = $1 and user_id = $2', [
+      kurs,
+      LERNENDE,
+    ]);
+    await alsPerson(db, LERNENDE);
+  }
+
+  async function wiederAufnehmen() {
+    await alsPerson(db, LEHRERIN);
+    await db.query(
+      "insert into course_members (course_id, user_id, role) values ($1, $2, 'student')",
+      [kurs, LERNENDE],
+    );
+    await alsPerson(db, LERNENDE);
+  }
+
+  // ------------------------------------------------------- Der Normalfall
+
+  it('ein Mitglied sieht und ändert seinen eigenen Lernstand', async () => {
+    await lernstandAnlegen();
+
+    expect(await zaehle('select * from pack_progress')).toBe(1);
+    expect(await zaehle('select * from entry_progress')).toBe(1);
+
+    const stand = await db.query('select session_count, answered_count from pack_progress');
+    expect(stand.rows[0]).toEqual({ session_count: 1, answered_count: 1 });
+  });
+
+  it('ein archivierter Kurs bleibt für seine Mitglieder nutzbar', async () => {
+    /*
+      ADR-12: Ein abgeschlossener Kurs ist abgeschlossen, nicht geschlossen.
+      Die organisatorische Arbeit endet, das Lernen nicht.
+
+      Deshalb fragt `app_may_touch_progress` nach der Mitgliedschaft und
+      **nicht** nach `archived` – und deshalb steht diese Prüfung hier direkt
+      neben denen, die das Entfernen betreffen: Die beiden dürfen nie
+      verwechselt werden.
+    */
+    await lernstandAnlegen();
+
+    await alsPerson(db, LEHRERIN);
+    await db.query('update courses set archived = true where id = $1', [kurs]);
+    await alsPerson(db, LERNENDE);
+
+    await db.query('select begin_practice_session($1, $2)', [kurs, paket]);
+    expect((await sende([ereignis(2)])).rows).toEqual([]);
+    expect(await zaehle('select * from entry_progress')).toBe(2);
+
+    const stand = await db.query('select session_count from pack_progress');
+    expect(stand.rows[0].session_count).toBe(2);
+  });
+
+  // ------------------------------------------------------ Nach dem Entfernen
+
+  it('nach dem Entfernen sind Kurs, Paket und Lernstand nicht mehr sichtbar', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+
+    // Genau die drei Zahlen aus dem Stagingbefund – zwei stimmten, eine nicht.
+    expect(await zaehle('select * from courses')).toBe(0);
+    expect(await zaehle('select * from course_packs')).toBe(0);
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+    expect(await zaehle('select * from entry_progress')).toBe(0);
+  });
+
+  it('begin_practice_session wird nach dem Entfernen abgelehnt', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+
+    const fehler = await fehlerVon(db.query('select begin_practice_session($1, $2)', [kurs, paket]));
+    expect(fehler).toMatch(/Kein Zugriff auf den Lernstand/);
+  });
+
+  it('erhöht dabei auch keinen Zähler', async () => {
+    /*
+      Der eigentliche Befund war nicht die Antwort, sondern die Wirkung: HTTP
+      204 **und** `session_count` um eins höher. Eine Ablehnung, die trotzdem
+      schreibt, wäre schlimmer als gar keine.
+    */
+    await lernstandAnlegen();
+    await entfernen();
+    await fehlerVon(db.query('select begin_practice_session($1, $2)', [kurs, paket]));
+
+    await alsEinrichtung(db);
+    const stand = await db.query('select session_count from pack_progress where user_id = $1', [
+      LERNENDE,
+    ]);
+    expect(stand.rows[0].session_count).toBe(1);
+  });
+
+  it('record_progress_events wird nach dem Entfernen abgelehnt', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+
+    const fehler = await fehlerVon(sende([ereignis(2)]));
+    expect(fehler).toMatch(/nicht in einem deiner Kurse|Kein Zugriff auf den Lernstand/);
+  });
+
+  it('reset_my_progress wird nach dem Entfernen abgelehnt', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+
+    const fehler = await fehlerVon(db.query('select reset_my_progress($1, $2)', [kurs, paket]));
+    expect(fehler).toMatch(/Kein Zugriff auf den Lernstand/);
+  });
+
+  it('und löscht dabei nichts', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+    await fehlerVon(db.query('select reset_my_progress($1, $2)', [kurs, paket]));
+
+    await alsEinrichtung(db);
+    expect(await zaehle('select * from pack_progress where user_id = $1', [LERNENDE])).toBe(1);
+    expect(await zaehle('select * from entry_progress where user_id = $1', [LERNENDE])).toBe(1);
+  });
+
+  it('direktes Lesen und Schreiben ist nach dem Entfernen versperrt', async () => {
+    /*
+      Die Frage hinter dem Befund: Kommt jemand an den RPCs vorbei?
+
+      Lesen fällt an der Zugriffsregel, Schreiben schon am Tabellenrecht –
+      `authenticated` hat auf beiden Lernstandstabellen seit Migration 11 nur
+      noch `select`.
+    */
+    await lernstandAnlegen();
+    await entfernen();
+
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+    expect(await zaehle('select * from entry_progress')).toBe(0);
+
+    const geschrieben = await fehlerVon(
+      db.query('insert into pack_progress (user_id, course_id, pack_id) values ($1, $2, $3)', [
+        LERNENDE,
+        kurs,
+        paket,
+      ]),
+    );
+    expect(geschrieben).toMatch(/permission denied|denied for table/i);
+
+    const geaendert = await fehlerVon(
+      db.query('update entry_progress set box = 5 where user_id = $1', [LERNENDE]),
+    );
+    expect(geaendert).toMatch(/permission denied|denied for table/i);
+
+    const geloescht = await fehlerVon(
+      db.query('delete from pack_progress where user_id = $1', [LERNENDE]),
+    );
+    expect(geloescht).toMatch(/permission denied|denied for table/i);
+  });
+
+  it('auch keine Ereigniskennung lässt sich nach dem Entfernen nachtragen', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+
+    const fehler = await fehlerVon(
+      db.query('insert into progress_events (event_id, user_id) values ($1, $2)', [
+        testId(9999),
+        LERNENDE,
+      ]),
+    );
+    expect(fehler).toMatch(/permission denied|denied for table/i);
+  });
+
+  // ------------------------------------------------------- Die Rückkehr
+
+  it('nach der Wiederaufnahme steht genau der alte Lernstand wieder da', async () => {
+    await lernstandAnlegen();
+
+    await alsEinrichtung(db);
+    const vorher = await db.query(
+      `select p.session_count, p.answered_count, p.correct_count, e.box, e.rev
+         from pack_progress p
+         join entry_progress e on e.user_id = p.user_id and e.course_id = p.course_id
+        where p.user_id = $1`,
+      [LERNENDE],
+    );
+
+    await entfernen();
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+
+    await wiederAufnehmen();
+
+    const nachher = await db.query(
+      `select p.session_count, p.answered_count, p.correct_count, e.box, e.rev
+         from pack_progress p
+         join entry_progress e on e.user_id = p.user_id and e.course_id = p.course_id`,
+    );
+    expect(nachher.rows).toEqual(vorher.rows);
+  });
+
+  it('und lässt sich von dort fortsetzen', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+    await wiederAufnehmen();
+
+    await db.query('select begin_practice_session($1, $2)', [kurs, paket]);
+    expect((await sende([ereignis(2)])).rows).toEqual([]);
+
+    const stand = await db.query('select session_count, answered_count from pack_progress');
+    expect(stand.rows[0]).toEqual({ session_count: 2, answered_count: 2 });
+  });
+
+  // ------------------------------------------------------ Und die anderen
+
+  it('die Lehrkraft sieht den Lernstand auch nach dem Entfernen nicht', async () => {
+    await lernstandAnlegen();
+    await entfernen();
+
+    await alsPerson(db, LEHRERIN);
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+    expect(await zaehle('select * from entry_progress')).toBe(0);
+  });
+
+  it('eine zweite lernende Person desselben Kurses auch nicht', async () => {
+    await lernstandAnlegen();
+
+    await alsPerson(db, ZWEITE_LERNENDE);
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+    expect(await zaehle('select * from entry_progress')).toBe(0);
   });
 });

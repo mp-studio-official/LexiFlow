@@ -298,6 +298,8 @@ describe('die security-definer-Funktionen bleiben eng', () => {
       // Ja/Nein über die **aufrufende** Person – geben keine Zeile heraus.
       app_is_member_of: 'boolean',
       app_is_teacher_of: 'boolean',
+      // Migration 11: die eine Prüfung hinter allen Lernstandswegen.
+      app_may_touch_progress: 'boolean',
       app_owns_course: 'boolean',
       app_owns_pack: 'boolean',
       app_sees_profile: 'boolean',
