@@ -154,6 +154,40 @@ interface CandidateRow {
    * Das Stichwort ist dann die Textform, und die Zeile sagt es dazu.
    */
   baseFormHint?: string | undefined;
+  /**
+   * Was mit der deutschen Antwort dieser Zeile bisher geschehen ist.
+   *
+   * Bis Sprint 5A entschied genau eine Frage darüber, ob eine Zeile „offen“
+   * ist: Steht etwas im Feld? Das kann zwei völlig verschiedene Dinge
+   * bedeuten – hier war noch nie jemand, oder hier stand etwas und die
+   * Lehrkraft hat es **weggemacht**. Das zweite ist eine Entscheidung, und sie
+   * zurückzunehmen, weil das Ergebnis zufällig genauso aussieht wie das erste,
+   * war der Fehler.
+   */
+  antwortStand: AntwortStand;
+  /**
+   * Die Fassung dieser Zeile.
+   *
+   * Eine Zeile kann entfernt und wieder aufgenommen werden; die Kennung des
+   * Kandidaten bleibt dabei dieselbe. Eine Antwort, die für die alte Zeile
+   * unterwegs war, träfe sonst die neue. Die Fassung sagt, für welche Zeile
+   * eine Antwort gestartet wurde – passt sie nicht, wird die Antwort
+   * verworfen.
+   */
+  fassung: number;
+}
+
+/**
+ * `unberuehrt` – hier war noch niemand.
+ * `automatisch` – das Wörterbuch hat eingetragen, niemand hat hingesehen.
+ * `geaendert`   – die Lehrkraft hat etwas hineingeschrieben.
+ * `geleert`     – die Lehrkraft hat das Feld **absichtlich** leer gemacht.
+ */
+export type AntwortStand = 'unberuehrt' | 'automatisch' | 'geaendert' | 'geleert';
+
+/** Hat sich die Lehrkraft mit dieser Zeile befasst? */
+export function vonHandBeruehrt(row: { antwortStand: AntwortStand }): boolean {
+  return row.antwortStand === 'geaendert' || row.antwortStand === 'geleert';
 }
 
 /**
@@ -178,6 +212,7 @@ function familiesNeedingLabels(inputs: readonly (RecommendationInput | ScoredCan
 function toRow(
   input: RecommendationInput | ScoredCandidate,
   markedFamilies: ReadonlySet<string> = new Set(),
+  fassung = 0,
 ): CandidateRow {
   const { candidate, dictionary, phrase } = input;
   const local = candidate.abbreviation?.german.trim() ?? '';
@@ -210,6 +245,8 @@ function toRow(
     dictionary,
     proposal,
     translation: 'idle',
+    antwortStand: 'unberuehrt',
+    fassung,
     ...(scored?.baseFormHint ? { baseFormHint: scored.baseFormHint } : {}),
   };
 
@@ -517,6 +554,33 @@ export function TextCandidateReview({
   );
 
   /**
+   * Einen Fokus setzen – aber nur, wenn ihn seither niemand anders gesetzt hat.
+   *
+   * Der Fokus soll dorthin wandern, wo gerade etwas passiert ist. Das ist
+   * richtig, und es geschieht eine Bildlänge später, damit das Ziel da ist.
+   *
+   * Eine Bildlänge ist kurz, aber nicht null. Wer unmittelbar nach dem Klick
+   * zu tippen anfängt, tippt in ein Feld, aus dem der Fokus gleich
+   * herausspringt – und die Zeichen ab dem zweiten landen nirgends. Gemessen
+   * wurde genau das: Nach `user.type(feld, 'überfüllt')` stand „ü“ im Feld und
+   * der Fokus auf der Ergebnisüberschrift.
+   *
+   * Also gilt dieselbe Regel wie für die Antwortfelder: Was die Lehrkraft tut,
+   * hat Vorrang vor dem, was vorhin angestoßen wurde. Hat sie den Fokus
+   * inzwischen selbst gesetzt, bleibt er, wo sie ihn hingesetzt hat.
+   */
+  const fokussiereSpaeter = useCallback(
+    (ziel: () => HTMLElement | null | undefined): void => {
+      const vorher = document.activeElement;
+      naechstesBild(() => {
+        if (document.activeElement !== vorher) return;
+        ziel()?.focus();
+      });
+    },
+    [naechstesBild],
+  );
+
+  /**
    * Die Karten und Antwortfelder dieser Ansicht – als Verweise, nicht als
    * Adressen im Dokument.
    *
@@ -554,6 +618,37 @@ export function TextCandidateReview({
       current.map((row) => (row.candidate.id === id ? { ...row, ...changes } : row)),
     );
   }, []);
+
+  /**
+   * Der Zähler, aus dem die Fassungen der Zeilen kommen.
+   *
+   * Er liegt in einem Ref und nicht im Modul: Ein Modulzähler wäre über alle
+   * Ansichten hinweg derselbe – und damit ein gemeinsamer Zustand zwischen
+   * Prüfungen, also genau die Art Verbindung, die dieser Commit auflöst.
+   */
+  const fassungRef = useRef(0);
+  const naechsteFassung = useCallback((): number => {
+    fassungRef.current += 1;
+    return fassungRef.current;
+  }, []);
+
+  /**
+   * Eine Änderung, die nur ankommt, wenn sie noch dieselbe Zeile meint.
+   *
+   * Für alles, was **später** eintrifft: Wurde die Zeile inzwischen entfernt
+   * und wieder aufgenommen, ist sie eine andere Zeile mit derselben Kennung.
+   * Die alte Antwort gehört dann nicht mehr hierher.
+   */
+  const updateFassung = useCallback(
+    (id: string, fassung: number, changes: Partial<CandidateRow>): void => {
+      setRows((current) =>
+        current.map((row) =>
+          row.candidate.id === id && row.fassung === fassung ? { ...row, ...changes } : row,
+        ),
+      );
+    },
+    [],
+  );
 
   /**
    * Der einzige Weg, auf dem Empfehlungen entstehen – für den ersten Lauf wie
@@ -604,8 +699,19 @@ export function TextCandidateReview({
         `inputs`, also könnte kein späterer Lauf sie zurückholen.
       */
       const pickedIds = new Set(picked.map((candidate) => candidate.id));
-      const handpicked = rowsRef.current.filter((row) => pickedIds.has(row.candidate.id));
-      const machine = rowsRef.current.filter((row) => !pickedIds.has(row.candidate.id));
+      /*
+        Geschützt ist auch, was die Lehrkraft angefasst hat.
+
+        Eine bewusst geleerte Zeile sieht aus wie eine offene – und wurde
+        deshalb weggeräumt und durch ein anderes Wort ersetzt. Das ist
+        derselbe Denkfehler wie beim Wörterbuch: „leer“ mit „frei“ zu
+        verwechseln. Wer sich mit einer Zeile befasst hat, hat entschieden,
+        und eine Entscheidung wird nicht nebenbei zurückgenommen.
+      */
+      const geschuetzt = (row: CandidateRow): boolean =>
+        pickedIds.has(row.candidate.id) || vonHandBeruehrt(row);
+      const handpicked = rowsRef.current.filter(geschuetzt);
+      const machine = rowsRef.current.filter((row) => !geschuetzt(row));
 
       const result = replaceOpenRecommendations<CandidateRow>({
         inputs: options.pool ?? inputs,
@@ -616,7 +722,7 @@ export function TextCandidateReview({
         count,
         excludeShown: options.excludeShown,
         ...(publicationContext === undefined ? {} : { publicationContext }),
-        toRow: (scored) => toRow(scored, markedFamilies),
+        toRow: (scored) => toRow(scored, markedFamilies, naechsteFassung()),
       });
 
       /*
@@ -626,7 +732,16 @@ export function TextCandidateReview({
       const withDefaults = applyDictionaryDefaults(result.rows);
       const filled = countFilled(result.rows, withDefaults);
 
-      setRows([...handpicked, ...withDefaults]);
+      /*
+        Auch die geschützten Zeilen laufen durch `applyDictionaryDefaults`.
+
+        Nicht, weil dort etwas passieren soll – sie sind beim Aufnehmen schon
+        gefüllt worden –, sondern damit die Regel „was die Lehrkraft angefasst
+        hat, bleibt“ an der Stelle greift, an der sie gebrochen würde. Stünde
+        sie nur im Filter zwei Zeilen weiter oben, wäre sie an einer Stelle
+        notiert, an der niemand nach ihr sucht.
+      */
+      setRows([...applyDictionaryDefaults(handpicked), ...withDefaults]);
       setEarlier(result.earlier);
       setGenerated(true);
       setStatus(
@@ -643,7 +758,7 @@ export function TextCandidateReview({
       }
       // Der Fokus wandert ans Ergebnis; sonst steht man nach dem Klick weiter
       // oben und weiß nicht, dass sich unten etwas geändert hat.
-      naechstesBild(() => resultRef.current?.focus());
+      fokussiereSpaeter(() => resultRef.current);
     },
     [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext, picked],
   );
@@ -711,18 +826,16 @@ export function TextCandidateReview({
    */
   const goToRow = useCallback(
     (id: string): void => {
-      naechstesBild(() => {
+      fokussiereSpaeter(() => {
         const card = kartenRef.current.get(id);
         // `scrollIntoView` gibt es nicht überall – in jsdom nicht, und in älteren
         // Safari-Versionen ohne die Optionen. Ein fehlender Bildlauf darf den
         // Fokuswechsel nicht verhindern; der ist die eigentliche Zusage.
         card?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
-        const field = felderRef.current.get(id);
-        if (field) field.focus();
-        else card?.focus();
+        return felderRef.current.get(id) ?? card;
       });
     },
-    [naechstesBild],
+    [fokussiereSpaeter],
   );
 
   /**
@@ -780,7 +893,9 @@ export function TextCandidateReview({
 
       const input = inputs.find((item) => item.candidate.id === id);
       if (!input) return;
-      const [neu] = applyDictionaryDefaults([toRow(input, familiesNeedingLabels(inputs))]);
+      const [neu] = applyDictionaryDefaults([
+        toRow(input, familiesNeedingLabels(inputs), naechsteFassung()),
+      ]);
       if (!neu) return;
       addRow(neu);
       return;
@@ -813,7 +928,7 @@ export function TextCandidateReview({
     };
 
     const [neu] = applyDictionaryDefaults([
-      toRow(input, familiesNeedingLabels([...inputs, input])),
+      toRow(input, familiesNeedingLabels([...inputs, input]), naechsteFassung()),
     ]);
     if (!neu) return;
 
@@ -866,7 +981,14 @@ export function TextCandidateReview({
     const row = earlier.find((item) => item.candidate.id === id);
     if (!row) return;
     setEarlier((current) => current.filter((item) => item.candidate.id !== id));
-    setRows((current) => [...current, row]);
+    /*
+      Eine neue Fassung, obwohl es dieselbe Zeile ist.
+
+      Zwischen Entfernen und Zurückholen kann eine Antwort unterwegs gewesen
+      sein, die für die alte Zeile gestartet wurde. Die Kennung des Kandidaten
+      unterscheidet die beiden nicht – sie kommt aus dem Text und bleibt.
+    */
+    setRows((current) => [...current, { ...row, fassung: naechsteFassung() }]);
     const gesamt = rowsRef.current.length + 1;
     setStatus(
       `„${row.candidate.english}“ wieder aufgenommen. Die Liste hat jetzt ${gesamt} Empfehlungen` +
@@ -908,6 +1030,13 @@ export function TextCandidateReview({
 function applyDictionaryDefaults(rows: readonly CandidateRow[]): CandidateRow[] {
   return rows.map((row) => {
     if (hasAnswer(row)) return row;
+    /*
+      Und hier liegt der zweite Teil derselben Regel: Ein leeres Feld ist kein
+      freies Feld. Wer die automatische Antwort weggenommen oder etwas
+      geschrieben und wieder gelöscht hat, hat entschieden. Das Wörterbuch darf
+      ergänzen, wo noch nichts war – nicht dort, wo jemand aufgeräumt hat.
+    */
+    if (vonHandBeruehrt(row)) return row;
     const context = contextPartOfSpeech(
       row.candidate.sourceSentence,
       candidateLiteral(row.candidate),
@@ -928,6 +1057,7 @@ function applyDictionaryDefaults(rows: readonly CandidateRow[]): CandidateRow[] 
       ...(row.partOfSpeech ? {} : context ? { partOfSpeech: context } : {}),
       suggestionSource: 'dictionary',
       translation: 'accepted',
+      antwortStand: 'automatisch',
     };
   });
 }
@@ -945,7 +1075,13 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
   /** Übersetzt eine einzelne Zeile; Fehler bleiben auf diese Zeile beschränkt. */
   const translateRow = useCallback(
     async (row: CandidateRow, signal: AbortSignal): Promise<void> => {
-      update(row.candidate.id, { translation: 'pending', error: undefined });
+      /*
+        Die Fassung wird **jetzt** festgehalten, nicht bei der Rückkehr.
+        Zwischen Start und Antwort kann die Zeile entfernt und wieder
+        aufgenommen worden sein; dann gehört diese Antwort nicht mehr hierher.
+      */
+      const fassung = row.fassung;
+      updateFassung(row.candidate.id, fassung, { translation: 'pending', error: undefined });
       // Ein lokal bekannter Vorschlag bleibt stehen: „die Quadratmeile“ kommt
       // aus dem Lexikon und ist dort richtig. Der Beispielsatz wird trotzdem
       // übersetzt – der hilft unabhängig davon.
@@ -955,7 +1091,7 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
           ? (row.suggestion ?? '')
           : (await provider.translate(row.candidate.english, signal)).trim();
         const sentence = await provider.translate(row.candidate.sourceSentence, signal);
-        update(row.candidate.id, {
+        updateFassung(row.candidate.id, fassung, {
           suggestion: word,
           suggestionSource: keepLocal ? 'local' : 'model',
           suggestedSentence: sentence.trim(),
@@ -964,16 +1100,16 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
         });
       } catch (error: unknown) {
         if (signal.aborted) {
-          update(row.candidate.id, { translation: 'idle' });
+          updateFassung(row.candidate.id, fassung, { translation: 'idle' });
           return;
         }
-        update(row.candidate.id, {
+        updateFassung(row.candidate.id, fassung, {
           translation: 'error',
           error: error instanceof Error ? error.message : 'Übersetzung fehlgeschlagen.',
         });
       }
     },
-    [provider, update],
+    [provider, updateFassung],
   );
 
   async function runTranslation(targets: readonly CandidateRow[]): Promise<void> {
@@ -1823,6 +1959,12 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                         onChange={(event) =>
                           update(candidate.id, {
                             german: event.target.value,
+                            /*
+                              Leer machen ist eine Eingabe wie jede andere –
+                              nur die, die man hinterher nicht mehr sieht.
+                            */
+                            antwortStand:
+                              event.target.value.trim() === '' ? 'geleert' : 'geaendert',
                             translation:
                               row.translation === 'accepted' ? 'suggested' : row.translation,
                           })
@@ -1946,6 +2088,8 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                           update(candidate.id, {
                             german: row.suggestion ?? '',
                             translation: 'accepted',
+                            // Einen Vorschlag anzunehmen ist eine Entscheidung.
+                            antwortStand: 'geaendert',
                           })
                         }
                       >

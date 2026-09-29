@@ -178,45 +178,36 @@ describe('Ein Bildwechsel überlebt den Abbau seiner Ansicht nicht', () => {
     expect(bild.offen()).toBe(0);
   });
 
-  it('rührt die nächste Fassung nicht an, selbst wenn der Rückruf doch noch läuft', async () => {
+  it('setzt den Fokus nicht mehr, wenn die Lehrkraft ihn inzwischen selbst gesetzt hat', async () => {
+    /*
+      Der Fall, der die Prüfdatei nebenan unzuverlässig gemacht hat – und der
+      im Betrieb dieselbe Wirkung hätte.
+
+      Nach dem Empfehlen wandert der Fokus auf die Ergebnisüberschrift. Das ist
+      richtig. Es geschieht eine Bildlänge später, damit die Überschrift da
+      ist. Eine Bildlänge ist kurz, aber nicht null: Wer sofort zu tippen
+      anfängt, verliert die Zeichen ab dem zweiten, weil der Fokus mitten im
+      Tippen wegspringt.
+
+      Gemessen wurde genau das: Nach `type(feld, 'überfüllt')` stand „ü“ im
+      Feld und der Fokus auf `ergebnis-heading`.
+    */
     const bild = bildwechselAnhalten();
     const user = baueAuf();
     await bereit();
 
-    /*
-      In der ersten Fassung wird **Litter** aufgenommen – ein anderes Wort als
-      das, in das gleich getippt wird. Wäre es dasselbe, spränge der Rückruf
-      genau dorthin, wo der Fokus ohnehin steht, und die Prüfung könnte den
-      Fehler nicht von der Ordnung unterscheiden.
-    */
-    await user.click(wortImText('Litter'));
-    await screen.findByLabelText('Deutsche Antwort für „Litter“');
-    expect(bild.angemeldet()).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: 'Empfehlungen generieren' }));
 
-    cleanup();
-    // Ab hier gehört jeder neue Rückruf der zweiten Fassung und bleibt in Ruhe.
-    bild.markiere();
-
-    // Die zweite Fassung – derselbe Text, dieselben Kennungen im Markup.
-    const zweiterUser = baueAuf();
-    await bereit();
-    // Beide Zeilen gibt es auch hier – die gesuchte und die getippte.
-    await zweiterUser.click(wortImText('Litter'));
-    await screen.findByLabelText('Deutsche Antwort für „Litter“');
-    await zweiterUser.click(wortImText('crowded'));
-    const feld = await screen.findByLabelText('Deutsche Antwort für „crowded“');
-    await zweiterUser.click(feld);
-    await zweiterUser.type(feld, 'überfüllt');
+    // Die Lehrkraft ist schneller als das nächste Bild.
+    const feld = screen.getByLabelText('Deutsche Antwort für „crowded“');
+    await user.click(feld);
+    await user.type(feld, 'überfüllt');
 
     expect(feld).toHaveFocus();
     expect(feld).toHaveValue('überfüllt');
 
-    /*
-      Und jetzt der Ernstfall: Jeder Rückruf der ersten Fassung läuft doch
-      noch. Über `document.getElementById('de-text:litter')` fände er das Feld
-      der **zweiten** Fassung – gleiche Kennung, andere Fassung – und risse den
-      Fokus aus der Eingabe, die gerade beschrieben wird.
-    */
+    // Und jetzt kommt das Bild.
+    bild.markiere();
     bild.alteAusloesen();
 
     expect(feld).toHaveFocus();
