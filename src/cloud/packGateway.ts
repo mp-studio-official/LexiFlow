@@ -1,4 +1,4 @@
-import { toPackFile } from '../domain/vocabpack';
+import { paketeIdentisch, toPackFile } from '../domain/vocabpack';
 import { vocabPackFileSchema, type VocabPack } from '../domain/schema';
 import type {
   PackRepository,
@@ -179,7 +179,18 @@ export function createSqlPackRepositories(gateway: PackGateway): {
         „übernehmen“ klickt, bekommt kein zweites Paket, sondern denselben
         Stand. Das ist die ganze Idee hinter einer stabilen Paketkennung
         (ADR-4).
+
+        Ist auch der Inhalt gleich, bleibt der bestehende Entwurf unberührt.
+        Sonst würde allein der zweite Klick seinen Zeitstempel erneuern und
+        nach einer Veröffentlichung fälschlich „Entwurf ist neuer“ melden.
       */
+      const vorhanden = await gateway.selectDraft(pack.meta.id);
+      if (vorhanden && paketeIdentisch(alsPaket(vorhanden.pack), pack)) {
+        const uebersicht = (await gateway.selectOverview()).find(
+          (eintrag) => String(eintrag.id) === pack.meta.id,
+        );
+        if (uebersicht) return alsUebersicht(uebersicht);
+      }
       return speichern(pack);
     },
   };

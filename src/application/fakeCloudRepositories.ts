@@ -25,6 +25,7 @@ import {
   type Role,
   type Session,
 } from './repositories';
+import { paketeIdentisch } from '../domain/vocabpack';
 
 /**
  * Das Portal, solange es kein Portal gibt.
@@ -684,6 +685,11 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     },
 
     async importFromLocal(pack) {
+      // Gleiche Kennung und gleicher Inhalt: weder Duplikat noch neuer Zeitpunkt.
+      const vorhanden = meinEntwurf(pack.meta.id);
+      if (vorhanden && paketeIdentisch(vorhanden.pack, pack)) {
+        return zusammenfassung(vorhanden);
+      }
       // Dieselbe Kennung, also derselbe Eintrag: wiederholbar (ADR-4).
       return this.saveDraft(pack);
     },

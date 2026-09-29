@@ -104,6 +104,21 @@ export function describePackContract(
         expect(await packs().list()).toHaveLength(1);
       });
 
+      it('markieren eine unveränderte erneute Übernahme nicht als neuen Entwurf', async () => {
+        const pack = makePack();
+        await szenario.alsPerson(szenario.personen.lehrerin);
+        await packs().importFromLocal(pack);
+        await publication().publish(pack.meta.id);
+
+        expect(await packs().getDraft(pack.meta.id)).toEqual(pack);
+        expect((await packs().list())[0]?.hasUnpublishedChanges).toBe(false);
+        await packs().importFromLocal(pack);
+
+        const [zusammenfassung] = await packs().list();
+        expect(zusammenfassung?.publishedRevision).toBe(1);
+        expect(zusammenfassung?.hasUnpublishedChanges).toBe(false);
+      });
+
       it('gehören nur der Person, die sie angelegt hat', async () => {
         const pack = await neuesPaket();
         await szenario.alsPerson(szenario.personen.zweiteLehrkraft);

@@ -23,6 +23,29 @@ export function toPackFile(pack: VocabPack): VocabPackFile {
   };
 }
 
+/**
+ * Zwei Pakete in ihrer Datei-Gestalt vergleichen.
+ *
+ * Der Umweg über `toPackFile` bringt auch JSONB aus PostgreSQL wieder in
+ * dieselbe Schlüsselfolge wie ein lokales Paket. Ein unmittelbares
+ * `JSON.stringify` auf dem rohen JSONB wäre von dessen Schlüsselfolge
+ * abhängig und könnte gleiche Inhalte fälschlich als verschieden behandeln.
+ */
+export function paketeIdentisch(links: VocabPack, rechts: VocabPack): boolean {
+  function kanonisch(wert: unknown): unknown {
+    if (Array.isArray(wert)) return wert.map(kanonisch);
+    if (typeof wert !== 'object' || wert === null) return wert;
+    return Object.fromEntries(
+      Object.entries(wert)
+        .filter(([, eintrag]) => eintrag !== undefined)
+        .sort(([linksName], [rechtsName]) => linksName.localeCompare(rechtsName))
+        .map(([name, eintrag]) => [name, kanonisch(eintrag)]),
+    );
+  }
+
+  return JSON.stringify(kanonisch(toPackFile(links))) === JSON.stringify(kanonisch(toPackFile(rechts)));
+}
+
 /** Serialisiert ein Paket. Lernstände sind bewusst nicht Teil der Datei. */
 export function serializePack(pack: VocabPack): string {
   return `${JSON.stringify(toPackFile(pack), null, 2)}\n`;
