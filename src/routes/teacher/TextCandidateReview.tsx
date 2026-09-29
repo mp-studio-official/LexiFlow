@@ -487,6 +487,56 @@ export function TextCandidateReview({
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  /**
+   * Bildwechsel, die den Abbau dieser Ansicht nicht überleben.
+   *
+   * `requestAnimationFrame` verschiebt eine Arbeit auf das nächste Bild. Wird
+   * die Ansicht vorher abgebaut, läuft die Arbeit trotzdem – nur gibt es die
+   * Ansicht dann nicht mehr, für die sie gedacht war. Im Betrieb ist das
+   * selten und meist harmlos; in einer Prüfung, in der gleich darauf dieselbe
+   * Ansicht noch einmal aufgebaut wird, ist es ein Fokus, der in eine fremde
+   * Eingabe springt – mitten im Tippen.
+   *
+   * Deshalb merkt sich diese Ansicht ihre offenen Bildwechsel und nimmt sie
+   * beim Abbau zurück.
+   */
+  const bildwechselRef = useRef<Set<number>>(new Set());
+  const naechstesBild = useCallback((tun: () => void): void => {
+    const handle = window.requestAnimationFrame(() => {
+      bildwechselRef.current.delete(handle);
+      tun();
+    });
+    bildwechselRef.current.add(handle);
+  }, []);
+  useEffect(
+    () => () => {
+      for (const handle of bildwechselRef.current) window.cancelAnimationFrame(handle);
+      bildwechselRef.current.clear();
+    },
+    [],
+  );
+
+  /**
+   * Die Karten und Antwortfelder dieser Ansicht – als Verweise, nicht als
+   * Adressen im Dokument.
+   *
+   * `document.getElementById('de-text:crowded')` sucht im **ganzen** Dokument.
+   * Steht dort eine zweite Fassung dieser Ansicht – in einer Prüfung ist das
+   * der Normalfall –, trifft die Suche womöglich die falsche. Ein Verweis, den
+   * React beim Einhängen selbst einträgt und beim Aushängen wieder entfernt,
+   * kann das nicht: Er zeigt auf ein Element dieser Ansicht oder auf nichts.
+   */
+  const kartenRef = useRef(new Map<string, HTMLElement>());
+  const felderRef = useRef(new Map<string, HTMLElement>());
+  const merkeKarte = useCallback((id: string, element: HTMLElement | null): void => {
+    if (element) kartenRef.current.set(id, element);
+    else kartenRef.current.delete(id);
+  }, []);
+  const merkeFeld = useCallback((id: string, element: HTMLElement | null): void => {
+    if (element) felderRef.current.set(id, element);
+    else felderRef.current.delete(id);
+  }, []);
+
   /* --------------------------------------------------------- Empfehlen */
 
   const inputs = useMemo<RecommendationInput[]>(
@@ -593,7 +643,7 @@ export function TextCandidateReview({
       }
       // Der Fokus wandert ans Ergebnis; sonst steht man nach dem Klick weiter
       // oben und weiß nicht, dass sich unten etwas geändert hat.
-      window.requestAnimationFrame(() => resultRef.current?.focus());
+      naechstesBild(() => resultRef.current?.focus());
     },
     [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext, picked],
   );
@@ -659,18 +709,21 @@ export function TextCandidateReview({
    * Antwort. Für die Tastaturbedienung ist es die ganze: Ohne Fokuswechsel
    * bliebe man im Text stehen und wüsste nicht, dass unten etwas passiert ist.
    */
-  const goToRow = useCallback((id: string): void => {
-    window.requestAnimationFrame(() => {
-      const card = document.getElementById(`kandidat-${id}`);
-      // `scrollIntoView` gibt es nicht überall – in jsdom nicht, und in älteren
-      // Safari-Versionen ohne die Optionen. Ein fehlender Bildlauf darf den
-      // Fokuswechsel nicht verhindern; der ist die eigentliche Zusage.
-      card?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
-      const field = document.getElementById(`de-${id}`);
-      if (field instanceof HTMLElement) field.focus();
-      else if (card instanceof HTMLElement) card.focus();
-    });
-  }, []);
+  const goToRow = useCallback(
+    (id: string): void => {
+      naechstesBild(() => {
+        const card = kartenRef.current.get(id);
+        // `scrollIntoView` gibt es nicht überall – in jsdom nicht, und in älteren
+        // Safari-Versionen ohne die Optionen. Ein fehlender Bildlauf darf den
+        // Fokuswechsel nicht verhindern; der ist die eigentliche Zusage.
+        card?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+        const field = felderRef.current.get(id);
+        if (field) field.focus();
+        else card?.focus();
+      });
+    },
+    [naechstesBild],
+  );
 
   /**
    * Ein Wort oder eine Wortgruppe aus dem Quelltext aufnehmen.
@@ -1607,6 +1660,9 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                 <li
                   key={candidate.id}
                   id={`kandidat-${candidate.id}`}
+                  ref={(element) => {
+                    merkeKarte(candidate.id, element);
+                  }}
                   className="candidate"
                   data-answered={answered ? '' : undefined}
                 >
@@ -1758,6 +1814,9 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                       <label htmlFor={`de-${candidate.id}`}>Deutsche Antwort für „{label}“</label>
                       <input
                         id={`de-${candidate.id}`}
+                        ref={(element) => {
+                          merkeFeld(candidate.id, element);
+                        }}
                         type="text"
                         value={row.german}
                         placeholder="leer lassen heißt: nicht ins Paket"
@@ -2058,8 +2117,8 @@ function countFilled(before: readonly CandidateRow[], after: readonly CandidateR
                 onClick={() => {
                   const first = openQuestions[0];
                   if (!first) return;
-                  const element = document.getElementById(`kandidat-${first.candidate.id}`);
-                  element?.scrollIntoView({ block: 'center' });
+                  const element = kartenRef.current.get(first.candidate.id);
+                  element?.scrollIntoView?.({ block: 'center' });
                   element?.querySelector<HTMLButtonElement>('.candidate__review button')?.focus();
                 }}
               >
