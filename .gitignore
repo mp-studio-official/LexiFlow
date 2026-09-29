@@ -21,6 +21,13 @@ playwright/.cache/
 coverage/
 .nyc_output/
 
+# Arbeitsstand der Supabase-CLI
+# `supabase link` legt hier die Projektkennung und einen Zwischenstand ab.
+# Beides gehoert zu *einer* Arbeitsumgebung, nicht zum Projekt: Wer gegen ein
+# anderes Projekt verknuepft, bekaeme sonst bei jedem `git status` eine
+# Aenderung angezeigt, die keine ist.
+supabase/.temp/
+
 # Logs und lokale Umgebung
 *.log
 npm-debug.log*
