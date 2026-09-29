@@ -98,6 +98,45 @@ comment on function app_may_touch_progress(uuid) is
   'Die eine Prüfung hinter allen Lernstandswegen – Zugriffsregeln wie RPCs. '
   'Archivierung spielt keine Rolle (ADR-12), fehlende Mitgliedschaft schon.';
 
+/*
+  Die zweite Frage: Gehört dieses Paket überhaupt in diesen Kurs?
+
+  Mitgliedschaft allein reicht nicht, sobald eine Zeile **entsteht**. Ein
+  Mitglied konnte bisher `begin_practice_session(mein_kurs, 'was-auch-immer')`
+  rufen und damit eine `pack_progress`-Zeile zu einem Paket anlegen, das in
+  diesem Kurs nie zugewiesen war – oder zu einem, das in einem fremden Kurs
+  liegt. Die Zeile wäre nirgends sichtbar und trotzdem da: Datenmüll mit einem
+  Fremdschlüssel darauf.
+
+  `withdrawn_at is null` gehört dazu. Eine zurückgezogene Fassung ist keine
+  Zuweisung mehr; wer darauf noch Runden zählte, zählte auf etwas, das die
+  Lehrkraft gerade aus dem Verkehr gezogen hat.
+
+  `archived` steht auch hier **nicht** (ADR-12). Ein abgeschlossener Kurs
+  behält seine Zuweisungen, und das Lernen läuft weiter.
+*/
+create or replace function app_pack_is_assigned(p_course uuid, p_pack text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1
+      from course_packs cp
+      join pack_revisions r on r.pack_id = cp.pack_id and r.revision = cp.revision
+     where cp.course_id = p_course
+       and cp.pack_id = p_pack
+       and r.withdrawn_at is null
+  );
+$$;
+
+comment on function app_pack_is_assigned(uuid, text) is
+  'Liegt dieses Paket in diesem Kurs, mit einer Fassung, die nicht '
+  'zurückgezogen ist? Die zweite Prüfung – nötig überall dort, wo ein '
+  'Lernstand *entsteht*, nicht dort, wo er verschwindet.';
+
 -- ------------------------------------------------- Die Zugriffsregeln neu
 
 /*
@@ -190,6 +229,18 @@ begin
       using errcode = '42501';
   end if;
 
+  /*
+    Und die zweite Frage, weil hier eine Zeile **entsteht**.
+
+    Ohne sie legt ein Mitglied mit einer erfundenen Paketkennung – oder mit
+    der eines fremden Kurses – eine `pack_progress`-Zeile an, die niemand je
+    zu sehen bekommt und die trotzdem dasteht.
+  */
+  if not app_pack_is_assigned(p_course, p_pack) then
+    raise exception 'Dieses Paket liegt nicht in diesem Kurs.'
+      using errcode = '42501';
+  end if;
+
   insert into pack_progress (user_id, course_id, pack_id, session_count, last_practiced_at)
   values (v_me, p_course, p_pack, 1, now())
   on conflict (user_id, course_id, pack_id) do update
@@ -207,6 +258,22 @@ $$;
   Mitgliedschaft gibt es diesen Kurs für die Person nicht mehr, und ein
   Schreibrecht, das nur löschen darf, ist auch ein Schreibrecht. Der Weg, alle
   eigenen Daten loszuwerden, ist ein eigener und steht noch aus.
+
+  ## Warum hier `app_pack_is_assigned` **nicht** steht
+
+  Die Regel lautet: **Entstehen verlangt eine Zuweisung, Verschwinden nicht.**
+
+  Eine Zuweisung kann eine Lehrkraft jederzeit zurücknehmen – ein Paket aus
+  dem Kurs entfernen, eine Fassung zurückziehen. Der Lernstand dazu bleibt
+  stehen; er gehört der lernenden Person. Verlangte das Löschen eine
+  Zuweisung, hinge das Wegräumen der eigenen Daten an einer
+  Kurationsentscheidung von jemand anderem – und genau die Zeilen, die eine
+  Lehrkraft aus dem Kurs genommen hat, wären die, die niemand mehr loswird.
+
+  Gefährlich ist das nicht: Diese Funktion legt nichts an und ändert nichts.
+  Sie löscht ausschliesslich Zeilen der aufrufenden Person in einem Kurs, in
+  dem sie Mitglied ist. Mehr Prüfung hiesse hier weniger Selbstbestimmung
+  ohne einen Gewinn an Sicherheit.
 */
 create or replace function reset_my_progress(p_course uuid, p_pack text)
 returns void
@@ -335,17 +402,17 @@ begin
     Das ist eine eigene, bewusste Handlung, und sie wirkt sofort: Ohne
     Mitgliedschaft fällt die Prüfung oben durch.
   */
+  /*
+    Dieselben zwei Fragen wie in `begin_practice_session`, nur je Ereignis –
+    und ausdrücklich über dieselben zwei Funktionen. Stünde die Bedingung hier
+    ein zweites Mal ausgeschrieben, wäre sie ein zweites Mal einzeln änderbar.
+  */
   if exists (
     select 1
       from jsonb_array_elements(p_events) e
-     where not exists (
-       select 1
-         from course_packs cp
-         join pack_revisions r on r.pack_id = cp.pack_id and r.revision = cp.revision
-        where app_may_touch_progress((e ->> 'courseId')::uuid)
-          and cp.course_id = (e ->> 'courseId')::uuid
-          and cp.pack_id = e ->> 'packId'
-          and r.withdrawn_at is null
+     where not (
+       app_may_touch_progress((e ->> 'courseId')::uuid)
+       and app_pack_is_assigned((e ->> 'courseId')::uuid, e ->> 'packId')
      )
   ) then
     raise exception 'Dieses Paket liegt nicht in einem deiner Kurse.' using errcode = '42501';
@@ -536,11 +603,13 @@ end;
 $$;
 
 revoke all on function app_may_touch_progress(uuid) from public;
+revoke all on function app_pack_is_assigned(uuid, text) from public;
 revoke all on function record_progress_events(jsonb) from public;
 revoke all on function begin_practice_session(uuid, text) from public;
 revoke all on function reset_my_progress(uuid, text) from public;
 
 grant execute on function app_may_touch_progress(uuid) to authenticated;
+grant execute on function app_pack_is_assigned(uuid, text) to authenticated;
 grant execute on function record_progress_events(jsonb) to authenticated;
 grant execute on function begin_practice_session(uuid, text) to authenticated;
 grant execute on function reset_my_progress(uuid, text) to authenticated;

@@ -1458,3 +1458,189 @@ describe('Lernstand und Mitgliedschaft', () => {
     expect(await zaehle('select * from entry_progress')).toBe(0);
   });
 });
+
+/* ============================ Das Paket muss in den Kurs gehören ======== */
+
+/**
+ * Mitgliedschaft allein reicht nicht, sobald eine Zeile **entsteht**.
+ *
+ * `begin_practice_session` prüfte nach Migration 11 nur noch, ob die Person
+ * im Kurs ist. Ein Mitglied konnte damit eine beliebige Paketkennung
+ * übergeben – eine erfundene, oder die eines fremden Kurses – und bekam eine
+ * `pack_progress`-Zeile, die niemand je zu sehen bekommt und die trotzdem
+ * dasteht.
+ *
+ * Die Regel, die jetzt gilt: **Entstehen verlangt eine Zuweisung,
+ * Verschwinden nicht.** Warum die zweite Hälfte dieses Satzes dort unten
+ * steht, wo `reset_my_progress` geprüft wird.
+ */
+describe('Das Paket muss in den Kurs gehören', () => {
+  let zweiterKurs;
+  let fremdesPaket;
+  let unzugewiesenesPaket;
+
+  beforeEach(async () => {
+    await fassungZuweisen();
+
+    // Ein Paket, das es gibt, das aber keinem Kurs zugewiesen ist.
+    await alsPerson(db, LEHRERIN);
+    unzugewiesenesPaket = 'pack-unit-4-shopping';
+    await db.query('insert into packs (id, owner_id, title, grade) values ($1, $2, $3, $4)', [
+      unzugewiesenesPaket,
+      LEHRERIN,
+      'Unit 4 – Shopping',
+      '7',
+    ]);
+    await db.query(
+      `insert into pack_revisions (pack_id, revision, format_version, pack, published_by)
+       values ($1, 1, 2, $2, $3)`,
+      [
+        unzugewiesenesPaket,
+        JSON.stringify({ meta: { title: 'Unit 4' }, entries: [{ id: 'v-1' }] }),
+        LEHRERIN,
+      ],
+    );
+
+    // Ein zweiter Kurs mit einem eigenen Paket – dieselbe Lehrkraft, aber
+    // die lernende Person ist dort **nicht** Mitglied.
+    const kurse = await db.query(
+      'insert into courses (owner_id, title, school_year) values ($1, $2, $3) returning *',
+      [LEHRERIN, 'Englisch 8a', '2026/27'],
+    );
+    zweiterKurs = kurse.rows[0].id;
+    await db.query(
+      "insert into course_members (course_id, user_id, role) values ($1, $2, 'teacher')",
+      [zweiterKurs, LEHRERIN],
+    );
+    fremdesPaket = 'pack-unit-9-travel';
+    await db.query('insert into packs (id, owner_id, title, grade) values ($1, $2, $3, $4)', [
+      fremdesPaket,
+      LEHRERIN,
+      'Unit 9 – Travel',
+      '8',
+    ]);
+    await db.query(
+      `insert into pack_revisions (pack_id, revision, format_version, pack, published_by)
+       values ($1, 1, 2, $2, $3)`,
+      [
+        fremdesPaket,
+        JSON.stringify({ meta: { title: 'Unit 9' }, entries: [{ id: 'v-1' }] }),
+        LEHRERIN,
+      ],
+    );
+    await db.query(
+      'insert into course_packs (course_id, pack_id, revision, sort_order) values ($1, $2, 1, 0)',
+      [zweiterKurs, fremdesPaket],
+    );
+  });
+
+  const runde = (kursId, paketId) =>
+    db.query('select begin_practice_session($1, $2)', [kursId, paketId]);
+
+  it('ein zugewiesenes Paket geht', async () => {
+    await alsPerson(db, LERNENDE);
+    await runde(kurs, paket);
+    expect(await zaehle('select * from pack_progress')).toBe(1);
+  });
+
+  it('ein Paket, das keinem Kurs zugewiesen ist, geht nicht', async () => {
+    await alsPerson(db, LERNENDE);
+    const fehler = await fehlerVon(runde(kurs, unzugewiesenesPaket));
+    expect(fehler).toMatch(/Dieses Paket liegt nicht in diesem Kurs/);
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+  });
+
+  it('ein Paket aus einem anderen Kurs geht nicht', async () => {
+    /*
+      Beide Kennungen für sich sind gültig: Der Kurs gehört der Person, das
+      Paket gibt es. Falsch ist die **Kombination** – und genau die prüfte
+      bisher niemand.
+    */
+    await alsPerson(db, LERNENDE);
+    const fehler = await fehlerVon(runde(kurs, fremdesPaket));
+    expect(fehler).toMatch(/Dieses Paket liegt nicht in diesem Kurs/);
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+  });
+
+  it('auch nicht der fremde Kurs mit seinem eigenen Paket', async () => {
+    // Dort scheitert es schon eine Stufe früher – an der Mitgliedschaft.
+    await alsPerson(db, LERNENDE);
+    const fehler = await fehlerVon(runde(zweiterKurs, fremdesPaket));
+    expect(fehler).toMatch(/Kein Zugriff auf den Lernstand/);
+  });
+
+  it('eine zurückgezogene Fassung zählt nicht mehr als Zuweisung', async () => {
+    await alsPerson(db, LEHRERIN);
+    await db.query(
+      'update pack_revisions set withdrawn_at = now() where pack_id = $1 and revision = 1',
+      [paket],
+    );
+
+    await alsPerson(db, LERNENDE);
+    const fehler = await fehlerVon(runde(kurs, paket));
+    expect(fehler).toMatch(/Dieses Paket liegt nicht in diesem Kurs/);
+  });
+
+  it('ein archivierter Kurs mit weiter zugewiesenem Paket geht sehr wohl', async () => {
+    /*
+      Der Fall, der nicht mit den drei darüber verwechselt werden darf
+      (ADR-12). Archiviert heißt: Die organisatorische Arbeit ist zu Ende.
+      Die Zuweisung bleibt, das Lernen bleibt.
+    */
+    await alsPerson(db, LEHRERIN);
+    await db.query('update courses set archived = true where id = $1', [kurs]);
+
+    await alsPerson(db, LERNENDE);
+    await runde(kurs, paket);
+    expect(await zaehle('select * from pack_progress')).toBe(1);
+  });
+
+  // ------------------------------------- Und die begründete Ausnahme
+
+  it('reset_my_progress räumt auch ein nicht mehr zugewiesenes Paket weg', async () => {
+    /*
+      **Entstehen verlangt eine Zuweisung, Verschwinden nicht.**
+
+      Eine Lehrkraft kann ein Paket jederzeit aus dem Kurs nehmen oder eine
+      Fassung zurückziehen. Der Lernstand dazu bleibt stehen – er gehört der
+      lernenden Person. Verlangte das Löschen eine Zuweisung, hinge das
+      Wegräumen der eigenen Daten an einer Kurationsentscheidung von jemand
+      anderem, und genau die Zeilen, die eine Lehrkraft aus dem Kurs genommen
+      hat, wären die, die niemand mehr loswird.
+
+      Gefährlich ist die Ausnahme nicht: Diese Funktion legt nichts an und
+      ändert nichts. Sie löscht ausschliesslich Zeilen der aufrufenden Person
+      in einem Kurs, in dem sie Mitglied ist.
+    */
+    await alsPerson(db, LERNENDE);
+    await runde(kurs, paket);
+    expect(await zaehle('select * from pack_progress')).toBe(1);
+
+    // Die Lehrkraft nimmt das Paket aus dem Kurs.
+    await alsPerson(db, LEHRERIN);
+    await db.query('delete from course_packs where course_id = $1 and pack_id = $2', [kurs, paket]);
+
+    await alsPerson(db, LERNENDE);
+    // Neu anfangen geht jetzt nicht mehr …
+    expect(await fehlerVon(runde(kurs, paket))).toMatch(/Dieses Paket liegt nicht in diesem Kurs/);
+    // … aufräumen schon.
+    await db.query('select reset_my_progress($1, $2)', [kurs, paket]);
+    expect(await zaehle('select * from pack_progress')).toBe(0);
+  });
+
+  it('aber auch dort nicht ohne Mitgliedschaft', async () => {
+    await alsPerson(db, LERNENDE);
+    await runde(kurs, paket);
+
+    await alsPerson(db, LEHRERIN);
+    await db.query('delete from course_packs where course_id = $1 and pack_id = $2', [kurs, paket]);
+    await db.query('delete from course_members where course_id = $1 and user_id = $2', [
+      kurs,
+      LERNENDE,
+    ]);
+
+    await alsPerson(db, LERNENDE);
+    const fehler = await fehlerVon(db.query('select reset_my_progress($1, $2)', [kurs, paket]));
+    expect(fehler).toMatch(/Kein Zugriff auf den Lernstand/);
+  });
+});

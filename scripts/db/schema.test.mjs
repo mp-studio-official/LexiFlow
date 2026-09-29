@@ -300,6 +300,8 @@ describe('die security-definer-Funktionen bleiben eng', () => {
       app_is_teacher_of: 'boolean',
       // Migration 11: die eine Prüfung hinter allen Lernstandswegen.
       app_may_touch_progress: 'boolean',
+      // Migration 11: die zweite Prüfung – gehört das Paket in diesen Kurs?
+      app_pack_is_assigned: 'boolean',
       app_owns_course: 'boolean',
       app_owns_pack: 'boolean',
       app_sees_profile: 'boolean',
