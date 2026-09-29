@@ -11,36 +11,40 @@ import type { DictionaryEntry, DictionaryProvider } from '../../dictionary/Dicti
 import type { TranslationProvider } from '../../translation/TranslationProvider';
 
 /**
- * Was die Lehrkraft eingegeben hat, gehört der Lehrkraft.
+ * Was die Lehrkraft eingegeben hat, gehört der Lehrkraft — und was sie
+ * ausdrücklich anstößt, geschieht auch.
  *
- * ## Die Regel
+ * ## Zwei Vorgänge, die nicht dasselbe sind
  *
- * Eine Eingabe der Lehrkraft darf **niemals** durch ein später eintreffendes
- * Wörterbuch- oder Modellergebnis überschrieben oder geleert werden. Ein
- * automatischer Vorschlag darf ergänzen, nie ersetzen.
+ * **Automatisch und asynchron.** Ein Wörterbuch- oder Modellergebnis, das
+ * später eintrifft, darf eine Eingabe der Lehrkraft niemals überschreiben oder
+ * leeren. Auch nicht, wenn das Feld gerade leer aussieht: Ein leeres Feld kann
+ * heißen „hier war noch nie jemand“ oder „hier stand etwas, und ich habe es
+ * weggemacht“. Das zweite ist eine Entscheidung.
  *
- * ## Warum „das Feld ist leer“ als Entscheidung nicht reicht
+ * **Ausdrücklich ausgelöst.** „Offene Empfehlungen neu berechnen“ ist eine
+ * Anweisung: Tausche die offenen maschinellen Vorschläge gegen andere. Eine
+ * geleerte maschinelle Empfehlung **ist** offen — sie geht dabei unter
+ * „Frühere Empfehlungen“ und kann von dort zurückgeholt werden. Sie dort zu
+ * halten hieße, den Knopf zu ignorieren, den jemand gerade gedrückt hat.
  *
- * Bis hierher entschied die Ansicht an genau einer Frage, ob eine Zeile
- * „offen“ ist: `row.german.trim().length > 0`. Das kann zwei völlig
- * verschiedene Dinge bedeuten:
+ * Der Zustand `geleert` bleibt deshalb nötig. Er schützt vor dem, was von
+ * selbst geschieht — nicht vor dem, was jemand verlangt.
  *
- *   - Hier war noch nie jemand.
- *   - Hier stand etwas, und die Lehrkraft hat es **weggemacht**.
+ * ## Was dabei niemals ersetzt wird
  *
- * Das zweite ist eine Entscheidung. Sie rückgängig zu machen, weil das
- * Ergebnis zufällig so aussieht wie das erste, ist der Fehler – und zwar
- * derselbe Fehler an zwei Stellen: `applyDictionaryDefaults` füllt jede leere
- * Zeile, und das Neuberechnen räumt jede leere Zeile weg.
+ * - eine nicht leere Antwort, gleich woher sie kommt;
+ * - eine Zeile, die von Hand aus dem Quelltext aufgenommen wurde — auch leer.
+ *   Sie steht nicht da, weil eine Schätzung sie vorgeschlagen hat, sondern
+ *   weil jemand sie ausgesucht hat. Sie verschwindet nur, wenn dieselbe Person
+ *   sie entfernt.
  *
- * Deshalb führt eine Zeile jetzt einen Antwortstand mit:
- * `unberührt`, `automatisch`, `geändert`, `geleert`.
+ * ## Warum kein `waitFor` als Lückenfüller
  *
- * ## Warum kein `waitFor` in diesen Prüfungen
- *
- * Es gibt hier nichts zu erwarten. Jede Prüfung führt die Handgriffe zu Ende
- * und sieht dann nach. Ein `waitFor` würde die Frage „wann?“ stellen, wo die
- * Frage „ob überhaupt?“ lautet.
+ * Wo etwas eintreffen soll, wird auf genau dieses Etwas gewartet (der
+ * Modellvorschlag einer **anderen** Zeile). Wo nichts geschehen soll, wird
+ * nicht gewartet, sondern nachgesehen. Ein `waitFor` um die eigentliche
+ * Erwartung herum würde die Frage „ob überhaupt?“ in ein „wann?“ verwandeln.
  */
 
 const TEXT = 'The neighbourhood is crowded. Litter covers the quiet street near the old station.';
@@ -62,9 +66,16 @@ function eintrag(
   };
 }
 
-/** Ein Bestand, der genau eine eindeutige Antwort hergibt. */
+/** Ein Bestand, der genau die geprüften Fälle eindeutig beantwortet. */
 const BESTAND: Record<string, DictionaryEntry[]> = {
-  litter: [eintrag('litter', [{ sense: 'rubbish', suggestions: [{ german: 'Müll', gender: 'm' }] }])],
+  litter: [
+    eintrag('litter', [{ sense: 'rubbish', suggestions: [{ german: 'Müll', gender: 'm' }] }]),
+  ],
+  'old station': [
+    eintrag('old station', [
+      { sense: 'place', suggestions: [{ german: 'Bahnhof', gender: 'm' }] },
+    ]),
+  ],
 };
 
 const WOERTERBUCH: DictionaryProvider = {
@@ -81,14 +92,54 @@ const WOERTERBUCH: DictionaryProvider = {
   },
 };
 
-function baueAuf(uebersetzer?: TranslationProvider): ReturnType<typeof userEvent.setup> {
+/** Ein Übersetzer, der erst antwortet, wenn die Prüfung es will. */
+function angehaltenerUebersetzer(): { provider: TranslationProvider; freigeben: () => void } {
+  let freigeben: () => void = () => undefined;
+  const tor = new Promise<void>((resolve) => {
+    freigeben = resolve;
+  });
+  let bereit = false;
+  return {
+    freigeben: () => freigeben(),
+    provider: {
+      info: {
+        id: 'angehalten',
+        label: 'Testübersetzung',
+        dataNotice: 'Testanbieter. Es werden keine Daten übertragen.',
+        sendsDataOffDevice: false,
+      },
+      getAvailability: () => Promise.resolve('downloadable'),
+      async prepare(_source, _target, onProgress) {
+        onProgress?.(1);
+        bereit = true;
+        await Promise.resolve();
+      },
+      async translate(text) {
+        if (!bereit) throw new Error('Das Sprachmodell ist noch nicht geladen.');
+        await tor;
+        return `${text}-de`;
+      },
+      destroy() {
+        bereit = false;
+      },
+    },
+  };
+}
+
+function baueAuf(optionen: {
+  uebersetzer?: TranslationProvider;
+  mitQuelltext?: boolean;
+} = {}): ReturnType<typeof userEvent.setup> {
   render(
-    <ProviderRegistry {...(uebersetzer ? { value: { translation: uebersetzer } } : {})}>
+    <ProviderRegistry
+      {...(optionen.uebersetzer ? { value: { translation: optionen.uebersetzer } } : {})}
+    >
       <TextCandidateReview
         candidates={extractTextCandidates(TEXT)}
         context={CONTEXT}
         onContextChange={vi.fn()}
         dictionary={WOERTERBUCH}
+        {...(optionen.mitQuelltext ? { sourceText: TEXT } : {})}
         onApply={vi.fn()}
         onBack={vi.fn()}
       />
@@ -99,9 +150,9 @@ function baueAuf(uebersetzer?: TranslationProvider): ReturnType<typeof userEvent
 
 /** Aufbauen, das Wörterbuch abwarten, alle Kandidaten empfehlen lassen. */
 async function empfehlen(
-  uebersetzer?: TranslationProvider,
+  optionen: { uebersetzer?: TranslationProvider; mitQuelltext?: boolean } = {},
 ): Promise<ReturnType<typeof userEvent.setup>> {
-  const user = baueAuf(uebersetzer);
+  const user = baueAuf(optionen);
   const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
   await waitFor(() => expect(knopf).toBeEnabled());
   await user.selectOptions(screen.getByLabelText('Anzahl'), '20');
@@ -113,70 +164,206 @@ function feldFuer(wort: string): HTMLElement {
   return screen.getByLabelText(`Deutsche Antwort für „${wort}“`);
 }
 
-function neuBerechnen(): HTMLElement {
+function ersetzen(): HTMLElement {
   return screen.getByRole('button', { name: /Offene Empfehlungen neu berechnen/ });
 }
 
-describe('Eine bewusst geleerte Antwort bleibt leer', () => {
-  it('wird beim Neuberechnen nicht wieder aus dem Wörterbuch gefüllt', async () => {
+/** Ein Wort im Quelltext – als Textstück, nicht als Schaltfläche. */
+function wortImText(text: string): HTMLElement {
+  const quelle = screen.getByRole('group', { name: 'Analysierter Text' });
+  const gefunden = [...quelle.querySelectorAll<HTMLElement>('[data-word]')].find(
+    (element) => element.textContent === text,
+  );
+  if (!gefunden) throw new Error(`„${text}“ steht nicht im Quelltext.`);
+  return gefunden;
+}
+
+// ---------------------------------------------------------------------------
+// 1. Was von selbst geschieht
+// ---------------------------------------------------------------------------
+
+describe('Eine bewusst geleerte Zeile füllt sich nicht von selbst wieder', () => {
+  it('bleibt leer, solange niemand das Ersetzen auslöst', async () => {
     const user = await empfehlen();
 
-    /*
-      Das Wörterbuch kennt `litter` eindeutig, also steht die Antwort sofort
-      da. Genau darum geht es: Die Lehrkraft nimmt eine *automatisch* gesetzte
-      Antwort wieder weg. „Müll“ passt hier nicht – sie will selbst etwas
-      eintragen oder die Vokabel gar nicht übernehmen.
-    */
+    // Das Wörterbuch kennt `litter` eindeutig, die Antwort steht sofort da.
     expect(feldFuer('litter')).toHaveValue('Müll');
 
     await user.clear(feldFuer('litter'));
-    expect(feldFuer('litter')).toHaveValue('');
 
-    await user.click(neuBerechnen());
-
-    // Ohne Antwortstand steht hier wieder „der Müll“: Die Entscheidung der
-    // Lehrkraft ist zurückgenommen, ohne dass irgendwer es gesagt hätte.
+    // Kein Warten: Es soll nichts eintreffen. Genau das wird nachgesehen.
     expect(feldFuer('litter')).toHaveValue('');
+    expect(screen.getByLabelText('Deutsche Antwort für „litter“')).toBeInTheDocument();
   });
 
-  it('räumt die Zeile beim Neuberechnen nicht weg', async () => {
-    const user = await empfehlen();
+  it('nimmt einen späten Modellvorschlag als Angebot an, nicht als Antwort', async () => {
+    const { provider, freigeben } = angehaltenerUebersetzer();
+    const user = await empfehlen({ uebersetzer: provider });
 
     await user.clear(feldFuer('litter'));
-    await user.click(neuBerechnen());
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Sprachmodell laden und Vorschläge erzeugen' }),
+    );
+    freigeben();
 
     /*
-      Eine leere Zeile gilt als „offen“ und wird durch ein anderes Wort
-      ersetzt. Eine *bewusst geleerte* Zeile ist keine offene Zeile – die
-      Lehrkraft hat sich mit ihr befasst.
+      Gewartet wird auf den Vorschlag **dieser** Zeile – er soll ja ankommen.
+      Die Frage ist nur, wo er landet.
     */
-    expect(screen.queryByLabelText('Deutsche Antwort für „litter“')).toBeInTheDocument();
+    await screen.findByRole('button', { name: /Vorschlag „litter-de“/ });
+
+    // Im Feld: nichts. Daneben: ein Angebot, das einen Klick kostet.
+    expect(feldFuer('litter')).toHaveValue('');
   });
 });
 
-describe('Eine getippte Antwort bleibt stehen', () => {
-  it('überlebt das Neuberechnen', async () => {
+// ---------------------------------------------------------------------------
+// 2. Was ausdrücklich verlangt wird
+// ---------------------------------------------------------------------------
+
+describe('Das ausdrückliche Ersetzen offener Empfehlungen', () => {
+  it('ersetzt eine geleerte maschinelle Empfehlung', async () => {
+    const user = await empfehlen();
+
+    await user.clear(feldFuer('litter'));
+    expect(feldFuer('litter')).toHaveValue('');
+
+    await user.click(ersetzen());
+
+    /*
+      Eine geleerte maschinelle Empfehlung **ist** offen. Wer „offene
+      Empfehlungen ersetzen“ drückt, meint auch sie – sie stehen zu lassen
+      hiesse, den Knopf zu ignorieren.
+    */
+    expect(screen.queryByLabelText('Deutsche Antwort für „litter“')).not.toBeInTheDocument();
+  });
+
+  it('legt die ersetzte Empfehlung unter „Frühere Empfehlungen“ ab', async () => {
+    const user = await empfehlen();
+
+    await user.clear(feldFuer('litter'));
+    await user.click(ersetzen());
+
+    await user.click(screen.getByRole('button', { name: /Frühere Empfehlungen/ }));
+
+    // Ersetzt heißt zurückgelegt, nicht weggeworfen.
+    expect(screen.getByRole('button', { name: 'litter wieder aufnehmen' })).toBeInTheDocument();
+  });
+
+  it('holt sie von dort unverändert zurück', async () => {
+    const user = await empfehlen();
+
+    await user.clear(feldFuer('litter'));
+    await user.click(ersetzen());
+    await user.click(screen.getByRole('button', { name: /Frühere Empfehlungen/ }));
+    await user.click(screen.getByRole('button', { name: 'litter wieder aufnehmen' }));
+
+    /*
+      Zurückgeholt wird die Zeile, wie sie war – geleert. Sie mit „Müll“
+      zurückzubringen wäre dieselbe Entscheidung wieder aufgehoben, nur an
+      einer anderen Stelle.
+    */
+    expect(feldFuer('litter')).toHaveValue('');
+  });
+
+  it('lässt eine ausgefüllte Antwort stehen', async () => {
     const user = await empfehlen();
 
     await user.clear(feldFuer('litter'));
     await user.type(feldFuer('litter'), 'der Abfall');
-    await user.click(neuBerechnen());
+    await user.click(ersetzen());
 
     expect(feldFuer('litter')).toHaveValue('der Abfall');
   });
 
-  it('wird nicht durch den Wörterbuchvorschlag ersetzt', async () => {
+  it('lässt sie auch beim zweiten Klick stehen', async () => {
     const user = await empfehlen();
 
     await user.clear(feldFuer('litter'));
     await user.type(feldFuer('litter'), 'der Abfall');
-    await user.click(neuBerechnen());
-    await user.click(neuBerechnen());
+    await user.click(ersetzen());
+    await user.click(ersetzen());
 
-    // Zweimal neu berechnen ist zweimal dieselbe Gelegenheit, es doch zu tun.
     expect(feldFuer('litter')).toHaveValue('der Abfall');
   });
 });
+
+// ---------------------------------------------------------------------------
+// 3. Was von Hand aus dem Quelltext kam
+// ---------------------------------------------------------------------------
+
+describe('Eine von Hand aufgenommene Zeile wird nicht ersetzt', () => {
+  /** „old station“ markieren und aufnehmen – eine Wortgruppe, die keine Empfehlung ist. */
+  async function ausQuelltextAufnehmen(
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<HTMLElement> {
+    wortImText('old').focus();
+    await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
+    await user.keyboard('{Enter}');
+    return screen.findByLabelText(/Deutsche Antwort für „(the )?old station“/);
+  }
+
+  it('gilt auch für ein Wort, das die Empfehlung ohnehin kennt', async () => {
+    /*
+      Der Fall, der leicht durchrutscht: `litter` **ist** ein Kandidat. Wer es
+      vor dem ersten Empfehlen aus dem Quelltext aufnimmt, hat es trotzdem
+      ausgesucht und nicht vorgeschlagen bekommen. Für die Zeile zählt, wie sie
+      entstanden ist – nicht, ob dasselbe Wort auch eine Empfehlung hätte
+      werden können.
+    */
+    const user = baueAuf({ mitQuelltext: true });
+    const knopf = await screen.findByRole('button', { name: 'Empfehlungen generieren' });
+    await waitFor(() => expect(knopf).toBeEnabled());
+
+    await user.click(wortImText('Litter'));
+    /*
+      Die Zeile heißt hier „Litter“ mit großem L: Sie trägt die Form, die im
+      Text steht, weil die Lernform aus der Fundstelle entsteht. Die spätere
+      Empfehlung desselben Wortes hieße „litter“ – dieselbe Kennung, anderer
+      Anzeigename.
+    */
+    const feld = await screen.findByLabelText('Deutsche Antwort für „Litter“');
+    await user.clear(feld);
+
+    await user.click(knopf);
+
+    expect(screen.getByLabelText('Deutsche Antwort für „Litter“')).toBeInTheDocument();
+    expect(screen.getByLabelText('Deutsche Antwort für „Litter“')).toHaveValue('');
+  });
+
+  it('bleibt beim Ersetzen stehen, auch wenn sie leer ist', async () => {
+    const user = await empfehlen({ mitQuelltext: true });
+    const feld = await ausQuelltextAufnehmen(user);
+
+    await user.clear(feld);
+    await user.click(ersetzen());
+
+    /*
+      Sie steht nicht da, weil eine Schätzung sie vorgeschlagen hat, sondern
+      weil jemand sie ausgesucht hat. „Offene Empfehlungen ersetzen“ meint die
+      Empfehlungen – nicht die Auswahl.
+    */
+    expect(screen.getByLabelText(/Deutsche Antwort für „(the )?old station“/)).toBeInTheDocument();
+  });
+
+  it('wird beim Ersetzen auch nicht wieder aus dem Wörterbuch gefüllt', async () => {
+    const user = await empfehlen({ mitQuelltext: true });
+    const feld = await ausQuelltextAufnehmen(user);
+
+    // Das Wörterbuch kennt die Wortgruppe – die Antwort stand also da.
+    expect(feld).toHaveValue('Bahnhof');
+
+    await user.clear(feld);
+    await user.click(ersetzen());
+
+    expect(screen.getByLabelText(/Deutsche Antwort für „(the )?old station“/)).toHaveValue('');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. Fassungen
+// ---------------------------------------------------------------------------
 
 /**
  * Eine Antwort, die für eine andere Zeile unterwegs war.
@@ -185,51 +372,11 @@ describe('Eine getippte Antwort bleibt stehen', () => {
  * Kandidaten bleibt dabei dieselbe – sie kommt aus dem Text. Wer eine späte
  * Antwort nur über diese Kennung zuordnet, trifft damit die **neue** Zeile mit
  * einem Ergebnis, das für die alte gestartet wurde.
- *
- * Deshalb trägt jede Zeile eine Fassung, und eine späte Antwort nennt die
- * Fassung, für die sie unterwegs war.
  */
 describe('Eine späte Antwort trifft nur ihre eigene Fassung', () => {
-  /** Ein Übersetzer, der erst antwortet, wenn die Prüfung es will. */
-  function angehaltenerUebersetzer(): {
-    provider: TranslationProvider;
-    freigeben: () => void;
-  } {
-    let freigeben: () => void = () => undefined;
-    const tor = new Promise<void>((resolve) => {
-      freigeben = resolve;
-    });
-    let bereit = false;
-    return {
-      freigeben: () => freigeben(),
-      provider: {
-        info: {
-          id: 'angehalten',
-          label: 'Testübersetzung',
-          dataNotice: 'Testanbieter. Es werden keine Daten übertragen.',
-          sendsDataOffDevice: false,
-        },
-        getAvailability: () => Promise.resolve('downloadable'),
-        async prepare(_source, _target, onProgress) {
-          onProgress?.(1);
-          bereit = true;
-          await Promise.resolve();
-        },
-        async translate(text) {
-          if (!bereit) throw new Error('Das Sprachmodell ist noch nicht geladen.');
-          await tor;
-          return `${text}-de`;
-        },
-        destroy() {
-          bereit = false;
-        },
-      },
-    };
-  }
-
   it('landet nicht in einer Zeile, die inzwischen neu aufgenommen wurde', async () => {
     const { provider, freigeben } = angehaltenerUebersetzer();
-    const user = await empfehlen(provider);
+    const user = await empfehlen({ uebersetzer: provider });
 
     // Die Übersetzung startet für alle offenen Zeilen – „crowded“ ist dabei.
     await user.click(
@@ -245,10 +392,6 @@ describe('Eine späte Antwort trifft nur ihre eigene Fassung', () => {
     // Die Übersetzung der übrigen Zeilen kommt an – daran hängt der Zeitpunkt.
     await screen.findByRole('button', { name: /Vorschlag „street-de“/ });
 
-    /*
-      Die neue Zeile ist eine andere Zeile. Der Vorschlag, der für die alte
-      unterwegs war, gehört nicht hierher – auch wenn die Kennung passt.
-    */
     expect(
       screen.queryByRole('button', { name: /Vorschlag „crowded-de“/ }),
     ).not.toBeInTheDocument();

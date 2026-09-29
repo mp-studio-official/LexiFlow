@@ -166,6 +166,18 @@ interface CandidateRow {
    */
   antwortStand: AntwortStand;
   /**
+   * Woher diese Zeile kommt.
+   *
+   * `maschinell` – sie ist ein Vorschlag. Eine Schätzung aus messbaren
+   * Merkmalen, die beim Ersetzen offener Empfehlungen zur Disposition steht.
+   * `quelltext`  – jemand hat sie im Text markiert und aufgenommen. Sie steht
+   * nicht da, weil eine Schätzung sie vorgeschlagen hat.
+   *
+   * Der Unterschied entscheidet, was „Offene Empfehlungen ersetzen“ meint:
+   * die Empfehlungen, nicht die Auswahl.
+   */
+  herkunft: Herkunft;
+  /**
    * Die Fassung dieser Zeile.
    *
    * Eine Zeile kann entfernt und wieder aufgenommen werden; die Kennung des
@@ -184,6 +196,9 @@ interface CandidateRow {
  * `geleert`     – die Lehrkraft hat das Feld **absichtlich** leer gemacht.
  */
 export type AntwortStand = 'unberuehrt' | 'automatisch' | 'geaendert' | 'geleert';
+
+/** Vorgeschlagen oder ausgesucht. */
+export type Herkunft = 'maschinell' | 'quelltext';
 
 /** Hat sich die Lehrkraft mit dieser Zeile befasst? */
 export function vonHandBeruehrt(row: { antwortStand: AntwortStand }): boolean {
@@ -213,6 +228,7 @@ function toRow(
   input: RecommendationInput | ScoredCandidate,
   markedFamilies: ReadonlySet<string> = new Set(),
   fassung = 0,
+  herkunft: Herkunft = 'maschinell',
 ): CandidateRow {
   const { candidate, dictionary, phrase } = input;
   const local = candidate.abbreviation?.german.trim() ?? '';
@@ -246,6 +262,7 @@ function toRow(
     proposal,
     translation: 'idle',
     antwortStand: 'unberuehrt',
+    herkunft,
     fassung,
     ...(scored?.baseFormHint ? { baseFormHint: scored.baseFormHint } : {}),
   };
@@ -698,18 +715,30 @@ export function TextCandidateReview({
         Sie wegzuräumen wäre auch nicht wiederherstellbar: Sie stammt nicht aus
         `inputs`, also könnte kein späterer Lauf sie zurückholen.
       */
-      const pickedIds = new Set(picked.map((candidate) => candidate.id));
       /*
-        Geschützt ist auch, was die Lehrkraft angefasst hat.
+        Geschützt ist, was **ausgesucht** wurde – nicht, was angefasst wurde.
 
-        Eine bewusst geleerte Zeile sieht aus wie eine offene – und wurde
-        deshalb weggeräumt und durch ein anderes Wort ersetzt. Das ist
-        derselbe Denkfehler wie beim Wörterbuch: „leer“ mit „frei“ zu
-        verwechseln. Wer sich mit einer Zeile befasst hat, hat entschieden,
-        und eine Entscheidung wird nicht nebenbei zurückgenommen.
+        Das ist die Grenze zwischen zwei Vorgängen, die leicht zusammenfallen,
+        aber nicht dasselbe sind:
+
+        - Was **von selbst** geschieht – ein Wörterbuch- oder Modellergebnis,
+          das später eintrifft –, darf eine geleerte Antwort nie wieder
+          füllen. Dafür sorgt `antwortStand` in `applyDictionaryDefaults` und
+          in `updateFassung`.
+        - Was **ausdrücklich verlangt** wird – dieser Knopf –, tauscht offene
+          maschinelle Empfehlungen aus. Eine geleerte Empfehlung ist offen.
+          Sie hier stehen zu lassen hieße, den Knopf zu ignorieren, den
+          jemand gerade gedrückt hat. Sie geht unter „Frühere Empfehlungen“
+          und lässt sich von dort zurückholen – verloren ist sie nicht.
+
+        Eine im Quelltext markierte Zeile bleibt dagegen auch leer stehen. Sie
+        ist keine Empfehlung, und dieser Knopf heißt nicht „Auswahl ersetzen“.
+        Sie verschwindet, wenn dieselbe Person sie entfernt.
+
+        Eine nicht leere Antwort ist ohnehin sicher: `replaceOpenRecommenda-
+        tions` fasst nur an, was leer ist.
       */
-      const geschuetzt = (row: CandidateRow): boolean =>
-        pickedIds.has(row.candidate.id) || vonHandBeruehrt(row);
+      const geschuetzt = (row: CandidateRow): boolean => row.herkunft === 'quelltext';
       const handpicked = rowsRef.current.filter(geschuetzt);
       const machine = rowsRef.current.filter((row) => !geschuetzt(row));
 
@@ -760,7 +789,7 @@ export function TextCandidateReview({
       // oben und weiß nicht, dass sich unten etwas geändert hat.
       fokussiereSpaeter(() => resultRef.current);
     },
-    [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext, picked],
+    [count, sort, inputs, context.grade, context.cefrLevel, earlier, publicationContext],
   );
 
   /**
@@ -894,7 +923,7 @@ export function TextCandidateReview({
       const input = inputs.find((item) => item.candidate.id === id);
       if (!input) return;
       const [neu] = applyDictionaryDefaults([
-        toRow(input, familiesNeedingLabels(inputs), naechsteFassung()),
+        toRow(input, familiesNeedingLabels(inputs), naechsteFassung(), 'quelltext'),
       ]);
       if (!neu) return;
       addRow(neu);
@@ -928,7 +957,7 @@ export function TextCandidateReview({
     };
 
     const [neu] = applyDictionaryDefaults([
-      toRow(input, familiesNeedingLabels([...inputs, input]), naechsteFassung()),
+      toRow(input, familiesNeedingLabels([...inputs, input]), naechsteFassung(), 'quelltext'),
     ]);
     if (!neu) return;
 
