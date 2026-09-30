@@ -1,55 +1,57 @@
 /**
- * Wie groß ein Tippziel ist, was überhaupt eines ist – und wie viele
+ * Wie groß ein **aktuell wahrnehmbares** Tippziel ist – und wie viele
  * Formularfelder eine Ansicht wirklich hat.
  *
- * ## Der Befund, der diese Datei nötig gemacht hat
+ * ## Was diese Prüfung ist, und was sie ausdrücklich nicht ist
  *
- * Der erste vollständige Mac-Lauf meldete `input.visually-hidden 1×1`. Das ist
- * kein Tippziel: Ein visuell verstecktes Dateifeld wird nie angetippt.
- * Angetippt wird sein Label.
+ * Sie misst Touchflächen, die es **jetzt gerade** gibt. Sie ist keine Prüfung
+ * der Bedienbarkeit und trifft über Elemente, die man nicht sehen kann, keine
+ * Aussage.
  *
- * Die Klasse hart auszunehmen wäre die falsche Antwort gewesen – das prüfte
- * einen Namen, nicht einen Sachverhalt.
+ * Zwei Fehlalarme aus dem vierten Mac-Lauf haben das erzwungen:
+ *
+ * - **Der Skip-Link.** Er liegt absichtlich über dem Bild (`top: -3rem`) und
+ *   kommt erst bei `:focus` herein. Dass er keinen sichtbaren Auslöser hat,
+ *   ist sein Zweck, nicht sein Mangel. Er gehört zur Fokus- und
+ *   Tastaturprüfung – dort steht er jetzt auch.
+ * - **Die versteckten Dateifelder.** `TeacherHomePage` und `StudentHomePage`
+ *   lösen sie über sichtbare, beschriftete Schaltflächen aus
+ *   (`onClick={() => fileInput.current?.click()}`). Sie sind bedienbar; die
+ *   Beziehung steht nur nicht im DOM. „Die kann niemand antippen" war
+ *   sachlich falsch.
+ *
+ * Daraus folgt eine Grenze, die diese Datei einhält: **Aus dem Fehlen einer
+ * deklarativen Beziehung folgt nichts.** Ob ein programmgesteuerter Auslöser
+ * existiert und funktioniert, ist eine Funktionsfrage und gehört in einen
+ * eigenen Test – nicht in eine Größenmessung, und schon gar nicht in ein
+ * Erraten von `onClick`-Beziehungen aus dem DOM.
  *
  * ## Die Regel
  *
  * | Zustand | woran erkennbar | was geprüft wird |
  * | --- | --- | --- |
- * | gar nicht gerendert | keine Rechtecke, `display:none`, `visibility:hidden` | nichts – es gibt es für niemanden |
- * | nur technisch da | `opacity:0`, `clip`, `clip-path`, Kante ≤ 4 px, aus dem Bild geschoben | **sein sichtbarer Auslöser** |
- * | wahrnehmbar | alles andere | **es selbst** |
+ * | gar nicht gerendert | keine Rechtecke, `display:none`, `visibility:hidden` | nichts |
+ * | nur technisch da / außerhalb des Bildes | `opacity:0`, `clip`, `clip-path`, Kante ≤ 4 px, aus dem Bild geschoben | **nur** sein Auslöser, **falls** deklarativ erkennbar |
+ * | wahrnehmbar | alles andere | es selbst |
  *
- * Findet sich zu einem versteckten Bedienelement kein sichtbarer Auslöser, ist
- * das ein eigener Befund – kein Freifahrtschein.
- *
- * ## Warum auch die Formularfelder hier gezählt werden
- *
- * Der zweite Mac-Lauf zeigte, dass die Tastaturprüfung eine **andere**
- * Sichtbarkeit benutzte als diese Regel: Sie zählte das versteckte Dateifeld
- * als Formularfeld und verlangte deshalb unter WebKit, dass Tab es erreicht.
- * Zwei Definitionen von „sichtbar" in einer Prüfbank sind eine zu viel.
- * Deshalb kommt die Zahl aus derselben Funktion und damit aus derselben Regel.
+ * Deklarativ erkennbar heißt: `label[for]`, ein umschließendes `label`,
+ * `aria-labelledby` – oder `data-tippziel-fuer="<id>"` an einem sichtbaren
+ * Element. Das Attribut ist der bewusste Weg für programmgesteuerte Auslöser:
+ * Wer eine solche Beziehung geprüft haben will, schreibt sie hin. Heute steht
+ * es noch nirgends im Markup; das wäre eine Produktivänderung und ist nicht
+ * freigegeben.
  *
  * ## Warum diese Funktion so geschrieben ist, wie sie geschrieben ist
  *
  * Playwright **serialisiert** sie und führt ihren Quelltext in der Seite aus.
- * Alles, was sie von außen benennt, ist dort nicht vorhanden. Der erste
- * Versuch hatte `auswahl = TIPPZIELAUSWAHL` als Vorgabewert – eine
- * Modulvariable. Unter jsdom lief das, weil der direkte Aufruf das Modul
- * dabei hat; in der Seite scheiterten alle 32 schmalen Messungen mit
- * `TIPPZIELAUSWAHL is not defined`, und die Prüfung maß nichts.
- *
- * Deshalb: **keine freie Benennung, auch nicht in einem Vorgabewert.** Alle
- * Vorgaben stehen als Literale im Rumpf. `scripts/tippziele.test.mjs` führt
- * den Quelltext in einem eigenen Realm ohne Modulumgebung aus – ein direkter
- * Aufruf kann diesen Fehler nicht finden.
+ * Deshalb: keine freie Benennung, auch nicht in einem Vorgabewert.
+ * `scripts/serialisierung.test.mjs` führt den Quelltext in einem eigenen Realm
+ * ohne Modulumgebung aus – ein direkter Aufruf kann diesen Fehler nicht finden.
  */
 
 export interface Tippzielbefunde {
-  /** Wahrnehmbare Ziele unter dem Maß – und zu kleine Auslöser. */
+  /** Wahrnehmbare Ziele unter dem Maß – und zu kleine deklarierte Auslöser. */
   zuKlein: string[];
-  /** Versteckte Bedienelemente, zu denen sich nichts Sichtbares findet. */
-  ohneAusloeser: string[];
   /** Wie viele Ziele überhaupt gemessen wurden – gegen eine leere Prüfung. */
   gemessen: number;
   /** Formularfelder, die wirklich wahrnehmbar sind – für die Tastaturfrage. */
@@ -61,14 +63,11 @@ export interface Tippzielbefunde {
  *
  * `mass` ist 44 px: die Zahl aus WCAG 2.5.5 und aus Apples Richtlinie.
  */
-export function tippzielbefunde(
-  einstellungen?: { mass?: number; auswahl?: string },
-): Tippzielbefunde {
-  /*
-    Alle Vorgaben als Literale im Rumpf – siehe der Dateikopf. Ein
-    Vorgabewert im Parameterkopf, der etwas außerhalb benennt, überlebt die
-    Serialisierung nicht.
-  */
+export function tippzielbefunde(einstellungen?: {
+  mass?: number;
+  auswahl?: string;
+}): Tippzielbefunde {
+  /* Alle Vorgaben als Literale im Rumpf – siehe der Dateikopf. */
   const mass = einstellungen?.mass ?? 44;
   const auswahl =
     einstellungen?.auswahl ??
@@ -92,10 +91,11 @@ export function tippzielbefunde(
   };
 
   /**
-   * Nur technisch da: gerendert, aber ohne wahrnehmbare Fläche.
+   * Nur technisch da: gerendert, aber jetzt nicht wahrnehmbar.
    *
-   * Die vier Muster, mit denen Bedienelemente absichtlich versteckt werden –
-   * keines davon an einen Klassennamen gebunden.
+   * Die Muster, mit denen Bedienelemente versteckt oder geparkt werden –
+   * keines davon an einen Klassennamen gebunden. Der Skip-Link fällt über die
+   * letzte Zeile hierher: Er steht mit `top: -3rem` über dem Bild.
    */
   const nurTechnischDa = (el: Element): boolean => {
     const stil = getComputedStyle(el);
@@ -111,7 +111,12 @@ export function tippzielbefunde(
 
   const wahrnehmbar = (el: Element): boolean => gerendert(el) && !nurTechnischDa(el);
 
-  /** Was die Bedienung statt des versteckten Elements wirklich anfasst. */
+  /**
+   * Ein Auslöser, **falls er im Markup steht**.
+   *
+   * Findet sich keiner, gibt diese Funktion nichts zurück – und daraus folgt
+   * nichts. Sie rät nicht.
+   */
   const ausloeserZu = (el: Element): Element | undefined => {
     const kandidaten: Element[] = [];
 
@@ -122,6 +127,15 @@ export function tippzielbefunde(
           ? CSS.escape(kennung)
           : kennung.replace(/["\\]/g, '\\$&');
       kandidaten.push(...Array.from(document.querySelectorAll(`label[for="${sicher}"]`)));
+      /*
+        Der bewusste Weg für programmgesteuerte Auslöser: Ein sichtbares
+        Element erklärt sich zum Tippziel eines versteckten Bedienelements.
+        Geraten wird nichts – wer die Beziehung geprüft haben will, schreibt
+        sie hin.
+      */
+      kandidaten.push(
+        ...Array.from(document.querySelectorAll(`[data-tippziel-fuer="${sicher}"]`)),
+      );
     }
 
     const umschliessend = el.closest('label');
@@ -149,37 +163,46 @@ export function tippzielbefunde(
   };
 
   const zuKlein: string[] = [];
-  const ohneAusloeser: string[] = [];
   /* Ein Auslöser kann mehrere versteckte Felder bedienen – er zählt einmal. */
   const schonGenannt = new Set<Element>();
   let gemessen = 0;
 
-  for (const el of Array.from(document.querySelectorAll(auswahl))) {
-    if (!gerendert(el)) continue;
-    if (el.hasAttribute('disabled')) continue;
-    // Ein Verweis mitten im Satz kann nicht 44 px hoch sein, ohne den Satz zu
-    // zerreißen; WCAG nimmt ihn ausdrücklich aus.
-    if (el.closest('[data-fliesstext]')) continue;
-
-    if (nurTechnischDa(el)) {
-      const ausloeser = ausloeserZu(el);
-      if (!ausloeser) {
-        ohneAusloeser.push(benenne(el));
-        continue;
-      }
-      if (schonGenannt.has(ausloeser)) continue;
-      schonGenannt.add(ausloeser);
-      gemessen += 1;
-      if (zuKleinFuer(ausloeser)) {
-        zuKlein.push(`${benenne(ausloeser)} ${masse(ausloeser)} (Auslöser für ${benenne(el)})`);
-      }
-      continue;
-    }
-
-    if (schonGenannt.has(el)) continue;
+  const miss = (el: Element, zusatz = ''): void => {
+    if (schonGenannt.has(el)) return;
     schonGenannt.add(el);
     gemessen += 1;
-    if (zuKleinFuer(el)) zuKlein.push(`${benenne(el)} ${masse(el)}`);
+    if (zuKleinFuer(el)) zuKlein.push(`${benenne(el)} ${masse(el)}${zusatz}`);
+  };
+
+  const zuPruefen = Array.from(document.querySelectorAll(auswahl)).filter((el) => {
+    if (!gerendert(el)) return false;
+    if (el.hasAttribute('disabled')) return false;
+    // Ein Verweis mitten im Satz kann nicht 44 px hoch sein, ohne den Satz zu
+    // zerreißen; WCAG nimmt ihn ausdrücklich aus.
+    return !el.closest('[data-fliesstext]');
+  });
+
+  /*
+    Erst die versteckten Bedienelemente, dann die sichtbaren – und das ist
+    keine Kosmetik. Ein Auslöser ist häufig selbst ein sichtbares Tippziel.
+    Käme er zuerst an die Reihe, stünde im Befund nur seine Größe; so steht
+    dort auch, wofür er der Auslöser ist. Gemessen wird er in beiden Fällen
+    genau einmal.
+  */
+  for (const el of zuPruefen) {
+    if (!nurTechnischDa(el)) continue;
+    /*
+      Kein Touchziel – jetzt nicht. Steht ein Auslöser im Markup, wird
+      **dessen** Fläche gemessen. Steht keiner da, endet diese Prüfung hier:
+      Über etwas, das sie nicht sehen kann, sagt sie nichts.
+    */
+    const ausloeser = ausloeserZu(el);
+    if (ausloeser) miss(ausloeser, ` (Auslöser für ${benenne(el)})`);
+  }
+
+  for (const el of zuPruefen) {
+    if (nurTechnischDa(el)) continue;
+    miss(el);
   }
 
   /*
@@ -191,10 +214,5 @@ export function tippzielbefunde(
     (el) => wahrnehmbar(el) && !el.hasAttribute('disabled'),
   ).length;
 
-  return {
-    zuKlein: zuKlein.slice(0, 12),
-    ohneAusloeser: ohneAusloeser.slice(0, 12),
-    gemessen,
-    sichtbareFormularfelder,
-  };
+  return { zuKlein: zuKlein.slice(0, 20), gemessen, sichtbareFormularfelder };
 }

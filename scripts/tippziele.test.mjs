@@ -6,24 +6,29 @@ import { tippzielbefunde } from '../e2e/tippziele';
 /**
  * Die Regel, was ein Tippziel ist – geprüft ohne Browser.
  *
- * ## Warum das hier steht und nicht nur in Playwright
+ * ## Woran sich die Regel zweimal korrigiert hat
  *
- * Der erste vollständige Mac-Lauf meldete `input.visually-hidden 1×1` als zu
- * kleines Tippziel. Das war ein Fehlalarm: Ein visuell verstecktes Dateifeld
- * wird nie angetippt, sein Label schon. Aufgefallen ist das erst nach einem
- * vollständigen Lauf über acht Projekte – also nach Minuten und einer
- * Rückmeldung.
+ * Erst meldete sie ein visuell verstecktes Dateifeld als 1 × 1 großes
+ * Tippziel. Dann meldete sie dasselbe Feld und den Skip-Link als
+ * „Bedienelement ohne sichtbaren Auslöser" – und weil diese Zusicherung vor
+ * der Größenzusicherung stand, verdeckte sie in zwei vollständigen Läufen
+ * sämtliche echten Größenbefunde.
  *
- * `tippzielbefunde` ist deshalb eine in sich geschlossene Funktion: Playwright
- * reicht sie in die Seite, und hier läuft sie unter jsdom. Die vier Fälle, um
- * die es geht, sind damit in Millisekunden prüfbar.
+ * Die Zuständigkeit ist jetzt eng gezogen:
+ *
+ * - Gemessen wird, was **jetzt** wahrnehmbar ist.
+ * - Was nur technisch da oder außerhalb des Bildes liegt, wird nicht selbst
+ *   gemessen.
+ * - Steht ein Auslöser **deklarativ** im Markup, wird dessen Fläche zusätzlich
+ *   gemessen.
+ * - Steht keiner da, sagt diese Prüfung **nichts**. Ob ein
+ *   programmgesteuerter Auslöser existiert, ist eine Funktionsfrage.
  *
  * ## Was jsdom kann und was nicht
  *
- * jsdom rechnet kein Layout: Jedes Element wäre 0 × 0. Die Maße werden
- * deshalb gesetzt (`getBoundingClientRect`, `getClientRects`) – geprüft wird
- * die **Regel**, nicht die Layoutrechnung des Browsers. Die macht im echten
- * Lauf der Browser selbst.
+ * jsdom rechnet kein Layout. Die Maße werden deshalb gesetzt – geprüft wird
+ * die **Regel**, nicht die Layoutrechnung des Browsers. Dass die Funktion den
+ * Weg in die Seite übersteht, prüft `scripts/serialisierung.test.mjs`.
  */
 
 function setze(el, { breite, hoehe, links = 0, oben = 0 }) {
@@ -43,19 +48,34 @@ function setze(el, { breite, hoehe, links = 0, oben = 0 }) {
   return el;
 }
 
+/** Das Muster aus `global.css`: 1 px, `clip: rect(0 0 0 0)`. */
+function versteckt(el) {
+  el.style.clip = 'rect(0px, 0px, 0px, 0px)';
+  return setze(el, { breite: 1, hoehe: 1 });
+}
+
+/** Der Skip-Link: volle Größe, aber mit `top: -3rem` über dem Bild. */
+function ueberDemBild(el) {
+  return setze(el, { breite: 160, hoehe: 40, oben: -48 });
+}
+
 afterEach(() => {
   document.body.innerHTML = '';
-  document.head.innerHTML = '';
 });
 
-describe('wahrnehmbare Bedienelemente werden selbst gemessen', () => {
+describe('gemessen wird, was jetzt wahrnehmbar ist', () => {
   it('ein 20-px-Touchziel bleibt ein Befund', () => {
     document.body.innerHTML = '<button id="klein">Los</button>';
     setze(document.getElementById('klein'), { breite: 20, hoehe: 20 });
 
-    const befund = tippzielbefunde();
-    expect(befund.zuKlein).toEqual(['button#klein 20×20']);
-    expect(befund.ohneAusloeser).toEqual([]);
+    expect(tippzielbefunde().zuKlein).toEqual(['button#klein 20×20']);
+  });
+
+  it('ein sichtbares 20-px-Eingabefeld bleibt ein Befund', () => {
+    document.body.innerHTML = '<input type="text" id="feld">';
+    setze(document.getElementById('feld'), { breite: 308, hoehe: 20 });
+
+    expect(tippzielbefunde().zuKlein).toEqual(['input#feld 308×20']);
   });
 
   it('ein 44-px-Touchziel ist keiner', () => {
@@ -73,97 +93,128 @@ describe('wahrnehmbare Bedienelemente werden selbst gemessen', () => {
   });
 });
 
-describe('absichtlich versteckte Bedienelemente werden über ihren Auslöser gemessen', () => {
-  /**
-   * Das Muster aus `global.css`: `position:absolute; width:1px; height:1px;
-   * clip: rect(0 0 0 0)`. Geprüft wird nicht der Klassenname, sondern dass
-   * das Element keine wahrnehmbare Fläche hat.
-   */
-  function versteckt(el) {
-    el.style.clip = 'rect(0px, 0px, 0px, 0px)';
-    return setze(el, { breite: 1, hoehe: 1 });
-  }
-
-  it('ein verstecktes Feld mit großem Label erzeugt keinen Fehlalarm', () => {
-    document.body.innerHTML = `
-      <label for="datei" id="knopf">Datei wählen</label>
-      <input type="file" id="datei" class="visually-hidden">`;
-    versteckt(document.getElementById('datei'));
-    setze(document.getElementById('knopf'), { breite: 180, hoehe: 48 });
+describe('was nicht wahrnehmbar ist, wird nicht als Touchziel gewertet', () => {
+  it('der unfokussierte Skip-Link erzeugt keinen Befund', () => {
+    /*
+      Der Fehlalarm aus dem vierten Lauf, in jeder Ansicht und auf beiden
+      Engines. Er liegt über dem Bild und kommt bei `:focus` herein; geprüft
+      gehört er in `skiplinkKommtInsBild`, nicht hier.
+    */
+    document.body.innerHTML = '<a href="#inhalt" id="skip" class="skip-link">Zum Inhalt</a>';
+    ueberDemBild(document.getElementById('skip'));
 
     const befund = tippzielbefunde();
     expect(befund.zuKlein).toEqual([]);
-    expect(befund.ohneAusloeser).toEqual([]);
-    // Gemessen wurde trotzdem etwas – der Auslöser.
+    expect(befund.gemessen).toBe(0);
+  });
+
+  it('ein verstecktes Dateifeld ohne deklarierten Auslöser erzeugt keinen Befund', () => {
+    /*
+      `TeacherHomePage` und `StudentHomePage` lösen es über eine sichtbare
+      Schaltfläche aus (`onClick={() => fileInput.current?.click()}`). Die
+      Beziehung steht nicht im DOM – „die kann niemand antippen" war deshalb
+      sachlich falsch. Aus dem Fehlen einer deklarativen Beziehung folgt hier
+      nichts.
+    */
+    document.body.innerHTML = `
+      <button id="knopf">Datei wählen</button>
+      <input type="file" id="datei" class="visually-hidden">`;
+    setze(document.getElementById('knopf'), { breite: 180, hoehe: 48 });
+    versteckt(document.getElementById('datei'));
+
+    const befund = tippzielbefunde();
+    expect(befund.zuKlein).toEqual([]);
+    // Die sichtbare Schaltfläche wird trotzdem gemessen – als das, was sie ist.
     expect(befund.gemessen).toBe(1);
   });
 
-  it('ein umschließendes Label zählt genauso', () => {
+  it('die auslösende Schaltfläche bleibt als sichtbares Ziel messbar', () => {
     document.body.innerHTML = `
-      <label id="huelle">Datei wählen<input type="file" id="datei"></label>`;
+      <button id="knopf">Datei</button>
+      <input type="file" id="datei">`;
+    setze(document.getElementById('knopf'), { breite: 60, hoehe: 24 });
     versteckt(document.getElementById('datei'));
-    setze(document.getElementById('huelle'), { breite: 180, hoehe: 48 });
 
-    expect(tippzielbefunde().ohneAusloeser).toEqual([]);
+    // Kein Wort über das Dateifeld – aber die Schaltfläche ist zu klein.
+    expect(tippzielbefunde().zuKlein).toEqual(['button#knopf 60×24']);
+  });
+});
+
+describe('ein deklarierter Auslöser wird zusätzlich gemessen', () => {
+  it('label[for]: großes Label, kein Befund', () => {
+    document.body.innerHTML = `
+      <label for="datei" id="knopf">Datei wählen</label>
+      <input type="file" id="datei">`;
+    setze(document.getElementById('knopf'), { breite: 180, hoehe: 48 });
+    versteckt(document.getElementById('datei'));
+
+    expect(tippzielbefunde().zuKlein).toEqual([]);
   });
 
-  it('ein zu kleines Label wird als Auslöser gemeldet, nicht als 1×1', () => {
-    /*
-      Der eigentliche Zweck der Regel: Die Aussage bleibt erhalten, sie
-      verschiebt sich nur auf das Element, das man wirklich anfasst.
-    */
+  it('label[for]: zu kleines Label wird als Auslöser gemeldet', () => {
     document.body.innerHTML = `
       <label for="datei" id="knopf">Wählen</label>
       <input type="file" id="datei">`;
-    versteckt(document.getElementById('datei'));
     setze(document.getElementById('knopf'), { breite: 60, hoehe: 24 });
+    versteckt(document.getElementById('datei'));
 
-    const befund = tippzielbefunde();
-    expect(befund.zuKlein).toEqual(['label#knopf 60×24 (Auslöser für input#datei)']);
-    expect(befund.ohneAusloeser).toEqual([]);
+    expect(tippzielbefunde().zuKlein).toEqual(['label#knopf 60×24 (Auslöser für input#datei)']);
   });
 
-  it('ein verstecktes Feld ohne sichtbaren Auslöser rutscht nicht durch', () => {
-    document.body.innerHTML = '<input type="file" id="datei" aria-label="Datei">';
+  it('ein umschließendes Label zählt genauso', () => {
+    document.body.innerHTML = '<label id="huelle">Datei<input type="file" id="datei"></label>';
+    setze(document.getElementById('huelle'), { breite: 180, hoehe: 48 });
     versteckt(document.getElementById('datei'));
 
-    const befund = tippzielbefunde();
-    expect(befund.ohneAusloeser).toEqual(['input#datei']);
-    expect(befund.zuKlein).toEqual([]);
+    expect(tippzielbefunde().zuKlein).toEqual([]);
+  });
+
+  it('data-tippziel-fuer: der bewusste Weg für programmgesteuerte Auslöser', () => {
+    /*
+      Geraten wird nichts. Wer eine `onClick`-Beziehung geprüft haben will,
+      schreibt sie ins Markup. Im Produktivcode steht das Attribut heute
+      nirgends – das wäre eine Produktivänderung und ist nicht freigegeben.
+    */
+    document.body.innerHTML = `
+      <button id="knopf" data-tippziel-fuer="datei">Datei wählen</button>
+      <input type="file" id="datei">`;
+    setze(document.getElementById('knopf'), { breite: 60, hoehe: 24 });
+    versteckt(document.getElementById('datei'));
+
+    expect(tippzielbefunde().zuKlein).toEqual([
+      'button#knopf 60×24 (Auslöser für input#datei)',
+    ]);
+  });
+
+  it('data-tippziel-fuer mit ausreichend großem Auslöser: kein Befund', () => {
+    document.body.innerHTML = `
+      <button id="knopf" data-tippziel-fuer="datei">Datei wählen</button>
+      <input type="file" id="datei">`;
+    setze(document.getElementById('knopf'), { breite: 180, hoehe: 48 });
+    versteckt(document.getElementById('datei'));
+
+    expect(tippzielbefunde().zuKlein).toEqual([]);
   });
 
   it('ein Auslöser, der selbst versteckt ist, zählt nicht als Auslöser', () => {
     document.body.innerHTML = `
       <label for="datei" id="auchversteckt">Wählen</label>
       <input type="file" id="datei">`;
-    versteckt(document.getElementById('datei'));
     versteckt(document.getElementById('auchversteckt'));
-
-    expect(tippzielbefunde().ohneAusloeser).toEqual(['input#datei']);
-  });
-
-  it('opacity 0 zählt genauso als versteckt wie clip', () => {
-    document.body.innerHTML = `
-      <label for="datei" id="knopf">Wählen</label>
-      <input type="file" id="datei" style="opacity: 0">`;
-    setze(document.getElementById('datei'), { breite: 200, hoehe: 40 });
-    setze(document.getElementById('knopf'), { breite: 180, hoehe: 48 });
+    versteckt(document.getElementById('datei'));
 
     const befund = tippzielbefunde();
     expect(befund.zuKlein).toEqual([]);
-    expect(befund.ohneAusloeser).toEqual([]);
+    expect(befund.gemessen).toBe(0);
   });
 });
 
 describe('was gar nicht gerendert ist, wird nicht gemessen', () => {
-  it('display:none erzeugt weder Befund noch Auslöserpflicht', () => {
+  it('display:none erzeugt keinen Befund', () => {
     document.body.innerHTML = '<button id="weg" style="display:none">Los</button>';
     setze(document.getElementById('weg'), { breite: 0, hoehe: 0 });
 
-    const befund = tippzielbefunde();
-    expect(befund.zuKlein).toEqual([]);
-    expect(befund.ohneAusloeser).toEqual([]);
-    expect(befund.gemessen).toBe(0);
+    expect(tippzielbefunde().gemessen).toBe(0);
   });
 
   it('eine Seite ganz ohne Bedienelemente meldet „nichts gemessen"', () => {

@@ -215,6 +215,21 @@ describe('die Prüfbank benutzt einen einzigen Sichtbarkeitsbegriff', () => {
     ).not.toMatch(/filter\(\{ visible: true \}\)/);
   });
 
+  it('die Tippzielprüfung sichert nur Größen zu', () => {
+    /*
+      Der Rückfall, den der vierte Mac-Lauf erzwungen hat. Eine Zusicherung auf
+      „versteckte Bedienelemente ohne sichtbaren Auslöser" ist zweierlei
+      falsch: fachlich, weil aus dem Fehlen einer deklarativen Beziehung
+      nichts folgt – und praktisch, weil sie vor der Größenzusicherung stand
+      und in zwei vollständigen Läufen sämtliche echten Größenbefunde
+      verdeckte.
+    */
+    expect(messungen).not.toMatch(/ohneAusloeser/);
+    expect(messungen, 'der Skip-Link gehört zur Fokus- und Tastaturprüfung').toMatch(
+      /skiplinkKommtInsBild/,
+    );
+  });
+
   it('die Messfunktionen tragen keine freie Benennung im Parameterkopf', () => {
     /*
       Playwright überträgt den Quelltext, nicht die Funktion. Ob das wirklich
@@ -222,7 +237,7 @@ describe('die Prüfbank benutzt einen einzigen Sichtbarkeitsbegriff', () => {
       hier steht nur die Form, die dazu geführt hatte: ein Vorgabewert im
       Parameterkopf, der etwas außerhalb benennt.
     */
-    for (const datei of ['e2e/tippziele.ts', 'e2e/fokus.ts']) {
+    for (const datei of ['e2e/tippziele.ts', 'e2e/fokus.ts', 'e2e/skiplink.ts']) {
       const text = ohneKommentare(lies(datei));
       const koepfe = [...text.matchAll(/export function \w+\(([^)]*)\)/g)].map((t) => t[1]);
       for (const kopf of koepfe) {

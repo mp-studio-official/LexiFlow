@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { fokusIndikatorMessen, indikatorAendertSich } from './fokus';
+import { skiplinkFokussieren, skiplinkNachmessen } from './skiplink';
 import { tippzielbefunde } from './tippziele';
 
 /**
@@ -86,12 +87,41 @@ export async function keinQuerlauf(page: Page): Promise<void> {
 export async function tippzieleGrossGenug(page: Page): Promise<void> {
   const befund = await page.evaluate(tippzielbefunde, {});
 
-  expect(
-    befund.ohneAusloeser,
-    'versteckte Bedienelemente ohne sichtbaren Auslöser – die kann niemand antippen',
-  ).toEqual([]);
-  expect(befund.zuKlein, 'Tippziele unter 44 × 44 px').toEqual([]);
+  /*
+    Nur noch eine Zusicherung, und das ist Absicht. Vorher stand davor eine
+    zweite auf „versteckte Bedienelemente ohne sichtbaren Auslöser". Sie war
+    fachlich falsch – und weil sie zuerst kam, hat sie in zwei vollständigen
+    Läufen sämtliche echten Größenbefunde verdeckt: gerechnet wurde beides,
+    zu sehen bekam man nur den Fehlalarm.
+  */
   expect(befund.gemessen, 'es wurde kein einziges Tippziel gemessen').toBeGreaterThan(0);
+  expect(befund.zuKlein, `Tippziele unter 44 × 44 px (${befund.gemessen} gemessen)`).toEqual([]);
+}
+
+/**
+ * Der Skip-Link kommt ins Bild, wenn man ihn fokussiert.
+ *
+ * Er ist ein Tastaturwerkzeug und kein Touchziel; die Tippzielprüfung sagt
+ * über ihn deshalb nichts. Hier steht die Frage, die zu ihm passt.
+ *
+ * Gewartet wird nicht auf eine Frist, sondern auf einen Endzustand: Er
+ * animiert seinen Weg ins Bild (`transition: top`), und die Zusicherung
+ * lautet, dass er ankommt.
+ */
+export async function skiplinkKommtInsBild(page: Page): Promise<void> {
+  const vorher = await page.evaluate(skiplinkFokussieren);
+
+  test.skip(!vorher.gefunden, 'Diese Ansicht hat keinen Verweis, der außerhalb des Bildes liegt.');
+
+  await expect
+    .poll(async () => (await page.evaluate(skiplinkNachmessen)).imBild, {
+      timeout: 3_000,
+      message: `${vorher.name} kommt beim Fokussieren nicht ins Bild`,
+    })
+    .toBe(true);
+
+  const nachher = await page.evaluate(skiplinkNachmessen);
+  expect(nachher.name, 'nach dem Fokussieren liegt der Fokus woanders').toBe(vorher.name);
 }
 
 /**

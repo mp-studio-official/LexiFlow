@@ -39,6 +39,7 @@ import { tippzielbefunde } from '../e2e/tippziele';
 /** Die Globalen, die eine Seite hat – und sonst nichts aus diesem Modul. */
 function seitenrealm() {
   return createContext({
+    window: globalThis.window,
     document: globalThis.document,
     getComputedStyle: globalThis.getComputedStyle.bind(globalThis),
     CSS: globalThis.CSS,

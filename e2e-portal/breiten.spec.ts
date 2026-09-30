@@ -7,6 +7,7 @@ import {
   fokusIndikatorIstSichtbar,
   keinQuerlauf,
   seiteIstDa,
+  skiplinkKommtInsBild,
   tastaturErreichbarkeit,
   tippzieleGrossGenug,
   zoomProbe,
@@ -113,6 +114,12 @@ for (const ansicht of ANSICHTEN) {
 
     test(`@breiten Portal – ${ansicht.name}: der Fokus ist zu sehen`, async ({ page }) => {
       await fokusIndikatorIstSichtbar(page);
+    });
+
+    test(`@breiten Portal – ${ansicht.name}: der Skip-Link kommt beim Fokussieren ins Bild`, async ({
+      page,
+    }) => {
+      await skiplinkKommtInsBild(page);
     });
 
     test(`@breiten Portal – ${ansicht.name}: man kommt mit der Tastatur hin`, async ({
