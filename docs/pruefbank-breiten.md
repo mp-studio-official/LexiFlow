@@ -176,3 +176,24 @@ grün machen.
 
 Bis dahin sind die 32 Fehlschläge der bekannte, gemessene Ausgangszustand —
 und kein Grund, die Prüfung abzuschalten oder ihre Erwartung zu senken.
+
+## 7. Nachtrag: die verbindliche visuelle Richtung
+
+Seit dem 30.09.2026 ist **Variante B** die verbindliche Richtung
+(`docs/mockups/portal-variante-b/`, Entscheidungen E19 bis E22 in
+`docs/konzept-5b.md`): kühl-heller Grund, Anthrazit als Hauptfarbe, Aurora als
+Flächenakzent, Manrope 700–800 in den Überschriften, kein Dunkelmodus in 5B.
+
+Für diese Prüfbank ändert das **nichts**. Sie misst Geometrie, Fokus und
+Erreichbarkeit — keine Farben und keine Schriften. Die Akzeptanzkriterien aus
+Abschnitt 6 gelten unverändert, und jeder neu gestaltete Bildschirm muss seine
+Zeile grün machen, gleich in welcher visuellen Ebene er gebaut ist.
+
+Die Entwürfe haben eine eigene Prüfung, die zusätzlich die Regeln der Variante
+absichert (Glas nur an erlaubten Stellen, deckender Rückfall ohne
+`backdrop-filter`, gerechnete Kontraste):
+
+```
+node docs/mockups/portal-variante-b/pruefe-variante.mjs
+node docs/mockups/portal/pruefe-entwuerfe.mjs
+```

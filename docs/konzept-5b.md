@@ -217,9 +217,12 @@ Verwaltungswerkzeug — und wie ein Werkzeug, nicht wie eine Werbeseite.
 
 Vier Sätze, an denen sich jede Entscheidung in 5B messen lässt:
 
-1. **Papier trägt, Farbe ereignet sich.** Rund 90 % der Fläche bleiben
-   Parchment und Aubergine. Tomato erscheint für aktive Zustände und die eine
-   primäre Aktion einer Ansicht — nicht zweimal auf demselben Bildschirm.
+1. **Der Grund tritt zurück, die Aurora gibt Tiefe, die Tinte trägt.**
+   ~~Papier trägt, Farbe ereignet sich. Rund 90 % der Fläche bleiben Parchment
+   und Aubergine.~~ **Ersetzt durch E19** (Abschnitt 14, 30.09.2026): Der Grund
+   ist kühl-hell, die Hauptfarbe Anthrazit, die Aurora ein Flächenakzent.
+   Aubergine und Tomato bleiben Markenakzente; Tomato darf gezielt Fortschritt
+   oder einzelne aktive Akzente tragen.
 2. **Weniger Kanten, mehr Luft.** Rahmen nur, wo etwas begrenzt werden muss
    (Eingabefelder, Auswahl). Karten trennen sich durch Fläche, Abstand und
    einen weichen Schatten.
@@ -234,7 +237,7 @@ Vier Sätze, an denen sich jede Entscheidung in 5B messen lässt:
 
 | Was | woran man die Änderung sieht |
 | --- | --- |
-| **Typografie** | eine editoriale Überschriftenstimme (Newsreader), ruhigere, größere Fließtextmaße, weniger Schriftgrade je Ansicht |
+| **Typografie** | kräftige Überschriften in Manrope 700–800 (~~editoriale Überschriftenstimme, Newsreader~~ — **ersetzt durch E21**), ruhigere, größere Fließtextmaße, weniger Schriftgrade je Ansicht |
 | **Seitenaufbau** | ein Seitentitelbereich statt Überschrift-im-Fluss; breitere Ränder; ein Rhythmus statt handgesetzter Abstände |
 | **Navigation** | je vier Ziele, unten auf dem Telefon, seitlich am Schreibtisch |
 | **Karten** | Kurs- und Paketkarten mit Cover, Metadaten am Fuß, **einer** deutlichen Aktion |
@@ -246,13 +249,20 @@ Die Wärme und Großzügigkeit kommen von Corely, die Lernkartenlogik und die
 Metadatenzeile von CourseSite. Kopiert wird nichts: kein Layout, kein
 Markenelement, keine Farbe.
 
-### Farben — verbindlich und unverändert
+### Farben — **ersetzt durch E19**
+
+> Dieser Abschnitt hieß bis zum 30.09.2026 „Farben — verbindlich und
+> unverändert" und schrieb Aubergine, Tomato und Parchment als tragende
+> Palette der Oberfläche fest. **Diese Festlegung gilt nicht mehr.** Sie ist
+> nicht ergänzt, sondern ersetzt; die neue steht in E19 (Abschnitt 14).
 
 | Rolle | Farbe |
 | --- | --- |
-| Tinte, Navigation, primäre Aktion | Aubergine `#2F092D` |
-| aktive Zustände, Marker, Akzent | Tomato `#FF2E2D` |
-| Grundfläche | Parchment `#F8EFE3` |
+| Grundfläche | kühl-hell `#F6F7FB` |
+| Tinte, Navigation, primäre Aktion | Anthrazit `#121318` |
+| Flächenakzent, Titelbilder | Aurora: Violett, Rosa, Himmelblau, Pfirsich |
+| Markenakzent, Logo, Fortschritt | Aubergine `#2F092D`, Tomato `#FF2E2D` |
+| ~~Grundfläche~~ | ~~Parchment `#F8EFE3`~~ — kein Standardhintergrund mehr |
 
 Keine weitere dominante Markenfarbe. Semantische Farben (Erfolg, Warnung,
 Fehler) bleiben, was sie sind: Semantik, keine Marke.
@@ -881,7 +891,12 @@ sind nicht Teil davon.
 
 Genau **vier** Ziele: Heute · Lernen · Üben · Mein Fortschritt.
 
-### E10 — Schriften
+### E10 — Schriften *(teilweise überholt durch E21)*
+
+> **Stand 30.09.2026:** Die Streichung von Satoshi gilt weiter und ist in P1a
+> umgesetzt. Die Festlegung von Newsreader als editoriale Displayschrift der
+> Oberfläche ist durch **E21** ersetzt: Überschriften stehen in Manrope
+> 700–800, Newsreader nur noch punktuell auf Titelbildern.
 
 Satoshi ist **nicht** mehr die unbestimmte erste Wahl. Eine Schrift, die nur
 auf manchen Geräten da ist, erzeugt ein Design, das sich nicht reproduzieren
@@ -934,3 +949,93 @@ die redaktionelle Stimme **im Material**, `--font-display` wird die Stimme
 - Es trifft keine Entscheidung über Lernstände für Lehrkräfte. E7 sagt „in 5B
   nicht" — das ist ein Aufschub, kein Nein für immer, und die spätere
   Entscheidung braucht mehr als dieses Dokument.
+
+---
+
+## 14. Entscheidungen E19 bis E22 — die visuelle Richtung, neu gefasst
+
+Marc hat am 30.09.2026 nach Ansicht der Variante B entschieden. Diese vier
+Entscheidungen **ersetzen** ältere Festlegungen dieses Dokuments; wo sie
+einander widersprechen, gilt was hier steht.
+
+### E19 — Die Oberflächenpalette wird ersetzt
+
+Abschnitt 2 dieses Dokuments nannte Aubergine, Tomato und Parchment als
+tragende Palette der Oberfläche und Abschnitt 2 „Farben — verbindlich und
+unverändert" schrieb sie fest. **Diese Festlegung gilt nicht mehr.** Sie ist
+nicht ergänzt, sondern ersetzt.
+
+| Rolle | neu |
+| --- | --- |
+| Grundfläche | kühl-hell `#F6F7FB` |
+| Tinte, Navigation, primäre Aktion | Anthrazit `#121318` |
+| Flächenakzent, Titelbilder | Aurora: Violett `#CDBCFF`, Rosa `#FFC7E0`, Himmelblau `#BFE3FF`, Pfirsich `#FFD9BE` |
+| Markenakzent | Aubergine `#2F092D`, Tomato `#FF2E2D` |
+
+Was das im Einzelnen heißt:
+
+- **Parchment ist kein Standardhintergrund mehr.** Es verschwindet als
+  tragende Fläche.
+- **Aubergine und Tomato bleiben Markenakzente** und Bestandteil der
+  bestehenden farbigen Logovarianten. Tomato darf zusätzlich gezielt
+  Fortschritt oder einzelne aktive Akzente tragen.
+- **Die Aurorafarben tragen nie Text.** Sie sind Fläche, Tiefe und Stimmung.
+  Ein Kontrast, der über einen Verlauf hinweg schwankt, ist keiner.
+- Die semantischen Farben bleiben, was sie waren: Semantik, keine Marke. Ihre
+  Werte sind an den neuen Grund angepasst und in
+  `docs/mockups/portal-variante-b/system.html` nachgerechnet.
+
+**Der Satz „Papier trägt, Farbe ereignet sich" aus Abschnitt 2 ist damit
+hinfällig.** An seine Stelle tritt: *Der Grund tritt zurück, die Aurora gibt
+Tiefe, die Tinte trägt.*
+
+### E20 — Das Logo bleibt, wie es ist
+
+Die Schwarz-Weiß-Fassung bleibt unverändert die Mastervariante. Aus ihr werden
+**Formensprache, Überlagerung, Tiefe und Rundungen** abgeleitet — zwei
+überlagerte, leicht perspektivische Flächen mit großen Radien.
+
+Daraus folgt ausdrücklich **nicht** die Verpflichtung, Flächen wie das Logo zu
+färben. Das Logo wird nicht umgefärbt; die Oberfläche ahmt es nicht nach, sie
+lernt von ihm.
+
+### E21 — Typografie, neu gefasst
+
+E10 hatte Newsreader als editoriale Displayschrift der Oberfläche festgelegt.
+**Das gilt nicht mehr.**
+
+| Rolle | Schrift |
+| --- | --- |
+| Seiten- und UI-Überschriften | **Manrope 700–800** |
+| Oberfläche, Bedienelemente, Fließtext | **Manrope 400–600** |
+| Titelbilder der Lernpakete | **Newsreader**, punktuell — und nur dort |
+
+Der Grund ist derselbe, aus dem E10 Satoshi gestrichen hat: Eine
+Displayschrift, die überall steht, bestimmt den Charakter der Oberfläche.
+Newsreader gibt ihr einen redaktionellen, gedruckten Ton; die Richtung, die
+jetzt gilt, ist moderner und leichter, und die trägt eine kräftige Grotesk.
+
+**Damit ist P1b in seiner bisherigen Fassung gegenstandslos.** Der Block hieß
+„die Umschaltung von `--font-display` auf Newsreader" und wartete auf die
+Freigabe der Entwürfe. Diese Freigabe ist erfolgt — und hat den Block
+aufgehoben, nicht ausgelöst. Das in P1a angelegte Token `--font-editorial`
+behält seinen Wert (Newsreader) und seinen Zweck, aber sein Einsatzort ist
+jetzt das Titelbild und nicht die Überschrift.
+
+### E22 — Kein Dunkelmodus in 5B
+
+Ausdrücklich ausgeschlossen. Keine provisorische Invertierung, keine
+ungeprüften Dark-Mode-Token.
+
+Pastellverläufe lassen sich nicht invertieren: Was hell und zurückhaltend ist,
+wird dunkel nicht automatisch dunkel und zurückhaltend, sondern schmutzig. Ein
+Dunkelmodus ist ein eigener, vollständig geprüfter Block — dieselbe
+Überlegung, die schon in `tokens.css` steht, jetzt als Entscheidung.
+
+### Wo die Richtung zu sehen ist
+
+`docs/mockups/portal-variante-b/` — **die künftige verbindliche Richtung.**
+`docs/mockups/portal/` bleibt als Vergleich erhalten und beschreibt die
+Fassung, die abgelöst wurde. Aufbau, UX, Navigation, Zustände,
+Informationsarchitektur und alle Datenschutzregeln sind in beiden identisch;
+unterschieden sind sie nur in der visuellen Ebene.
