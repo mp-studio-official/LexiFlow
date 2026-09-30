@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LexiFlow 5B — Entwürfe</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck">Sprint 5B · Block P3 · statische Entwürfe, kein Produktivcode</p>
+    <h1 class="blatt__titel">Wie LexiFlow aussehen soll</h1>
+    <p class="blatt__lead">Sieben Entwürfe, jeder auf Desktop (1440 px) und Smartphone
+      (390 px), jeder in seinen Zuständen: normal, ladend, leer, fehlerhaft und — wo es
+      etwas bedeutet — offline. Zum Ansehen genügt ein Doppelklick; nichts wird aus dem
+      Netz geladen.</p>
+  </header>
+
+  <div class="notiz">
+    <p><strong>Was diese Dateien sind.</strong> Entwürfe zur Entscheidung. Sie liegen unter
+      <code>docs/mockups/portal/</code>, sind von keiner Route eingebunden und fassen
+      <code>src/</code> nicht an. Kein Produktivbildschirm hat sich geändert.</p>
+    <p><strong>Was übernommen ist.</strong> Aus corelypilates und coursesite: großzügige
+      Typografie und Abstände, warme hochwertige Flächen, bildstarke Lernpaketkarten, klare
+      Handlungsaufforderungen, ruhige gut unterscheidbare Inhaltsbereiche, eine hochwertige
+      mobile Darstellung.</p>
+    <p><strong>Was nicht.</strong> Lange Marketingseiten, Preis- und Testimonialmuster,
+      dekorative Animationen ohne Nutzen, zu geringe Kontraste, übergroße Leerflächen, die
+      Arbeitswege verlängern — und das austauschbare Framer-Template-Aussehen. LexiFlow ist
+      ein Arbeits- und Lernportal und bleibt als solches erkennbar.</p>
+    <p><strong>Datenschutz.</strong> Auf keinem Lehrkraftbildschirm erscheinen individuelle
+      Lernstände, Aktivitätszeiten, Trefferquoten, Klassendurchschnitte, anonymisierte
+      Lernaggregate oder Ranglisten. Die reine Mitgliederzahl eines Kurses ist zulässig und
+      steht da. Fortschritt, Serie und Lernziele stehen ausschließlich auf den Bildschirmen
+      der lernenden Person selbst.</p>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin:var(--stack-loose) 0 var(--stack-normal)">
+    Die sieben Entwürfe</h2>
+
+  <div class="raster raster--2">
+    <a class="karte karte--editorial" href="lehrkraft-dashboard.html">
+      <span class="plakette plakette--akzent">1 · Lehrkraft</span>
+      <p class="karte__titel">Lehrkräfte-Dashboard</p>
+      <p class="karte__text">Der eigene Startbildschirm: offene Stellen in den eigenen
+        Paketentwürfen, Kurse mit Mitgliederzahl, geplante Veröffentlichungen, KI-Zugang,
+        Schnellaktionen (E12, E18).</p>
+    </a>
+
+    <a class="karte karte--editorial" href="lernende-heute.html">
+      <span class="plakette plakette--akzent">2 · Lernende</span>
+      <p class="karte__titel">Heute</p>
+      <p class="karte__text">Die Startseite der Lernenden mit Lernserie, den Paketen von
+        heute und dem eigenen Fortschritt (E1, E2, E9).</p>
+    </a>
+
+    <a class="karte karte--editorial" href="kursdetail.html">
+      <span class="plakette">3 · Lehrkraft</span>
+      <p class="karte__titel">Kursdetailseite</p>
+      <p class="karte__text">Stammdaten, zugewiesene Lernpakete, Mitgliederverwaltung — und
+        ausdrücklich nichts über einzelne Lernende (E7).</p>
+    </a>
+
+    <a class="karte karte--editorial" href="lernpakete.html">
+      <span class="plakette">4 · Lernende</span>
+      <p class="karte__titel">Lernpaketkarte und Paketdetail</p>
+      <p class="karte__text">Titelbilder im Format 16 : 10, mit hochgeladenem Bild und ohne —
+        das Standardmotiv muss auch ohne Bild tragen (E4, E17).</p>
+    </a>
+
+    <a class="karte karte--editorial" href="ueben.html">
+      <span class="plakette">5 · Lernende</span>
+      <p class="karte__titel">Übungsbereich</p>
+      <p class="karte__text">Eine Runde, sofortiges Speichern, und die Rückfrage beim
+        Abbruch — die nur erscheint, wenn wirklich etwas verloren ginge (E14).</p>
+    </a>
+
+    <a class="karte karte--editorial" href="werkstatt.html">
+      <span class="plakette">6 · Lehrkraft</span>
+      <p class="karte__titel">Werkstatt — Lernpaket erstellen</p>
+      <p class="karte__text">Fünf Schritte vom Text zum veröffentlichten Paket. Im Portal
+        ist das Neubau: Die Schritte 2 bis 6 existieren dort heute gar nicht.</p>
+    </a>
+
+    <a class="karte karte--editorial" href="navigation.html">
+      <span class="plakette plakette--gut">7 · beide Rollen</span>
+      <p class="karte__titel">Navigation — beide Systeme</p>
+      <p class="karte__text">Seitenspalte und untere Navigation, Lehrkraft und Lernende
+        nebeneinander, mit den Umbenennungen aus E12 und E13.</p>
+    </a>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin:var(--stack-section) 0 var(--stack-normal)">
+    Wie zu lesen</h2>
+
+  <div class="raster raster--3">
+    <div class="karte">
+      <p class="karte__titel">Zwei Geräte je Blatt</p>
+      <p class="karte__text">Oben Desktop in echten 1440 × 900 px, nur zur Ansicht
+        verkleinert. Darunter das Telefon in echten 390 × 844 px, unverkleinert. Ein auf
+        Fensterbreite zusammengeschobenes Layout zeigte Umbrüche, die es nie gibt.</p>
+    </div>
+    <div class="karte">
+      <p class="karte__titel">Der Zustandsschalter</p>
+      <p class="karte__text">Oben auf jedem Blatt. Er schaltet beide Geräte gemeinsam um —
+        so ist zu sehen, wie derselbe Zustand auf beiden Breiten aussieht.</p>
+    </div>
+    <div class="karte">
+      <p class="karte__titel">Tastatur</p>
+      <p class="karte__text">Mit Tab durch einen Entwurf gehen: Jeder Fokus ist sichtbar.
+        In Safari auf macOS springt Tab nur Formularfelder an, solange „Tabulatortaste
+        bewegt den Fokus zwischen allen Steuerelementen" aus ist.</p>
+    </div>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin:var(--stack-section) 0 var(--stack-normal)">
+    Was noch nicht entschieden ist</h2>
+
+  <div class="notiz">
+    <p><strong>Die Umschaltung der Oberflächenschrift auf Newsreader (P1b) steht aus.</strong>
+      In diesen Entwürfen ist sie zu sehen — große Überschriften stehen bereits editorial.
+      Im Produkt steht sie nicht: Das wäre eine sichtbare Änderung jedes bestehenden
+      Bildschirms vor dieser Freigabe.</p>
+    <p><strong>Die Tippzielmängel aus der P0-Messung sind hier bereits behoben</strong> —
+      Wortmarke, Schaltflächen und Verweise messen mindestens 44 × 44 px. Im Produkt sind sie
+      noch offen; sie bleiben als Akzeptanzkriterium aktiv und werden mit dem jeweiligen
+      Bildschirm grün.</p>
+    <p><strong>Die Schriften liegen daneben</strong> (<code>schriften/</code>, Manrope und
+      Newsreader, beide SIL Open Font License 1.1). Keine externe Laufzeitabhängigkeit, damit
+      die Dateien auch per Doppelklick richtig aussehen.</p>
+  </div>
+</div>
+</body>
+</html>

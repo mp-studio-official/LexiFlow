@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kursdetailseite — LexiFlow 5B Entwurf</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="lernende-heute.html">← Heute</a> · <a href="lernpakete.html">Weiter: Lernpakete →</a></p>
+    <h1 class="blatt__titel">Kursdetailseite</h1>
+    <p class="blatt__lead">Was eine Lehrkraft über einen Kurs sieht: Stammdaten, zugewiesene Lernpakete, Mitgliederverwaltung.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke" id="zustandsmarke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Der Bildschirm, an dem die Datenschutzregel am meisten kostet.</strong> Eine Kursseite ohne Lernstände widerspricht der Erwartung vieler Lernplattformen. Sie ist trotzdem richtig (E7): Individuelle Lernstände sind für die Lehrkraft nicht einsehbar, auch nicht aggregiert.</p>
+    <p><strong>Was stattdessen trägt:</strong> die Mitgliederzahl, die Zuweisungen mit ihrer festen Fassung, und der Weg zum nächsten Paket.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse" aria-current="page"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Grammatik</small>Simple past</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 1</span><span>16 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Mitglieder</h2>
+                <a class="btn btn--still" href="#/kurse/1/mitglieder">Verwalten</a>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">24 Mitglieder</p>
+                <p class="karte__text">Beitritt über Code oder Einladung. Lern-IDs und
+                  Kennwörter verwaltest du unter „Mitglieder".</p>
+              </div>
+            </section>
+
+            <div class="notiz" style="border-color:var(--border);margin:0">
+              <p><strong>Hier steht bewusst nichts über einzelne Lernende.</strong>
+                Keine Lernstände, keine Zeiten, keine Quoten — auch nicht aggregiert.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse" aria-current="page"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <section class="abschnitt" aria-hidden="true">
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
+              <div class="raster raster--3">
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse" aria-current="page"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Noch kein Lernpaket zugewiesen</p>
+              <p class="leer__text">Die Mitglieder dieses Kurses sehen erst etwas, wenn du
+                ein Lernpaket zuweist. Vorhandene Pakete kannst du mehreren Kursen
+                zuweisen — jede Zuweisung hält eine feste Fassung.</p>
+              <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse" aria-current="page"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Zuweisung fehlgeschlagen</p>
+              <p>„Simple past" konnte dem Kurs nicht zugewiesen werden. Die bestehenden
+                Zuweisungen sind unverändert.</p>
+              <button class="btn" type="button">Erneut versuchen</button>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse" aria-current="page"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div class="band">Offline — Änderungen werden später übertragen</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Grammatik</small>Simple past</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 1</span><span>16 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Mitglieder</h2>
+                <a class="btn btn--still" href="#/kurse/1/mitglieder">Verwalten</a>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">24 Mitglieder</p>
+                <p class="karte__text">Beitritt über Code oder Einladung. Lern-IDs und
+                  Kennwörter verwaltest du unter „Mitglieder".</p>
+              </div>
+            </section>
+
+            <div class="notiz" style="border-color:var(--border);margin:0">
+              <p><strong>Hier steht bewusst nichts über einzelne Lernende.</strong>
+                Keine Lernstände, keine Zeiten, keine Quoten — auch nicht aggregiert.</p>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse" aria-current="page"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <section class="abschnitt" aria-hidden="true">
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
+              <div class="raster raster--3">
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse" aria-current="page"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Noch kein Lernpaket zugewiesen</p>
+              <p class="leer__text">Die Mitglieder dieses Kurses sehen erst etwas, wenn du
+                ein Lernpaket zuweist. Vorhandene Pakete kannst du mehreren Kursen
+                zuweisen — jede Zuweisung hält eine feste Fassung.</p>
+              <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse" aria-current="page"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Zuweisung fehlgeschlagen</p>
+              <p>„Simple past" konnte dem Kurs nicht zugewiesen werden. Die bestehenden
+                Zuweisungen sind unverändert.</p>
+              <button class="btn" type="button">Erneut versuchen</button>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse" aria-current="page"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <div class="band">Offline — Änderungen werden später übertragen</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse" aria-current="page"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="entwurf.js"></script>
+</body>
+</html>

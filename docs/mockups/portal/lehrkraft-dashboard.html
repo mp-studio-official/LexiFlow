@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lehrkräfte-Dashboard — LexiFlow 5B Entwurf</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="lernende-heute.html">Weiter: Heute →</a></p>
+    <h1 class="blatt__titel">Lehrkräfte-Dashboard</h1>
+    <p class="blatt__lead">Der eigene Startbildschirm der Lehrkraft (E12, E18). Sichtbar sind ausschließlich eigene Inhalte und Kursstammdaten.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke" id="zustandsmarke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Datenschutz, ausdrücklich bestätigt.</strong> Auf diesem Bildschirm erscheinen <em>keine</em> individuellen Lernstände, keine Aktivitätszeiten, keine Trefferquoten, keine Klassendurchschnitte, keine anonymisierten Lernaggregate und keine Ranglisten. Die reine Mitgliederzahl eines Kurses ist zulässig und steht da.</p>
+    <p><strong>Was „offene Stellen und Prüfhinweise" heißt (E18).</strong> Ausschließlich Lücken und Widersprüche in den <em>eigenen Paketentwürfen</em> — fehlende Übersetzungen, doppelte Einträge, Abweichungen vom Wörterbuch. Keine Rückfragen von Lernenden, keine Nachrichtenfunktion.</p>
+    <p><strong>Sieben Blöcke:</strong> Entwürfe mit offenen Stellen · Kurse · demnächst Veröffentlichtes · KI-Zugang · Schnellaktionen · Neues · Kopfbereich mit „Als Lernende ansehen".</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start" aria-current="page"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
+                <a class="btn btn--still" href="#/pakete">Alle Entwürfe</a>
+              </div>
+              <div class="raster raster--2">
+                <div class="karte karte--editorial">
+                  <span class="plakette plakette--warn">7 offene Stellen</span>
+                  <p class="karte__titel">Unit 3 — City life</p>
+                  <p class="karte__text">Sieben Vokabeln ohne deutsche Entsprechung,
+                    zwei ohne Beispielsatz. Die Vorschläge liegen bereit.</p>
+                  <p><a class="btn" href="#/pakete/1">Weiterbearbeiten</a></p>
+                </div>
+                <div class="karte karte--editorial">
+                  <span class="plakette plakette--warn">3 Prüfhinweise</span>
+                  <p class="karte__titel">Unit 4 — At the doctor's</p>
+                  <p class="karte__text">Drei Einträge stehen doppelt, einer widerspricht
+                    dem Wörterbuch. Nichts davon wurde automatisch geändert.</p>
+                  <p><a class="btn" href="#/pakete/2">Hinweise ansehen</a></p>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Deine Kurse</h2>
+                <a class="btn btn--still" href="#/kurse">Alle Kurse</a>
+              </div>
+              <div class="raster raster--3">
+                <div class="karte">
+                  <p class="karte__titel">Englisch 7b</p>
+                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
+                  <p><a class="btn btn--still" href="#/kurse/1">Kurs öffnen</a></p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Englisch 8a</p>
+                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
+                  <p><a class="btn btn--still" href="#/kurse/2">Kurs öffnen</a></p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Förderkurs 7</p>
+                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
+                  <p><a class="btn btn--still" href="#/kurse/3">Kurs öffnen</a></p>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Demnächst veröffentlicht</h2>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Unit 4 — At the doctor's</p>
+                <p class="karte__text">Geplant für Montag, 6. Oktober, 8:00 Uhr · Englisch 8a</p>
+                <p><a class="btn btn--still" href="#/pakete/2">Zeitpunkt ändern</a></p>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="raster raster--3">
+                <div class="karte">
+                  <p class="karte__titel">KI-Zugang</p>
+                  <p class="karte__text">Eingerichtet, zuletzt am 28. September benutzt.</p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Schnell anlegen</p>
+                  <p class="karte__text"><a class="btn btn--still" href="#/pakete/neu">Lernpaket</a>
+                    <a class="btn btn--still" href="#/kurse/neu">Kurs</a></p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Neu in LexiFlow</p>
+                  <p class="karte__text">Titelbilder für Lernpakete — ab sofort verfügbar.</p>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start" aria-current="page"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
+              <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+              <div class="raster raster--2" aria-hidden="true">
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Deine Kurse</h2>
+              <div class="raster raster--3" aria-hidden="true">
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start" aria-current="page"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Willkommen bei LexiFlow</h1>
+                <p class="lead">Hier entsteht dein Unterrichtsmaterial.</p>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Noch kein Lernpaket</p>
+              <p class="leer__text">Ein Lernpaket entsteht aus einem Text, einer Liste oder
+                einem Foto der Buchseite. LexiFlow schlägt Übersetzungen und Beispielsätze
+                vor — bestätigen musst du sie selbst.</p>
+              <a class="btn btn--akzent" href="#/pakete/neu">Erstes Lernpaket erstellen</a>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start" aria-current="page"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Deine Kurse konnten nicht geladen werden</p>
+              <p>Der Server hat nicht geantwortet. Deine Lernpakete sind davon nicht
+                betroffen — sie liegen unverändert in deinem Konto.</p>
+              <button class="btn" type="button">Erneut versuchen</button>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start" aria-current="page"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div class="band">Offline — zuletzt aktualisiert vor 12 Minuten</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <div class="fehler fehler--offline">
+              <p class="fehler__titel">Gerade keine Verbindung</p>
+              <p>Du siehst den Stand von vorhin. Änderungen an deinen Entwürfen werden
+                gespeichert und gehen hinaus, sobald du wieder online bist.</p>
+            </div>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Deine Kurse</h2>
+              <div class="raster raster--3">
+                <div class="karte">
+                  <p class="karte__titel">Englisch 7b</p>
+                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Englisch 8a</p>
+                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Förderkurs 7</p>
+                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
+                <a class="btn btn--still" href="#/pakete">Alle Entwürfe</a>
+              </div>
+              <div class="raster raster--2">
+                <div class="karte karte--editorial">
+                  <span class="plakette plakette--warn">7 offene Stellen</span>
+                  <p class="karte__titel">Unit 3 — City life</p>
+                  <p class="karte__text">Sieben Vokabeln ohne deutsche Entsprechung,
+                    zwei ohne Beispielsatz. Die Vorschläge liegen bereit.</p>
+                  <p><a class="btn" href="#/pakete/1">Weiterbearbeiten</a></p>
+                </div>
+                <div class="karte karte--editorial">
+                  <span class="plakette plakette--warn">3 Prüfhinweise</span>
+                  <p class="karte__titel">Unit 4 — At the doctor's</p>
+                  <p class="karte__text">Drei Einträge stehen doppelt, einer widerspricht
+                    dem Wörterbuch. Nichts davon wurde automatisch geändert.</p>
+                  <p><a class="btn" href="#/pakete/2">Hinweise ansehen</a></p>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Deine Kurse</h2>
+                <a class="btn btn--still" href="#/kurse">Alle Kurse</a>
+              </div>
+              <div class="raster raster--3">
+                <div class="karte">
+                  <p class="karte__titel">Englisch 7b</p>
+                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
+                  <p><a class="btn btn--still" href="#/kurse/1">Kurs öffnen</a></p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Englisch 8a</p>
+                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
+                  <p><a class="btn btn--still" href="#/kurse/2">Kurs öffnen</a></p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Förderkurs 7</p>
+                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
+                  <p><a class="btn btn--still" href="#/kurse/3">Kurs öffnen</a></p>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Demnächst veröffentlicht</h2>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Unit 4 — At the doctor's</p>
+                <p class="karte__text">Geplant für Montag, 6. Oktober, 8:00 Uhr · Englisch 8a</p>
+                <p><a class="btn btn--still" href="#/pakete/2">Zeitpunkt ändern</a></p>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="raster raster--3">
+                <div class="karte">
+                  <p class="karte__titel">KI-Zugang</p>
+                  <p class="karte__text">Eingerichtet, zuletzt am 28. September benutzt.</p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Schnell anlegen</p>
+                  <p class="karte__text"><a class="btn btn--still" href="#/pakete/neu">Lernpaket</a>
+                    <a class="btn btn--still" href="#/kurse/neu">Kurs</a></p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Neu in LexiFlow</p>
+                  <p class="karte__text">Titelbilder für Lernpakete — ab sofort verfügbar.</p>
+                </div>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start" aria-current="page"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
+              <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+              <div class="raster raster--2" aria-hidden="true">
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Deine Kurse</h2>
+              <div class="raster raster--3" aria-hidden="true">
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start" aria-current="page"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Willkommen bei LexiFlow</h1>
+                <p class="lead">Hier entsteht dein Unterrichtsmaterial.</p>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Noch kein Lernpaket</p>
+              <p class="leer__text">Ein Lernpaket entsteht aus einem Text, einer Liste oder
+                einem Foto der Buchseite. LexiFlow schlägt Übersetzungen und Beispielsätze
+                vor — bestätigen musst du sie selbst.</p>
+              <a class="btn btn--akzent" href="#/pakete/neu">Erstes Lernpaket erstellen</a>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start" aria-current="page"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Deine Kurse konnten nicht geladen werden</p>
+              <p>Der Server hat nicht geantwortet. Deine Lernpakete sind davon nicht
+                betroffen — sie liegen unverändert in deinem Konto.</p>
+              <button class="btn" type="button">Erneut versuchen</button>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start" aria-current="page"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <div class="band">Offline — zuletzt aktualisiert vor 12 Minuten</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
+                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/vorschau">Als Lernende ansehen</a>
+                <a class="btn btn--akzent" href="#/pakete/neu">Neues Lernpaket</a>
+              </div>
+            </header>
+            <div class="fehler fehler--offline">
+              <p class="fehler__titel">Gerade keine Verbindung</p>
+              <p>Du siehst den Stand von vorhin. Änderungen an deinen Entwürfen werden
+                gespeichert und gehen hinaus, sobald du wieder online bist.</p>
+            </div>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Deine Kurse</h2>
+              <div class="raster raster--3">
+                <div class="karte">
+                  <p class="karte__titel">Englisch 7b</p>
+                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Englisch 8a</p>
+                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
+                </div>
+                <div class="karte">
+                  <p class="karte__titel">Förderkurs 7</p>
+                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
+                </div>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start" aria-current="page"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="entwurf.js"></script>
+</body>
+</html>

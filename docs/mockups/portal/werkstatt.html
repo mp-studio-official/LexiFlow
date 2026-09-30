@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Werkstatt — Lernpaket erstellen — LexiFlow 5B Entwurf</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="ueben.html">← Üben</a> · <a href="navigation.html">Weiter: Navigation →</a></p>
+    <h1 class="blatt__titel">Werkstatt — Lernpaket erstellen</h1>
+    <p class="blatt__lead">Die fünf Schritte vom Text zum veröffentlichten Lernpaket. Im Portal ist das Neubau: Heute existieren die Schritte 2 bis 6 dort gar nicht.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke" id="zustandsmarke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Eine Eingabe der Lehrkraft wird nie überschrieben.</strong> Ein später eintreffender Vorschlag ändert nichts, was schon eingetragen wurde — auch kein bewusst geleertes Feld.</p>
+    <p><strong>Der Fehlerfall ist der wichtige.</strong> Fällt der KI-Zugang aus, geht keine Arbeit verloren und der Weg von Hand bleibt offen. Ein Werkzeug, das ohne seine Vorschläge stillsteht, ist ein Werkzeug weniger.</p>
+    <p><strong>Bilder (E5).</strong> Bis 10 MB lokal, vor dem Hochladen auf 1600 px verkleinert und ohne Metadaten. Hochgeladen wird nur das verarbeitete Bild.</p>
+    <p><strong>Am Telefon untereinander.</strong> Quelltext oben, Vorschläge darunter — nebeneinander wären beide zu schmal zum Arbeiten.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="karte" style="line-height:1.9;font-size:15px">
+                  <p>The neighbourhood is
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
+                    in the evening. There is a lot of
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement, and the
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">traffic</mark>
+                    is loud. Most people take the bus to the city centre.</p>
+                  <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
+                    aufgenommene Wörter stehen rot.</p>
+                </div>
+              </section>
+
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Vorschläge prüfen</h2>
+                <div class="karte" style="gap:var(--stack-snug)">
+                  <div>
+                    <p style="font-weight:700;font-size:17px">crowded</p>
+                    <p class="karte__text">Adjektiv · Wörterbuch</p>
+                  </div>
+                  <label style="display:grid;gap:6px">
+                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
+                    <input type="text" value="überfüllt, voll"
+                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
+                                  border:1px solid var(--border-strong);
+                                  border-radius:var(--radius-control);background:var(--surface)">
+                  </label>
+                  <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+                    <button class="btn" type="button">Übernehmen</button>
+                    <button class="btn btn--still" type="button">Verwerfen</button>
+                  </div>
+                </div>
+                <div class="karte" style="margin-top:var(--space-4);gap:var(--space-2)">
+                  <div>
+                    <p style="font-weight:700;font-size:17px">litter</p>
+                    <p class="karte__text">Substantiv · Vorschlag der KI</p>
+                  </div>
+                  <label style="display:grid;gap:6px">
+                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
+                    <input type="text" placeholder="noch offen"
+                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
+                                  border:1px solid var(--danger);
+                                  border-radius:var(--radius-control);background:var(--surface)">
+                  </label>
+                  <p class="karte__text" style="color:var(--danger)">Ohne Antwort wird dieses
+                    Wort nicht veröffentlicht.</p>
+                </div>
+              </section>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">
+              Vorschläge werden erstellt</p>
+            <div class="raster raster--werkstatt" aria-hidden="true">
+              <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt</p>
+                <h1 class="titel">Neues Lernpaket</h1>
+                <p class="lead">Womit fängst du an?</p>
+              </div>
+            </header>
+            <div class="raster raster--3">
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Text einfügen</p>
+                <p class="karte__text">Einen englischen Text kopieren — LexiFlow schlägt
+                  die lernenswerten Wörter vor.</p>
+                <p><a class="btn" href="#/pakete/neu/text">Text einfügen</a></p>
+              </div>
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Foto der Buchseite</p>
+                <p class="karte__text">Bis 10 MB. Das Bild wird auf dem Gerät verkleinert,
+                  Metadaten werden entfernt.</p>
+                <p><a class="btn" href="#/pakete/neu/foto">Foto wählen</a></p>
+              </div>
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Vokabelliste</p>
+                <p class="karte__text">Aus Excel oder als einfache Liste, ein Paar je Zeile.</p>
+                <p><a class="btn" href="#/pakete/neu/liste">Liste einfügen</a></p>
+              </div>
+            </div>
+            <div class="leer" style="margin-top:var(--stack-loose)">
+              <p class="leer__titel">Noch kein Entwurf</p>
+              <p class="leer__text">Angefangene Lernpakete stehen hier, bis du sie
+                veröffentlichst. Sie sind für niemanden sonst sichtbar.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Die Vorschläge konnten nicht erstellt werden</p>
+              <p>Der KI-Zugang hat nicht geantwortet. Deine Wortauswahl und alles, was du
+                bereits eingetragen hast, ist unverändert — du kannst von Hand weiterarbeiten
+                oder es später erneut versuchen.</p>
+              <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                <button class="btn" type="button">Erneut versuchen</button>
+                <button class="btn btn--still" type="button">Ohne Vorschläge weiterarbeiten</button>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div class="band">Offline — Vorschläge brauchen eine Verbindung</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <div class="fehler fehler--offline">
+              <p class="fehler__titel">Gerade keine Verbindung</p>
+              <p>Am Entwurf kannst du weiterarbeiten; er liegt auf diesem Gerät. Neue
+                Vorschläge und das Veröffentlichen gehen erst wieder online.</p>
+            </div>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="karte" style="line-height:1.9;font-size:15px">
+                  <p>The neighbourhood is
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
+                    in the evening. There is a lot of
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement, and the
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">traffic</mark>
+                    is loud. Most people take the bus to the city centre.</p>
+                  <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
+                    aufgenommene Wörter stehen rot.</p>
+                </div>
+              </section>
+
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Vorschläge prüfen</h2>
+                <div class="karte" style="gap:var(--stack-snug)">
+                  <div>
+                    <p style="font-weight:700;font-size:17px">crowded</p>
+                    <p class="karte__text">Adjektiv · Wörterbuch</p>
+                  </div>
+                  <label style="display:grid;gap:6px">
+                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
+                    <input type="text" value="überfüllt, voll"
+                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
+                                  border:1px solid var(--border-strong);
+                                  border-radius:var(--radius-control);background:var(--surface)">
+                  </label>
+                  <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+                    <button class="btn" type="button">Übernehmen</button>
+                    <button class="btn btn--still" type="button">Verwerfen</button>
+                  </div>
+                </div>
+                <div class="karte" style="margin-top:var(--space-4);gap:var(--space-2)">
+                  <div>
+                    <p style="font-weight:700;font-size:17px">litter</p>
+                    <p class="karte__text">Substantiv · Vorschlag der KI</p>
+                  </div>
+                  <label style="display:grid;gap:6px">
+                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
+                    <input type="text" placeholder="noch offen"
+                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
+                                  border:1px solid var(--danger);
+                                  border-radius:var(--radius-control);background:var(--surface)">
+                  </label>
+                  <p class="karte__text" style="color:var(--danger)">Ohne Antwort wird dieses
+                    Wort nicht veröffentlicht.</p>
+                </div>
+              </section>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">
+              Vorschläge werden erstellt</p>
+            <div class="raster raster--werkstatt" aria-hidden="true">
+              <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt</p>
+                <h1 class="titel">Neues Lernpaket</h1>
+                <p class="lead">Womit fängst du an?</p>
+              </div>
+            </header>
+            <div class="raster raster--3">
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Text einfügen</p>
+                <p class="karte__text">Einen englischen Text kopieren — LexiFlow schlägt
+                  die lernenswerten Wörter vor.</p>
+                <p><a class="btn" href="#/pakete/neu/text">Text einfügen</a></p>
+              </div>
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Foto der Buchseite</p>
+                <p class="karte__text">Bis 10 MB. Das Bild wird auf dem Gerät verkleinert,
+                  Metadaten werden entfernt.</p>
+                <p><a class="btn" href="#/pakete/neu/foto">Foto wählen</a></p>
+              </div>
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Vokabelliste</p>
+                <p class="karte__text">Aus Excel oder als einfache Liste, ein Paar je Zeile.</p>
+                <p><a class="btn" href="#/pakete/neu/liste">Liste einfügen</a></p>
+              </div>
+            </div>
+            <div class="leer" style="margin-top:var(--stack-loose)">
+              <p class="leer__titel">Noch kein Entwurf</p>
+              <p class="leer__text">Angefangene Lernpakete stehen hier, bis du sie
+                veröffentlichst. Sie sind für niemanden sonst sichtbar.</p>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Die Vorschläge konnten nicht erstellt werden</p>
+              <p>Der KI-Zugang hat nicht geantwortet. Deine Wortauswahl und alles, was du
+                bereits eingetragen hast, ist unverändert — du kannst von Hand weiterarbeiten
+                oder es später erneut versuchen.</p>
+              <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                <button class="btn" type="button">Erneut versuchen</button>
+                <button class="btn btn--still" type="button">Ohne Vorschläge weiterarbeiten</button>
+              </div>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <div class="band">Offline — Vorschläge brauchen eine Verbindung</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Veröffentlichen</span></li>
+              </ol>
+            <div class="fehler fehler--offline">
+              <p class="fehler__titel">Gerade keine Verbindung</p>
+              <p>Am Entwurf kannst du weiterarbeiten; er liegt auf diesem Gerät. Neue
+                Vorschläge und das Veröffentlichen gehen erst wieder online.</p>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="entwurf.js"></script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Übungsbereich — LexiFlow 5B Entwurf</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="lernpakete.html">← Lernpakete</a> · <a href="werkstatt.html">Weiter: Werkstatt →</a></p>
+    <h1 class="blatt__titel">Übungsbereich</h1>
+    <p class="blatt__lead">Eine Übungsrunde — der Bildschirm, auf dem die meiste Zeit verbracht wird.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke" id="zustandsmarke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Sofort speichern (E14).</strong> Jede abgeschlossene Antwort ist gesichert. Browser-Zurück, Neuladen und Schließen dürfen nicht still zu Datenverlust führen.</p>
+    <p><strong>Die Rückfrage erscheint nur, wenn wirklich etwas verloren ginge.</strong> Im Zustand „fehlerhaft" ist sie mit abgebildet: Sie benennt genau, <em>was</em> verloren ginge — eine Rückfrage, die bei jedem Verlassen kommt, wird weggeklickt, ohne gelesen zu werden.</p>
+    <p><strong>Der Fokus nach der Rückfrage.</strong> „Hierbleiben" führt zurück ins Antwortfeld, nicht an den Seitenanfang.</p>
+    <p><strong>Keine untere Navigation während der Übung.</strong> Am Telefon nimmt die Aufgabe den Platz — der Weg hinaus führt über „Beenden" oben.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben" aria-current="page"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="balken" style="margin:var(--space-3) 0 var(--stack-loose)">
+                <div class="balken__fuellung" style="width:70%"></div></div>
+
+              <div class="karte karte--editorial" style="gap:var(--stack-normal)">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p style="font-family:var(--font-editorial);font-size:44px;font-weight:600;
+                          letter-spacing:-.028em">crowded</p>
+                <p style="font-family:var(--font-editorial);font-size:17px;
+                          color:var(--ink-secondary);font-style:italic">
+                  „The neighbourhood is crowded in the evening."</p>
+                <label style="display:grid;gap:var(--space-2)">
+                  <span style="font-size:14px;font-weight:600">Deine Antwort</span>
+                  <input type="text" value="überfüllt"
+                         style="min-height:52px;padding:0 var(--space-4);font:inherit;
+                                font-size:17px;border:1px solid var(--border-strong);
+                                border-radius:var(--radius-control);background:var(--surface)">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--akzent" type="button">Prüfen</button>
+                  <button class="btn btn--still" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+
+              <p style="margin-top:var(--space-4);font-size:13px;color:var(--ink-secondary)">
+                Jede abgeschlossene Antwort wird sofort gespeichert.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben" aria-current="page"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+              <div aria-hidden="true">
+                <div style="max-width:280px"><div class="skelett"><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-6)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben" aria-current="page"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <div class="leer">
+                <p class="leer__titel">Für heute geschafft</p>
+                <p class="leer__text">Alle zehn Aufgaben sind erledigt — Tag 6 deiner Serie
+                  ist gezählt. Du kannst weiterüben, es zählt nur nicht doppelt.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <a class="btn btn--akzent" href="#/ueben">Trotzdem weiterüben</a>
+                  <a class="btn" href="#/heute">Zurück zu Heute</a>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben" aria-current="page"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="fehler" role="alert" style="margin-top:var(--space-4)">
+                <p class="fehler__titel">Die Runde konnte nicht gestartet werden</p>
+                <p>Dieses Lernpaket gehört gerade zu keinem deiner Kurse. Frag deine
+                  Lehrkraft — dein bisheriger Lernstand bleibt erhalten.</p>
+                <a class="btn" href="#/lernen">Zurück zu den Lernpaketen</a>
+              </div>
+            </div>
+
+            <div style="max-width:640px;margin:var(--stack-loose) auto 0">
+              <p class="oberzeile">Rückfrage beim Abbruch (E14)</p>
+              <div class="karte" role="dialog" aria-label="Übung wirklich verlassen?"
+                   style="border-color:var(--border-strong);gap:var(--stack-snug)">
+                <p class="karte__titel">Diese Antwort ist noch nicht gespeichert</p>
+                <p class="karte__text">Du hast etwas eingetippt, aber noch nicht geprüft.
+                  Nur diese eine Antwort ginge verloren — alles davor ist gesichert.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--primaer" type="button">Hierbleiben</button>
+                  <button class="btn" type="button">Verlassen</button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben" aria-current="page"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div class="band">Offline — deine Antworten werden gespeichert</div>
+            <div style="max-width:640px;margin:0 auto">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="balken" style="margin:var(--space-3) 0 var(--stack-loose)">
+                <div class="balken__fuellung" style="width:70%"></div></div>
+
+              <div class="karte karte--editorial" style="gap:var(--stack-normal)">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p style="font-family:var(--font-editorial);font-size:44px;font-weight:600;
+                          letter-spacing:-.028em">crowded</p>
+                <p style="font-family:var(--font-editorial);font-size:17px;
+                          color:var(--ink-secondary);font-style:italic">
+                  „The neighbourhood is crowded in the evening."</p>
+                <label style="display:grid;gap:var(--space-2)">
+                  <span style="font-size:14px;font-weight:600">Deine Antwort</span>
+                  <input type="text" value="überfüllt"
+                         style="min-height:52px;padding:0 var(--space-4);font:inherit;
+                                font-size:17px;border:1px solid var(--border-strong);
+                                border-radius:var(--radius-control);background:var(--surface)">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--akzent" type="button">Prüfen</button>
+                  <button class="btn btn--still" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+
+              <p style="margin-top:var(--space-4);font-size:13px;color:var(--ink-secondary)">
+                Jede abgeschlossene Antwort wird sofort gespeichert.</p>
+            </div>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf auf-dunkel">
+            <span style="font-size:14px">Aufgabe 7 von 10</span>
+            <a class="btn btn--still" href="#/lernen" style="color:var(--parchment)">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="balken" style="margin:var(--space-3) 0 var(--stack-loose)">
+                <div class="balken__fuellung" style="width:70%"></div></div>
+
+              <div class="karte karte--editorial" style="gap:var(--stack-normal)">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p style="font-family:var(--font-editorial);font-size:44px;font-weight:600;
+                          letter-spacing:-.028em">crowded</p>
+                <p style="font-family:var(--font-editorial);font-size:17px;
+                          color:var(--ink-secondary);font-style:italic">
+                  „The neighbourhood is crowded in the evening."</p>
+                <label style="display:grid;gap:var(--space-2)">
+                  <span style="font-size:14px;font-weight:600">Deine Antwort</span>
+                  <input type="text" value="überfüllt"
+                         style="min-height:52px;padding:0 var(--space-4);font:inherit;
+                                font-size:17px;border:1px solid var(--border-strong);
+                                border-radius:var(--radius-control);background:var(--surface)">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--akzent" type="button">Prüfen</button>
+                  <button class="btn btn--still" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+
+              <p style="margin-top:var(--space-4);font-size:13px;color:var(--ink-secondary)">
+                Jede abgeschlossene Antwort wird sofort gespeichert.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf auf-dunkel">
+            <span style="font-size:14px">Aufgabe 7 von 10</span>
+            <a class="btn btn--still" href="#/lernen" style="color:var(--parchment)">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+              <div aria-hidden="true">
+                <div style="max-width:280px"><div class="skelett"><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-6)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf auf-dunkel">
+            <span style="font-size:14px">Aufgabe 7 von 10</span>
+            <a class="btn btn--still" href="#/lernen" style="color:var(--parchment)">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <div class="leer">
+                <p class="leer__titel">Für heute geschafft</p>
+                <p class="leer__text">Alle zehn Aufgaben sind erledigt — Tag 6 deiner Serie
+                  ist gezählt. Du kannst weiterüben, es zählt nur nicht doppelt.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <a class="btn btn--akzent" href="#/ueben">Trotzdem weiterüben</a>
+                  <a class="btn" href="#/heute">Zurück zu Heute</a>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf auf-dunkel">
+            <span style="font-size:14px">Aufgabe 7 von 10</span>
+            <a class="btn btn--still" href="#/lernen" style="color:var(--parchment)">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div style="max-width:640px;margin:0 auto">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="fehler" role="alert" style="margin-top:var(--space-4)">
+                <p class="fehler__titel">Die Runde konnte nicht gestartet werden</p>
+                <p>Dieses Lernpaket gehört gerade zu keinem deiner Kurse. Frag deine
+                  Lehrkraft — dein bisheriger Lernstand bleibt erhalten.</p>
+                <a class="btn" href="#/lernen">Zurück zu den Lernpaketen</a>
+              </div>
+            </div>
+
+            <div style="max-width:640px;margin:var(--stack-loose) auto 0">
+              <p class="oberzeile">Rückfrage beim Abbruch (E14)</p>
+              <div class="karte" role="dialog" aria-label="Übung wirklich verlassen?"
+                   style="border-color:var(--border-strong);gap:var(--stack-snug)">
+                <p class="karte__titel">Diese Antwort ist noch nicht gespeichert</p>
+                <p class="karte__text">Du hast etwas eingetippt, aber noch nicht geprüft.
+                  Nur diese eine Antwort ginge verloren — alles davor ist gesichert.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--primaer" type="button">Hierbleiben</button>
+                  <button class="btn" type="button">Verlassen</button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf auf-dunkel">
+            <span style="font-size:14px">Aufgabe 7 von 10</span>
+            <a class="btn btn--still" href="#/lernen" style="color:var(--parchment)">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div class="band">Offline — deine Antworten werden gespeichert</div>
+            <div style="max-width:640px;margin:0 auto">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="balken" style="margin:var(--space-3) 0 var(--stack-loose)">
+                <div class="balken__fuellung" style="width:70%"></div></div>
+
+              <div class="karte karte--editorial" style="gap:var(--stack-normal)">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p style="font-family:var(--font-editorial);font-size:44px;font-weight:600;
+                          letter-spacing:-.028em">crowded</p>
+                <p style="font-family:var(--font-editorial);font-size:17px;
+                          color:var(--ink-secondary);font-style:italic">
+                  „The neighbourhood is crowded in the evening."</p>
+                <label style="display:grid;gap:var(--space-2)">
+                  <span style="font-size:14px;font-weight:600">Deine Antwort</span>
+                  <input type="text" value="überfüllt"
+                         style="min-height:52px;padding:0 var(--space-4);font:inherit;
+                                font-size:17px;border:1px solid var(--border-strong);
+                                border-radius:var(--radius-control);background:var(--surface)">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--akzent" type="button">Prüfen</button>
+                  <button class="btn btn--still" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+
+              <p style="margin-top:var(--space-4);font-size:13px;color:var(--ink-secondary)">
+                Jede abgeschlossene Antwort wird sofort gespeichert.</p>
+            </div>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="entwurf.js"></script>
+</body>
+</html>

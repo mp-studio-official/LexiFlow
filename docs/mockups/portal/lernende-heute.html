@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heute — Startseite der Lernenden — LexiFlow 5B Entwurf</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="lehrkraft-dashboard.html">← Dashboard</a> · <a href="kursdetail.html">Weiter: Kurs →</a></p>
+    <h1 class="blatt__titel">Heute — Startseite der Lernenden</h1>
+    <p class="blatt__lead">Der erste Bildschirm nach der Anmeldung (E9). Fortschritt, Serie und Lernziele sind hier sichtbar — und ausschließlich für die lernende Person selbst.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke" id="zustandsmarke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Vier Ziele, nicht mehr (E9).</strong> Heute · Lernen · Üben · Mein Fortschritt. Dieselben vier oben in der Seitenspalte und unten am Telefon.</p>
+    <p><strong>Die Lernserie (E1, E2).</strong> Ein Tag zählt nach zehn regulär bewerteten Aufgaben, in <em>jeder</em> Übungsform. Zwei automatische Ruhetage je Woche. Das Wochenziel ist standardmäßig aus (E3) und deshalb hier nicht zu sehen.</p>
+    <p><strong>Offline ist kein Fehler.</strong> Der Zustand „offline" zeigt ein Band über dem Inhalt statt statt seiner: Wer im Bus übt, soll weiterüben können.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute" aria-current="page"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="karte karte--editorial">
+                <div class="raster raster--2" style="align-items:center">
+                  <div>
+                    <p class="oberzeile">Deine Lernserie</p>
+                    <p class="zahl">6 Tage</p>
+                    <p class="karte__text">Ein Tag zählt nach zehn Aufgaben — egal in
+                      welcher Übungsform. Zwei Ruhetage pro Woche hast du frei.</p>
+                  </div>
+                  <div>
+                    <p class="karte__text">6 von 10 Aufgaben</p>
+                    <div class="balken"><div class="balken__fuellung" style="width:60%"></div></div>
+                    <p style="margin-top:var(--space-4)">
+                      <a class="btn btn--akzent btn--voll" href="#/ueben">Weiterüben</a></p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Dran heute</h2>
+                <a class="btn btn--still" href="#/lernen">Alle Lernpakete</a>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>24 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:62%"></div></div><p class="paket__zeile">62 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:88%"></div></div><p class="paket__zeile">88 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Förderkurs</small>Unregelmäßige Verben</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unregelmäßige Verben</span>
+    <span class="paket__zeile"><span class="plakette">Förderkurs 7</span><span>31 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:34%"></div></div><p class="paket__zeile">34 % sicher</p>
+  </span>
+</a>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Neu für dich</h2>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Unit 4 — At the doctor's</p>
+                <p class="karte__text">Seit heute früh in Englisch 7b · 22 Vokabeln</p>
+                <p><a class="btn" href="#/lernen/4">Ansehen</a></p>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute" aria-current="page"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <section class="abschnitt" aria-hidden="true">
+              <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+            </section>
+            <section class="abschnitt" aria-hidden="true">
+              <h2 class="abschnitt__titel">Dran heute</h2>
+              <div class="raster raster--3">
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute" aria-current="page"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Noch nichts zu üben</p>
+              <p class="leer__text">Deine Lehrkraft hat diesem Kurs noch kein Lernpaket
+                zugewiesen. Sobald eines da ist, steht es hier — und du bekommst es beim
+                nächsten Öffnen zu sehen.</p>
+              <a class="btn" href="#/fortschritt">Deinen Fortschritt ansehen</a>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute" aria-current="page"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Deine Lernpakete konnten nicht geladen werden</p>
+              <p>Das lag nicht an dir. Dein Lernstand ist gespeichert und geht nicht
+                verloren.</p>
+              <button class="btn" type="button">Erneut versuchen</button>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute" aria-current="page"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div class="band">Offline — du kannst weiterüben</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="karte karte--editorial">
+                <p class="oberzeile">Deine Lernserie</p>
+                <p class="zahl">6 Tage</p>
+                <p class="karte__text">Was du jetzt übst, wird gespeichert und später
+                  übertragen. Deine Serie bleibt erhalten.</p>
+                <p><a class="btn btn--akzent" href="#/ueben">Weiterüben</a></p>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Auf diesem Gerät verfügbar</h2>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>24 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:62%"></div></div><p class="paket__zeile">62 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:88%"></div></div><p class="paket__zeile">88 % sicher</p>
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="karte karte--editorial">
+                <div class="raster raster--2" style="align-items:center">
+                  <div>
+                    <p class="oberzeile">Deine Lernserie</p>
+                    <p class="zahl">6 Tage</p>
+                    <p class="karte__text">Ein Tag zählt nach zehn Aufgaben — egal in
+                      welcher Übungsform. Zwei Ruhetage pro Woche hast du frei.</p>
+                  </div>
+                  <div>
+                    <p class="karte__text">6 von 10 Aufgaben</p>
+                    <div class="balken"><div class="balken__fuellung" style="width:60%"></div></div>
+                    <p style="margin-top:var(--space-4)">
+                      <a class="btn btn--akzent btn--voll" href="#/ueben">Weiterüben</a></p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Dran heute</h2>
+                <a class="btn btn--still" href="#/lernen">Alle Lernpakete</a>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>24 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:62%"></div></div><p class="paket__zeile">62 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:88%"></div></div><p class="paket__zeile">88 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Förderkurs</small>Unregelmäßige Verben</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unregelmäßige Verben</span>
+    <span class="paket__zeile"><span class="plakette">Förderkurs 7</span><span>31 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:34%"></div></div><p class="paket__zeile">34 % sicher</p>
+  </span>
+</a>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Neu für dich</h2>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Unit 4 — At the doctor's</p>
+                <p class="karte__text">Seit heute früh in Englisch 7b · 22 Vokabeln</p>
+                <p><a class="btn" href="#/lernen/4">Ansehen</a></p>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute" aria-current="page"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <section class="abschnitt" aria-hidden="true">
+              <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+            </section>
+            <section class="abschnitt" aria-hidden="true">
+              <h2 class="abschnitt__titel">Dran heute</h2>
+              <div class="raster raster--3">
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div><div style="margin-top:var(--space-3)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute" aria-current="page"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Noch nichts zu üben</p>
+              <p class="leer__text">Deine Lehrkraft hat diesem Kurs noch kein Lernpaket
+                zugewiesen. Sobald eines da ist, steht es hier — und du bekommst es beim
+                nächsten Öffnen zu sehen.</p>
+              <a class="btn" href="#/fortschritt">Deinen Fortschritt ansehen</a>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute" aria-current="page"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Deine Lernpakete konnten nicht geladen werden</p>
+              <p>Das lag nicht an dir. Dein Lernstand ist gespeichert und geht nicht
+                verloren.</p>
+              <button class="btn" type="button">Erneut versuchen</button>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute" aria-current="page"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <div class="band">Offline — du kannst weiterüben</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Dienstag, 30. September</p>
+                <h1 class="titel">Heute</h1>
+                <p class="lead">Noch vier Aufgaben bis Tag 6 deiner Lernserie.</p>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="karte karte--editorial">
+                <p class="oberzeile">Deine Lernserie</p>
+                <p class="zahl">6 Tage</p>
+                <p class="karte__text">Was du jetzt übst, wird gespeichert und später
+                  übertragen. Deine Serie bleibt erhalten.</p>
+                <p><a class="btn btn--akzent" href="#/ueben">Weiterüben</a></p>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <h2 class="abschnitt__titel">Auf diesem Gerät verfügbar</h2>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>24 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:62%"></div></div><p class="paket__zeile">62 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:88%"></div></div><p class="paket__zeile">88 % sicher</p>
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute" aria-current="page"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="entwurf.js"></script>
+</body>
+</html>

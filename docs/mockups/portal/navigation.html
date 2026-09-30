@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navigation — beide Systeme — LexiFlow 5B Entwurf</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="werkstatt.html">← Werkstatt</a></p>
+    <h1 class="blatt__titel">Navigation — beide Systeme</h1>
+    <p class="blatt__lead">Die Übersicht über beide Navigationssysteme, auf Desktop und am Telefon, in je zwei Rollen (E12, E15).</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke" id="zustandsmarke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">Übersicht</button>
+        <button type="button" data-schaltet="lehrkraft" aria-pressed="false">Lehrkraft</button>
+        <button type="button" data-schaltet="lernende" aria-pressed="false">Lernende</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Warum ein eigenes Blatt.</strong> Jeder andere Entwurf zeigt die Navigation seiner Rolle. Erst hier stehen beide nebeneinander — E15 verlangt, dass die Übersicht beide Systeme vollständig demonstriert.</p>
+    <p><strong>Vier Ziele unten (E12).</strong> Start · Kurse · Lernpakete · Einstellungen für die Lehrkraft; Heute · Lernen · Üben · Mein Fortschritt für die Lernenden. Fünf wären am Telefon zu schmal für 44 px breite Tippziele.</p>
+    <p><strong>Der aktive Eintrag trägt <code>aria-current="page"</code></strong> und ist nicht nur farblich markiert — Farbe allein trägt keine Information.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start" aria-current="page"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">◆ Start</td><td style="padding:6px 0;color:var(--ink-secondary)">#/start</td></tr>
+<tr><td style="padding:6px 12px 6px 0">❏ Kurse</td><td style="padding:6px 0;color:var(--ink-secondary)">#/kurse</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernpakete</td><td style="padding:6px 0;color:var(--ink-secondary)">#/pakete</td></tr>
+<tr><td style="padding:6px 12px 6px 0">✳ KI-Zugang</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ki</td></tr>
+<tr><td style="padding:6px 12px 6px 0">⚙ Verwaltung</td><td style="padding:6px 0;color:var(--ink-secondary)">#/verwaltung</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">☀ Heute</td><td style="padding:6px 0;color:var(--ink-secondary)">#/heute</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernen</td><td style="padding:6px 0;color:var(--ink-secondary)">#/lernen</td></tr>
+<tr><td style="padding:6px 12px 6px 0">◎ Üben</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ueben</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▲ Mein Fortschritt</td><td style="padding:6px 0;color:var(--ink-secondary)">#/fortschritt</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Mein Fortschritt</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-6)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13) — „Material" ist ein Wort aus der
+                Verwaltung, „Lernpakete" beschreibt, was da liegt.</p>
+              <p class="karte__text"><strong>„Vorschau"</strong> heißt im Kopfbereich
+                <strong>„Als Lernende ansehen"</strong> (E12) — eine verständliche Handlung
+                statt eines Fachworts. Am Telefon steht sie oben, damit unten vier Ziele
+                Platz haben.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="lehrkraft">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse" aria-current="page"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">◆ Start</td><td style="padding:6px 0;color:var(--ink-secondary)">#/start</td></tr>
+<tr><td style="padding:6px 12px 6px 0">❏ Kurse</td><td style="padding:6px 0;color:var(--ink-secondary)">#/kurse</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernpakete</td><td style="padding:6px 0;color:var(--ink-secondary)">#/pakete</td></tr>
+<tr><td style="padding:6px 12px 6px 0">✳ KI-Zugang</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ki</td></tr>
+<tr><td style="padding:6px 12px 6px 0">⚙ Verwaltung</td><td style="padding:6px 0;color:var(--ink-secondary)">#/verwaltung</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">☀ Heute</td><td style="padding:6px 0;color:var(--ink-secondary)">#/heute</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernen</td><td style="padding:6px 0;color:var(--ink-secondary)">#/lernen</td></tr>
+<tr><td style="padding:6px 12px 6px 0">◎ Üben</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ueben</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▲ Mein Fortschritt</td><td style="padding:6px 0;color:var(--ink-secondary)">#/fortschritt</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Mein Fortschritt</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-6)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13) — „Material" ist ein Wort aus der
+                Verwaltung, „Lernpakete" beschreibt, was da liegt.</p>
+              <p class="karte__text"><strong>„Vorschau"</strong> heißt im Kopfbereich
+                <strong>„Als Lernende ansehen"</strong> (E12) — eine verständliche Handlung
+                statt eines Fachworts. Am Telefon steht sie oben, damit unten vier Ziele
+                Platz haben.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="lernende">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">◆ Start</td><td style="padding:6px 0;color:var(--ink-secondary)">#/start</td></tr>
+<tr><td style="padding:6px 12px 6px 0">❏ Kurse</td><td style="padding:6px 0;color:var(--ink-secondary)">#/kurse</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernpakete</td><td style="padding:6px 0;color:var(--ink-secondary)">#/pakete</td></tr>
+<tr><td style="padding:6px 12px 6px 0">✳ KI-Zugang</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ki</td></tr>
+<tr><td style="padding:6px 12px 6px 0">⚙ Verwaltung</td><td style="padding:6px 0;color:var(--ink-secondary)">#/verwaltung</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">☀ Heute</td><td style="padding:6px 0;color:var(--ink-secondary)">#/heute</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernen</td><td style="padding:6px 0;color:var(--ink-secondary)">#/lernen</td></tr>
+<tr><td style="padding:6px 12px 6px 0">◎ Üben</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ueben</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▲ Mein Fortschritt</td><td style="padding:6px 0;color:var(--ink-secondary)">#/fortschritt</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Mein Fortschritt</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-6)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13) — „Material" ist ein Wort aus der
+                Verwaltung, „Lernpakete" beschreibt, was da liegt.</p>
+              <p class="karte__text"><strong>„Vorschau"</strong> heißt im Kopfbereich
+                <strong>„Als Lernende ansehen"</strong> (E12) — eine verständliche Handlung
+                statt eines Fachworts. Am Telefon steht sie oben, damit unten vier Ziele
+                Platz haben.</p>
+            </div>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">◆ Start</td><td style="padding:6px 0;color:var(--ink-secondary)">#/start</td></tr>
+<tr><td style="padding:6px 12px 6px 0">❏ Kurse</td><td style="padding:6px 0;color:var(--ink-secondary)">#/kurse</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernpakete</td><td style="padding:6px 0;color:var(--ink-secondary)">#/pakete</td></tr>
+<tr><td style="padding:6px 12px 6px 0">✳ KI-Zugang</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ki</td></tr>
+<tr><td style="padding:6px 12px 6px 0">⚙ Verwaltung</td><td style="padding:6px 0;color:var(--ink-secondary)">#/verwaltung</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">☀ Heute</td><td style="padding:6px 0;color:var(--ink-secondary)">#/heute</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernen</td><td style="padding:6px 0;color:var(--ink-secondary)">#/lernen</td></tr>
+<tr><td style="padding:6px 12px 6px 0">◎ Üben</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ueben</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▲ Mein Fortschritt</td><td style="padding:6px 0;color:var(--ink-secondary)">#/fortschritt</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Mein Fortschritt</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-6)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13) — „Material" ist ein Wort aus der
+                Verwaltung, „Lernpakete" beschreibt, was da liegt.</p>
+              <p class="karte__text"><strong>„Vorschau"</strong> heißt im Kopfbereich
+                <strong>„Als Lernende ansehen"</strong> (E12) — eine verständliche Handlung
+                statt eines Fachworts. Am Telefon steht sie oben, damit unten vier Ziele
+                Platz haben.</p>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start" aria-current="page"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="lehrkraft">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">◆ Start</td><td style="padding:6px 0;color:var(--ink-secondary)">#/start</td></tr>
+<tr><td style="padding:6px 12px 6px 0">❏ Kurse</td><td style="padding:6px 0;color:var(--ink-secondary)">#/kurse</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernpakete</td><td style="padding:6px 0;color:var(--ink-secondary)">#/pakete</td></tr>
+<tr><td style="padding:6px 12px 6px 0">✳ KI-Zugang</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ki</td></tr>
+<tr><td style="padding:6px 12px 6px 0">⚙ Verwaltung</td><td style="padding:6px 0;color:var(--ink-secondary)">#/verwaltung</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">☀ Heute</td><td style="padding:6px 0;color:var(--ink-secondary)">#/heute</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernen</td><td style="padding:6px 0;color:var(--ink-secondary)">#/lernen</td></tr>
+<tr><td style="padding:6px 12px 6px 0">◎ Üben</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ueben</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▲ Mein Fortschritt</td><td style="padding:6px 0;color:var(--ink-secondary)">#/fortschritt</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Mein Fortschritt</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-6)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13) — „Material" ist ein Wort aus der
+                Verwaltung, „Lernpakete" beschreibt, was da liegt.</p>
+              <p class="karte__text"><strong>„Vorschau"</strong> heißt im Kopfbereich
+                <strong>„Als Lernende ansehen"</strong> (E12) — eine verständliche Handlung
+                statt eines Fachworts. Am Telefon steht sie oben, damit unten vier Ziele
+                Platz haben.</p>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="lernende">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">◆ Start</td><td style="padding:6px 0;color:var(--ink-secondary)">#/start</td></tr>
+<tr><td style="padding:6px 12px 6px 0">❏ Kurse</td><td style="padding:6px 0;color:var(--ink-secondary)">#/kurse</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernpakete</td><td style="padding:6px 0;color:var(--ink-secondary)">#/pakete</td></tr>
+<tr><td style="padding:6px 12px 6px 0">✳ KI-Zugang</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ki</td></tr>
+<tr><td style="padding:6px 12px 6px 0">⚙ Verwaltung</td><td style="padding:6px 0;color:var(--ink-secondary)">#/verwaltung</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px 6px 0">☀ Heute</td><td style="padding:6px 0;color:var(--ink-secondary)">#/heute</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▤ Lernen</td><td style="padding:6px 0;color:var(--ink-secondary)">#/lernen</td></tr>
+<tr><td style="padding:6px 12px 6px 0">◎ Üben</td><td style="padding:6px 0;color:var(--ink-secondary)">#/ueben</td></tr>
+<tr><td style="padding:6px 12px 6px 0">▲ Mein Fortschritt</td><td style="padding:6px 0;color:var(--ink-secondary)">#/fortschritt</td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Mein Fortschritt</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-6)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13) — „Material" ist ein Wort aus der
+                Verwaltung, „Lernpakete" beschreibt, was da liegt.</p>
+              <p class="karte__text"><strong>„Vorschau"</strong> heißt im Kopfbereich
+                <strong>„Als Lernende ansehen"</strong> (E12) — eine verständliche Handlung
+                statt eines Fachworts. Am Telefon steht sie oben, damit unten vier Ziele
+                Platz haben.</p>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben" aria-current="page"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="entwurf.js"></script>
+</body>
+</html>

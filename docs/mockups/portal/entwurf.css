@@ -1,0 +1,870 @@
+/*
+  Das Designsystem der 5B-Entwürfe.
+
+  ## Was diese Datei ist — und was sie nicht ist
+
+  Sie ist ein **Entwurf**. Kein Produktivcode, von keiner Route eingebunden,
+  und sie fasst `src/styles/` nicht an. Sie zeigt, wie LexiFlow aussehen soll,
+  damit darüber entschieden werden kann, bevor gebaut wird.
+
+  ## Was übernommen ist — und was nicht
+
+  Aus corelypilates und coursesite übernommen: großzügige Typografie und
+  Abstände, warme hochwertige Flächen, bildstarke Paketkarten, klare
+  Handlungsaufforderungen, ruhige gut unterscheidbare Inhaltsbereiche, eine
+  hochwertige mobile Darstellung.
+
+  Nicht übernommen: lange Marketingseiten, Preis- und Testimonialmuster,
+  dekorative Animationen ohne Nutzen, zu geringe Kontraste, übergroße
+  Leerflächen, die Arbeitswege verlängern — und das austauschbare
+  Framer-Template-Aussehen. LexiFlow ist ein Arbeits- und Lernportal und muss
+  als solches erkennbar bleiben.
+
+  ## Keine externen Abhängigkeiten
+
+  Die zwei Schriften liegen daneben (`schriften/`, beide SIL OFL). Nichts wird
+  aus dem Netz geladen; die Dateien lassen sich per Doppelklick öffnen.
+*/
+
+@font-face {
+  font-family: 'Manrope Entwurf';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('schriften/manrope-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Newsreader Entwurf';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('schriften/newsreader-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+:root {
+  /* Die Marke — verbindlich, unverändert aus tokens.css. */
+  --aubergine: #2f092d;
+  --tomato: #ff2e2d;
+  --parchment: #f8efe3;
+
+  --canvas: var(--parchment);
+  --surface: #fffcf7;
+  --surface-editorial: #fbf4ea;
+  --surface-sunken: #f0e4d4;
+  --ink: var(--aubergine);
+  --ink-secondary: #674960;
+  --ink-muted: #715569;
+  --ink-inverse: var(--parchment);
+  --accent-ink: #b3201f;
+  --accent-soft: #f9dcd1;
+  --border-subtle: #eadccb;
+  --border: #d8c4ae;
+  --border-strong: #8a7563;
+  --success: #17624a;
+  --success-soft: #e4f0ea;
+  --warning: #8c4c22;
+  --warning-soft: #fbebda;
+  --danger: #a3202c;
+  --danger-soft: #fbe4e5;
+
+  --font-sans: 'Manrope Entwurf', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-editorial: 'Newsreader Entwurf', Georgia, 'Times New Roman', serif;
+
+  --cover-ratio: 16 / 10;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --space-10: 4rem;
+
+  --stack-tight: var(--space-2);
+  --stack-snug: var(--space-3);
+  --stack-normal: var(--space-5);
+  --stack-loose: var(--space-7);
+  --stack-section: var(--space-10);
+
+  --radius-control: 12px;
+  --radius-surface: 16px;
+  --radius-surface-lg: 22px;
+  --radius-pill: 999px;
+
+  --tap: 44px;
+  --focus-ring: var(--aubergine);
+  --focus-ring-hell: var(--tomato);
+}
+
+/* ------------------------------------------------------------ Grundlagen */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--canvas);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+  Ein Ring, überall gleich. Er ist in den Entwürfen bewusst nicht dezent:
+  Sichtbarer Tastaturfokus ist eine der sechs Aussagen der Prüfbank, und ein
+  Entwurf, in dem man ihn suchen muss, beantwortet die Frage nicht.
+*/
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+.auf-dunkel :focus-visible {
+  outline-color: var(--focus-ring-hell);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0;
+}
+
+/* ------------------------------------------------- Die Seite um die Entwürfe
+
+   Alles mit `blatt`, `schalter` oder `notiz` gehört zur Begutachtung, nicht
+   zum Entwurf. Es steht außerhalb der Gerätrahmen und ist deshalb nicht zu
+   verwechseln.
+   ------------------------------------------------------------------------ */
+
+.blatt {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5) var(--space-10);
+}
+
+.blatt__kopf {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
+}
+.blatt__rueck {
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+.blatt__titel {
+  font-family: var(--font-editorial);
+  font-size: clamp(2rem, 1.2rem + 2.4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.blatt__lead {
+  max-width: 60ch;
+  color: var(--ink-secondary);
+  font-size: 16px;
+}
+
+.notiz {
+  border-left: 3px solid var(--border);
+  padding: var(--space-2) 0 var(--space-2) var(--space-4);
+  margin: var(--space-5) 0;
+  max-width: 68ch;
+  color: var(--ink-secondary);
+  font-size: 14px;
+  display: grid;
+  gap: var(--space-2);
+}
+.notiz strong {
+  color: var(--ink);
+}
+
+.schalter {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  margin-bottom: var(--space-6);
+  background: var(--canvas);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.schalter__gruppe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.schalter__marke {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-secondary);
+  margin-right: var(--space-2);
+}
+.schalter button {
+  font: inherit;
+  font-size: 14px;
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.schalter button[aria-pressed='true'] {
+  background: var(--aubergine);
+  border-color: var(--aubergine);
+  color: var(--ink-inverse);
+}
+
+/* ------------------------------------------------------------ Gerätrahmen */
+
+.rahmen {
+  margin-bottom: var(--stack-section);
+}
+.rahmen__kopf {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+.rahmen__kopf b {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+/*
+  Der Entwurf steht in seiner echten Breite und wird nur zur Ansicht
+  verkleinert. Ein auf 900 px „zusammengeschobenes" Desktoplayout zeigte
+  Umbrüche, die es bei 1440 nicht gibt.
+*/
+.geraet {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+  overflow: hidden;
+  position: relative;
+}
+.geraet__flaeche {
+  transform-origin: top left;
+}
+.geraet--desktop {
+  width: 100%;
+  height: calc(900px * 0.78);
+}
+.geraet--desktop .geraet__flaeche {
+  width: 1440px;
+  height: 900px;
+  transform: scale(0.78);
+}
+.geraet--telefon {
+  width: 390px;
+  height: 844px;
+  border-radius: 30px;
+}
+.geraet--telefon .geraet__flaeche {
+  width: 390px;
+  height: 844px;
+}
+
+@media (max-width: 1240px) {
+  .geraet--desktop {
+    height: calc(900px * 0.6);
+  }
+  .geraet--desktop .geraet__flaeche {
+    transform: scale(0.6);
+  }
+}
+
+.paar {
+  display: grid;
+  gap: var(--space-6);
+}
+@media (min-width: 900px) {
+  .paar--nebeneinander {
+    grid-template-columns: 1fr 390px;
+    align-items: start;
+  }
+}
+
+/* ============================================================ DER ENTWURF */
+
+.app {
+  height: 100%;
+  display: grid;
+  background: var(--canvas);
+  color: var(--ink);
+  overflow: hidden;
+}
+.app--desktop {
+  grid-template-columns: 264px 1fr;
+}
+.app--telefon {
+  grid-template-rows: auto 1fr auto;
+}
+
+/* ---------------------------------------------------------- Seitenspalte */
+
+.spalte {
+  background: var(--aubergine);
+  color: var(--ink-inverse);
+  padding: var(--space-6) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-loose);
+}
+.marke {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  color: inherit;
+  text-decoration: none;
+  font-family: var(--font-editorial);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.marke__zeichen {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--tomato);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.nav {
+  display: grid;
+  gap: var(--space-1);
+}
+.nav__marke {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(248, 239, 227, 0.6);
+  margin-bottom: var(--space-2);
+}
+.nav__ziel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: rgba(248, 239, 227, 0.86);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+}
+.nav__ziel:hover {
+  background: rgba(248, 239, 227, 0.1);
+  color: var(--ink-inverse);
+}
+.nav__ziel[aria-current='page'] {
+  background: var(--parchment);
+  color: var(--aubergine);
+  font-weight: 700;
+}
+.nav__symbol {
+  width: 20px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.spalte__fuss {
+  margin-top: auto;
+  display: grid;
+  gap: var(--space-3);
+  font-size: 13px;
+  color: rgba(248, 239, 227, 0.72);
+}
+.spalte__person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+}
+.person__kreis {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(248, 239, 227, 0.16);
+  color: var(--ink-inverse);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------- Kopf und Inhalt */
+
+.inhalt {
+  overflow: auto;
+  /*
+    `min-height: 0` gegen die Voreinstellung `auto` bei Rasterzellen: Sonst
+    waechst die Inhaltszeile mit ihrem Inhalt, statt zu rollen — und schiebt
+    die untere Navigation hinaus.
+  */
+  min-height: 0;
+  padding: var(--space-7) var(--space-8) var(--space-10);
+}
+.app--telefon .inhalt {
+  padding: var(--space-5) var(--space-4) var(--space-8);
+}
+
+.kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--stack-snug) var(--space-5);
+  margin-bottom: var(--stack-normal);
+}
+.kopf__text {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 44rem;
+}
+.oberzeile {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-secondary);
+}
+.titel {
+  font-family: var(--font-editorial);
+  font-weight: 600;
+  font-size: 40px;
+  letter-spacing: -0.028em;
+}
+.app--telefon .titel {
+  font-size: 30px;
+}
+.lead {
+  color: var(--ink-secondary);
+  font-size: 16px;
+}
+.kopf__aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Mobiler Kopfbereich: Marke links, „Als Lernende ansehen" rechts (E12). */
+.telefonkopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--aubergine);
+  color: var(--ink-inverse);
+}
+.telefonkopf .marke {
+  font-size: 19px;
+}
+.telefonkopf .marke__zeichen {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+/* -------------------------------------------------- Untere Navigation (E12) */
+
+.unten {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--border-subtle);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.unten__ziel {
+  min-height: 60px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--ink-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+.unten__ziel[aria-current='page'] {
+  color: var(--accent-ink);
+}
+.unten__symbol {
+  font-size: 19px;
+  line-height: 1;
+}
+
+/* ------------------------------------------------------------ Bausteine */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn--primaer {
+  background: var(--aubergine);
+  border-color: var(--aubergine);
+  color: var(--ink-inverse);
+}
+.btn--akzent {
+  background: var(--tomato);
+  border-color: var(--tomato);
+  color: #fff;
+}
+.btn--still {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent-ink);
+  padding: 0 var(--space-3);
+}
+.btn--voll {
+  width: 100%;
+}
+
+.karte {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--stack-snug);
+}
+.karte--editorial {
+  background: var(--surface-editorial);
+}
+.karte__titel {
+  font-size: 18px;
+  font-weight: 700;
+}
+.karte__text {
+  color: var(--ink-secondary);
+  font-size: 14px;
+}
+
+.raster {
+  display: grid;
+  gap: var(--space-5);
+}
+.raster--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.raster--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+/*
+  Die Werkstatt steht am Desktop zweispaltig: Quelltext links, Vorschläge
+  rechts. Am Telefon untereinander — nebeneinander wären beide zu schmal zum
+  Arbeiten. Das als Klasse und nicht am Element: Ein eingebauter Stil lässt
+  sich vom Telefonlayout nicht überschreiben, und genau das ist im ersten
+  eigenen Lauf passiert (91 px Überlauf).
+*/
+.raster--werkstatt {
+  grid-template-columns: 1.1fr 1fr;
+  gap: var(--space-6);
+}
+.app--telefon .raster--2,
+.app--telefon .raster--3,
+.app--telefon .raster--werkstatt {
+  grid-template-columns: 1fr;
+}
+
+.abschnitt {
+  margin-bottom: var(--stack-loose);
+}
+.abschnitt__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--stack-snug);
+}
+.abschnitt__titel {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.plakette {
+  /* In einer Rasterkarte zieht sich sonst die Plakette über die volle Breite –
+     eine Marke, die aussieht wie ein Balken, ist keine Marke mehr. */
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface-sunken);
+  color: var(--ink-secondary);
+}
+.plakette--gut {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.plakette--warn {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.plakette--fehler {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.plakette--akzent {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* -------------------------------------------------------- Paketkarten (E4) */
+
+.paket {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface-lg);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  text-decoration: none;
+  color: inherit;
+}
+.paket__bild {
+  aspect-ratio: var(--cover-ratio);
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: linear-gradient(140deg, #3d1339 0%, #2f092d 58%, #55163f 100%);
+  color: var(--parchment);
+}
+/*
+  Das Standardmotiv muss auch ohne Bild hochwertig wirken (E17): eine
+  gesetzte Fläche mit der Wortmarke und dem Thema, nicht ein grauer Kasten
+  mit einem Symbol.
+*/
+.paket__motiv {
+  font-family: var(--font-editorial);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+  padding: 0 var(--space-5);
+}
+.paket__motiv small {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.66;
+  margin-bottom: 6px;
+}
+.paket__foto {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.paket__koerper {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+.paket__titel {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.paket__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+/* ------------------------------------------------------------- Fortschritt */
+
+.balken {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.balken__fuellung {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tomato);
+}
+
+.zahl {
+  font-family: var(--font-editorial);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------- Zustände */
+
+.skelett {
+  display: grid;
+  gap: var(--space-2);
+}
+.skelett__zeile,
+.skelett__flaeche {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-control);
+}
+.skelett__zeile {
+  height: 14px;
+}
+.skelett__zeile:last-child {
+  width: 62%;
+}
+.skelett__flaeche {
+  aspect-ratio: var(--cover-ratio);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skelett__zeile,
+  .skelett__flaeche {
+    animation: puls 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  }
+}
+@keyframes puls {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.leer {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-surface);
+  background: var(--surface-sunken);
+  padding: var(--space-7) var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  max-width: 38rem;
+}
+.leer__titel {
+  font-size: 18px;
+  font-weight: 700;
+}
+.leer__text {
+  color: var(--ink-secondary);
+  font-size: 14px;
+}
+
+.fehler {
+  border: 1px solid var(--danger);
+  background: var(--danger-soft);
+  border-radius: var(--radius-surface);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  max-width: 38rem;
+}
+.fehler__titel {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.fehler--offline {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+.fehler--offline .fehler__titel {
+  color: var(--warning);
+}
+
+/* Das Offlineband sitzt über dem Inhalt, nicht statt seiner: Wer offline ist,
+   soll weiterüben können. */
+.band {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--stack-normal);
+}
+
+/*
+  Was der Zustandsschalter ein- und ausblendet.
+
+  `height: 100%` ist hier nicht Kosmetik: Ohne sie hat der Umschalt-Container
+  keine Höhe, die darin liegende App findet keine, und die untere Navigation
+  rutscht aus dem Telefonrahmen heraus. Der erste eigene Lauf hat das gemessen
+  — sichtbar war es nicht, weil der Rahmen den Überstand abschneidet.
+*/
+[data-zustand] {
+  display: none;
+}
+[data-zustand].ist-sichtbar {
+  display: block;
+  height: 100%;
+}
+
+.nur-fuer-hilfsmittel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

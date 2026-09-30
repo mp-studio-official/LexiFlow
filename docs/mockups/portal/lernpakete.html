@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lernpaketkarte und Paketdetail — LexiFlow 5B Entwurf</title>
+<link rel="stylesheet" href="entwurf.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="kursdetail.html">← Kurs</a> · <a href="ueben.html">Weiter: Üben →</a></p>
+    <h1 class="blatt__titel">Lernpaketkarte und Paketdetail</h1>
+    <p class="blatt__lead">Die bildstarke Paketkarte, das Titelbild in beiden Fällen — mit hochgeladenem Bild und ohne — und der eigene Lernstand.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke" id="zustandsmarke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Titelbilder, 16 : 10 (E4).</strong> Dasselbe Verhältnis in Karte, Detail und Zuschnitt. Als Token <code>--cover-ratio</code>, damit die Zahl an einer Stelle steht.</p>
+    <p><strong>Das Standardmotiv muss ohne Bild hochwertig wirken (E17).</strong> Deshalb eine gesetzte Fläche mit Thema und Titel in der editorialen Schrift — kein grauer Kasten mit Symbol. Im Zustand „fehlerhaft" ist zu sehen, dass ein fehlendes Bild kein Loch hinterlässt.</p>
+    <p><strong>Der Lernstand gehört der lernenden Person.</strong> Er steht hier, weil das ihr eigener Bildschirm ist — und nirgends im Lehrkraftbereich.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--akzent" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="raster raster--2">
+                <div class="paket" style="pointer-events:none">
+                  <span class="paket__bild">
+                    <span class="paket__foto" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px)"></span>
+                  </span>
+                  <span class="paket__koerper">
+                    <span class="paket__titel">Mit eigenem Titelbild</span>
+                    <span class="paket__zeile">Hochgeladen, 1600 px, ohne Metadaten</span>
+                  </span>
+                </div>
+                <div class="paket" style="pointer-events:none">
+                  <span class="paket__bild">
+                    <p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p>
+                  </span>
+                  <span class="paket__koerper">
+                    <span class="paket__titel">Standardmotiv, ohne Bild</span>
+                    <span class="paket__zeile">Gesetzte Fläche, kein grauer Kasten (E17)</span>
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Dein Stand</h2>
+              </div>
+              <div class="karte karte--editorial">
+                <div class="raster raster--3">
+                  <div>
+                    <p class="oberzeile">Sicher</p>
+                    <p class="zahl">15</p>
+                  </div>
+                  <div>
+                    <p class="oberzeile">Am Üben</p>
+                    <p class="zahl">6</p>
+                  </div>
+                  <div>
+                    <p class="oberzeile">Neu</p>
+                    <p class="zahl">3</p>
+                  </div>
+                </div>
+                <div class="balken"><div class="balken__fuellung" style="width:62%"></div></div>
+                <p class="karte__text">Dieser Stand gehört dir. Deine Lehrkraft sieht ihn nicht.</p>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Weitere Lernpakete</h2>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:88%"></div></div><p class="paket__zeile">88 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 4 — At the doctor’s</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 4 — At the doctor’s</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>22 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:0%"></div></div><p class="paket__zeile">0 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Grammatik</small>Simple past</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>16 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:45%"></div></div><p class="paket__zeile">45 % sicher</p>
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <div aria-hidden="true">
+              <div style="max-width:520px"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div class="raster raster--2" style="margin-top:var(--space-6)">
+                <div class="skelett__flaeche"></div>
+                <div><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+              <div class="raster raster--3" style="margin-top:var(--space-7)">
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Lernen</h1>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Dieses Lernpaket ist noch leer</p>
+              <p class="leer__text">Es wurde zugewiesen, enthält aber noch keine Vokabeln.
+                Sobald deine Lehrkraft es gefüllt hat, kannst du hier üben.</p>
+              <a class="btn" href="#/lernen">Zurück zu den Lernpaketen</a>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--akzent" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Das Titelbild konnte nicht geladen werden</p>
+              <p>Das Lernpaket selbst ist vollständig da — du kannst normal üben. Nur das
+                Bild fehlt.</p>
+              <a class="btn" href="#/ueben/3">Trotzdem üben</a>
+            </div>
+            <section class="abschnitt" style="margin-top:var(--stack-normal)">
+              <div class="raster raster--2">
+                <div class="paket" style="pointer-events:none">
+                  <span class="paket__bild">
+                    <p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p>
+                  </span>
+                  <span class="paket__koerper">
+                    <span class="paket__titel">Ersatzmotiv statt Lücke</span>
+                    <span class="paket__zeile">Ein fehlendes Bild hinterlässt kein Loch.</span>
+                  </span>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lernbereich</p>
+          <a class="nav__ziel" href="#/heute"><span class="nav__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="nav__ziel" href="#/lernen" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="nav__ziel" href="#/ueben"><span class="nav__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="nav__ziel" href="#/fortschritt"><span class="nav__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">DA</span>
+            <span>Dachs<br><span style="opacity:.7">Englisch 7b</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <div class="band">Offline — dieses Lernpaket liegt auf dem Gerät</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--akzent" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Du kannst weiterüben</p>
+                <p class="karte__text">Die Vokabeln liegen auf diesem Gerät. Was du jetzt
+                  übst, wird gespeichert und geht hinaus, sobald du wieder online bist.</p>
+                <p><a class="btn btn--akzent" href="#/ueben/3">Üben</a></p>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon">
+      <div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--akzent" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="raster raster--2">
+                <div class="paket" style="pointer-events:none">
+                  <span class="paket__bild">
+                    <span class="paket__foto" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px)"></span>
+                  </span>
+                  <span class="paket__koerper">
+                    <span class="paket__titel">Mit eigenem Titelbild</span>
+                    <span class="paket__zeile">Hochgeladen, 1600 px, ohne Metadaten</span>
+                  </span>
+                </div>
+                <div class="paket" style="pointer-events:none">
+                  <span class="paket__bild">
+                    <p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p>
+                  </span>
+                  <span class="paket__koerper">
+                    <span class="paket__titel">Standardmotiv, ohne Bild</span>
+                    <span class="paket__zeile">Gesetzte Fläche, kein grauer Kasten (E17)</span>
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Dein Stand</h2>
+              </div>
+              <div class="karte karte--editorial">
+                <div class="raster raster--3">
+                  <div>
+                    <p class="oberzeile">Sicher</p>
+                    <p class="zahl">15</p>
+                  </div>
+                  <div>
+                    <p class="oberzeile">Am Üben</p>
+                    <p class="zahl">6</p>
+                  </div>
+                  <div>
+                    <p class="oberzeile">Neu</p>
+                    <p class="zahl">3</p>
+                  </div>
+                </div>
+                <div class="balken"><div class="balken__fuellung" style="width:62%"></div></div>
+                <p class="karte__text">Dieser Stand gehört dir. Deine Lehrkraft sieht ihn nicht.</p>
+              </div>
+            </section>
+
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Weitere Lernpakete</h2>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 2 — Free time</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:88%"></div></div><p class="paket__zeile">88 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Englisch 7b</small>Unit 4 — At the doctor’s</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 4 — At the doctor’s</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>22 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:0%"></div></div><p class="paket__zeile">0 % sicher</p>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><p class="paket__motiv"><small>Grammatik</small>Simple past</p></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>16 Vokabeln</span></span>
+    <div class="balken"><div class="balken__fuellung" style="width:45%"></div></div><p class="paket__zeile">45 % sicher</p>
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <div aria-hidden="true">
+              <div style="max-width:520px"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div class="raster raster--2" style="margin-top:var(--space-6)">
+                <div class="skelett__flaeche"></div>
+                <div><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+              <div class="raster raster--3" style="margin-top:var(--space-7)">
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+              </div>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Lernen</h1>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Dieses Lernpaket ist noch leer</p>
+              <p class="leer__text">Es wurde zugewiesen, enthält aber noch keine Vokabeln.
+                Sobald deine Lehrkraft es gefüllt hat, kannst du hier üben.</p>
+              <a class="btn" href="#/lernen">Zurück zu den Lernpaketen</a>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--akzent" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert">
+              <p class="fehler__titel">Das Titelbild konnte nicht geladen werden</p>
+              <p>Das Lernpaket selbst ist vollständig da — du kannst normal üben. Nur das
+                Bild fehlt.</p>
+              <a class="btn" href="#/ueben/3">Trotzdem üben</a>
+            </div>
+            <section class="abschnitt" style="margin-top:var(--stack-normal)">
+              <div class="raster raster--2">
+                <div class="paket" style="pointer-events:none">
+                  <span class="paket__bild">
+                    <p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p>
+                  </span>
+                  <span class="paket__koerper">
+                    <span class="paket__titel">Ersatzmotiv statt Lücke</span>
+                    <span class="paket__zeile">Ein fehlendes Bild hinterlässt kein Loch.</span>
+                  </span>
+                </div>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <span class="plakette plakette--akzent">Tag 6</span>
+        </div>
+          <main class="inhalt">
+            <div class="band">Offline — dieses Lernpaket liegt auf dem Gerät</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--akzent" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="karte karte--editorial">
+                <p class="karte__titel">Du kannst weiterüben</p>
+                <p class="karte__text">Die Vokabeln liegen auf diesem Gerät. Was du jetzt
+                  übst, wird gespeichert und geht hinaus, sobald du wieder online bist.</p>
+                <p><a class="btn btn--akzent" href="#/ueben/3">Üben</a></p>
+              </div>
+            </section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/heute"><span class="unten__symbol" aria-hidden="true">☀</span>Heute</a>
+          <a class="unten__ziel" href="#/lernen" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernen</a>
+          <a class="unten__ziel" href="#/ueben"><span class="unten__symbol" aria-hidden="true">◎</span>Üben</a>
+          <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><span class="unten__symbol" aria-hidden="true">▲</span>Mein Fortschritt</a>
+        </nav>
+        </div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="entwurf.js"></script>
+</body>
+</html>
