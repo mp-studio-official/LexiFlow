@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lernpaketkarte und Paketdetail — LexiFlow Variante B</title>
+<link rel="stylesheet" href="variante.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Variante B</a> · <a href="../portal/lernpakete.html">dieselbe Seite in der P3-Fassung</a></p>
+    <h1 class="blatt__titel">Lernpaketkarte und Paketdetail</h1>
+    <p class="blatt__lead">Variante B. Das abstrakte Aurora-Standardmotiv und ein echtes hochgeladenes Titelbild, beide 16 : 10.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Die Icon-Leiste.</strong> 76 px, dauerhaft kompakt, ohne sichtbare Beschriftung — sie verbreitert sich bei Hover und Fokus nicht, damit der Inhalt daneben nicht springt. Der Name kommt als schwebender Tooltip; tragen tut ihn das <code>aria-label</code> jedes Links. Der aktive Eintrag ist an drei Dingen zu erkennen: gefüllte Fläche, umgekehrter Kontrast, Akzentstrich am Rand.</p>
+    <p><strong>Das Standardmotiv übernimmt die Formensprache des Logos:</strong> zwei überlagerte, leicht gedrehte Flächen mit großem Radius, in Aurora. Es muss auch ohne Foto hochwertig wirken — im Zustand „fehlerhaft" ist zu sehen, dass ein fehlendes Bild kein Loch hinterlässt.</p>
+    <p><strong>Hochgeladene Bilder bleiben echte Titelbilder</strong> und werden nicht in Aurora umgefärbt.</p>
+    <p><strong>Der Lernstand gehört der lernenden Person.</strong> Er steht hier, weil das ihr eigener Bildschirm ist — und nirgends im Lehrkraftbereich.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--primaer" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="raster raster--2">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Standardmotiv</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="paket__foto" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">eigenes Titelbild</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <div class="karte karte--glas">
+                <div class="raster raster--3">
+                  <div><p class="oberzeile">Sicher</p><p class="zahl">15</p></div>
+                  <div><p class="oberzeile">Am Üben</p><p class="zahl">6</p></div>
+                  <div><p class="oberzeile">Neu</p><p class="zahl">3</p></div>
+                </div>
+                <span class="balken"><span class="balken__fuellung"
+                  style="width:62%"></span></span>
+                <p class="karte__text">Dieser Stand gehört dir. Deine Lehrkraft sieht ihn
+                  nicht.</p>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Weitere Lernpakete</h2>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 2 — Free time</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <span class="balken"><span class="balken__fuellung" style="width:88%"></span></span><span class="paket__zeile">88 % sicher</span>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 4 — At the doctor’s</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 4 — At the doctor’s</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>22 Vokabeln</span></span>
+    <span class="balken"><span class="balken__fuellung" style="width:0%"></span></span><span class="paket__zeile">0 % sicher</span>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Grammatik</small>Simple past</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>16 Vokabeln</span></span>
+    <span class="balken"><span class="balken__fuellung" style="width:45%"></span></span><span class="paket__zeile">45 % sicher</span>
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+<p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <div aria-hidden="true">
+              <div style="max-width:520px"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div class="raster raster--2" style="margin-top:var(--space-6)">
+                <div class="skelett__flaeche"></div>
+                <div><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+              <div class="raster raster--3" style="margin-top:var(--space-7)">
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Lernen</h1>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Dieses Lernpaket ist noch leer</p>
+              <p class="leer__text">Es wurde zugewiesen, enthält aber noch keine Vokabeln.
+                Sobald deine Lehrkraft es gefüllt hat, kannst du hier üben.</p>
+              <a class="btn btn--glas" href="#/lernen">Zurück zu den Lernpaketen</a>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--primaer" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert" style="margin-bottom:var(--stack-normal)">
+              <p class="fehler__titel">Das Titelbild konnte nicht geladen werden</p>
+              <p>Das Lernpaket selbst ist vollständig da — du kannst normal üben. Nur das
+                Bild fehlt.</p>
+              <a class="btn btn--primaer" href="#/ueben/3">Trotzdem üben</a>
+            </div>
+            <section class="abschnitt">
+              <div class="raster raster--2">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Ersatzmotiv</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+              <p class="lead" style="margin-top:var(--space-3)">Ein fehlendes Bild
+                hinterlässt kein Loch — das Standardmotiv tritt an seine Stelle.</p>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <div class="band">Offline — dieses Lernpaket liegt auf dem Gerät</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--primaer" href="#/ueben/3">Üben</a>
+              </div>
+            </header>            <section class="abschnitt">
+              <div class="karte karte--glas">
+                <div class="raster raster--3">
+                  <div><p class="oberzeile">Sicher</p><p class="zahl">15</p></div>
+                  <div><p class="oberzeile">Am Üben</p><p class="zahl">6</p></div>
+                  <div><p class="oberzeile">Neu</p><p class="zahl">3</p></div>
+                </div>
+                <span class="balken"><span class="balken__fuellung"
+                  style="width:62%"></span></span>
+                <p class="karte__text">Dieser Stand gehört dir. Deine Lehrkraft sieht ihn
+                  nicht.</p>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <div class="karte">
+                <p class="karte__titel">Du kannst weiterüben</p>
+                <p class="karte__text">Die Vokabeln liegen auf diesem Gerät. Was du jetzt
+                  übst, wird gespeichert und geht hinaus, sobald du wieder online bist.</p>
+                <p><a class="btn btn--primaer" href="#/ueben/3">Üben</a></p>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+    </div></div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <span class="plakette plakette--akzent">Tag 6</span>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--primaer" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <section class="abschnitt">
+              <div class="raster raster--2">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Standardmotiv</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="paket__foto" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">eigenes Titelbild</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <div class="karte karte--glas">
+                <div class="raster raster--3">
+                  <div><p class="oberzeile">Sicher</p><p class="zahl">15</p></div>
+                  <div><p class="oberzeile">Am Üben</p><p class="zahl">6</p></div>
+                  <div><p class="oberzeile">Neu</p><p class="zahl">3</p></div>
+                </div>
+                <span class="balken"><span class="balken__fuellung"
+                  style="width:62%"></span></span>
+                <p class="karte__text">Dieser Stand gehört dir. Deine Lehrkraft sieht ihn
+                  nicht.</p>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Weitere Lernpakete</h2>
+              </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 2 — Free time</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    <span class="balken"><span class="balken__fuellung" style="width:88%"></span></span><span class="paket__zeile">88 % sicher</span>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 4 — At the doctor’s</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 4 — At the doctor’s</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>22 Vokabeln</span></span>
+    <span class="balken"><span class="balken__fuellung" style="width:0%"></span></span><span class="paket__zeile">0 % sicher</span>
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Grammatik</small>Simple past</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>16 Vokabeln</span></span>
+    <span class="balken"><span class="balken__fuellung" style="width:45%"></span></span><span class="paket__zeile">45 % sicher</span>
+  </span>
+</a>
+              </div>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span>Heute</span></a>
+            <a class="unten__ziel" href="#/lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernen</span></a>
+            <a class="unten__ziel" href="#/ueben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span>Üben</span></a>
+            <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span>Fortschritt</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <span class="plakette plakette--akzent">Tag 6</span>
+          </div>
+          <main class="inhalt">
+<p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+            <div aria-hidden="true">
+              <div style="max-width:520px"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div class="raster raster--2" style="margin-top:var(--space-6)">
+                <div class="skelett__flaeche"></div>
+                <div><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              </div>
+              <div class="raster raster--3" style="margin-top:var(--space-7)">
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+                <div><div class="skelett__flaeche"></div></div>
+              </div>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span>Heute</span></a>
+            <a class="unten__ziel" href="#/lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernen</span></a>
+            <a class="unten__ziel" href="#/ueben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span>Üben</span></a>
+            <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span>Fortschritt</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <span class="plakette plakette--akzent">Tag 6</span>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Lernen</h1>
+              </div>
+            </header>
+            <div class="leer">
+              <p class="leer__titel">Dieses Lernpaket ist noch leer</p>
+              <p class="leer__text">Es wurde zugewiesen, enthält aber noch keine Vokabeln.
+                Sobald deine Lehrkraft es gefüllt hat, kannst du hier üben.</p>
+              <a class="btn btn--glas" href="#/lernen">Zurück zu den Lernpaketen</a>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span>Heute</span></a>
+            <a class="unten__ziel" href="#/lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernen</span></a>
+            <a class="unten__ziel" href="#/ueben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span>Üben</span></a>
+            <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span>Fortschritt</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <span class="plakette plakette--akzent">Tag 6</span>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--primaer" href="#/ueben/3">Üben</a>
+              </div>
+            </header>
+            <div class="fehler" role="alert" style="margin-bottom:var(--stack-normal)">
+              <p class="fehler__titel">Das Titelbild konnte nicht geladen werden</p>
+              <p>Das Lernpaket selbst ist vollständig da — du kannst normal üben. Nur das
+                Bild fehlt.</p>
+              <a class="btn btn--primaer" href="#/ueben/3">Trotzdem üben</a>
+            </div>
+            <section class="abschnitt">
+              <div class="raster raster--2">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Ersatzmotiv</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+              </div>
+              <p class="lead" style="margin-top:var(--space-3)">Ein fehlendes Bild
+                hinterlässt kein Loch — das Standardmotiv tritt an seine Stelle.</p>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span>Heute</span></a>
+            <a class="unten__ziel" href="#/lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernen</span></a>
+            <a class="unten__ziel" href="#/ueben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span>Üben</span></a>
+            <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span>Fortschritt</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <span class="plakette plakette--akzent">Tag 6</span>
+          </div>
+          <main class="inhalt">
+            <div class="band">Offline — dieses Lernpaket liegt auf dem Gerät</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Lernpakete</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Vokabeln · Englisch 7b · zuletzt geübt am 28. September</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/lernen/3/liste">Liste ansehen</a>
+                <a class="btn btn--primaer" href="#/ueben/3">Üben</a>
+              </div>
+            </header>            <section class="abschnitt">
+              <div class="karte karte--glas">
+                <div class="raster raster--3">
+                  <div><p class="oberzeile">Sicher</p><p class="zahl">15</p></div>
+                  <div><p class="oberzeile">Am Üben</p><p class="zahl">6</p></div>
+                  <div><p class="oberzeile">Neu</p><p class="zahl">3</p></div>
+                </div>
+                <span class="balken"><span class="balken__fuellung"
+                  style="width:62%"></span></span>
+                <p class="karte__text">Dieser Stand gehört dir. Deine Lehrkraft sieht ihn
+                  nicht.</p>
+              </div>
+            </section>
+            <section class="abschnitt">
+              <div class="karte">
+                <p class="karte__titel">Du kannst weiterüben</p>
+                <p class="karte__text">Die Vokabeln liegen auf diesem Gerät. Was du jetzt
+                  übst, wird gespeichert und geht hinaus, sobald du wieder online bist.</p>
+                <p><a class="btn btn--primaer" href="#/ueben/3">Üben</a></p>
+              </div>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span>Heute</span></a>
+            <a class="unten__ziel" href="#/lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernen</span></a>
+            <a class="unten__ziel" href="#/ueben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span>Üben</span></a>
+            <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span>Fortschritt</span></a>
+          </nav>
+        </div>
+</div>
+    </div></div>
+  </section>
+</div>
+<script src="variante.js"></script>
+</body>
+</html>

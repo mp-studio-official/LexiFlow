@@ -251,6 +251,51 @@
     </div>
 
     <div class="tafel__feld">
+      <p class="tafel__titel">Icon-Leiste (nur Desktop)</p>
+      <p class="tafel__text">76 px, dauerhaft kompakt, ohne sichtbare Beschriftung. Sie
+        verbreitert sich bei Hover und Fokus nicht — der Name kommt als schwebender Tooltip.
+        Zum Ausprobieren: mit der Maus darüberfahren <em>oder</em> mit der Tabulatortaste
+        hineingehen. Der aktive Eintrag ist an gefüllter Fläche, umgekehrtem Kontrast
+        <em>und</em> Akzentstrich zu erkennen — nicht nur an der Farbe.</p>
+      <div class="probe" style="justify-items:center;padding:var(--space-5)">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tafel__feld">
+      <p class="tafel__titel">Die Zeichen, ohne Farbe unterscheidbar</p>
+      <p class="tafel__text">Kurse sind <strong>Menschen</strong>, Lernpakete und Lernen
+        <strong>gestapelte Flächen</strong>. Als Buch oder Karteikarte wären sie bei 23 px
+        nicht mehr zu trennen — und eine Leiste ohne Beschriftung lebt davon.</p>
+      <div class="probe" style="grid-auto-flow:column;justify-items:center;
+                                filter:grayscale(1)">
+        <span title="Start" style="display:grid;gap:4px;justify-items:center;font-size:var(--text-mikro);font-weight:700"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg>Start</span>
+        <span title="Kurse" style="display:grid;gap:4px;justify-items:center;font-size:var(--text-mikro);font-weight:700"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg>Kurse</span>
+        <span title="Lernpakete" style="display:grid;gap:4px;justify-items:center;font-size:var(--text-mikro);font-weight:700"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg>Lernpakete</span>
+        <span title="KI-Zugang" style="display:grid;gap:4px;justify-items:center;font-size:var(--text-mikro);font-weight:700"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg>KI-Zugang</span>
+        <span title="Verwaltung" style="display:grid;gap:4px;justify-items:center;font-size:var(--text-mikro);font-weight:700"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg>Verwaltung</span>
+      </div>
+    </div>
+
+    <div class="tafel__feld">
       <p class="tafel__titel">Paketcover</p>
       <p class="tafel__text">Links das abstrakte Aurora-Standardmotiv — zwei überlagerte,
         leicht gedrehte Flächen, die Figur des Logos. Rechts ein hochgeladenes Bild. Beide

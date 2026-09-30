@@ -327,7 +327,11 @@ p {
 
 .app--desktop {
   display: grid;
-  grid-template-columns: 268px 1fr;
+  /*
+    76 px statt 268 px. Der gewonnene Platz geht an den Inhalt — auf 1440 px
+    sind das knapp 200 px mehr Arbeitsfläche, also eine Kartenspalte.
+  */
+  grid-template-columns: 76px 1fr;
 }
 .app--telefon {
   display: grid;
@@ -465,7 +469,12 @@ p {
 .kopf__text {
   display: grid;
   gap: var(--space-2);
-  max-width: 46rem;
+  /*
+    Breiter als in der ersten Fassung: Die Icon-Leiste gibt rund 190 px zurück,
+    und eine Anrede wie „Guten Morgen, Frau Bergmann" soll davon profitieren,
+    statt weiter umzubrechen.
+  */
+  max-width: 62rem;
 }
 .oberzeile {
   font-size: var(--text-mikro);
@@ -918,4 +927,436 @@ p {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 2px;
+}
+
+/* ==========================================================================
+   Die kompakte Icon-Leiste (nur Desktop)
+   ========================================================================== */
+
+/*
+  Feste Breite, dauerhaft. Sie verbreitert sich bei Hover und Fokus **nicht**:
+  Eine Navigation, die unter dem Zeiger wächst, verschiebt den Inhalt daneben —
+  und man verliert die Stelle, an der man gerade gelesen hat.
+
+  Die Beschriftung kommt als schwebender Tooltip, absolut positioniert und
+  damit ohne Einfluss auf das Layout. Sie ist die sichtbare Form des Namens,
+  nicht der Name selbst: Den trägt jeder Link über `aria-label`, unabhängig
+  davon, ob gerade ein Tooltip zu sehen ist.
+*/
+.rail {
+  width: 76px;
+  margin: var(--space-4) 0 var(--space-4) var(--space-4);
+  border-radius: var(--r-gross);
+  padding: var(--space-3) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+}
+.rail__nav {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+.rail__fuss {
+  margin-top: auto;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rand);
+  width: 52px;
+}
+
+.rail__marke,
+.rail__ziel {
+  position: relative;
+  width: 48px;
+  min-width: 44px;
+  height: 48px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-klein);
+  color: var(--tinte-2);
+  text-decoration: none;
+}
+.rail__marke {
+  color: var(--tinte);
+}
+.rail__ziel:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--tinte);
+}
+
+/*
+  Der aktive Eintrag an drei Merkmalen, nicht an einem: gefüllte Fläche,
+  umgekehrter Kontrast, und ein Akzentstrich am linken Rand. Farbe allein
+  trägt keine Information — und ein umgekehrter Kontrast ist auch dann noch
+  da, wenn gar keine Farbe ankommt.
+*/
+.rail__ziel[aria-current='page'] {
+  background: var(--tinte);
+  color: var(--tinte-invers);
+}
+.rail__ziel[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: var(--r-pille);
+  background: var(--marke-tomato);
+}
+
+.sym {
+  width: 23px;
+  height: 23px;
+}
+
+.rail__tipp {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  white-space: nowrap;
+  padding: 7px 13px;
+  border-radius: var(--r-klein);
+  background: var(--tinte);
+  color: var(--tinte-invers);
+  font-size: var(--text-klein);
+  font-weight: 700;
+  box-shadow: var(--schatten-schwebend);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.rail__marke:hover .rail__tipp,
+.rail__marke:focus-visible .rail__tipp,
+.rail__ziel:hover .rail__tipp,
+.rail__ziel:focus-visible .rail__tipp {
+  opacity: 1;
+  visibility: visible;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rail__tipp {
+    transition: opacity 110ms var(--ease, ease-out);
+  }
+}
+
+/* Der Kopfbereich rechts — „Als Lernende ansehen" bleibt hier. */
+.kopfleiste {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.btn--schmal {
+  padding: 0 var(--space-3);
+  font-size: var(--text-klein);
+}
+
+/* Mobil trägt jedes Ziel sein Zeichen **und** seinen Namen. */
+.unten__ziel .sym {
+  width: 21px;
+  height: 21px;
+}
+
+/* ==========================================================================
+   Zustände
+   ========================================================================== */
+
+.skelett {
+  display: grid;
+  gap: var(--space-2);
+}
+.skelett__zeile {
+  height: 14px;
+  border-radius: var(--r-klein);
+  background: var(--grund-tief);
+}
+.skelett__zeile:last-child {
+  width: 62%;
+}
+.skelett__flaeche {
+  aspect-ratio: var(--cover-ratio);
+  border-radius: var(--r);
+  background: var(--grund-tief);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skelett__zeile,
+  .skelett__flaeche {
+    animation: puls 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  }
+}
+@keyframes puls {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Leer, Fehler und Offline sind **deckend** — dort wird gelesen. */
+.leer {
+  border: 1px dashed var(--rand-stark);
+  border-radius: var(--r-gross);
+  background: var(--flaeche);
+  padding: var(--space-7) var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  max-width: 40rem;
+}
+.leer__titel {
+  font-size: var(--grad-4);
+  font-weight: 800;
+}
+.leer__text {
+  color: var(--tinte-2);
+  font-size: var(--text-klein);
+}
+
+.fehler {
+  border: 1px solid var(--fehler);
+  background: var(--fehler-weich);
+  border-radius: var(--r-gross);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  max-width: 40rem;
+}
+.fehler__titel {
+  font-size: var(--grad-4);
+  font-weight: 800;
+  color: var(--fehler);
+}
+.fehler--offline {
+  border-color: var(--warn);
+  background: var(--warn-weich);
+}
+.fehler--offline .fehler__titel {
+  color: var(--warn);
+}
+
+/* Das Offlineband darf schweben — es ist eine kleine Statusfläche. */
+.band {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--r);
+  background: var(--warn-weich);
+  color: var(--warn);
+  font-size: var(--text-klein);
+  font-weight: 700;
+  margin-bottom: var(--stack-normal);
+}
+
+[data-zustand] {
+  display: none;
+}
+[data-zustand].ist-sichtbar {
+  display: block;
+  height: 100%;
+}
+
+/* ==========================================================================
+   Grammatikeditor und Titelbildweg — beides deckend
+   ========================================================================== */
+
+.raster--werkstatt {
+  grid-template-columns: 1.05fr 1fr;
+  gap: var(--space-5);
+}
+.app--telefon .raster--werkstatt {
+  grid-template-columns: 1fr;
+}
+
+.grammatik {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--r-gross);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--stack-snug);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--schatten-flach);
+}
+.grammatik__kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.grammatik__wort {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.grammatik__quelle {
+  font-size: var(--text-klein);
+  color: var(--tinte-2);
+  font-style: italic;
+}
+.grammatik__raster {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.app--telefon .grammatik__raster {
+  grid-template-columns: 1fr;
+}
+.grammatik__saetze {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rand);
+}
+.grammatik__abschnitt {
+  font-size: var(--text-mikro);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 800;
+  color: var(--tinte-3);
+}
+.feld--breit {
+  grid-column: 1 / -1;
+}
+.feld__marke {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.feld__marke .plakette {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+textarea.feld__eingabe {
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.gesperrt {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.spaeter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-mikro);
+  font-weight: 800;
+  color: var(--warn);
+}
+
+.bildweg {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.app--telefon .bildweg {
+  grid-template-columns: 1fr;
+}
+.bildweg__flaeche {
+  aspect-ratio: var(--cover-ratio);
+  border-radius: var(--r-gross);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--grund-tief);
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.bildweg__flaeche--leer {
+  border: 2px dashed var(--rand-stark);
+}
+.bildweg__hinweis {
+  color: var(--tinte-2);
+  font-weight: 700;
+}
+.bildweg__rahmen {
+  position: absolute;
+  inset: 8% 6%;
+  border: 2px solid #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(18, 19, 24, 0.45);
+  display: grid;
+  align-content: end;
+  justify-content: start;
+  padding: var(--space-2);
+}
+.bildweg__marke {
+  background: #ffffff;
+  color: var(--tinte);
+  border-radius: var(--r-pille);
+  padding: 3px 10px;
+  font-size: var(--text-mikro);
+  font-weight: 800;
+}
+.bildweg__seite {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+.bildweg__regeln {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--tinte-2);
+  font-size: var(--text-klein);
+  display: grid;
+  gap: 4px;
+}
+.bildweg__knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Der Quelltext der Werkstatt — deckend, es ist Lesetext. */
+.quelltext {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--r-gross);
+  padding: var(--space-5);
+  line-height: 1.95;
+  box-shadow: var(--schatten-flach);
+}
+.wort {
+  border-radius: 6px;
+  padding: 2px 5px;
+  background: var(--akzent-weich);
+  color: var(--akzent);
+  font-weight: 700;
+}
+.wort--offen {
+  background: var(--grund-tief);
+  color: var(--tinte-2);
+}
+
+/* Die Übung: eine ruhige Mitte, deckend. */
+.uebung {
+  max-width: 660px;
+  margin: 0 auto;
+}
+.uebung__frage {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.uebung__satz {
+  font-family: var(--schrift-editorial);
+  font-size: 1.0625rem;
+  color: var(--tinte-2);
+  font-style: italic;
 }

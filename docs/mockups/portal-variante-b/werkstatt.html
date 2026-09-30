@@ -1,0 +1,1893 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Werkstatt — Lernpaket erstellen — LexiFlow Variante B</title>
+<link rel="stylesheet" href="variante.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Variante B</a> · <a href="../portal/werkstatt.html">dieselbe Seite in der P3-Fassung</a></p>
+    <h1 class="blatt__titel">Werkstatt — Lernpaket erstellen</h1>
+    <p class="blatt__lead">Variante B. Sechs Schritte vom Text zum veröffentlichten Lernpaket, mit strukturiertem Grammatikeditor und vollständigem Titelbildweg.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+        </div>
+        <div class="schalter__gruppe"><span class="schalter__marke">Titelbild</span>
+        <button type="button" data-schaltet="bild-hochladen" aria-pressed="false">hochladen</button>
+        <button type="button" data-schaltet="bild-zuschnitt" aria-pressed="false">Zuschnitt</button>
+        <button type="button" data-schaltet="bild-ersetzen" aria-pressed="false">ersetzen</button>
+        <button type="button" data-schaltet="bild-entfernen" aria-pressed="false">entfernen</button>
+        <button type="button" data-schaltet="bild-standard" aria-pressed="false">ohne Bild</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Die Icon-Leiste.</strong> 76 px, dauerhaft kompakt, ohne sichtbare Beschriftung — sie verbreitert sich bei Hover und Fokus nicht, damit der Inhalt daneben nicht springt. Der Name kommt als schwebender Tooltip; tragen tut ihn das <code>aria-label</code> jedes Links. Der aktive Eintrag ist an drei Dingen zu erkennen: gefüllte Fläche, umgekehrter Kontrast, Akzentstrich am Rand.</p>
+    <p><strong>Der Grammatikeditor ist vollständig deckend.</strong> Hier wird gelesen, getippt und verglichen — kein Glas, keine Transparenz. Dasselbe gilt für den Quelltext links.</p>
+    <p><strong>Offline heißt weiterarbeiten.</strong> Das Band steht über dem Arbeitsbereich, nicht an seiner Stelle: Quelltext, Wortauswahl und alle Felder bleiben bedienbar. Gesperrt sind nur neue Vorschläge und das Veröffentlichen.</p>
+    <p><strong>Titelbild (E4, E17).</strong> Fünf Zustände rechts im Schalter. Das Standardmotiv sind zwei überlagerte Aurora-Flächen; hochgeladene Bilder bleiben echte Titelbilder.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <div class="karte karte--glas" style="margin-bottom:var(--stack-normal)">
+              <p class="karte__text"><strong>Eine Eingabe der Lehrkraft wird nie automatisch
+                überschrieben.</strong> Jedes Feld trägt seine Herkunft:
+                <span class="plakette plakette--gut">von dir</span> bleibt, was auch immer
+                später eintrifft. <span class="plakette">Vorschlag</span> und
+                <span class="plakette">Wörterbuch</span> dürfen ersetzt werden — bis sie
+                jemand anfasst.</p>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="quelltext">
+                  <p>The man <mark class="wort">told</mark> a <mark class="wort">story</mark>
+                    about the neighbourhood. It is <mark class="wort">crowded</mark> in the
+                    evening, and there is a lot of
+                    <mark class="wort wort--offen">litter</mark> on the pavement.</p>
+                  <p class="karte__text" style="margin-top:var(--space-3)">Angetipptes Wort
+                    wird aufgenommen. Bereits aufgenommene Wörter stehen farbig.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                <div style="margin-bottom:var(--stack-snug)">
+                  <button class="btn btn--glas" type="button">Neue Vorschläge holen</button>
+                </div>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+</article>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol><p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Vorschläge werden erstellt</p>
+            <div class="raster raster--werkstatt" aria-hidden="true">
+              <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div>
+                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt</p>
+                <h1 class="titel">Neues Lernpaket</h1>
+                <p class="lead">Womit fängst du an?</p>
+              </div>
+            </header>
+            <div class="raster raster--3">
+              <div class="karte">
+                <p class="karte__titel">Text einfügen</p>
+                <p class="karte__text">Einen englischen Text kopieren — LexiFlow schlägt die
+                  lernenswerten Wörter vor.</p>
+                <p><a class="btn btn--glas" href="#/pakete/neu/text">Text einfügen</a></p>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Foto der Buchseite</p>
+                <p class="karte__text">Bis 10 MB. Das Bild wird auf dem Gerät verkleinert,
+                  Metadaten werden entfernt.</p>
+                <p><a class="btn btn--glas" href="#/pakete/neu/foto">Foto wählen</a></p>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Vokabelliste</p>
+                <p class="karte__text">Aus Excel oder als einfache Liste, ein Paar je Zeile.</p>
+                <p><a class="btn btn--glas" href="#/pakete/neu/liste">Liste einfügen</a></p>
+              </div>
+            </div>
+            <div class="leer" style="margin-top:var(--stack-loose)">
+              <p class="leer__titel">Noch kein Entwurf</p>
+              <p class="leer__text">Angefangene Lernpakete stehen hier, bis du sie
+                veröffentlichst. Sie sind für niemanden sonst sichtbar.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <div class="fehler" role="alert" style="margin-bottom:var(--stack-normal)">
+              <p class="fehler__titel">Die Vorschläge konnten nicht erstellt werden</p>
+              <p>Der KI-Zugang hat nicht geantwortet. Deine Wortauswahl und alles, was du
+                bereits eingetragen hast, ist unverändert — du kannst von Hand weiterarbeiten
+                oder es später erneut versuchen.</p>
+              <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                <button class="btn btn--primaer" type="button">Erneut versuchen</button>
+                <button class="btn btn--glas" type="button">Ohne Vorschläge weiterarbeiten</button>
+              </div>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="quelltext">
+                  <p>The man <mark class="wort">told</mark> a <mark class="wort">story</mark>
+                    about the neighbourhood. It is <mark class="wort">crowded</mark> in the
+                    evening, and there is a lot of
+                    <mark class="wort wort--offen">litter</mark> on the pavement.</p>
+                  <p class="karte__text" style="margin-top:var(--space-3)">Angetipptes Wort
+                    wird aufgenommen. Bereits aufgenommene Wörter stehen farbig.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                <div style="margin-bottom:var(--stack-snug)">
+                  <button class="btn btn--glas" type="button">Neue Vorschläge holen</button>
+                </div>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+</article>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <div class="band">Offline — du kannst weiterarbeiten. Neue Vorschläge
+              und das Veröffentlichen gehen erst wieder online.</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <span class="btn gesperrt" aria-disabled="true">Veröffentlichen</span>
+                <span class="spaeter">erst wieder online</span>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <div class="karte karte--glas" style="margin-bottom:var(--stack-normal)">
+              <p class="karte__text"><strong>Eine Eingabe der Lehrkraft wird nie automatisch
+                überschrieben.</strong> Jedes Feld trägt seine Herkunft:
+                <span class="plakette plakette--gut">von dir</span> bleibt, was auch immer
+                später eintrifft. <span class="plakette">Vorschlag</span> und
+                <span class="plakette">Wörterbuch</span> dürfen ersetzt werden — bis sie
+                jemand anfasst.</p>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="quelltext">
+                  <p>The man <mark class="wort">told</mark> a <mark class="wort">story</mark>
+                    about the neighbourhood. It is <mark class="wort">crowded</mark> in the
+                    evening, and there is a lot of
+                    <mark class="wort wort--offen">litter</mark> on the pavement.</p>
+                  <p class="karte__text" style="margin-top:var(--space-3)">Angetipptes Wort
+                    wird aufgenommen. Bereits aufgenommene Wörter stehen farbig.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                <div style="display:flex;gap:var(--space-2);align-items:center;
+                            flex-wrap:wrap;margin-bottom:var(--stack-snug)">
+                  <span class="btn gesperrt" aria-disabled="true">Neue Vorschläge holen</span>
+                  <span class="spaeter">erst wieder online</span>
+                </div>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+</article>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-hochladen">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · hochladen</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">In 5B ausschließlich eigener Upload — keine Unsplash-Anbindung.</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche bildweg__flaeche--leer">
+                  <p class="bildweg__hinweis">Noch kein Titelbild</p>
+                </div>
+                <div class="bildweg__seite">
+                  <p class="karte__text">Ein eigenes Foto, ein Motiv aus dem Unterricht — oder
+                    gar nichts: Ohne Bild bekommt das Paket ein gesetztes Standardmotiv.</p>
+                  <ul class="bildweg__regeln">
+                    <li>Höchstens 10 MB</li>
+                    <li>Wird auf dem Gerät auf 1600 px verkleinert</li>
+                    <li>Metadaten werden entfernt; hochgeladen wird nur das verarbeitete Bild</li>
+                  </ul>
+                  <div class="bildweg__knoepfe">
+                    <label class="btn btn--primaer" for="bilddatei">Bild wählen</label>
+                    <input id="bilddatei" type="file" accept="image/*"
+                           class="nur-fuer-hilfsmittel">
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-zuschnitt">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · Zuschnitt 16 : 10</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Ein festes Verhältnis, ein beweglicher Ausschnitt (E4).</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)">
+                  <div class="bildweg__rahmen"><span class="bildweg__marke">16 : 10</span></div>
+                </div>
+                <div class="bildweg__seite">
+                  <p class="karte__text">Der Ausschnitt steht fest auf 16 : 10 — dasselbe
+                    Verhältnis in Karte, Detail und Vorschau. Verschieben lässt sich das Motiv
+                    darin.</p>
+                  <p class="karte__text">Der Fokuspunkt verhindert, dass ein Bild auf schmalen
+                    Geräten an der falschen Stelle beschnitten wird.</p>
+                  <div class="bildweg__knoepfe">
+                    <button class="btn btn--primaer" type="button">Zuschnitt übernehmen</button>
+                    <button class="btn btn--glas" type="button">Abbrechen</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-ersetzen">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · ersetzen</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Ein gesetztes Bild — mit allen drei Wegen, die es von hier aus gibt.</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></div>
+                <div class="bildweg__seite">
+                  <p class="karte__text"><strong>Titelbild gesetzt</strong> · hochgeladen am
+                    29. September, 1600 × 1000 px, ohne Metadaten</p>
+                  <div class="bildweg__knoepfe">
+                    <label class="btn btn--primaer" for="bildneu">Bild ersetzen</label>
+                    <input id="bildneu" type="file" accept="image/*"
+                           class="nur-fuer-hilfsmittel">
+                    <button class="btn btn--glas" type="button">Zuschnitt ändern</button>
+                    <button class="btn btn--still" type="button">Bild entfernen</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-entfernen">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · entfernen</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Die Rückfrage benennt die Folge — „Standardmotiv", nicht „kein Bild".</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%);
+                     opacity:.35"></div>
+                <div class="bildweg__seite">
+                  <div class="fehler fehler--offline" style="max-width:none">
+                    <p class="fehler__titel">Titelbild entfernen?</p>
+                    <p>Das Lernpaket bekommt danach das Standardmotiv. Das hochgeladene Bild
+                      wird gelöscht und lässt sich nicht zurückholen.</p>
+                    <div class="bildweg__knoepfe">
+                      <button class="btn btn--primaer" type="button">Behalten</button>
+                      <button class="btn btn--glas" type="button">Entfernen</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-standard">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · Standardmotiv ohne Bild</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Muss auch ohne Bild hochwertig wirken (E17).</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="padding:0">
+                  <span class="motiv"></span>
+                  <span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span>
+                </div>
+                <div class="bildweg__seite">
+                  <p class="karte__text">Ohne eigenes Bild setzt LexiFlow Thema und Titel auf
+                    zwei überlagerte Aurora-Flächen — die Figur des Logos. Das ist kein
+                    Platzhalter, sondern der Normalfall: Die meisten Pakete werden nie ein
+                    Foto bekommen.</p>
+                  <div class="bildweg__knoepfe">
+                    <label class="btn btn--glas" for="bildspaeter">Doch ein Bild wählen</label>
+                    <input id="bildspaeter" type="file" accept="image/*"
+                           class="nur-fuer-hilfsmittel">
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+</div>
+    </div></div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <div class="karte karte--glas" style="margin-bottom:var(--stack-normal)">
+              <p class="karte__text"><strong>Eine Eingabe der Lehrkraft wird nie automatisch
+                überschrieben.</strong> Jedes Feld trägt seine Herkunft:
+                <span class="plakette plakette--gut">von dir</span> bleibt, was auch immer
+                später eintrifft. <span class="plakette">Vorschlag</span> und
+                <span class="plakette">Wörterbuch</span> dürfen ersetzt werden — bis sie
+                jemand anfasst.</p>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="quelltext">
+                  <p>The man <mark class="wort">told</mark> a <mark class="wort">story</mark>
+                    about the neighbourhood. It is <mark class="wort">crowded</mark> in the
+                    evening, and there is a lot of
+                    <mark class="wort wort--offen">litter</mark> on the pavement.</p>
+                  <p class="karte__text" style="margin-top:var(--space-3)">Angetipptes Wort
+                    wird aufgenommen. Bereits aufgenommene Wörter stehen farbig.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                <div style="margin-bottom:var(--stack-snug)">
+                  <button class="btn btn--glas" type="button">Neue Vorschläge holen</button>
+                </div>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+</article>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol><p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Vorschläge werden erstellt</p>
+            <div class="raster raster--werkstatt" aria-hidden="true">
+              <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+              <div>
+                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div>
+                </div>
+              </div>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt</p>
+                <h1 class="titel">Neues Lernpaket</h1>
+                <p class="lead">Womit fängst du an?</p>
+              </div>
+            </header>
+            <div class="raster raster--3">
+              <div class="karte">
+                <p class="karte__titel">Text einfügen</p>
+                <p class="karte__text">Einen englischen Text kopieren — LexiFlow schlägt die
+                  lernenswerten Wörter vor.</p>
+                <p><a class="btn btn--glas" href="#/pakete/neu/text">Text einfügen</a></p>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Foto der Buchseite</p>
+                <p class="karte__text">Bis 10 MB. Das Bild wird auf dem Gerät verkleinert,
+                  Metadaten werden entfernt.</p>
+                <p><a class="btn btn--glas" href="#/pakete/neu/foto">Foto wählen</a></p>
+              </div>
+              <div class="karte">
+                <p class="karte__titel">Vokabelliste</p>
+                <p class="karte__text">Aus Excel oder als einfache Liste, ein Paar je Zeile.</p>
+                <p><a class="btn btn--glas" href="#/pakete/neu/liste">Liste einfügen</a></p>
+              </div>
+            </div>
+            <div class="leer" style="margin-top:var(--stack-loose)">
+              <p class="leer__titel">Noch kein Entwurf</p>
+              <p class="leer__text">Angefangene Lernpakete stehen hier, bis du sie
+                veröffentlichst. Sie sind für niemanden sonst sichtbar.</p>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <div class="fehler" role="alert" style="margin-bottom:var(--stack-normal)">
+              <p class="fehler__titel">Die Vorschläge konnten nicht erstellt werden</p>
+              <p>Der KI-Zugang hat nicht geantwortet. Deine Wortauswahl und alles, was du
+                bereits eingetragen hast, ist unverändert — du kannst von Hand weiterarbeiten
+                oder es später erneut versuchen.</p>
+              <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                <button class="btn btn--primaer" type="button">Erneut versuchen</button>
+                <button class="btn btn--glas" type="button">Ohne Vorschläge weiterarbeiten</button>
+              </div>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="quelltext">
+                  <p>The man <mark class="wort">told</mark> a <mark class="wort">story</mark>
+                    about the neighbourhood. It is <mark class="wort">crowded</mark> in the
+                    evening, and there is a lot of
+                    <mark class="wort wort--offen">litter</mark> on the pavement.</p>
+                  <p class="karte__text" style="margin-top:var(--space-3)">Angetipptes Wort
+                    wird aufgenommen. Bereits aufgenommene Wörter stehen farbig.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                <div style="margin-bottom:var(--stack-snug)">
+                  <button class="btn btn--glas" type="button">Neue Vorschläge holen</button>
+                </div>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+</article>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <div class="band">Offline — du kannst weiterarbeiten. Neue Vorschläge
+              und das Veröffentlichen gehen erst wieder online.</div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <span class="btn gesperrt" aria-disabled="true">Veröffentlichen</span>
+                <span class="spaeter">erst wieder online</span>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <div class="karte karte--glas" style="margin-bottom:var(--stack-normal)">
+              <p class="karte__text"><strong>Eine Eingabe der Lehrkraft wird nie automatisch
+                überschrieben.</strong> Jedes Feld trägt seine Herkunft:
+                <span class="plakette plakette--gut">von dir</span> bleibt, was auch immer
+                später eintrifft. <span class="plakette">Vorschlag</span> und
+                <span class="plakette">Wörterbuch</span> dürfen ersetzt werden — bis sie
+                jemand anfasst.</p>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="quelltext">
+                  <p>The man <mark class="wort">told</mark> a <mark class="wort">story</mark>
+                    about the neighbourhood. It is <mark class="wort">crowded</mark> in the
+                    evening, and there is a lot of
+                    <mark class="wort wort--offen">litter</mark> on the pavement.</p>
+                  <p class="karte__text" style="margin-top:var(--space-3)">Angetipptes Wort
+                    wird aufgenommen. Bereits aufgenommene Wörter stehen farbig.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                <div style="display:flex;gap:var(--space-2);align-items:center;
+                            flex-wrap:wrap;margin-bottom:var(--stack-snug)">
+                  <span class="btn gesperrt" aria-disabled="true">Neue Vorschläge holen</span>
+                  <span class="spaeter">erst wieder online</span>
+                </div>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+</article>
+<article class="grammatik">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="bild-hochladen">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · hochladen</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">In 5B ausschließlich eigener Upload — keine Unsplash-Anbindung.</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche bildweg__flaeche--leer">
+                  <p class="bildweg__hinweis">Noch kein Titelbild</p>
+                </div>
+                <div class="bildweg__seite">
+                  <p class="karte__text">Ein eigenes Foto, ein Motiv aus dem Unterricht — oder
+                    gar nichts: Ohne Bild bekommt das Paket ein gesetztes Standardmotiv.</p>
+                  <ul class="bildweg__regeln">
+                    <li>Höchstens 10 MB</li>
+                    <li>Wird auf dem Gerät auf 1600 px verkleinert</li>
+                    <li>Metadaten werden entfernt; hochgeladen wird nur das verarbeitete Bild</li>
+                  </ul>
+                  <div class="bildweg__knoepfe">
+                    <label class="btn btn--primaer" for="bilddatei">Bild wählen</label>
+                    <input id="bilddatei" type="file" accept="image/*"
+                           class="nur-fuer-hilfsmittel">
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="bild-zuschnitt">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · Zuschnitt 16 : 10</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Ein festes Verhältnis, ein beweglicher Ausschnitt (E4).</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)">
+                  <div class="bildweg__rahmen"><span class="bildweg__marke">16 : 10</span></div>
+                </div>
+                <div class="bildweg__seite">
+                  <p class="karte__text">Der Ausschnitt steht fest auf 16 : 10 — dasselbe
+                    Verhältnis in Karte, Detail und Vorschau. Verschieben lässt sich das Motiv
+                    darin.</p>
+                  <p class="karte__text">Der Fokuspunkt verhindert, dass ein Bild auf schmalen
+                    Geräten an der falschen Stelle beschnitten wird.</p>
+                  <div class="bildweg__knoepfe">
+                    <button class="btn btn--primaer" type="button">Zuschnitt übernehmen</button>
+                    <button class="btn btn--glas" type="button">Abbrechen</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="bild-ersetzen">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · ersetzen</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Ein gesetztes Bild — mit allen drei Wegen, die es von hier aus gibt.</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></div>
+                <div class="bildweg__seite">
+                  <p class="karte__text"><strong>Titelbild gesetzt</strong> · hochgeladen am
+                    29. September, 1600 × 1000 px, ohne Metadaten</p>
+                  <div class="bildweg__knoepfe">
+                    <label class="btn btn--primaer" for="bildneu">Bild ersetzen</label>
+                    <input id="bildneu" type="file" accept="image/*"
+                           class="nur-fuer-hilfsmittel">
+                    <button class="btn btn--glas" type="button">Zuschnitt ändern</button>
+                    <button class="btn btn--still" type="button">Bild entfernen</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="bild-entfernen">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · entfernen</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Die Rückfrage benennt die Folge — „Standardmotiv", nicht „kein Bild".</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%);
+                     opacity:.35"></div>
+                <div class="bildweg__seite">
+                  <div class="fehler fehler--offline" style="max-width:none">
+                    <p class="fehler__titel">Titelbild entfernen?</p>
+                    <p>Das Lernpaket bekommt danach das Standardmotiv. Das hochgeladene Bild
+                      wird gelöscht und lässt sich nicht zurückholen.</p>
+                    <div class="bildweg__knoepfe">
+                      <button class="btn btn--primaer" type="button">Behalten</button>
+                      <button class="btn btn--glas" type="button">Entfernen</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="bild-standard">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>
+              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);display:flex;gap:var(--space-2);flex-wrap:wrap">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+            <section class="abschnitt">
+              <div class="abschnitt__kopf">
+                <h2 class="abschnitt__titel">Titelbild · Standardmotiv ohne Bild</h2>
+              </div>
+              <p class="lead" style="margin-bottom:var(--stack-snug)">Muss auch ohne Bild hochwertig wirken (E17).</p>
+              <div class="bildweg">
+                <div class="bildweg__flaeche" style="padding:0">
+                  <span class="motiv"></span>
+                  <span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span>
+                </div>
+                <div class="bildweg__seite">
+                  <p class="karte__text">Ohne eigenes Bild setzt LexiFlow Thema und Titel auf
+                    zwei überlagerte Aurora-Flächen — die Figur des Logos. Das ist kein
+                    Platzhalter, sondern der Normalfall: Die meisten Pakete werden nie ein
+                    Foto bekommen.</p>
+                  <div class="bildweg__knoepfe">
+                    <label class="btn btn--glas" for="bildspaeter">Doch ein Bild wählen</label>
+                    <input id="bildspaeter" type="file" accept="image/*"
+                           class="nur-fuer-hilfsmittel">
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+    </div></div>
+  </section>
+</div>
+<script src="variante.js"></script>
+</body>
+</html>

@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lehrkräfte-Dashboard — LexiFlow Variante B</title>
+<title>Kursdetailseite — LexiFlow Variante B</title>
 <link rel="stylesheet" href="variante.css">
 </head>
 <body>
 <div class="blatt">
   <header class="blatt__kopf">
-    <p class="blatt__rueck"><a href="index.html">← Variante B</a> · <a href="../portal/lehrkraft-dashboard.html">dieselbe Seite in der P3-Fassung</a></p>
-    <h1 class="blatt__titel">Lehrkräfte-Dashboard</h1>
-    <p class="blatt__lead">Variante B mit kompakter Icon-Leiste. Aufbau, Inhalte und Datenschutzregeln sind die aus P3.</p>
+    <p class="blatt__rueck"><a href="index.html">← Variante B</a> · <a href="../portal/kursdetail.html">dieselbe Seite in der P3-Fassung</a></p>
+    <h1 class="blatt__titel">Kursdetailseite</h1>
+    <p class="blatt__lead">Variante B. Stammdaten, zugewiesene Lernpakete, Mitgliederverwaltung — und ausdrücklich nichts über einzelne Lernende (E7).</p>
   </header>
 
   <div class="schalter">
@@ -28,8 +28,7 @@
 
   <div class="notiz">
     <p><strong>Die Icon-Leiste.</strong> 76 px, dauerhaft kompakt, ohne sichtbare Beschriftung — sie verbreitert sich bei Hover und Fokus nicht, damit der Inhalt daneben nicht springt. Der Name kommt als schwebender Tooltip; tragen tut ihn das <code>aria-label</code> jedes Links. Der aktive Eintrag ist an drei Dingen zu erkennen: gefüllte Fläche, umgekehrter Kontrast, Akzentstrich am Rand.</p>
-    <p><strong>Datenschutz unverändert.</strong> Keine individuellen Lernstände, keine Aktivitätszeiten, keine Trefferquoten, keine Klassendurchschnitte, keine anonymisierten Lernaggregate, keine Ranglisten. Die reine Mitgliederzahl steht da.</p>
-    <p><strong>„Als Lernende ansehen" bleibt im Kopfbereich</strong> und wandert nicht in die Icon-Leiste: Es ist keine Navigation, sondern eine Handlung — und eine, deren Wirkung man nicht raten können soll.</p>
+    <p><strong>Der Bildschirm, an dem die Datenschutzregel am meisten kostet.</strong> Eine Kursseite ohne Lernstände widerspricht der Erwartung vieler Lernplattformen. Sie ist trotzdem richtig: Individuelle Lernstände sind für die Lehrkraft nicht einsehbar, auch nicht aggregiert.</p>
     <p><strong>Wo hier Glas liegt.</strong> Icon-Leiste, mobiler Kopf, untere Navigation, sekundäre Schaltflächen und kleine Statusflächen. Karten mit Lesetext, Formulare, Tabellen und Fehlermeldungen sind deckend.</p>
   </div>
 
@@ -44,8 +43,8 @@
             <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
           </a>
           <nav class="rail__nav" aria-label="Hauptnavigation">
-            <a class="rail__ziel" href="#/start" aria-label="Start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
-            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
             <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
             <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
             <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
@@ -63,74 +62,57 @@
             </div>
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
             <section class="abschnitt">
               <div class="abschnitt__kopf">
-                <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
-                <a class="btn btn--still" href="#/pakete">Alle Entwürfe</a>
+                <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
               </div>
-              <div class="raster raster--2">
-                <div class="karte">
-                  <span class="plakette plakette--warn">7 offene Stellen</span>
-                  <p class="karte__titel">Unit 3 — City life</p>
-                  <p class="karte__text">Sieben Vokabeln ohne deutsche Entsprechung, zwei
-                    ohne Beispielsatz. Die Vorschläge liegen bereit.</p>
-                  <p><a class="btn btn--glas" href="#/pakete/1">Weiterbearbeiten</a></p>
-                </div>
-                <div class="karte">
-                  <span class="plakette plakette--warn">3 Prüfhinweise</span>
-                  <p class="karte__titel">Unit 4 — At the doctor’s</p>
-                  <p class="karte__text">Drei Einträge stehen doppelt, einer widerspricht dem
-                    Wörterbuch. Nichts davon wurde automatisch geändert.</p>
-                  <p><a class="btn btn--glas" href="#/pakete/2">Hinweise ansehen</a></p>
-                </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="paket__foto" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Grammatik</small>Simple past</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 1</span><span>16 Vokabeln</span></span>
+    
+  </span>
+</a>
               </div>
             </section>
+
             <section class="abschnitt">
               <div class="abschnitt__kopf">
-                <h2 class="abschnitt__titel">Deine Kurse</h2>
-                <a class="btn btn--still" href="#/kurse">Alle Kurse</a>
+                <h2 class="abschnitt__titel">Mitglieder</h2>
+                <a class="btn btn--still" href="#/kurse/1/mitglieder">Verwalten</a>
               </div>
-              <div class="raster raster--3">
-                <div class="karte">
-                  <p class="karte__titel">Englisch 7b</p>
-                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/1">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Englisch 8a</p>
-                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/2">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Förderkurs 7</p>
-                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/3">Kurs öffnen</a></p>
-                </div>
-              </div>
-            </section>
-            <section class="abschnitt">
-              <div class="raster raster--3">
-                <div class="karte karte--glas">
-                  <p class="karte__titel">Demnächst veröffentlicht</p>
-                  <p class="karte__text">Unit 4 — At the doctor’s · Montag, 6. Oktober,
-                    8:00 Uhr · Englisch 8a</p>
-                </div>
-                <div class="karte karte--glas">
-                  <p class="karte__titel">KI-Zugang</p>
-                  <p class="karte__text">Eingerichtet, zuletzt am 28. September benutzt.</p>
-                </div>
-                <div class="karte karte--glas">
-                  <p class="karte__titel">Neu in LexiFlow</p>
-                  <p class="karte__text">Titelbilder für Lernpakete — ab sofort verfügbar.</p>
-                </div>
+              <div class="karte">
+                <p class="karte__titel">24 Mitglieder</p>
+                <p class="karte__text">Beitritt über Code oder Einladung. Lern-IDs und
+                  Kennwörter verwaltest du unter „Mitglieder". Individuelle Lernstände sind
+                  hier nicht einsehbar — auch nicht aggregiert.</p>
               </div>
             </section>
           </main>
@@ -144,8 +126,8 @@
             <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
           </a>
           <nav class="rail__nav" aria-label="Hauptnavigation">
-            <a class="rail__ziel" href="#/start" aria-label="Start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
-            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
             <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
             <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
             <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
@@ -163,27 +145,24 @@
             </div>
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header><p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
             <section class="abschnitt" aria-hidden="true">
-              <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
-              <div class="raster raster--2">
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-              </div>
-            </section>
-            <section class="abschnitt" aria-hidden="true">
-              <h2 class="abschnitt__titel">Deine Kurse</h2>
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
               <div class="raster raster--3">
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div><div class="skelett__flaeche"></div>
+                  <div style="margin-top:var(--space-3)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div>
+                  <div style="margin-top:var(--space-3)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div>
+                  <div style="margin-top:var(--space-3)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
               </div>
             </section>
           </main>
@@ -197,8 +176,8 @@
             <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
           </a>
           <nav class="rail__nav" aria-label="Hauptnavigation">
-            <a class="rail__ziel" href="#/start" aria-label="Start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
-            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
             <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
             <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
             <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
@@ -216,17 +195,20 @@
             </div>
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Willkommen bei LexiFlow</h1>
-                <p class="lead">Hier entsteht dein Unterrichtsmaterial.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
             <div class="leer">
-              <p class="leer__titel">Noch kein Lernpaket</p>
-              <p class="leer__text">Ein Lernpaket entsteht aus einem Text, einer Liste oder
-                einem Foto der Buchseite. LexiFlow schlägt Übersetzungen und Beispielsätze
-                vor — bestätigen musst du sie selbst.</p>
-              <a class="btn btn--primaer" href="#/pakete/neu">Erstes Lernpaket erstellen</a>
+              <p class="leer__titel">Noch kein Lernpaket zugewiesen</p>
+              <p class="leer__text">Die Mitglieder dieses Kurses sehen erst etwas, wenn du
+                ein Lernpaket zuweist. Jede Zuweisung hält eine feste Fassung.</p>
+              <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
             </div>
           </main>
         </div>
@@ -239,8 +221,8 @@
             <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
           </a>
           <nav class="rail__nav" aria-label="Hauptnavigation">
-            <a class="rail__ziel" href="#/start" aria-label="Start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
-            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
             <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
             <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
             <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
@@ -258,18 +240,19 @@
             </div>
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
             <div class="fehler" role="alert">
-              <p class="fehler__titel">Deine Kurse konnten nicht geladen werden</p>
-              <p>Der Server hat nicht geantwortet. Deine Lernpakete sind davon nicht
-                betroffen — sie liegen unverändert in deinem Konto.</p>
+              <p class="fehler__titel">Zuweisung fehlgeschlagen</p>
+              <p>„Simple past" konnte dem Kurs nicht zugewiesen werden. Die bestehenden
+                Zuweisungen sind unverändert.</p>
               <button class="btn btn--primaer" type="button">Erneut versuchen</button>
             </div>
           </main>
@@ -283,8 +266,8 @@
             <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
           </a>
           <nav class="rail__nav" aria-label="Hauptnavigation">
-            <a class="rail__ziel" href="#/start" aria-label="Start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
-            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
             <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
             <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
             <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
@@ -300,43 +283,37 @@
             <div class="kopfleiste">
               <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
             </div>
-            <div class="band">Offline — zuletzt aktualisiert vor 12 Minuten</div>
+            <div class="band">Offline — Änderungen werden später übertragen</div>
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
-            <div class="fehler fehler--offline" style="margin-bottom:var(--stack-normal)">
-              <p class="fehler__titel">Gerade keine Verbindung</p>
-              <p>Du siehst den Stand von vorhin. Änderungen an deinen Entwürfen werden
-                gespeichert und gehen hinaus, sobald du wieder online bist.</p>
-            </div>
             <section class="abschnitt">
-              <div class="abschnitt__kopf">
-                <h2 class="abschnitt__titel">Deine Kurse</h2>
-                <a class="btn btn--still" href="#/kurse">Alle Kurse</a>
-              </div>
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
               <div class="raster raster--3">
-                <div class="karte">
-                  <p class="karte__titel">Englisch 7b</p>
-                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/1">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Englisch 8a</p>
-                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/2">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Förderkurs 7</p>
-                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/3">Kurs öffnen</a></p>
-                </div>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="paket__foto" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
               </div>
             </section>
           </main>
@@ -359,80 +336,63 @@
           <main class="inhalt">
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
             <section class="abschnitt">
               <div class="abschnitt__kopf">
-                <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
-                <a class="btn btn--still" href="#/pakete">Alle Entwürfe</a>
+                <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
               </div>
-              <div class="raster raster--2">
-                <div class="karte">
-                  <span class="plakette plakette--warn">7 offene Stellen</span>
-                  <p class="karte__titel">Unit 3 — City life</p>
-                  <p class="karte__text">Sieben Vokabeln ohne deutsche Entsprechung, zwei
-                    ohne Beispielsatz. Die Vorschläge liegen bereit.</p>
-                  <p><a class="btn btn--glas" href="#/pakete/1">Weiterbearbeiten</a></p>
-                </div>
-                <div class="karte">
-                  <span class="plakette plakette--warn">3 Prüfhinweise</span>
-                  <p class="karte__titel">Unit 4 — At the doctor’s</p>
-                  <p class="karte__text">Drei Einträge stehen doppelt, einer widerspricht dem
-                    Wörterbuch. Nichts davon wurde automatisch geändert.</p>
-                  <p><a class="btn btn--glas" href="#/pakete/2">Hinweise ansehen</a></p>
-                </div>
+              <div class="raster raster--3">
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="paket__foto" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Grammatik</small>Simple past</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Simple past</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 1</span><span>16 Vokabeln</span></span>
+    
+  </span>
+</a>
               </div>
             </section>
+
             <section class="abschnitt">
               <div class="abschnitt__kopf">
-                <h2 class="abschnitt__titel">Deine Kurse</h2>
-                <a class="btn btn--still" href="#/kurse">Alle Kurse</a>
+                <h2 class="abschnitt__titel">Mitglieder</h2>
+                <a class="btn btn--still" href="#/kurse/1/mitglieder">Verwalten</a>
               </div>
-              <div class="raster raster--3">
-                <div class="karte">
-                  <p class="karte__titel">Englisch 7b</p>
-                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/1">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Englisch 8a</p>
-                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/2">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Förderkurs 7</p>
-                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/3">Kurs öffnen</a></p>
-                </div>
-              </div>
-            </section>
-            <section class="abschnitt">
-              <div class="raster raster--3">
-                <div class="karte karte--glas">
-                  <p class="karte__titel">Demnächst veröffentlicht</p>
-                  <p class="karte__text">Unit 4 — At the doctor’s · Montag, 6. Oktober,
-                    8:00 Uhr · Englisch 8a</p>
-                </div>
-                <div class="karte karte--glas">
-                  <p class="karte__titel">KI-Zugang</p>
-                  <p class="karte__text">Eingerichtet, zuletzt am 28. September benutzt.</p>
-                </div>
-                <div class="karte karte--glas">
-                  <p class="karte__titel">Neu in LexiFlow</p>
-                  <p class="karte__text">Titelbilder für Lernpakete — ab sofort verfügbar.</p>
-                </div>
+              <div class="karte">
+                <p class="karte__titel">24 Mitglieder</p>
+                <p class="karte__text">Beitritt über Code oder Einladung. Lern-IDs und
+                  Kennwörter verwaltest du unter „Mitglieder". Individuelle Lernstände sind
+                  hier nicht einsehbar — auch nicht aggregiert.</p>
               </div>
             </section>
           </main>
           <nav class="unten glas" aria-label="Hauptnavigation">
-            <a class="unten__ziel" href="#/start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
-            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
             <a class="unten__ziel" href="#/pakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
             <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
           </nav>
@@ -449,33 +409,30 @@
           <main class="inhalt">
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header><p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
             <section class="abschnitt" aria-hidden="true">
-              <h2 class="abschnitt__titel">Deine Paketentwürfe brauchen dich</h2>
-              <div class="raster raster--2">
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-              </div>
-            </section>
-            <section class="abschnitt" aria-hidden="true">
-              <h2 class="abschnitt__titel">Deine Kurse</h2>
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
               <div class="raster raster--3">
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div><div class="skelett__flaeche"></div>
+                  <div style="margin-top:var(--space-3)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div>
+                  <div style="margin-top:var(--space-3)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
+                <div><div class="skelett__flaeche"></div>
+                  <div style="margin-top:var(--space-3)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div></div>
               </div>
             </section>
           </main>
           <nav class="unten glas" aria-label="Hauptnavigation">
-            <a class="unten__ziel" href="#/start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
-            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
             <a class="unten__ziel" href="#/pakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
             <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
           </nav>
@@ -492,22 +449,25 @@
           <main class="inhalt">
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Willkommen bei LexiFlow</h1>
-                <p class="lead">Hier entsteht dein Unterrichtsmaterial.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
             <div class="leer">
-              <p class="leer__titel">Noch kein Lernpaket</p>
-              <p class="leer__text">Ein Lernpaket entsteht aus einem Text, einer Liste oder
-                einem Foto der Buchseite. LexiFlow schlägt Übersetzungen und Beispielsätze
-                vor — bestätigen musst du sie selbst.</p>
-              <a class="btn btn--primaer" href="#/pakete/neu">Erstes Lernpaket erstellen</a>
+              <p class="leer__titel">Noch kein Lernpaket zugewiesen</p>
+              <p class="leer__text">Die Mitglieder dieses Kurses sehen erst etwas, wenn du
+                ein Lernpaket zuweist. Jede Zuweisung hält eine feste Fassung.</p>
+              <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
             </div>
           </main>
           <nav class="unten glas" aria-label="Hauptnavigation">
-            <a class="unten__ziel" href="#/start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
-            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
             <a class="unten__ziel" href="#/pakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
             <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
           </nav>
@@ -524,24 +484,25 @@
           <main class="inhalt">
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
             <div class="fehler" role="alert">
-              <p class="fehler__titel">Deine Kurse konnten nicht geladen werden</p>
-              <p>Der Server hat nicht geantwortet. Deine Lernpakete sind davon nicht
-                betroffen — sie liegen unverändert in deinem Konto.</p>
+              <p class="fehler__titel">Zuweisung fehlgeschlagen</p>
+              <p>„Simple past" konnte dem Kurs nicht zugewiesen werden. Die bestehenden
+                Zuweisungen sind unverändert.</p>
               <button class="btn btn--primaer" type="button">Erneut versuchen</button>
             </div>
           </main>
           <nav class="unten glas" aria-label="Hauptnavigation">
-            <a class="unten__ziel" href="#/start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
-            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
             <a class="unten__ziel" href="#/pakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
             <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
           </nav>
@@ -556,49 +517,43 @@
             <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
           </div>
           <main class="inhalt">
-            <div class="band">Offline — zuletzt aktualisiert vor 12 Minuten</div>
+            <div class="band">Offline — Änderungen werden später übertragen</div>
             <header class="kopf">
               <div class="kopf__text">
-                <p class="oberzeile">Dienstag, 30. September</p>
-                <h1 class="titel">Guten Morgen, Frau Bergmann</h1>
-                <p class="lead">Zwei Paketentwürfe warten auf eine Entscheidung.</p>
+                <p class="oberzeile">Kurs</p>
+                <h1 class="titel">Englisch 7b</h1>
+                <p class="lead">24 Mitglieder · Beitrittscode aktiv</p>
               </div>
               <div class="kopf__aktionen">
-                <a class="btn btn--primaer" href="#/pakete/neu">Neues Lernpaket</a>
+                <a class="btn btn--glas" href="#/kurse/1/mitglieder">Mitglieder</a>
+                <a class="btn btn--primaer" href="#/kurse/1/zuweisen">Lernpaket zuweisen</a>
               </div>
             </header>
-            <div class="fehler fehler--offline" style="margin-bottom:var(--stack-normal)">
-              <p class="fehler__titel">Gerade keine Verbindung</p>
-              <p>Du siehst den Stand von vorhin. Änderungen an deinen Entwürfen werden
-                gespeichert und gehen hinaus, sobald du wieder online bist.</p>
-            </div>
             <section class="abschnitt">
-              <div class="abschnitt__kopf">
-                <h2 class="abschnitt__titel">Deine Kurse</h2>
-                <a class="btn btn--still" href="#/kurse">Alle Kurse</a>
-              </div>
+              <h2 class="abschnitt__titel">Zugewiesene Lernpakete</h2>
               <div class="raster raster--3">
-                <div class="karte">
-                  <p class="karte__titel">Englisch 7b</p>
-                  <p class="karte__text">24 Mitglieder · 3 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/1">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Englisch 8a</p>
-                  <p class="karte__text">21 Mitglieder · 5 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/2">Kurs öffnen</a></p>
-                </div>
-                <div class="karte">
-                  <p class="karte__titel">Förderkurs 7</p>
-                  <p class="karte__text">6 Mitglieder · 2 Lernpakete zugewiesen</p>
-                  <p><a class="btn btn--still" href="#/kurse/3">Kurs öffnen</a></p>
-                </div>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 4</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+                <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="paket__foto" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Fassung 2</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
               </div>
             </section>
           </main>
           <nav class="unten glas" aria-label="Hauptnavigation">
-            <a class="unten__ziel" href="#/start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
-            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
             <a class="unten__ziel" href="#/pakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
             <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
           </nav>

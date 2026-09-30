@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navigation — beide Systeme — LexiFlow Variante B</title>
+<link rel="stylesheet" href="variante.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Variante B</a> · <a href="../portal/navigation.html">dieselbe Seite in der P3-Fassung</a></p>
+    <h1 class="blatt__titel">Navigation — beide Systeme</h1>
+    <p class="blatt__lead">Variante B. Die Icon-Leiste am Desktop, die beschriftete untere Navigation am Telefon, in beiden Rollen.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">Übersicht</button>
+        <button type="button" data-schaltet="lehrkraft" aria-pressed="false">Lehrkraft</button>
+        <button type="button" data-schaltet="lernende" aria-pressed="false">Lernende</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Die Icon-Leiste.</strong> 76 px, dauerhaft kompakt, ohne sichtbare Beschriftung — sie verbreitert sich bei Hover und Fokus nicht, damit der Inhalt daneben nicht springt. Der Name kommt als schwebender Tooltip; tragen tut ihn das <code>aria-label</code> jedes Links. Der aktive Eintrag ist an drei Dingen zu erkennen: gefüllte Fläche, umgekehrter Kontrast, Akzentstrich am Rand.</p>
+    <p><strong>Mobil bleibt die Beschriftung sichtbar.</strong> Ein Tooltip ist dort kein Ersatz — es gibt keinen Hover, und ein Fingertipp ist schon die Handlung.</p>
+    <p><strong>Zu prüfen ist hier vor allem der Tooltip:</strong> mit der Maus über ein Zeichen fahren, und mit der Tabulatortaste durch die Leiste gehen. Beides zeigt den Namen, und keines verschiebt das Layout.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg></td><td style="padding:7px 0"><strong>Start</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg></td><td style="padding:7px 0"><strong>Kurse</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernpakete</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg></td><td style="padding:7px 0"><strong>KI-Zugang</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg></td><td style="padding:7px 0"><strong>Verwaltung</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+  <p class="karte__text">Haus, Menschen, gestapelte Flächen, Funke, Schieberegler — fünf Silhouetten, die sich auch ohne Farbe nicht verwechseln lassen.</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg></td><td style="padding:7px 0"><strong>Heute</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernen</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></td><td style="padding:7px 0"><strong>Üben</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg></td><td style="padding:7px 0"><strong>Mein Fortschritt</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Fortschritt</p>
+  <p class="karte__text">Sonne, gestapelte Flächen, Zielscheibe, ansteigende Säulen. „Lernen" trägt dasselbe Zeichen wie „Lernpakete" — es ist dieselbe Sache von der anderen Seite.</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Warum keine Bücher und keine Karten</p>
+              <p class="karte__text">Kurse, Lernpakete und Lernen liegen inhaltlich nah
+                beieinander. Zeichnete man sie alle als Buch oder als Karteikarte, wären sie
+                im 23-px-Format nicht mehr zu unterscheiden — und eine Leiste ohne
+                Beschriftung lebt davon, dass die Silhouetten auseinandergehen. Kurse sind
+                deshalb <strong>Menschen</strong>, Lernpakete und Lernen
+                <strong>gestapelte Flächen</strong>.</p>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13). <strong>„Vorschau"</strong> heißt im
+                Kopfbereich <strong>„Als Lernende ansehen"</strong> (E12) — und bleibt dort;
+                in die Icon-Leiste wandert sie nicht.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="lehrkraft">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/start" aria-label="Start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span class="rail__tipp" aria-hidden="true">Start</span></a>
+            <a class="rail__ziel" href="#/kurse" aria-label="Kurse" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span class="rail__tipp" aria-hidden="true">Kurse</span></a>
+            <a class="rail__ziel" href="#/pakete" aria-label="Lernpakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernpakete</span></a>
+            <a class="rail__ziel" href="#/ki" aria-label="KI-Zugang"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg><span class="rail__tipp" aria-hidden="true">KI-Zugang</span></a>
+            <a class="rail__ziel" href="#/verwaltung" aria-label="Verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span class="rail__tipp" aria-hidden="true">Verwaltung</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+            <div class="kopfleiste">
+              <a class="btn btn--glas" href="#/vorschau">Als Lernende ansehen</a>
+            </div>
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg></td><td style="padding:7px 0"><strong>Start</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg></td><td style="padding:7px 0"><strong>Kurse</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernpakete</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg></td><td style="padding:7px 0"><strong>KI-Zugang</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg></td><td style="padding:7px 0"><strong>Verwaltung</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+  <p class="karte__text">Haus, Menschen, gestapelte Flächen, Funke, Schieberegler — fünf Silhouetten, die sich auch ohne Farbe nicht verwechseln lassen.</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg></td><td style="padding:7px 0"><strong>Heute</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernen</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></td><td style="padding:7px 0"><strong>Üben</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg></td><td style="padding:7px 0"><strong>Mein Fortschritt</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Fortschritt</p>
+  <p class="karte__text">Sonne, gestapelte Flächen, Zielscheibe, ansteigende Säulen. „Lernen" trägt dasselbe Zeichen wie „Lernpakete" — es ist dieselbe Sache von der anderen Seite.</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Warum keine Bücher und keine Karten</p>
+              <p class="karte__text">Kurse, Lernpakete und Lernen liegen inhaltlich nah
+                beieinander. Zeichnete man sie alle als Buch oder als Karteikarte, wären sie
+                im 23-px-Format nicht mehr zu unterscheiden — und eine Leiste ohne
+                Beschriftung lebt davon, dass die Silhouetten auseinandergehen. Kurse sind
+                deshalb <strong>Menschen</strong>, Lernpakete und Lernen
+                <strong>gestapelte Flächen</strong>.</p>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13). <strong>„Vorschau"</strong> heißt im
+                Kopfbereich <strong>„Als Lernende ansehen"</strong> (E12) — und bleibt dort;
+                in die Icon-Leiste wandert sie nicht.</p>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="lernende">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg></td><td style="padding:7px 0"><strong>Start</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg></td><td style="padding:7px 0"><strong>Kurse</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernpakete</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg></td><td style="padding:7px 0"><strong>KI-Zugang</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg></td><td style="padding:7px 0"><strong>Verwaltung</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+  <p class="karte__text">Haus, Menschen, gestapelte Flächen, Funke, Schieberegler — fünf Silhouetten, die sich auch ohne Farbe nicht verwechseln lassen.</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg></td><td style="padding:7px 0"><strong>Heute</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernen</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></td><td style="padding:7px 0"><strong>Üben</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg></td><td style="padding:7px 0"><strong>Mein Fortschritt</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Fortschritt</p>
+  <p class="karte__text">Sonne, gestapelte Flächen, Zielscheibe, ansteigende Säulen. „Lernen" trägt dasselbe Zeichen wie „Lernpakete" — es ist dieselbe Sache von der anderen Seite.</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Warum keine Bücher und keine Karten</p>
+              <p class="karte__text">Kurse, Lernpakete und Lernen liegen inhaltlich nah
+                beieinander. Zeichnete man sie alle als Buch oder als Karteikarte, wären sie
+                im 23-px-Format nicht mehr zu unterscheiden — und eine Leiste ohne
+                Beschriftung lebt davon, dass die Silhouetten auseinandergehen. Kurse sind
+                deshalb <strong>Menschen</strong>, Lernpakete und Lernen
+                <strong>gestapelte Flächen</strong>.</p>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13). <strong>„Vorschau"</strong> heißt im
+                Kopfbereich <strong>„Als Lernende ansehen"</strong> (E12) — und bleibt dort;
+                in die Icon-Leiste wandert sie nicht.</p>
+            </div>
+          </main>
+        </div>
+</div>
+    </div></div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg></td><td style="padding:7px 0"><strong>Start</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg></td><td style="padding:7px 0"><strong>Kurse</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernpakete</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg></td><td style="padding:7px 0"><strong>KI-Zugang</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg></td><td style="padding:7px 0"><strong>Verwaltung</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+  <p class="karte__text">Haus, Menschen, gestapelte Flächen, Funke, Schieberegler — fünf Silhouetten, die sich auch ohne Farbe nicht verwechseln lassen.</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg></td><td style="padding:7px 0"><strong>Heute</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernen</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></td><td style="padding:7px 0"><strong>Üben</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg></td><td style="padding:7px 0"><strong>Mein Fortschritt</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Fortschritt</p>
+  <p class="karte__text">Sonne, gestapelte Flächen, Zielscheibe, ansteigende Säulen. „Lernen" trägt dasselbe Zeichen wie „Lernpakete" — es ist dieselbe Sache von der anderen Seite.</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Warum keine Bücher und keine Karten</p>
+              <p class="karte__text">Kurse, Lernpakete und Lernen liegen inhaltlich nah
+                beieinander. Zeichnete man sie alle als Buch oder als Karteikarte, wären sie
+                im 23-px-Format nicht mehr zu unterscheiden — und eine Leiste ohne
+                Beschriftung lebt davon, dass die Silhouetten auseinandergehen. Kurse sind
+                deshalb <strong>Menschen</strong>, Lernpakete und Lernen
+                <strong>gestapelte Flächen</strong>.</p>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13). <strong>„Vorschau"</strong> heißt im
+                Kopfbereich <strong>„Als Lernende ansehen"</strong> (E12) — und bleibt dort;
+                in die Icon-Leiste wandert sie nicht.</p>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="lehrkraft">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <a class="btn btn--glas btn--schmal" href="#/vorschau">Als Lernende ansehen</a>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg></td><td style="padding:7px 0"><strong>Start</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg></td><td style="padding:7px 0"><strong>Kurse</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernpakete</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg></td><td style="padding:7px 0"><strong>KI-Zugang</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg></td><td style="padding:7px 0"><strong>Verwaltung</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+  <p class="karte__text">Haus, Menschen, gestapelte Flächen, Funke, Schieberegler — fünf Silhouetten, die sich auch ohne Farbe nicht verwechseln lassen.</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg></td><td style="padding:7px 0"><strong>Heute</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernen</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></td><td style="padding:7px 0"><strong>Üben</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg></td><td style="padding:7px 0"><strong>Mein Fortschritt</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Fortschritt</p>
+  <p class="karte__text">Sonne, gestapelte Flächen, Zielscheibe, ansteigende Säulen. „Lernen" trägt dasselbe Zeichen wie „Lernpakete" — es ist dieselbe Sache von der anderen Seite.</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Warum keine Bücher und keine Karten</p>
+              <p class="karte__text">Kurse, Lernpakete und Lernen liegen inhaltlich nah
+                beieinander. Zeichnete man sie alle als Buch oder als Karteikarte, wären sie
+                im 23-px-Format nicht mehr zu unterscheiden — und eine Leiste ohne
+                Beschriftung lebt davon, dass die Silhouetten auseinandergehen. Kurse sind
+                deshalb <strong>Menschen</strong>, Lernpakete und Lernen
+                <strong>gestapelte Flächen</strong>.</p>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13). <strong>„Vorschau"</strong> heißt im
+                Kopfbereich <strong>„Als Lernende ansehen"</strong> (E12) — und bleibt dort;
+                in die Icon-Leiste wandert sie nicht.</p>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/start"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg><span>Start</span></a>
+            <a class="unten__ziel" href="#/kurse"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg><span>Kurse</span></a>
+            <a class="unten__ziel" href="#/pakete" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernpakete</span></a>
+            <a class="unten__ziel" href="#/verwaltung"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg><span>Einstellungen</span></a>
+          </nav>
+        </div>
+</div>
+<div data-zustand="lernende">
+        <div class="app app--telefon">
+          <div class="telefonkopf glas">
+            <a class="marke" href="#/start">
+              <span class="marke__zeichen" aria-hidden="true"></span>LexiFlow
+            </a>
+            <span class="plakette plakette--akzent">Tag 6</span>
+          </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Informationsarchitektur</p>
+                <h1 class="titel">Zwei Navigationssysteme</h1>
+                <p class="lead">Die Rolle entscheidet, was jemand sieht — nicht eine
+                  Einstellung und kein Schalter.</p>
+              </div>
+            </header>
+            <div class="raster raster--2">
+<div class="karte">
+  <p class="karte__titel">Lehrkraft — fünf Ziele</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></svg></td><td style="padding:7px 0"><strong>Start</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-5.6 6.2-5.6s6.2 2.2 6.2 5.6"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6"/><path d="M17.6 14.8c2.2.6 3.6 2.5 3.6 5.2"/></svg></td><td style="padding:7px 0"><strong>Kurse</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernpakete</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2c.9 3.6 2 4.7 5.6 5.6-3.6.9-4.7 2-5.6 5.6-.9-3.6-2-4.7-5.6-5.6 3.6-.9 4.7-2 5.6-5.6Z"/><path d="M17.8 15.2c.4 1.6.9 2.1 2.5 2.5-1.6.4-2.1.9-2.5 2.5-.4-1.6-.9-2.1-2.5-2.5 1.6-.4 2.1-.9 2.5-2.5Z"/></svg></td><td style="padding:7px 0"><strong>KI-Zugang</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.4 7.2h4.2M12.6 7.2h8"/><circle cx="10" cy="7.2" r="2.4"/><path d="M3.4 16.8h8.2M16.6 16.8h4"/><circle cx="14" cy="16.8" r="2.4"/></svg></td><td style="padding:7px 0"><strong>Verwaltung</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Start · Kurse · Lernpakete · Einstellungen</p>
+  <p class="karte__text">Haus, Menschen, gestapelte Flächen, Funke, Schieberegler — fünf Silhouetten, die sich auch ohne Farbe nicht verwechseln lassen.</p>
+</div>
+<div class="karte">
+  <p class="karte__titel">Lernende — vier Ziele (E9)</p>
+  <table style="border-collapse:collapse;font-size:var(--text)"><tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg></td><td style="padding:7px 0"><strong>Heute</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg></td><td style="padding:7px 0"><strong>Lernen</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></td><td style="padding:7px 0"><strong>Üben</strong></td></tr>
+<tr><td style="padding:7px 14px 7px 0;width:32px"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg></td><td style="padding:7px 0"><strong>Mein Fortschritt</strong></td></tr></table>
+  <p class="karte__text"><strong>Unten am Telefon:</strong> Heute · Lernen · Üben · Fortschritt</p>
+  <p class="karte__text">Sonne, gestapelte Flächen, Zielscheibe, ansteigende Säulen. „Lernen" trägt dasselbe Zeichen wie „Lernpakete" — es ist dieselbe Sache von der anderen Seite.</p>
+</div>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Warum keine Bücher und keine Karten</p>
+              <p class="karte__text">Kurse, Lernpakete und Lernen liegen inhaltlich nah
+                beieinander. Zeichnete man sie alle als Buch oder als Karteikarte, wären sie
+                im 23-px-Format nicht mehr zu unterscheiden — und eine Leiste ohne
+                Beschriftung lebt davon, dass die Silhouetten auseinandergehen. Kurse sind
+                deshalb <strong>Menschen</strong>, Lernpakete und Lernen
+                <strong>gestapelte Flächen</strong>.</p>
+            </div>
+            <div class="karte" style="margin-top:var(--space-5)">
+              <p class="karte__titel">Was sich gegenüber heute ändert</p>
+              <p class="karte__text"><strong>#/material</strong> heißt künftig
+                <strong>#/pakete</strong> (E13). <strong>„Vorschau"</strong> heißt im
+                Kopfbereich <strong>„Als Lernende ansehen"</strong> (E12) — und bleibt dort;
+                in die Icon-Leiste wandert sie nicht.</p>
+            </div>
+          </main>
+          <nav class="unten glas" aria-label="Hauptnavigation">
+            <a class="unten__ziel" href="#/heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span>Heute</span></a>
+            <a class="unten__ziel" href="#/lernen"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span>Lernen</span></a>
+            <a class="unten__ziel" href="#/ueben" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span>Üben</span></a>
+            <a class="unten__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span>Fortschritt</span></a>
+          </nav>
+        </div>
+</div>
+    </div></div>
+  </section>
+</div>
+<script src="variante.js"></script>
+</body>
+</html>

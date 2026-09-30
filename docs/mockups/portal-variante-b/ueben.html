@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Übungsbereich — LexiFlow Variante B</title>
+<link rel="stylesheet" href="variante.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Variante B</a> · <a href="../portal/ueben.html">dieselbe Seite in der P3-Fassung</a></p>
+    <h1 class="blatt__titel">Übungsbereich</h1>
+    <p class="blatt__lead">Variante B. Eine Übungsrunde — der Bildschirm, auf dem die meiste Zeit verbracht wird.</p>
+  </header>
+
+  <div class="schalter">
+    <div class="schalter__gruppe">
+      <span class="schalter__marke">Zustand</span>
+        <button type="button" data-schaltet="normal" aria-pressed="false">normal</button>
+        <button type="button" data-schaltet="ladend" aria-pressed="false">ladend</button>
+        <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
+        <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
+        <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+    </div>
+    <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
+  </div>
+
+  <div class="notiz">
+    <p><strong>Die Icon-Leiste.</strong> 76 px, dauerhaft kompakt, ohne sichtbare Beschriftung — sie verbreitert sich bei Hover und Fokus nicht, damit der Inhalt daneben nicht springt. Der Name kommt als schwebender Tooltip; tragen tut ihn das <code>aria-label</code> jedes Links. Der aktive Eintrag ist an drei Dingen zu erkennen: gefüllte Fläche, umgekehrter Kontrast, Akzentstrich am Rand.</p>
+    <p><strong>Hier ist fast kein Glas.</strong> Die Aufgabe, das Eingabefeld und die Rückfrage sind deckend: Wer eine Antwort eintippt, soll nicht durch sie hindurchsehen. Glas bleibt auf der Leiste, dem mobilen Kopf und der sekundären Schaltfläche.</p>
+    <p><strong>Sofort speichern (E14).</strong> Jede abgeschlossene Antwort ist gesichert. Die Rückfrage im Zustand „fehlerhaft" erscheint nur, wenn wirklich etwas verloren ginge, und benennt genau <em>was</em>.</p>
+    <p><strong>Keine untere Navigation während der Übung.</strong> Am Telefon nimmt die Aufgabe den Platz; der Weg hinaus führt über „Beenden" oben.</p>
+  </div>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Desktop</b> 1440 × 900 px, zur Ansicht verkleinert</p>
+    <div class="geraet geraet--desktop"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+<div class="uebung">              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <span class="balken" style="margin:var(--space-3) 0 var(--stack-loose);display:block">
+                <span class="balken__fuellung" style="width:70%"></span></span>
+
+              <div class="karte">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p class="uebung__frage">crowded</p>
+                <p class="uebung__satz">„The neighbourhood is crowded in the evening."</p>
+                <label class="feld" style="margin-top:var(--space-3)">
+                  <span class="feld__marke">Deine Antwort</span>
+                  <input class="feld__eingabe" type="text" value="überfüllt"
+                         style="font-size:1.0625rem;min-height:52px">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;
+                            margin-top:var(--space-2)">
+                  <button class="btn btn--primaer" type="button">Prüfen</button>
+                  <button class="btn btn--glas" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+              <p class="karte__text" style="margin-top:var(--space-4)">Jede abgeschlossene
+                Antwort wird sofort gespeichert.</p></div>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+<div class="uebung"><p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+              <div aria-hidden="true">
+                <div style="max-width:280px"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-6)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div>
+                </div>
+              </div></div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <div class="uebung">
+              <div class="leer">
+                <p class="leer__titel">Für heute geschafft</p>
+                <p class="leer__text">Alle zehn Aufgaben sind erledigt — Tag 6 deiner Serie
+                  ist gezählt. Du kannst weiterüben, es zählt nur nicht doppelt.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <a class="btn btn--primaer" href="#/ueben">Trotzdem weiterüben</a>
+                  <a class="btn btn--glas" href="#/heute">Zurück zu Heute</a>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <div class="uebung">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="fehler" role="alert" style="margin-top:var(--space-4)">
+                <p class="fehler__titel">Die Runde konnte nicht gestartet werden</p>
+                <p>Dieses Lernpaket gehört gerade zu keinem deiner Kurse. Frag deine
+                  Lehrkraft — dein bisheriger Lernstand bleibt erhalten.</p>
+                <a class="btn btn--primaer" href="#/lernen">Zurück zu den Lernpaketen</a>
+              </div>
+
+              <p class="oberzeile" style="margin-top:var(--stack-loose)">Rückfrage beim
+                Abbruch (E14)</p>
+              <div class="karte" role="dialog" aria-label="Übung wirklich verlassen?"
+                   style="margin-top:var(--space-3)">
+                <p class="karte__titel">Diese Antwort ist noch nicht gespeichert</p>
+                <p class="karte__text">Du hast etwas eingetippt, aber noch nicht geprüft. Nur
+                  diese eine Antwort ginge verloren — alles davor ist gesichert.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--primaer" type="button">Hierbleiben</button>
+                  <button class="btn btn--glas" type="button">Verlassen</button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--desktop">
+        <div class="rail glas">
+          <a class="rail__marke" href="#/start" aria-label="LexiFlow — zur Startseite">
+            <span class="marke__zeichen" aria-hidden="true"></span>
+            <span class="rail__tipp" aria-hidden="true">LexiFlow</span>
+          </a>
+          <nav class="rail__nav" aria-label="Hauptnavigation">
+            <a class="rail__ziel" href="#/heute" aria-label="Heute"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg><span class="rail__tipp" aria-hidden="true">Heute</span></a>
+            <a class="rail__ziel" href="#/lernen" aria-label="Lernen"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="12.5" height="9" rx="2.4"/><path d="M7 16.2h11.2a2 2 0 0 0 2-2V7.4"/><path d="M10 19.6h8.8"/></svg><span class="rail__tipp" aria-hidden="true">Lernen</span></a>
+            <a class="rail__ziel" href="#/ueben" aria-label="Üben" aria-current="page"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail__tipp" aria-hidden="true">Üben</span></a>
+            <a class="rail__ziel" href="#/fortschritt" aria-label="Mein Fortschritt"><svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.4 19.6V13"/><path d="M12 19.6V8.4"/><path d="M19.6 19.6V4.2"/></svg><span class="rail__tipp" aria-hidden="true">Mein Fortschritt</span></a>
+          </nav>
+          <div class="rail__fuss">
+            <a class="rail__ziel" href="#/konto" aria-label="Konto und Profil">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2"/></svg><span class="rail__tipp" aria-hidden="true">Konto und Profil</span></a>
+            <a class="rail__ziel" href="#/abmelden" aria-label="Abmelden">
+              <svg class="sym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6"/><path d="M17.4 8.6 20.8 12l-3.4 3.4"/><path d="M10.2 12h10.2"/></svg><span class="rail__tipp" aria-hidden="true">Abmelden</span></a>
+          </div>
+        </div>
+          <main class="inhalt">
+
+            <div class="band">Offline — deine Antworten werden gespeichert</div>
+            <div class="uebung">              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <span class="balken" style="margin:var(--space-3) 0 var(--stack-loose);display:block">
+                <span class="balken__fuellung" style="width:70%"></span></span>
+
+              <div class="karte">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p class="uebung__frage">crowded</p>
+                <p class="uebung__satz">„The neighbourhood is crowded in the evening."</p>
+                <label class="feld" style="margin-top:var(--space-3)">
+                  <span class="feld__marke">Deine Antwort</span>
+                  <input class="feld__eingabe" type="text" value="überfüllt"
+                         style="font-size:1.0625rem;min-height:52px">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;
+                            margin-top:var(--space-2)">
+                  <button class="btn btn--primaer" type="button">Prüfen</button>
+                  <button class="btn btn--glas" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+              <p class="karte__text" style="margin-top:var(--space-4)">Jede abgeschlossene
+                Antwort wird sofort gespeichert.</p></div>
+          </main>
+        </div>
+</div>
+    </div></div>
+  </section>
+
+  <section class="rahmen">
+    <p class="rahmen__kopf"><b>Smartphone</b> 390 × 844 px, unverkleinert</p>
+    <div class="geraet geraet--telefon"><div class="geraet__flaeche">
+<div data-zustand="normal">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf glas">
+            <span style="font-size:var(--text-klein);font-weight:700">Aufgabe 7 von 10</span>
+            <a class="btn btn--glas btn--schmal" href="#/lernen">Beenden</a>
+          </div>
+          <main class="inhalt">
+<div class="uebung">              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <span class="balken" style="margin:var(--space-3) 0 var(--stack-loose);display:block">
+                <span class="balken__fuellung" style="width:70%"></span></span>
+
+              <div class="karte">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p class="uebung__frage">crowded</p>
+                <p class="uebung__satz">„The neighbourhood is crowded in the evening."</p>
+                <label class="feld" style="margin-top:var(--space-3)">
+                  <span class="feld__marke">Deine Antwort</span>
+                  <input class="feld__eingabe" type="text" value="überfüllt"
+                         style="font-size:1.0625rem;min-height:52px">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;
+                            margin-top:var(--space-2)">
+                  <button class="btn btn--primaer" type="button">Prüfen</button>
+                  <button class="btn btn--glas" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+              <p class="karte__text" style="margin-top:var(--space-4)">Jede abgeschlossene
+                Antwort wird sofort gespeichert.</p></div>
+          </main>
+        </div>
+</div>
+<div data-zustand="ladend">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf glas">
+            <span style="font-size:var(--text-klein);font-weight:700">Aufgabe 7 von 10</span>
+            <a class="btn btn--glas btn--schmal" href="#/lernen">Beenden</a>
+          </div>
+          <main class="inhalt">
+<div class="uebung"><p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">Wird geladen</p>
+              <div aria-hidden="true">
+                <div style="max-width:280px"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-6)"><div class="skelett" aria-hidden="true"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div>
+                </div>
+              </div></div>
+          </main>
+        </div>
+</div>
+<div data-zustand="leer">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf glas">
+            <span style="font-size:var(--text-klein);font-weight:700">Aufgabe 7 von 10</span>
+            <a class="btn btn--glas btn--schmal" href="#/lernen">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div class="uebung">
+              <div class="leer">
+                <p class="leer__titel">Für heute geschafft</p>
+                <p class="leer__text">Alle zehn Aufgaben sind erledigt — Tag 6 deiner Serie
+                  ist gezählt. Du kannst weiterüben, es zählt nur nicht doppelt.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <a class="btn btn--primaer" href="#/ueben">Trotzdem weiterüben</a>
+                  <a class="btn btn--glas" href="#/heute">Zurück zu Heute</a>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="fehler">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf glas">
+            <span style="font-size:var(--text-klein);font-weight:700">Aufgabe 7 von 10</span>
+            <a class="btn btn--glas btn--schmal" href="#/lernen">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div class="uebung">
+              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <div class="fehler" role="alert" style="margin-top:var(--space-4)">
+                <p class="fehler__titel">Die Runde konnte nicht gestartet werden</p>
+                <p>Dieses Lernpaket gehört gerade zu keinem deiner Kurse. Frag deine
+                  Lehrkraft — dein bisheriger Lernstand bleibt erhalten.</p>
+                <a class="btn btn--primaer" href="#/lernen">Zurück zu den Lernpaketen</a>
+              </div>
+
+              <p class="oberzeile" style="margin-top:var(--stack-loose)">Rückfrage beim
+                Abbruch (E14)</p>
+              <div class="karte" role="dialog" aria-label="Übung wirklich verlassen?"
+                   style="margin-top:var(--space-3)">
+                <p class="karte__titel">Diese Antwort ist noch nicht gespeichert</p>
+                <p class="karte__text">Du hast etwas eingetippt, aber noch nicht geprüft. Nur
+                  diese eine Antwort ginge verloren — alles davor ist gesichert.</p>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
+                  <button class="btn btn--primaer" type="button">Hierbleiben</button>
+                  <button class="btn btn--glas" type="button">Verlassen</button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="offline">
+        <div class="app app--telefon" style="grid-template-rows:auto 1fr">
+          <div class="telefonkopf glas">
+            <span style="font-size:var(--text-klein);font-weight:700">Aufgabe 7 von 10</span>
+            <a class="btn btn--glas btn--schmal" href="#/lernen">Beenden</a>
+          </div>
+          <main class="inhalt">
+            <div class="band">Offline — deine Antworten werden gespeichert</div>
+            <div class="uebung">              <p class="oberzeile">Unit 3 — City life · Aufgabe 7 von 10</p>
+              <span class="balken" style="margin:var(--space-3) 0 var(--stack-loose);display:block">
+                <span class="balken__fuellung" style="width:70%"></span></span>
+
+              <div class="karte">
+                <p class="oberzeile">Wie heißt das auf Deutsch?</p>
+                <p class="uebung__frage">crowded</p>
+                <p class="uebung__satz">„The neighbourhood is crowded in the evening."</p>
+                <label class="feld" style="margin-top:var(--space-3)">
+                  <span class="feld__marke">Deine Antwort</span>
+                  <input class="feld__eingabe" type="text" value="überfüllt"
+                         style="font-size:1.0625rem;min-height:52px">
+                </label>
+                <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;
+                            margin-top:var(--space-2)">
+                  <button class="btn btn--primaer" type="button">Prüfen</button>
+                  <button class="btn btn--glas" type="button">Ich weiß es nicht</button>
+                </div>
+              </div>
+              <p class="karte__text" style="margin-top:var(--space-4)">Jede abgeschlossene
+                Antwort wird sofort gespeichert.</p></div>
+          </main>
+        </div>
+</div>
+    </div></div>
+  </section>
+</div>
+<script src="variante.js"></script>
+</body>
+</html>

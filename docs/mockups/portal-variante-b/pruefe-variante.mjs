@@ -129,18 +129,58 @@ function messen(erlaubt) {
   /* Gemessen wird der Entwurf, nicht das Blatt drumherum. */
   const rahmen = [...document.querySelectorAll('.geraet__flaeche')];
   const bereiche = rahmen.length ? rahmen : [...document.querySelectorAll('.probe, .raster')];
+  /*
+    Dieselbe Regel wie in der Pruefbank: Ein visuell verstecktes Dateifeld ist
+    kein Touchziel — angetippt wird sein `label`. Gemessen wird, was man sehen
+    kann, und bei einem versteckten Bedienelement sein deklarierter Ausloeser.
+    Die Suche bleibt im selben Rahmen; ein Blatt traegt dasselbe Markup zweimal.
+  */
+  const gerendert = (el) => {
+    if (el.getClientRects().length === 0) return false;
+    const s = getComputedStyle(el);
+    return s.display !== 'none' && s.visibility !== 'hidden';
+  };
+  const nurTechnischDa = (el) => {
+    const s = getComputedStyle(el);
+    if (Number.parseFloat(s.opacity || '1') === 0) return true;
+    if (s.clip && s.clip !== 'auto') return true;
+    if (s.clipPath && s.clipPath !== 'none') return true;
+    const k = el.getBoundingClientRect();
+    if (k.width <= 4 || k.height <= 4) return true;
+    return k.right <= 0 || k.bottom <= 0;
+  };
+  const ausloeserZu = (el, rahmen) => {
+    const kandidaten = [];
+    const kennung = el.getAttribute('id');
+    if (kennung) {
+      kandidaten.push(...rahmen.querySelectorAll(`label[for="${CSS.escape(kennung)}"]`));
+    }
+    const huelle = el.closest('label');
+    if (huelle) kandidaten.push(huelle);
+    return kandidaten.find((k) => gerendert(k) && !nurTechnischDa(k));
+  };
+
   const zuKlein = [];
   for (const bereich of bereiche) {
     const skal = massstab(bereich);
-    for (const el of bereich.querySelectorAll('a[href], button, input, select, textarea')) {
+    const genannt = new Set();
+    const miss = (el, zusatz = '') => {
+      if (genannt.has(el)) return;
+      genannt.add(el);
       const k = el.getBoundingClientRect();
-      if (k.width === 0 || k.height === 0) continue;
       const breite = k.width / skal;
       const hoehe = k.height / skal;
       if (Math.ceil(breite) < 44 || Math.ceil(hoehe) < 44) {
-        zuKlein.push(`${benenne(el)} ${Math.round(breite)}×${Math.round(hoehe)}`);
+        zuKlein.push(`${benenne(el)} ${Math.round(breite)}×${Math.round(hoehe)}${zusatz}`);
       }
+    };
+    const ziele = [...bereich.querySelectorAll('a[href], button, input, select, textarea')]
+      .filter((el) => gerendert(el) && !el.hasAttribute('disabled'));
+    for (const el of ziele.filter(nurTechnischDa)) {
+      const a = ausloeserZu(el, bereich);
+      if (a) miss(a, ` (Auslöser für ${benenne(el)})`);
     }
+    for (const el of ziele.filter((e) => !nurTechnischDa(e))) miss(el);
   }
 
   const glasFalsch = [];
@@ -152,10 +192,20 @@ function messen(erlaubt) {
     if (!klassen.some((k) => erlaubt.includes(k))) glasFalsch.push(benenne(el));
   }
 
+  let navImRahmen = null;
+  for (const rahmen of document.querySelectorAll('.geraet--telefon .geraet__flaeche')) {
+    const nav = rahmen.querySelector('.unten');
+    if (!nav) continue;
+    navImRahmen =
+      Math.round(nav.getBoundingClientRect().bottom) <=
+      Math.round(rahmen.getBoundingClientRect().bottom) + 1;
+  }
+
   return {
     ueberlauf: [...new Set(ueberlauf)].slice(0, 6),
     zuKlein: [...new Set(zuKlein)].slice(0, 8),
     glasFalsch: [...new Set(glasFalsch)].slice(0, 6),
+    navImRahmen,
   };
 }
 
@@ -176,11 +226,171 @@ const blaetter = readdirSync(HIER).filter((d) => d.endsWith('.html'));
 for (const datei of blaetter) {
   await seite.goto(`file://${resolve(HIER, datei)}`);
   await seite.waitForTimeout(300);
-  const m = await seite.evaluate(messen, GLAS_ERLAUBT);
-  if (m.ueberlauf.length) befunde.push(`${datei} läuft über: ${m.ueberlauf.join(', ')}`);
-  if (m.zuKlein.length) befunde.push(`${datei} zu klein: ${m.zuKlein.join(', ')}`);
-  if (m.glasFalsch.length) {
-    befunde.push(`${datei} Glas an unerlaubter Stelle: ${m.glasFalsch.join(', ')}`);
+
+  const zustaende = await seite.$$eval('[data-schaltet]', (k) => k.map((x) => x.dataset.schaltet));
+  for (const z of zustaende.length ? zustaende : [null]) {
+    if (z) await seite.click(`[data-schaltet="${z}"]`);
+    await seite.waitForTimeout(120);
+    const m = await seite.evaluate(messen, GLAS_ERLAUBT);
+    const wo = `${datei}${z ? ` [${z}]` : ''}`;
+    if (m.ueberlauf.length) befunde.push(`${wo} läuft über: ${m.ueberlauf.join(', ')}`);
+    if (m.zuKlein.length) befunde.push(`${wo} zu klein: ${m.zuKlein.join(', ')}`);
+    if (m.glasFalsch.length) befunde.push(`${wo} Glas an unerlaubter Stelle: ${m.glasFalsch.join(', ')}`);
+    if (m.navImRahmen === false) befunde.push(`${wo} untere Navigation außerhalb des Rahmens`);
+  }
+
+  await pruefeLeiste(datei);
+}
+
+/*
+  Die Icon-Leiste — vier Zusagen, die man ihr nicht ansieht.
+
+  Eine Leiste ohne Beschriftung steht und fällt damit, dass der Name auf beiden
+  Wegen ankommt: mit der Maus und mit der Tastatur. Und dass sie beim Zeigen
+  nicht wächst — eine Navigation, die unter dem Zeiger breiter wird, verschiebt
+  den Inhalt daneben.
+*/
+async function pruefeLeiste(datei) {
+  /*
+    Nur die Leiste im **sichtbaren** Zustandsblock. Ein Blatt trägt jeden
+    Zustand einmal; die übrigen sind ausgeblendet, und auf einem
+    ausgeblendeten Element kann man nicht zeigen.
+  */
+  /*
+    Erst auf den ersten Zustand zurückschalten: Die Schleife oben endet beim
+    letzten, und in den ausgeblendeten Blöcken kann man auf nichts zeigen.
+  */
+  const erster = await seite.$$eval('[data-schaltet]', (k) => (k[0] ? k[0].dataset.schaltet : null));
+  if (erster) {
+    await seite.click(`[data-schaltet="${erster}"]`);
+    await seite.waitForTimeout(150);
+  }
+  const leiste = seite.locator('.geraet--desktop .rail:visible').first();
+  if ((await leiste.count()) === 0) return;
+
+  const ziele = leiste.locator('.rail__ziel');
+  const anzahl = await ziele.count();
+  if (anzahl < 6) {
+    befunde.push(`${datei} Icon-Leiste: nur ${anzahl} Einträge (Navigation plus Konto und Abmelden erwartet)`);
+    return;
+  }
+
+  /* Jeder Eintrag trägt einen zugänglichen Namen — unabhängig vom Tooltip. */
+  const ohneNamen = await ziele.evaluateAll((els) =>
+    els.filter((el) => !(el.getAttribute('aria-label') || '').trim()).length,
+  );
+  if (ohneNamen > 0) befunde.push(`${datei} Icon-Leiste: ${ohneNamen} Einträge ohne aria-label`);
+
+  /*
+    Der Desktoprahmen ist zur Ansicht verkleinert; gemessen wird in echten
+    Pixeln. Ein fester Faktor rechnete falsch, sobald die Medienabfrage den
+    Massstab aendert — derselbe Fehler wie in der P3-Pruefung.
+  */
+  const skal = await seite
+    .locator('.geraet--desktop .geraet__flaeche')
+    .first()
+    .evaluate((el) => {
+      const t = getComputedStyle(el).transform;
+      if (!t || t === 'none') return 1;
+      const z = t.match(/-?[\d.]+/g);
+      const w = z ? Number.parseFloat(z[0]) : 1;
+      return w > 0 ? w : 1;
+    });
+
+  const breiteVorher = ((await leiste.boundingBox())?.width ?? 0) / skal;
+  if (Math.round(breiteVorher) < 72 || Math.round(breiteVorher) > 80) {
+    befunde.push(`${datei} Icon-Leiste: ${Math.round(breiteVorher)} px breit, erwartet 72 bis 80`);
+  }
+
+  /* Keine sichtbare Beschriftung im Ruhezustand. */
+  const sichtbareTipps = await leiste.locator('.rail__tipp').evaluateAll((els) =>
+    els.filter((el) => getComputedStyle(el).visibility !== 'hidden').length,
+  );
+  if (sichtbareTipps > 0) {
+    befunde.push(`${datei} Icon-Leiste: ${sichtbareTipps} Beschriftungen im Ruhezustand sichtbar`);
+  }
+
+  /* 1. Maus. */
+  const erstes = ziele.nth(1);
+  await erstes.hover();
+  await seite.waitForTimeout(150);
+  const beiMaus = await erstes.locator('.rail__tipp').evaluate((el) => ({
+    sichtbar: getComputedStyle(el).visibility === 'visible' && Number(getComputedStyle(el).opacity) > 0.5,
+    text: el.textContent.trim(),
+  }));
+  if (!beiMaus.sichtbar) befunde.push(`${datei} Icon-Leiste: kein Tooltip bei Hover`);
+  if (!beiMaus.text) befunde.push(`${datei} Icon-Leiste: Tooltip ohne Text`);
+
+  /*
+    2. Tastatur.
+
+    Erst den Zeiger wegnehmen. Bleibt er auf dem Element stehen, hält `:hover`
+    den Tooltip sichtbar, und die Tastaturprüfung misst den Mausfall noch
+    einmal — sie bestände auch dann, wenn `:focus-visible` gar nicht bedacht
+    wäre. Genau das war beim ersten Gegenlauf der Fall.
+
+    Der Tastendruck danach setzt die „Bedienung per Tastatur"-Merkung, an der
+    `:focus-visible` hängt; ohne ihn wertet die Engine einen Fokus aus dem
+    Skript auf einem Verweis nicht als sichtbar — dieselbe Falle wie in der
+    Prüfbank.
+  */
+  await seite.mouse.move(0, 0);
+  await seite.waitForTimeout(120);
+  await seite.keyboard.press('Tab');
+  await erstes.focus();
+  await seite.waitForTimeout(150);
+  const beiTastatur = await erstes.locator('.rail__tipp').evaluate(
+    (el) => getComputedStyle(el).visibility === 'visible',
+  );
+  if (!beiTastatur) befunde.push(`${datei} Icon-Leiste: kein Tooltip bei Tastaturfokus`);
+
+  const fokusSichtbar = await erstes.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return (s.outlineStyle !== 'none' && Number.parseFloat(s.outlineWidth) > 0) || s.boxShadow !== 'none';
+  });
+  if (!fokusSichtbar) befunde.push(`${datei} Icon-Leiste: kein sichtbarer Fokus`);
+
+  /* 3. Kein Layoutsprung. */
+  const breiteNachher = ((await leiste.boundingBox())?.width ?? 0) / skal;
+  if (Math.round(breiteNachher) !== Math.round(breiteVorher)) {
+    befunde.push(
+      `${datei} Icon-Leiste: verbreitert sich von ${Math.round(breiteVorher)} auf ${Math.round(breiteNachher)} px`,
+    );
+  }
+
+  /*
+    4. Der aktive Zustand darf nicht nur an der Farbe hängen.
+
+    Vorher Zeiger und Fokus wegnehmen. Sonst wird gegen ein Element verglichen,
+    das noch unter dem Zeiger liegt — und dessen Hover-Fläche täuscht ein
+    Merkmal vor, das der aktive Eintrag gar nicht hat. Genau so ist diese
+    Prüfung beim ersten Gegenlauf auf fünf von sieben Blättern durchgefallen,
+    ohne dass etwas in Ordnung gewesen wäre.
+  */
+  await seite.mouse.move(0, 0);
+  await seite.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
+  await seite.waitForTimeout(120);
+
+  const aktiv = leiste.locator('.rail__ziel[aria-current="page"]');
+  if ((await aktiv.count()) !== 1) {
+    befunde.push(`${datei} Icon-Leiste: ${await aktiv.count()} Einträge mit aria-current`);
+  } else {
+    const merkmale = await aktiv.first().evaluate((el) => {
+      const a = getComputedStyle(el);
+      const anderer = el.parentElement.querySelector('.rail__ziel:not([aria-current])');
+      if (!anderer) return { flaeche: false, tinte: false, strich: false };
+      const ruhig = getComputedStyle(anderer);
+      const strich = getComputedStyle(el, '::before');
+      return {
+        flaeche: a.backgroundColor !== ruhig.backgroundColor,
+        tinte: a.color !== ruhig.color,
+        strich: strich.content !== 'none' && Number.parseFloat(strich.width) > 0,
+      };
+    });
+    const zahl = [merkmale.flaeche, merkmale.tinte, merkmale.strich].filter(Boolean).length;
+    if (zahl < 2) {
+      befunde.push(`${datei} Icon-Leiste: aktiver Zustand nur an einem Merkmal erkennbar`);
+    }
   }
 }
 await browser.close();
