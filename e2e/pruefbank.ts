@@ -98,3 +98,16 @@ export function breiteAus(projektname: string): number {
   const zahl = Number.parseInt(letzte, 10);
   return Number.isNaN(zahl) ? 0 : zahl;
 }
+
+/**
+ * Die Engine eines Breitenprojekts aus seinem Namen.
+ *
+ * Gebraucht, seit die Prüfung der Tastaturerreichbarkeit wissen muss, mit wem
+ * sie es zu tun hat: Safari auf macOS springt mit Tab standardmäßig nur
+ * Formularfelder an. Das ist eine Systemeinstellung und kein Mangel der
+ * Oberfläche – die Prüfung muss es unterscheiden können, statt es der
+ * Gestaltung anzulasten.
+ */
+export function maschineAus(projektname: string): string {
+  return projektname.split('-')[0] ?? '';
+}

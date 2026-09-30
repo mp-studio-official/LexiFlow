@@ -1,12 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { BREITEN_PORTAL } from '../e2e/adressen';
-import { breiteAus } from '../e2e/pruefbank';
+import { breiteAus, maschineAus } from '../e2e/pruefbank';
 import {
   fehlschlaegeBeobachten,
-  fokusIstSichtbar,
+  fokusIndikatorIstSichtbar,
   keinQuerlauf,
   seiteIstDa,
+  tastaturErreichbarkeit,
   tippzieleGrossGenug,
   zoomProbe,
 } from '../e2e/layoutpruefungen';
@@ -25,8 +26,14 @@ import {
  *
  * Das Portal liegt unter `/LexiFlow/portal/`, die kontofreie Anwendung unter
  * `/LexiFlow/`. Die Verwechslung sieht im Browser aus wie ein leerer
- * Bildschirm und meldete sich als „element(s) not found". Jede Prüfung hier
- * beginnt deshalb mit `seiteIstDa`.
+ * Bildschirm und meldete sich als „element(s) not found".
+ *
+ * ## Warum Fokus und Tastatur zwei Prüfungen sind
+ *
+ * Weil es zwei Aussagen sind. Als sie eine waren, bestand die Anmeldung unter
+ * WebKit – sie hat Formularfelder –, und Lern-, Kurs- und Paketbereich fielen
+ * durch, weil sie keine haben. Das war keine Aussage über die Gestaltung,
+ * sondern über eine Systemeinstellung von macOS.
  *
  * ## Warum angemeldet
  *
@@ -104,8 +111,14 @@ for (const ansicht of ANSICHTEN) {
       await tippzieleGrossGenug(page);
     });
 
-    test(`@breiten Portal – ${ansicht.name}: der Tastaturfokus ist zu sehen`, async ({ page }) => {
-      await fokusIstSichtbar(page);
+    test(`@breiten Portal – ${ansicht.name}: der Fokus ist zu sehen`, async ({ page }) => {
+      await fokusIndikatorIstSichtbar(page);
+    });
+
+    test(`@breiten Portal – ${ansicht.name}: man kommt mit der Tastatur hin`, async ({
+      page,
+    }, info) => {
+      await tastaturErreichbarkeit(page, maschineAus(info.project.name));
     });
 
     test(`@breiten Portal – ${ansicht.name}: hält die doppelte Vergrößerung aus`, async ({

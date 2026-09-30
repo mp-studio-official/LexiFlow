@@ -1,12 +1,13 @@
 import { test } from '@playwright/test';
 
 import { BREITEN_APP } from './adressen';
-import { breiteAus } from './pruefbank';
+import { breiteAus, maschineAus } from './pruefbank';
 import {
   fehlschlaegeBeobachten,
-  fokusIstSichtbar,
+  fokusIndikatorIstSichtbar,
   keinQuerlauf,
   seiteIstDa,
+  tastaturErreichbarkeit,
   tippzieleGrossGenug,
   zoomProbe,
 } from './layoutpruefungen';
@@ -25,12 +26,12 @@ import {
  * Ansichten auf und misst sie. Was die Ansichten tun, prüfen die anderen
  * Dateien – einmal.
  *
- * ## Warum jede Prüfung zuerst die Adresse prüft
+ * ## Warum Fokus und Tastatur zwei Prüfungen sind
  *
- * Der erste echte Lauf hat nie eine Layoutprüfung erreicht: Auf dem Port lief
- * eine fremde Vorschau unter `/LexiFlow/`, alle Bündel kamen als 404 zurück,
- * und die Ansicht blieb leer. Die Meldung lautete „element(s) not found".
- * `seiteIstDa` stellt die Frage, die dahinter lag, und stellt sie zuerst.
+ * Weil es zwei Aussagen sind. Als sie eine waren, fiel sie unter WebKit
+ * sechzehnmal durch – nicht wegen der Gestaltung, sondern weil Safari auf
+ * macOS mit Tab standardmäßig keine Verweise anspringt. Die Begründung steht
+ * in `e2e/fokus.ts`.
  */
 
 const ANSICHTEN = [
@@ -63,8 +64,12 @@ for (const ansicht of ANSICHTEN) {
       await tippzieleGrossGenug(page);
     });
 
-    test(`@breiten ${ansicht.name}: der Tastaturfokus ist zu sehen`, async ({ page }) => {
-      await fokusIstSichtbar(page);
+    test(`@breiten ${ansicht.name}: der Fokus ist zu sehen`, async ({ page }) => {
+      await fokusIndikatorIstSichtbar(page);
+    });
+
+    test(`@breiten ${ansicht.name}: man kommt mit der Tastatur hin`, async ({ page }, info) => {
+      await tastaturErreichbarkeit(page, maschineAus(info.project.name));
     });
 
     test(`@breiten ${ansicht.name}: hält auch die doppelte Vergrößerung aus`, async ({ page }) => {

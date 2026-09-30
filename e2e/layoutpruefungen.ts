@@ -1,36 +1,38 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+import { fokusIndikatorMessen, indikatorAendertSich } from './fokus';
+import { tippzielbefunde } from './tippziele';
 
 /**
  * Was an jeder Breite gelten muss – einmal geschrieben.
  *
- * ## Warum diese vier und nicht mehr
- *
- * Eine Breitenprüfung, die den Ablauf nachspielt, ist eine Ablaufprüfung mit
- * anderem Fenster: Sie kostet das Achtfache und findet dasselbe. Hier stehen
- * deshalb nur Aussagen, die **von der Breite abhängen** und sonst nirgends
- * geprüft werden:
+ * ## Die fünf Aussagen
  *
  * 1. Nichts läuft waagerecht über den Rand.
  * 2. Was man antippen soll, ist groß genug zum Antippen.
  * 3. Der Tastaturfokus ist zu sehen.
- * 4. Bei doppelter Vergrößerung bleibt 1. wahr.
+ * 4. Man kommt mit der Tastatur hin.
+ * 5. Bei doppelter Vergrößerung bleibt 1. wahr.
  *
- * ## Warum kein `toBeVisible` auf Inhalte
+ * 3 und 4 waren bis zum zweiten Mac-Lauf **eine** Prüfung. Das war falsch:
+ * Sie fiel unter WebKit 28-mal durch, ohne dass an der Gestaltung etwas
+ * gewesen wäre – Safari auf macOS springt mit Tab standardmäßig keine
+ * Verweise an. Die Begründung steht in `e2e/fokus.ts`.
  *
- * Weil das die Ablaufprüfungen schon tun. Diese Datei prüft die Geometrie.
+ * ## Warum die Messungen in eigenen Dateien stehen
+ *
+ * `e2e/tippziele.ts` und `e2e/fokus.ts` enthalten in sich geschlossene
+ * Funktionen ohne Abhängigkeiten. Playwright reicht sie in die Seite hinein,
+ * Vitest ruft sie unter jsdom direkt auf. Erst dadurch lassen sich die Regeln
+ * selbst prüfen – vorher wäre eine falsche Regel nur durch einen echten
+ * Browserlauf aufgefallen, und genau so ist es zweimal gekommen.
  *
  * ## Zwei Ausnahmen, und warum sie im Markup stehen
  *
- * `data-querlauf-erlaubt` und `data-fliesstext` sind keine Hintertüren,
- * sondern Aussagen der Oberfläche über sich selbst: „dieser Bereich rollt
- * absichtlich waagerecht", „das hier ist Fließtext". Eine Ausnahmeliste in
- * dieser Datei wäre an derselben Stelle falsch – sie veraltet, sobald jemand
- * eine Klasse umbenennt.
+ * `data-querlauf-erlaubt` und `data-fliesstext` sind Aussagen der Oberfläche
+ * über sich selbst. Eine Ausnahmeliste im Testcode veraltete beim nächsten
+ * Umbenennen.
  */
-
-/** Alle Elemente, die man antippen können soll. */
-const TIPPZIELE =
-  'a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=link]';
 
 /**
  * Kein waagerechter Überlauf.
@@ -56,7 +58,6 @@ export async function keinQuerlauf(page: Page): Promise<void> {
       if (kasten.width === 0 && kasten.height === 0) continue;
       const stil = getComputedStyle(el);
       if (stil.visibility === 'hidden' || stil.display === 'none') continue;
-      // Ein absichtlich waagerecht rollender Bereich ist kein Überlauf der Seite.
       if (el.closest('[data-querlauf-erlaubt]')) continue;
       const ueber = Math.round(kasten.right - breite);
       if (ueber > 1) schuldige.push(`${benenne(el)} +${ueber}px`);
@@ -78,69 +79,116 @@ export async function keinQuerlauf(page: Page): Promise<void> {
 /**
  * Tippziele, die man mit dem Finger trifft.
  *
- * 44 × 44 px ist nicht gerundet, sondern die Zahl aus WCAG 2.5.5 und aus
- * Apples Richtlinie. Geprüft wird nur dort, wo getippt wird – an den schmalen
- * Breiten.
- *
- * Ausgenommen sind Ziele **im Fließtext**: Ein Verweis mitten im Satz kann
- * nicht 44 px hoch sein, ohne den Satz zu zerreißen; WCAG nimmt ihn
- * ausdrücklich aus.
+ * Die Regel, was als Tippziel zählt, steht in `e2e/tippziele.ts` – samt der
+ * Unterscheidung zwischen einem wahrnehmbaren Bedienelement und einem, das
+ * nur technisch da ist und dessen sichtbarer Auslöser gemessen gehört.
  */
-export async function tippzieleGrossGenug(page: Page, auswahl = TIPPZIELE): Promise<void> {
-  const zuKlein = await page.evaluate((auswahlImBild: string) => {
-    const benenne = (el: Element): string => {
-      const kennung = el.id ? `#${el.id}` : '';
-      const klassen =
-        typeof el.className === 'string' && el.className.trim()
-          ? `.${el.className.trim().split(/\s+/).slice(0, 2).join('.')}`
-          : '';
-      return `${el.tagName.toLowerCase()}${kennung}${klassen}`;
-    };
+export async function tippzieleGrossGenug(page: Page): Promise<void> {
+  const befund = await page.evaluate(tippzielbefunde, {});
 
-    const MASS = 44;
-    const klein: string[] = [];
-    for (const el of Array.from(document.querySelectorAll(auswahlImBild))) {
-      const kasten = el.getBoundingClientRect();
-      if (kasten.width === 0 || kasten.height === 0) continue;
-      if (el.hasAttribute('disabled')) continue;
-      if (el.closest('[data-fliesstext]')) continue;
-      if (Math.ceil(kasten.width) < MASS || Math.ceil(kasten.height) < MASS) {
-        klein.push(`${benenne(el)} ${Math.round(kasten.width)}×${Math.round(kasten.height)}`);
-      }
-    }
-    return klein.slice(0, 8);
-  }, auswahl);
-
-  expect(zuKlein, 'Tippziele unter 44 × 44 px').toEqual([]);
+  expect(
+    befund.ohneAusloeser,
+    'versteckte Bedienelemente ohne sichtbaren Auslöser – die kann niemand antippen',
+  ).toEqual([]);
+  expect(befund.zuKlein, 'Tippziele unter 44 × 44 px').toEqual([]);
+  expect(befund.gemessen, 'es wurde kein einziges Tippziel gemessen').toBeGreaterThan(0);
 }
 
 /**
- * Der Tastaturfokus ist zu sehen.
+ * Der Tastaturfokus ist zu sehen – engineneutral.
  *
- * Geprüft wird nicht, *dass* eine Regel im Stylesheet steht, sondern dass das
- * fokussierte Element sich sichtbar vom unfokussierten unterscheidet – über
- * Umriss oder Schatten. Ein `outline: none` **mit** Ersatz besteht die
- * Prüfung, ein `outline: none` ohne Ersatz nicht.
+ * Gezielt fokussieren, davor und danach messen. Kein Tab, also keine
+ * Abhängigkeit davon, was eine Engine mit der Tabulatortaste anspringt.
+ *
+ * Wertet die Engine einen Fokus aus dem Skript nicht als `:focus-visible`
+ * – auf Verweisen und Schaltflächen kommt das vor –, fällt die Prüfung auf
+ * die Regel zurück: Gibt es in den **eigenen** Stylesheets eine
+ * `:focus-visible`-Regel, die auf dieses Element passt und einen Ring
+ * beschreibt? Das prüft weiterhin die Gestaltung der Anwendung. Welcher der
+ * beiden Wege gegriffen hat, steht in der Meldung.
  */
-export async function fokusIstSichtbar(page: Page): Promise<void> {
+export async function fokusIndikatorIstSichtbar(page: Page): Promise<void> {
+  /*
+    Ein Tastendruck vorweg setzt in beiden Engines die „Bedienung per
+    Tastatur"-Merkung, an der `:focus-visible` hängt. Wo er landet, ist
+    gleichgültig – gemessen wird danach an einem gezielt gewählten Element.
+  */
   await page.keyboard.press('Tab');
 
-  const befund = await page.evaluate(() => {
-    const el = document.activeElement;
-    if (!el || el === document.body) return { name: '—', sichtbar: false, leer: true };
-    const kennung = el.id ? `#${el.id}` : '';
-    const stil = getComputedStyle(el);
-    const umriss = stil.outlineStyle !== 'none' && Number.parseFloat(stil.outlineWidth) > 0;
-    const schatten = stil.boxShadow !== 'none' && stil.boxShadow !== '';
-    return {
-      name: `${el.tagName.toLowerCase()}${kennung}`,
-      sichtbar: umriss || schatten,
-      leer: false,
-    };
-  });
+  const befund = await page.evaluate(fokusIndikatorMessen, {});
 
-  expect(befund.leer, 'die erste Tabulatortaste erreicht nichts').toBe(false);
-  expect(befund.sichtbar, `kein sichtbarer Fokus auf ${befund.name}`).toBe(true);
+  expect(befund.gefunden, 'auf dieser Seite gibt es kein sichtbares Bedienelement').toBe(true);
+  expect(befund.fokussiert, `${befund.name} nimmt den Fokus nicht an`).toBe(true);
+
+  const gerendert = indikatorAendertSich(befund.vorher, befund.nachher);
+  if (gerendert) return;
+
+  expect(
+    befund.regelGefunden,
+    befund.alsSichtbarGewertet
+      ? `${befund.name} ist fokussiert und wird als :focus-visible gewertet, ` +
+        `aber es ändert sich nichts am gerenderten Bild – und es gibt auch ` +
+        `keine passende :focus-visible-Regel mit Ring oder Schatten.`
+      : `${befund.name} ist fokussiert, diese Engine wertet einen Fokus aus dem ` +
+        `Skript hier aber nicht als :focus-visible. Der Rückfall auf die Regel ` +
+        `greift ebenfalls nicht: In den eigenen Stylesheets steht keine ` +
+        `passende :focus-visible-Regel mit Ring oder Schatten.`,
+  ).toBe(true);
+}
+
+/**
+ * Kommt man mit der Tastatur hin?
+ *
+ * Eine eigene Aussage – und eine, die man nicht stellen kann, ohne die
+ * Wirklichkeit der Engines abzubilden:
+ *
+ * | Engine | was Tab anspringt |
+ * | --- | --- |
+ * | Chromium | alles Bedienbare |
+ * | WebKit auf macOS | **nur Formularfelder**, solange „Tabulatortaste bewegt den Fokus zwischen allen Steuerelementen" aus ist |
+ *
+ * Deshalb: Unter Chromium muss Tab irgendein Bedienelement erreichen. Unter
+ * WebKit muss Tab die **Formularfelder** erreichen, wenn es welche gibt; gibt
+ * es auf der Seite keine, sagt die Prüfung das und hält sich zurück, statt
+ * eine Systemeinstellung als Mangel der Oberfläche auszugeben.
+ */
+export async function tastaturErreichbarkeit(page: Page, maschine: string): Promise<void> {
+  const formularfelder = await page
+    .locator('input:not([type=hidden]), select, textarea')
+    .filter({ visible: true })
+    .count();
+
+  if (maschine === 'webkit' && formularfelder === 0) {
+    /*
+      Kein Mangel, sondern eine Systemeinstellung: Safari auf macOS springt
+      mit Tab keine Verweise an. Die Aussage „mit Tab erreichbar" lässt sich
+      hier nicht treffen; sie ohne diesen Hinweis rot zu machen hieße, eine
+      Einstellung des Betriebssystems der Oberfläche anzulasten.
+    */
+    test.skip(
+      true,
+      'WebKit auf macOS springt mit Tab nur Formularfelder an; diese Ansicht hat keine.',
+    );
+    return;
+  }
+
+  const erreicht: string[] = [];
+  for (let schritt = 0; schritt < 20 && erreicht.length === 0; schritt += 1) {
+    await page.keyboard.press('Tab');
+    const name = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body || el === document.documentElement) return '';
+      return el.tagName.toLowerCase();
+    });
+    if (name) erreicht.push(name);
+  }
+
+  expect(
+    erreicht.length,
+    maschine === 'webkit'
+      ? `zwanzig Tabulatorschritte erreichen keines der ${formularfelder} Formularfelder`
+      : 'zwanzig Tabulatorschritte erreichen kein Bedienelement',
+  ).toBeGreaterThan(0);
 }
 
 /**
@@ -148,9 +196,7 @@ export async function fokusIstSichtbar(page: Page): Promise<void> {
  *
  * Echtes Browserzoom lässt sich nicht fernsteuern. Was 200 % Zoom für das
  * Layout bedeutet, lässt sich aber nachstellen: halbe Fensterbreite bei
- * gleicher Schriftgröße. Wer das übersteht, übersteht auch das Zoom – mit der
- * Einschränkung, dass die Schrift dabei nicht mitwächst. Deshalb heißt das
- * hier „Probe" und nicht „Prüfung".
+ * gleicher Schriftgröße. Deshalb „Probe" und nicht „Prüfung".
  */
 export async function zoomProbe(page: Page): Promise<void> {
   const vorher = page.viewportSize();
@@ -170,8 +216,7 @@ export async function zoomProbe(page: Page): Promise<void> {
  * Beobachtet, was der Browser vergeblich anfordert.
  *
  * Ohne das lautet die Meldung eines fehlenden Bündels „element(s) not found"
- * – die Folge, nicht die Ursache. Mit dem hier steht der 404 in derselben
- * Zeile wie die leere Wurzel.
+ * – die Folge, nicht die Ursache.
  */
 export function fehlschlaegeBeobachten(page: Page): () => string[] {
   const fehlschlaege: string[] = [];
@@ -190,15 +235,9 @@ export function fehlschlaegeBeobachten(page: Page): () => string[] {
  * Ist das hier überhaupt die Anwendung, die geprüft werden soll?
  *
  * Drei Fragen in dieser Reihenfolge, weil jede die nächste erklärt:
- *
- * 1. **Liegt die Seite, wo sie liegen soll?** Ein `/LexiFlow/` statt `/` heißt
- *    nicht „Layoutfehler", sondern „falscher Server".
- * 2. **Ist die React-Wurzel gefüllt?** Eine leere Wurzel heißt, dass das
- *    JavaScript nicht kam – die Fehlschlagliste sagt, welches.
- * 3. Erst dann: **Gibt es ein `<main>`?**
- *
- * Vorher meldete sich Frage 1 als Antwort auf Frage 3, nach sieben Sekunden
- * Warten, achtundvierzigmal.
+ * Liegt die Seite, wo sie liegen soll? Ist die React-Wurzel gefüllt? Erst
+ * dann: Gibt es ein `<main>`? Vorher meldete sich Frage 1 als Antwort auf
+ * Frage 3, nach sieben Sekunden Warten, achtundvierzigmal.
  */
 export async function seiteIstDa(
   page: Page,

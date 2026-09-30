@@ -213,6 +213,23 @@ describe('die Breitendateien tragen die Marke und prüfen die Adresse', () => {
       ).toEqual([]);
     });
 
+    it(`${datei}: Fokusgestaltung und Tastaturerreichbarkeit bleiben getrennt`, () => {
+      /*
+        Der Rückfall, den der zweite Mac-Lauf erzwungen hat. Solange beides
+        eine Prüfung war, fiel sie unter WebKit durch, ohne dass an der
+        Gestaltung etwas gewesen wäre: Safari auf macOS springt mit Tab
+        standardmäßig keine Verweise an. Werden die beiden Aufrufe wieder
+        zusammengelegt, misst eine Prüfung erneut zwei Dinge und benennt das
+        falsche.
+      */
+      expect(text).toMatch(/fokusIndikatorIstSichtbar\(page\)/);
+      expect(text).toMatch(/tastaturErreichbarkeit\(page, maschineAus\(info\.project\.name\)\)/);
+      expect(
+        text,
+        'die Fokusprüfung darf nicht wieder an einem einzelnen Tab hängen',
+      ).not.toMatch(/fokusIstSichtbar/);
+    });
+
     it(`${datei}: jede Prüfung beginnt mit der Adressprüfung`, () => {
       /*
         `seiteIstDa` ist die Stelle, an der ein fremder Server auffliegt.
