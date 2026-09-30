@@ -1,0 +1,921 @@
+/*
+  Variante B — die leichtere, kühlere Ebene über derselben Struktur.
+
+  ## Was hier anders ist, und was nicht
+
+  **Nicht anders:** Aufbau, UX, Navigation, Zustände, Informationsarchitektur.
+  Das ist alles P3 und bleibt. Wer die beiden Fassungen nebeneinander legt,
+  soll dieselben Bildschirme sehen — in einer anderen Haut.
+
+  **Anders:** ein sehr heller, leicht kühler Grund statt des dominanten Beige;
+  fast schwarzes Anthrazit als Text- und Primärfarbe; pastellige
+  Aurora-Verläufe; Manrope kräftig statt Newsreader als Displayschrift.
+
+  ## Wo Glas hin darf — und wo nicht
+
+  Glas ist eine Aussage über **Schweben**, nicht über Schönheit. Es gehört auf
+  Flächen, die über dem Inhalt liegen: die schwebende Navigation, Filter,
+  sekundäre Schaltflächen, kleine Statusflächen, Dialoge.
+
+  Es gehört **nicht** unter lange Formulare, Tabellen, den Grammatikeditor,
+  Fehlermeldungen und längere Lesetexte. Dort ist Lesbarkeit die einzige
+  Anforderung, und ein durchscheinender Grund macht sie kaputt — besonders
+  über einem Aurora-Verlauf, wo der Kontrast von Pixel zu Pixel schwankt.
+
+  Jede Glasfläche hat einen deckenden Rückfall für Browser ohne
+  `backdrop-filter`. Ohne den ist Glas nicht ein bisschen schlechter, sondern
+  unlesbar: durchsichtiges Weiß auf Pastell.
+
+  ## Die Marke
+
+  Das Logo ist zweimal derselbe Gedanke: zwei überlagerte, leicht
+  perspektivische Flächen mit großen Radien, eine dunkel, eine hell, eine Form
+  ausgestanzt. Genau das gibt die Formensprache vor — Überlagerung, Tiefe,
+  Rundung. Umgefärbt wird es nicht; Aubergine und Tomato leben in ihm weiter.
+*/
+
+@font-face {
+  font-family: 'Manrope Entwurf';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('../portal/schriften/manrope-latin-wght-normal.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Newsreader Entwurf';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('../portal/schriften/newsreader-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+:root {
+  /* ---------------------------------------------------------- Grundflächen */
+  --grund: #f6f7fb;
+  --grund-tief: #edeff7;
+  --flaeche: #ffffff;
+  --flaeche-stumpf: #f2f4fa;
+
+  /* --------------------------------------------------------- Tinte, Kontur */
+  /* Fast schwarzes Anthrazit — Textfarbe **und** Primärfarbe. 17,3 : 1 auf Grund. */
+  --tinte: #121318;
+  --tinte-2: #4a4d5a;
+  --tinte-3: #6b6f7e;
+  --tinte-invers: #ffffff;
+  --rand: #e4e7f0;
+  --rand-stark: #c5c9d8;
+
+  /* -------------------------------------------------------------- Aurora */
+  /* Pastelle. Sie tragen nie Text — sie sind Fläche, Tiefe und Stimmung. */
+  --aurora-violett: #cdbcff;
+  --aurora-rosa: #ffc7e0;
+  --aurora-himmel: #bfe3ff;
+  --aurora-pfirsich: #ffd9be;
+
+  /* --------------------------------------------------------- Zustandsfarben */
+  /* Dunkel genug für Text auf hellem Grund — geprüft, nicht geschätzt. */
+  --gut: #0f6b4f;
+  --gut-weich: #e3f4ec;
+  --warn: #8a4a1c;
+  --warn-weich: #fdeedf;
+  --fehler: #a3182a;
+  --fehler-weich: #fde8eb;
+  --akzent: #b3201f;
+  --akzent-weich: #fde3e0;
+
+  /* Die Markenfarben leben im Logo weiter. */
+  --marke-aubergine: #2f092d;
+  --marke-tomato: #ff2e2d;
+
+  /* ----------------------------------------------------------- Typografie */
+  --schrift: 'Manrope Entwurf', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --schrift-editorial: 'Newsreader Entwurf', Georgia, 'Times New Roman', serif;
+
+  --grad-1: clamp(2.5rem, 1.9rem + 1.9vw, 3.5rem);
+  --grad-2: 2rem;
+  --grad-3: 1.375rem;
+  --grad-4: 1.0625rem;
+  --text: 0.9375rem;
+  --text-klein: 0.8125rem;
+  --text-mikro: 0.6875rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+  --space-10: 4rem;
+
+  --stack-tight: var(--space-2);
+  --stack-snug: var(--space-3);
+  --stack-normal: var(--space-5);
+  --stack-loose: var(--space-7);
+  --stack-section: var(--space-10);
+
+  /* Große Radien — die Rundung des Logos, nicht die eines Formularfelds. */
+  --r-klein: 12px;
+  --r: 18px;
+  --r-gross: 26px;
+  --r-xl: 34px;
+  --r-pille: 999px;
+
+  --cover-ratio: 16 / 10;
+  --tap: 44px;
+
+  --schatten-flach: 0 1px 2px rgba(18, 19, 24, 0.04), 0 4px 14px rgba(18, 19, 24, 0.05);
+  --schatten-schwebend: 0 2px 6px rgba(18, 19, 24, 0.06), 0 16px 40px rgba(18, 19, 24, 0.12);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--schrift);
+  font-weight: 450;
+  font-size: var(--text);
+  line-height: 1.6;
+  color: var(--tinte);
+  background: var(--grund);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tinte);
+  outline-offset: 3px;
+  border-radius: var(--r-klein);
+}
+.auf-dunkel :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* ==========================================================================
+   GLAS — mit deckendem Rückfall
+   ========================================================================== */
+
+.glas {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: var(--schatten-schwebend);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+}
+.glas--fest {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--schatten-flach);
+}
+
+/*
+  Ohne `backdrop-filter` ist durchscheinendes Weiß über einem Aurora-Verlauf
+  nicht „etwas weniger schön", sondern unlesbar. Der Rückfall ist deckend.
+*/
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glas,
+  .glas--fest {
+    background: var(--flaeche);
+    border-color: var(--rand);
+  }
+}
+
+/* ==========================================================================
+   Das Blatt um die Entwürfe (Begutachtung, nicht Entwurf)
+   ========================================================================== */
+
+.blatt {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5) var(--space-10);
+}
+.blatt__kopf {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
+}
+.blatt__rueck {
+  font-size: var(--text-klein);
+  color: var(--tinte-2);
+}
+.blatt__titel {
+  font-size: var(--grad-1);
+}
+.blatt__lead {
+  max-width: 62ch;
+  color: var(--tinte-2);
+  font-size: 1rem;
+}
+.notiz {
+  border-left: 3px solid var(--rand-stark);
+  padding: var(--space-2) 0 var(--space-2) var(--space-4);
+  margin: var(--space-5) 0 var(--space-7);
+  max-width: 70ch;
+  color: var(--tinte-2);
+  font-size: var(--text);
+  display: grid;
+  gap: var(--space-2);
+}
+.notiz strong {
+  color: var(--tinte);
+}
+
+.rahmen {
+  margin-bottom: var(--stack-section);
+}
+.rahmen__kopf {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-klein);
+  color: var(--tinte-2);
+}
+.rahmen__kopf b {
+  color: var(--tinte);
+  font-size: var(--text);
+}
+.geraet {
+  border: 1px solid var(--rand);
+  border-radius: var(--r-gross);
+  background: var(--grund);
+  overflow: hidden;
+  box-shadow: var(--schatten-flach);
+}
+.geraet__flaeche {
+  transform-origin: top left;
+}
+.geraet--desktop {
+  width: 100%;
+  height: calc(900px * 0.78);
+}
+.geraet--desktop .geraet__flaeche {
+  width: 1440px;
+  height: 900px;
+  transform: scale(0.78);
+}
+.geraet--telefon {
+  width: 390px;
+  height: 844px;
+  border-radius: var(--r-xl);
+}
+.geraet--telefon .geraet__flaeche {
+  width: 390px;
+  height: 844px;
+}
+@media (max-width: 1240px) {
+  .geraet--desktop {
+    height: calc(900px * 0.6);
+  }
+  .geraet--desktop .geraet__flaeche {
+    transform: scale(0.6);
+  }
+}
+
+/* ==========================================================================
+   DER ENTWURF
+   ========================================================================== */
+
+.app {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--grund);
+}
+
+/*
+  Die Aurora liegt hinter allem und trägt nie Text.
+
+  Vier weiche Wolken statt eines Verlaufs über die ganze Fläche: Ein durch-
+  laufender Verlauf färbt auch die Stellen, an denen gelesen wird. Wolken
+  lassen sich dorthin legen, wo Platz ist.
+*/
+.app::before {
+  content: '';
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 78%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 52% at 18% 30%, var(--aurora-violett) 0%, transparent 70%),
+    radial-gradient(34% 46% at 62% 12%, var(--aurora-rosa) 0%, transparent 72%),
+    radial-gradient(42% 56% at 92% 38%, var(--aurora-himmel) 0%, transparent 70%),
+    radial-gradient(26% 40% at 44% 62%, var(--aurora-pfirsich) 0%, transparent 74%);
+  opacity: 0.55;
+  filter: blur(18px);
+}
+.app > * {
+  position: relative;
+}
+
+.app--desktop {
+  display: grid;
+  grid-template-columns: 268px 1fr;
+}
+.app--telefon {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+/* ------------------------------------------------------- Seitenspalte (Glas) */
+
+.spalte {
+  margin: var(--space-4);
+  border-radius: var(--r-gross);
+  padding: var(--space-5) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-loose);
+}
+
+/*
+  Die Marke: zwei überlagerte Flächen mit großem Radius, die hintere leicht
+  gedreht — dieselbe Figur wie im Logo, in klein.
+*/
+.marke {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  text-decoration: none;
+  color: var(--tinte);
+  font-size: var(--grad-3);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+.marke__zeichen {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+.marke__zeichen::before,
+.marke__zeichen::after {
+  content: '';
+  position: absolute;
+  border-radius: 9px;
+}
+.marke__zeichen::before {
+  inset: 4px 10px 2px 0;
+  background: var(--marke-aubergine);
+  transform: rotate(-4deg);
+}
+.marke__zeichen::after {
+  inset: 0 0 6px 10px;
+  background: var(--marke-tomato);
+  transform: rotate(3deg);
+}
+
+.nav {
+  display: grid;
+  gap: 2px;
+}
+.nav__marke {
+  font-size: var(--text-mikro);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  color: var(--tinte-3);
+  margin-bottom: var(--space-2);
+}
+.nav__ziel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border-radius: var(--r-klein);
+  color: var(--tinte-2);
+  text-decoration: none;
+  font-size: var(--text);
+  font-weight: 600;
+}
+.nav__ziel:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--tinte);
+}
+.nav__ziel[aria-current='page'] {
+  background: var(--tinte);
+  color: var(--tinte-invers);
+  font-weight: 700;
+}
+.nav__symbol {
+  width: 20px;
+  text-align: center;
+}
+
+.spalte__fuss {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap);
+  font-size: var(--text-klein);
+  color: var(--tinte-2);
+}
+.person__kreis {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--tinte);
+  color: var(--tinte-invers);
+  font-weight: 800;
+  font-size: var(--text-klein);
+}
+
+/* ---------------------------------------------------------- Kopf und Inhalt */
+
+.inhalt {
+  overflow: auto;
+  min-height: 0;
+  padding: var(--space-7) var(--space-8) var(--space-10);
+}
+.app--telefon .inhalt {
+  padding: var(--space-5) var(--space-4) var(--space-8);
+}
+
+.kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--stack-snug) var(--space-5);
+  margin-bottom: var(--stack-normal);
+}
+.kopf__text {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 46rem;
+}
+.oberzeile {
+  font-size: var(--text-mikro);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  color: var(--tinte-3);
+}
+.titel {
+  font-size: var(--grad-1);
+}
+.app--telefon .titel {
+  font-size: var(--grad-2);
+}
+.lead {
+  color: var(--tinte-2);
+  font-size: 1rem;
+}
+.kopf__aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Mobiler Kopf: schwebendes Glas über der Aurora. */
+.telefonkopf {
+  margin: var(--space-3) var(--space-3) 0;
+  border-radius: var(--r);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.telefonkopf .marke {
+  font-size: 1.125rem;
+}
+.telefonkopf .marke__zeichen {
+  width: 28px;
+  height: 28px;
+}
+
+/* ------------------------------------------- Untere Navigation — schwebend */
+
+.unten {
+  margin: 0 var(--space-3) var(--space-3);
+  border-radius: var(--r-gross);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: var(--space-1);
+}
+.unten__ziel {
+  min-height: 56px;
+  border-radius: var(--r);
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--tinte-2);
+  font-size: var(--text-mikro);
+  font-weight: 700;
+}
+.unten__ziel[aria-current='page'] {
+  background: var(--tinte);
+  color: var(--tinte-invers);
+}
+.unten__symbol {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Bausteine
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  padding: 0 var(--space-5);
+  border-radius: var(--r-pille);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  color: var(--tinte);
+  background: var(--flaeche);
+  border-color: var(--rand-stark);
+}
+/* Primär: deckend und kontrastreich. Hier ist kein Glas. */
+.btn--primaer {
+  background: var(--tinte);
+  border-color: var(--tinte);
+  color: var(--tinte-invers);
+  box-shadow: var(--schatten-flach);
+}
+/* Sekundär: Glas — es schwebt über der Fläche, es trägt sie nicht. */
+.btn--glas {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: var(--schatten-flach);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .btn--glas {
+    background: var(--flaeche);
+    border-color: var(--rand-stark);
+  }
+}
+.btn--still {
+  background: transparent;
+  border-color: transparent;
+  padding: 0 var(--space-3);
+  color: var(--tinte-2);
+}
+.btn--voll {
+  width: 100%;
+}
+
+/* Deckende Karte — der Normalfall für Inhalt. */
+.karte {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--r-gross);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--stack-snug);
+  box-shadow: var(--schatten-flach);
+}
+/* Glaskarte — für kleine, schwebende Auskünfte. Nicht für Lesetext. */
+.karte--glas {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .karte--glas {
+    background: var(--flaeche);
+    border-color: var(--rand);
+  }
+}
+.karte__titel {
+  font-size: var(--grad-4);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.karte__text {
+  color: var(--tinte-2);
+  font-size: var(--text-klein);
+}
+
+.raster {
+  display: grid;
+  gap: var(--space-5);
+}
+.raster--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.raster--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.app--telefon .raster--2,
+.app--telefon .raster--3 {
+  grid-template-columns: 1fr;
+}
+
+.abschnitt {
+  margin-bottom: var(--stack-loose);
+}
+.abschnitt__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--stack-snug);
+}
+.abschnitt__titel {
+  font-size: var(--grad-3);
+  font-weight: 800;
+}
+
+/* Statusplakette — kleine Glasfläche, deshalb hier erlaubt. */
+.plakette {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: var(--r-pille);
+  font-size: var(--text-mikro);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: var(--flaeche-stumpf);
+  color: var(--tinte-2);
+  border: 1px solid var(--rand);
+}
+.plakette--gut {
+  background: var(--gut-weich);
+  color: var(--gut);
+  border-color: transparent;
+}
+.plakette--warn {
+  background: var(--warn-weich);
+  color: var(--warn);
+  border-color: transparent;
+}
+.plakette--fehler {
+  background: var(--fehler-weich);
+  color: var(--fehler);
+  border-color: transparent;
+}
+.plakette--akzent {
+  background: var(--akzent-weich);
+  color: var(--akzent);
+  border-color: transparent;
+}
+
+.feld {
+  display: grid;
+  gap: 6px;
+}
+.feld__marke {
+  font-size: var(--text-klein);
+  font-weight: 700;
+}
+/* Eingabefelder sind **deckend** — sie gehören zum Formular, nicht zum Glas. */
+.feld__eingabe {
+  font: inherit;
+  font-size: var(--text);
+  min-height: var(--tap);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--rand-stark);
+  border-radius: var(--r-klein);
+  background: var(--flaeche);
+  color: var(--tinte);
+  width: 100%;
+}
+
+/* ------------------------------------------------------------ Paketkarten */
+
+.paket {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--r-gross);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--schatten-flach);
+}
+.paket__bild {
+  aspect-ratio: var(--cover-ratio);
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--grund-tief);
+}
+.paket__foto {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+/*
+  Das Standardmotiv: zwei überlagerte, leicht gedrehte Flächen in Aurora —
+  die Figur des Logos, abstrahiert. Es muss ohne Foto hochwertig wirken, und
+  es darf nie wie ein Platzhalter aussehen.
+*/
+.motiv {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(160deg, #ffffff 0%, var(--grund-tief) 100%);
+}
+.motiv::before,
+.motiv::after {
+  content: '';
+  position: absolute;
+  border-radius: 28px;
+  filter: blur(2px);
+}
+.motiv::before {
+  inset: 18% 46% 12% 8%;
+  background: linear-gradient(150deg, var(--aurora-violett), var(--aurora-himmel));
+  transform: rotate(-6deg);
+  opacity: 0.95;
+}
+.motiv::after {
+  inset: 10% 10% 20% 38%;
+  background: linear-gradient(140deg, var(--aurora-rosa), var(--aurora-pfirsich));
+  transform: rotate(4deg);
+  opacity: 0.9;
+}
+/* Newsreader — punktuell, nur hier. */
+.motiv__text {
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--space-5);
+  text-align: center;
+  font-family: var(--schrift-editorial);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: var(--tinte);
+}
+.motiv__text small {
+  display: block;
+  font-family: var(--schrift);
+  font-size: var(--text-mikro);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tinte-2);
+  margin-bottom: 4px;
+}
+
+.paket__koerper {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+.paket__titel {
+  font-size: var(--grad-4);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.paket__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-klein);
+  color: var(--tinte-2);
+}
+
+.balken {
+  height: 8px;
+  border-radius: var(--r-pille);
+  background: var(--grund-tief);
+  overflow: hidden;
+}
+/*
+  Der Fortschritt muss man sehen. Ein Verlauf, der bei Pastell anfängt, ist auf
+  einem pastellenen Grund kaum vom leeren Balken zu unterscheiden — im ersten
+  Blick auf den Entwurf war genau das der Fall. Er beginnt deshalb in Tinte und
+  läuft nach Tomato: dunkel gegen hell, und die Marke bleibt drin.
+*/
+.balken__fuellung {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--tinte) 0%, #6b3a86 55%, var(--marke-tomato) 100%);
+}
+
+.zahl {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.nur-fuer-hilfsmittel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   Designsystem-Tafel
+   ========================================================================== */
+
+.tafel {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  margin-bottom: var(--stack-section);
+}
+.tafel__feld {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--r-gross);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+.tafel__titel {
+  font-size: var(--grad-4);
+  font-weight: 800;
+}
+.tafel__text {
+  font-size: var(--text-klein);
+  color: var(--tinte-2);
+}
+.probe {
+  border-radius: var(--r);
+  padding: var(--space-4);
+  background: linear-gradient(140deg, var(--aurora-violett), var(--aurora-rosa) 55%, var(--aurora-himmel));
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+.farbe {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-klein);
+}
+.farbe__klecks {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  border: 1px solid rgba(18, 19, 24, 0.08);
+}
+.farbe code {
+  color: var(--tinte-2);
+  font-size: var(--text-mikro);
+}
+.stufe {
+  border-bottom: 1px solid var(--rand);
+  padding-bottom: var(--space-3);
+}
+.stufe:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.stufe__wert {
+  display: block;
+  font-size: var(--text-mikro);
+  color: var(--tinte-3);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variante B — die leichtere Ebene — LexiFlow Variante B</title>
+<link rel="stylesheet" href="variante.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="../portal/index.html">P3-Fassung ansehen →</a></p>
+    <h1 class="blatt__titel">Variante B — die leichtere Ebene</h1>
+    <p class="blatt__lead">Dieselben Bildschirme wie in P3, in einer moderneren und leichteren visuellen Ebene. Beide Fassungen bleiben nebeneinander bestehen und vergleichbar.</p>
+  </header>
+  <div class="notiz">
+    <p><strong>Was hier steht.</strong> Zwei Bildschirme im normalen Zustand — Lehrkräfte-Dashboard und die Lernenden-Startseite „Heute" — je auf Desktop und Smartphone, dazu eine Designsystem-Tafel. Die übrigen fünf Entwürfe und die weiteren Zustände sind bewusst noch nicht umgestellt.</p>
+    <p><strong>Die P3-Fassung ist unangetastet.</strong> Sie liegt unverändert unter <code>docs/mockups/portal/</code>. Jeder Bildschirm hier verlinkt oben auf sein Gegenstück, damit sich beide Richtungen direkt vergleichen lassen.</p>
+    <p><strong>Kein Produktivcode.</strong> <code>src/</code> ist unverändert, P1b ist nicht umgesetzt.</p>
+  </div>
+
+  <div class="tafel">
+    <a class="tafel__feld" href="lehrkraft-dashboard.html" style="text-decoration:none;color:inherit">
+      <span class="plakette plakette--akzent">Lehrkraft</span>
+      <p class="tafel__titel">Lehrkräfte-Dashboard</p>
+      <p class="tafel__text">Desktop 1440 px und Smartphone 390 px, normaler Zustand.</p>
+    </a>
+    <a class="tafel__feld" href="heute.html" style="text-decoration:none;color:inherit">
+      <span class="plakette plakette--akzent">Lernende</span>
+      <p class="tafel__titel">Heute</p>
+      <p class="tafel__text">Desktop 1440 px und Smartphone 390 px, normaler Zustand.</p>
+    </a>
+    <a class="tafel__feld" href="system.html" style="text-decoration:none;color:inherit">
+      <span class="plakette plakette--gut">System</span>
+      <p class="tafel__titel">Designsystem-Tafel</p>
+      <p class="tafel__text">Farbtoken, Typografiestufen, deckende Karte gegen Glaskarte,
+        Schaltflächen, Statusbadge, Eingabefeld, Paketcover.</p>
+    </a>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin:var(--stack-section) 0 var(--stack-normal)">
+    Was sich ändert — und was ausdrücklich nicht</h2>
+
+  <div class="tafel">
+    <div class="tafel__feld">
+      <p class="tafel__titel">Unverändert</p>
+      <p class="tafel__text">Aufbau, UX, Navigation, Zustände und Informationsarchitektur
+        sind die aus P3. Dieselben Bildschirme, dieselbe Reihenfolge, dieselben vier
+        beziehungsweise fünf Navigationsziele, dieselben Datenschutzregeln.</p>
+    </div>
+    <div class="tafel__feld">
+      <p class="tafel__titel">Neu</p>
+      <p class="tafel__text">Sehr heller, leicht kühler Grund statt Pergament. Fast
+        schwarzes Anthrazit als Text- und Primärfarbe. Pastellige Aurora aus Violett, Rosa,
+        Himmelblau und Pfirsich. Manrope 800 in den Überschriften. Glas für alles, was
+        schwebt.</p>
+    </div>
+    <div class="tafel__feld">
+      <p class="tafel__titel">Zurückgenommen</p>
+      <p class="tafel__text">Newsreader ist <em>nicht</em> mehr die Displayschrift der
+        Oberfläche. Sie steht nur noch auf den Titelbildern der Lernpakete — punktuell, wie
+        vorgegeben. P1b in seiner bisherigen Fassung ist damit gegenstandslos.</p>
+    </div>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin:var(--stack-section) 0 var(--stack-normal)">
+    Zwei Punkte, die eine Entscheidung brauchen</h2>
+
+  <div class="notiz">
+    <p><strong>1. Die verbindliche Markenpalette.</strong> Aubergine, Tomato und Parchment
+      waren als Grundlage der Oberfläche festgelegt. In dieser Variante tragen sie die
+      Oberfläche nicht mehr: Der Grund ist kühl-hell statt Parchment, die Primärfarbe ist
+      Anthrazit statt Aubergine. Aubergine und Tomato leben im Logo weiter — das nicht
+      umgefärbt wird — und Tomato zusätzlich im Fortschrittsbalken. Das folgt deiner neuen
+      Leitlinie, hebt aber eine frühere verbindliche Festlegung auf. Bitte ausdrücklich
+      bestätigen.</p>
+    <p><strong>2. Die Aurora und der Dunkelmodus.</strong> Diese Variante ist eine helle
+      Fassung. Pastellverläufe lassen sich nicht einfach invertieren; ein Dunkelmodus wäre
+      ein eigenes, vollständig geprüftes Thema — so wie es in den Token schon steht. Für 5B
+      schlage ich vor, ihn ausdrücklich nicht anzufangen.</p>
+  </div>
+
+</div>
+</body>
+</html>

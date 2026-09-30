@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Designsystem-Tafel — Variante B — LexiFlow Variante B</title>
+<link rel="stylesheet" href="variante.css">
+</head>
+<body>
+<div class="blatt">
+  <header class="blatt__kopf">
+    <p class="blatt__rueck"><a href="index.html">← Variante B</a> · <a href="../portal/index.html">P3-Fassung</a></p>
+    <h1 class="blatt__titel">Designsystem-Tafel — Variante B</h1>
+    <p class="blatt__lead">Farbtoken, Typografiestufen, Flächen und Bausteine der neuen visuellen Ebene.</p>
+  </header>
+  <div class="notiz">
+    <p><strong>Die Regel, um die es geht:</strong> Glas ist eine Aussage über Schweben, nicht über Schönheit. Es gehört auf schwebende Navigation, Filter, sekundäre Schaltflächen, kleine Statusflächen und Dialoge — und unter keinen Umständen unter lange Formulare, Tabellen, den Grammatikeditor, Fehlermeldungen oder längere Lesetexte.</p>
+    <p><strong>Jede Glasfläche hat einen deckenden Rückfall.</strong> Ohne <code>backdrop-filter</code> ist durchscheinendes Weiß über einem Pastellverlauf nicht etwas weniger schön, sondern unlesbar. Der Rückfall steht in <code>@supports not</code> und lässt sich in den Entwicklerwerkzeugen prüfen, indem man den Filter abschaltet.</p>
+    <p><strong>Kontrast ist gerechnet, nicht geschätzt.</strong> Tinte auf Grund 17,3 : 1, Tinte 2 auf Grund 7,9 : 1, Tinte 3 auf Grund 4,7 : 1, Weiß auf Tinte 18,6 : 1. Die vier Zustandsfarben liegen zwischen 5,5 : 1 und 6,6 : 1 auf ihrer weichen Fläche. Die Aurorafarben tragen nie Text — Tinte darauf käme zwar auf 10 : 1 und mehr, aber der Wert schwankt über den Verlauf hinweg, und ein Kontrast, der von der Stelle abhängt, ist keiner.</p>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin-bottom:var(--stack-normal)">Farbtoken</h2>
+  <div class="tafel">
+    <div class="tafel__feld">
+      <p class="tafel__titel">Grund und Tinte</p>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#f6f7fb"></span>
+    <span><strong>Grund</strong><br><code>--grund</code> · #f6f7fb<br>
+      <span style="color:var(--tinte-2)">Der Seitenhintergrund. Sehr hell, leicht kühl.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#edeff7"></span>
+    <span><strong>Grund tief</strong><br><code>--grund-tief</code> · #edeff7<br>
+      <span style="color:var(--tinte-2)">Balken, Rillen, ruhende Flächen.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#ffffff"></span>
+    <span><strong>Fläche</strong><br><code>--flaeche</code> · #ffffff<br>
+      <span style="color:var(--tinte-2)">Deckende Karten — der Normalfall für Inhalt.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#121318"></span>
+    <span><strong>Tinte</strong><br><code>--tinte</code> · #121318<br>
+      <span style="color:var(--tinte-2)">Text und Primärfarbe. 17,3 : 1 auf Grund.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#4a4d5a"></span>
+    <span><strong>Tinte 2</strong><br><code>--tinte-2</code> · #4a4d5a<br>
+      <span style="color:var(--tinte-2)">Nebentext. 7,9 : 1 auf Grund.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#6b6f7e"></span>
+    <span><strong>Tinte 3</strong><br><code>--tinte-3</code> · #6b6f7e<br>
+      <span style="color:var(--tinte-2)">Etiketten, Oberzeilen. 4,7 : 1 auf Grund.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#e4e7f0"></span>
+    <span><strong>Rand</strong><br><code>--rand</code> · #e4e7f0<br>
+      <span style="color:var(--tinte-2)">Die Kontur deckender Karten.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#c5c9d8"></span>
+    <span><strong>Rand stark</strong><br><code>--rand-stark</code> · #c5c9d8<br>
+      <span style="color:var(--tinte-2)">Eingabefelder, sekundäre Knöpfe.</span></span>
+  </div>
+    </div>
+    <div class="tafel__feld">
+      <p class="tafel__titel">Aurora</p>
+      <p class="tafel__text">Die vier Pastelle tragen nie Text. Sie sind Fläche, Tiefe und
+        Stimmung — und liegen als weiche Wolken hinter dem Inhalt, nicht als durchlaufender
+        Verlauf über ihn.</p>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#cdbcff"></span>
+    <span><strong>Aurora Violett</strong><br><code>--aurora-violett</code> · #cdbcff<br>
+      <span style="color:var(--tinte-2)">Fläche, nie Text.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#ffc7e0"></span>
+    <span><strong>Aurora Rosa</strong><br><code>--aurora-rosa</code> · #ffc7e0<br>
+      <span style="color:var(--tinte-2)">Fläche, nie Text.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#bfe3ff"></span>
+    <span><strong>Aurora Himmel</strong><br><code>--aurora-himmel</code> · #bfe3ff<br>
+      <span style="color:var(--tinte-2)">Fläche, nie Text.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#ffd9be"></span>
+    <span><strong>Aurora Pfirsich</strong><br><code>--aurora-pfirsich</code> · #ffd9be<br>
+      <span style="color:var(--tinte-2)">Fläche, nie Text.</span></span>
+  </div>
+    </div>
+    <div class="tafel__feld">
+      <p class="tafel__titel">Zustand und Marke</p>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#0f6b4f"></span>
+    <span><strong>Gut</strong><br><code>--gut</code> · #0f6b4f<br>
+      <span style="color:var(--tinte-2)">Bestätigung. Trägt Text auf --gut-weich.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#8a4a1c"></span>
+    <span><strong>Warnung</strong><br><code>--warn</code> · #8a4a1c<br>
+      <span style="color:var(--tinte-2)">Offene Stellen, Hinweise.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#a3182a"></span>
+    <span><strong>Fehler</strong><br><code>--fehler</code> · #a3182a<br>
+      <span style="color:var(--tinte-2)">Nur für Fehler.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#b3201f"></span>
+    <span><strong>Akzent</strong><br><code>--akzent</code> · #b3201f<br>
+      <span style="color:var(--tinte-2)">Die textsichere Ableitung von Tomato.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#2f092d"></span>
+    <span><strong>Marke Aubergine</strong><br><code>--marke-aubergine</code> · #2f092d<br>
+      <span style="color:var(--tinte-2)">Lebt im Logo weiter.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#ff2e2d"></span>
+    <span><strong>Marke Tomato</strong><br><code>--marke-tomato</code> · #ff2e2d<br>
+      <span style="color:var(--tinte-2)">Lebt im Logo und im Fortschritt weiter.</span></span>
+  </div>
+      <p class="tafel__text">Aubergine und Tomato sind nicht verschwunden — sie leben im
+        Logo weiter, das nicht umgefärbt wird, und Tomato zusätzlich im Fortschrittsbalken.
+        <strong>Das ist eine Entscheidung, die noch bestätigt gehört:</strong> Die
+        verbindliche Palette aus 4A nennt die drei Markenfarben als Grundlage der
+        Oberfläche.</p>
+    </div>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin-bottom:var(--stack-normal)">Typografiestufen</h2>
+  <div class="tafel">
+    <div class="tafel__feld" style="grid-column:1/-1">
+      <p class="tafel__titel">Manrope trägt alles — Newsreader nur das Cover</p>
+      <p class="tafel__text">Geprüft wird hier die Frage aus deiner Vorgabe: Manrope 700–800
+        für Überschriften, 400–600 für Oberfläche und Fließtext, Newsreader höchstens
+        punktuell auf Titelbildern. Die Stufen unten sind das Ergebnis.</p>
+  <div class="stufe">
+    <span class="stufe__wert">Seitentitel · --grad-1</span>
+    <span style="font-size:2.5rem;font-weight:800;letter-spacing:-.03em">Heute</span>
+    <p class="tafel__text">40–56 px · Manrope 800 · −0,03 em</p>
+  </div>
+  <div class="stufe">
+    <span class="stufe__wert">Abschnitt · --grad-2</span>
+    <span style="font-size:2rem;font-weight:800;letter-spacing:-.03em">Dran heute</span>
+    <p class="tafel__text">32 px · Manrope 800</p>
+  </div>
+  <div class="stufe">
+    <span class="stufe__wert">Überschrift · --grad-3</span>
+    <span style="font-size:1.375rem;font-weight:800;letter-spacing:-.03em">Deine Kurse</span>
+    <p class="tafel__text">22 px · Manrope 800</p>
+  </div>
+  <div class="stufe">
+    <span class="stufe__wert">Kartentitel · --grad-4</span>
+    <span style="font-size:1.0625rem;font-weight:700;letter-spacing:-.02em">Unit 3 — City life</span>
+    <p class="tafel__text">17 px · Manrope 700</p>
+  </div>
+  <div class="stufe">
+    <span class="stufe__wert">Fließtext · --text</span>
+    <span>Ein Tag zählt nach zehn regulär bewerteten Aufgaben, in jeder Übungsform.</span>
+    <p class="tafel__text">15 px · Manrope 450</p>
+  </div>
+  <div class="stufe">
+    <span class="stufe__wert">Klein · --text-klein</span>
+    <span style="font-size:.8125rem;color:var(--tinte-2)">24 Mitglieder · 3 Lernpakete</span>
+    <p class="tafel__text">13 px · Manrope 450</p>
+  </div>
+  <div class="stufe">
+    <span class="stufe__wert">Oberzeile · --text-mikro</span>
+    <span class="oberzeile">Deine Lernserie</span>
+    <p class="tafel__text">11 px · Manrope 800 · 0,16 em · Versalien</p>
+  </div>
+  <div class="stufe">
+    <span class="stufe__wert">Editorial · (nur Cover)</span>
+    <span style="font-family:var(--schrift-editorial);font-size:1.5rem;font-weight:600">Unit 3 — City life</span>
+    <p class="tafel__text">Newsreader 600 — ausschließlich auf Titelbildern</p>
+  </div>
+    </div>
+  </div>
+
+  <h2 class="abschnitt__titel" style="margin-bottom:var(--stack-normal)">Flächen</h2>
+  <div class="tafel">
+    <div class="tafel__feld">
+      <p class="tafel__titel">Deckende Karte</p>
+      <p class="tafel__text">Der Normalfall. Alles, was Text trägt, den man liest:
+        Kartentexte, Formulare, Tabellen, der Grammatikeditor, Fehlermeldungen.</p>
+      <div class="probe">
+        <div class="karte" style="width:100%">
+          <span class="plakette plakette--warn">7 offene Stellen</span>
+          <p class="karte__titel">Unit 3 — City life</p>
+          <p class="karte__text">Sieben Vokabeln ohne deutsche Entsprechung.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tafel__feld">
+      <p class="tafel__titel">Glaskarte</p>
+      <p class="tafel__text">Nur für kleine, schwebende Auskünfte. Über der Probe liegt
+        absichtlich ein kräftiger Verlauf — so ist zu sehen, was Glas mit Lesbarkeit macht
+        und warum längere Texte nicht darauf gehören.</p>
+      <div class="probe">
+        <div class="karte karte--glas" style="width:100%">
+          <p class="karte__titel">KI-Zugang</p>
+          <p class="karte__text">Eingerichtet, zuletzt am 28. September benutzt.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tafel__feld">
+      <p class="tafel__titel">Schaltflächen</p>
+      <p class="tafel__text"><strong>Primär</strong> ist deckend und kontrastreich — die
+        wichtigste Handlung darf nicht davon abhängen, was zufällig hinter ihr liegt.
+        <strong>Sekundär</strong> und <strong>Glas</strong> schweben.</p>
+      <div class="probe">
+        <button class="btn btn--primaer" type="button">Neues Lernpaket</button>
+        <button class="btn" type="button">Sekundär, deckend</button>
+        <button class="btn btn--glas" type="button">Als Lernende ansehen</button>
+        <button class="btn btn--still" type="button">Alle Entwürfe</button>
+      </div>
+    </div>
+
+    <div class="tafel__feld">
+      <p class="tafel__titel">Statusplaketten</p>
+      <p class="tafel__text">Klein genug, um über der Aurora zu stehen. Farbe trägt nie
+        allein — der Text sagt dasselbe.</p>
+      <div class="probe">
+        <span class="plakette">Englisch 7b</span>
+        <span class="plakette plakette--gut">veröffentlicht</span>
+        <span class="plakette plakette--warn">7 offene Stellen</span>
+        <span class="plakette plakette--fehler">nicht gespeichert</span>
+        <span class="plakette plakette--akzent">seit heute früh</span>
+      </div>
+    </div>
+
+    <div class="tafel__feld">
+      <p class="tafel__titel">Eingabefeld</p>
+      <p class="tafel__text">Deckend, immer. Ein Eingabefeld gehört zum Formular und nicht
+        zum Glas — und 44 px hoch, damit man es am Telefon trifft.</p>
+      <div class="probe">
+        <label class="feld" style="width:100%">
+          <span class="feld__marke">Deutsche Antwort</span>
+          <input class="feld__eingabe" type="text" value="überfüllt, voll">
+        </label>
+        <label class="feld" style="width:100%">
+          <span class="feld__marke">Beispielsatz</span>
+          <input class="feld__eingabe" type="text" placeholder="noch offen">
+        </label>
+      </div>
+    </div>
+
+    <div class="tafel__feld">
+      <p class="tafel__titel">Paketcover</p>
+      <p class="tafel__text">Links das abstrakte Aurora-Standardmotiv — zwei überlagerte,
+        leicht gedrehte Flächen, die Figur des Logos. Rechts ein hochgeladenes Bild. Beide
+        16 : 10.</p>
+      <div class="raster raster--2">
+        <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="motiv"></span><span class="motiv__text"><small>Englisch 7b</small>Unit 3 — City life</span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 3 — City life</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>24 Vokabeln</span></span>
+    
+  </span>
+</a>
+        <a class="paket" href="#/pakete/1">
+  <span class="paket__bild"><span class="paket__foto" style="background-image:radial-gradient(60% 70% at 26% 28%, rgba(255,242,214,.95) 0%, transparent 62%), radial-gradient(55% 60% at 74% 24%, rgba(150,196,236,.9) 0%, transparent 66%), radial-gradient(70% 80% at 58% 92%, rgba(86,104,140,.95) 0%, transparent 70%), linear-gradient(158deg, #8fa6c9 0%, #6d7ea6 46%, #40506f 100%)"></span></span>
+  <span class="paket__koerper">
+    <span class="paket__titel">Unit 2 — Free time</span>
+    <span class="paket__zeile"><span class="plakette">Englisch 7b</span><span>18 Vokabeln</span></span>
+    
+  </span>
+</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
