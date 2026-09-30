@@ -1,9 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { test } from '@playwright/test';
 
+import { BREITEN_APP } from './adressen';
 import { breiteAus } from './pruefbank';
 import {
+  fehlschlaegeBeobachten,
   fokusIstSichtbar,
   keinQuerlauf,
+  seiteIstDa,
   tippzieleGrossGenug,
   zoomProbe,
 } from './layoutpruefungen';
@@ -13,9 +16,8 @@ import {
  *
  * ## Woran man diese Datei erkennt
  *
- * Jeder Prüfname trägt `@breiten`. Das ist kein Schmuck: Die Marke entscheidet,
- * in welchem Projekt die Prüfung läuft (`e2e/pruefbank.ts`). Ohne Marke liefe
- * sie einmal auf 1280 px – also genau dort, wo sie nichts findet.
+ * Jeder Prüfname trägt `@breiten`, und sie läuft nur unter
+ * `playwright.breiten.config.ts` – mit eigenem Server auf Port 4291.
  *
  * ## Warum hier keine Abläufe stehen
  *
@@ -23,19 +25,19 @@ import {
  * Ansichten auf und misst sie. Was die Ansichten tun, prüfen die anderen
  * Dateien – einmal.
  *
- * ## Was ein Fehlschlag hier bedeutet
+ * ## Warum jede Prüfung zuerst die Adresse prüft
  *
- * Nicht, dass die Prüfung falsch ist. Bis 5B gab es genau ein Projekt mit
- * einer Breite; über 390 px hat bisher **nichts** eine Aussage getroffen. Was
- * hier zuerst rot wird, ist deshalb die Bestandsaufnahme für den Umbau und
- * keine Regression.
+ * Der erste echte Lauf hat nie eine Layoutprüfung erreicht: Auf dem Port lief
+ * eine fremde Vorschau unter `/LexiFlow/`, alle Bündel kamen als 404 zurück,
+ * und die Ansicht blieb leer. Die Meldung lautete „element(s) not found".
+ * `seiteIstDa` stellt die Frage, die dahinter lag, und stellt sie zuerst.
  */
 
 const ANSICHTEN = [
-  { name: 'Startseite', adresse: '/' },
-  { name: 'Lehrkraftbereich', adresse: '/#/material' },
-  { name: 'Lernbereich', adresse: '/#/lernen' },
-  { name: 'Datenschutz', adresse: '/#/datenschutz' },
+  { name: 'Startseite', adresse: './' },
+  { name: 'Lehrkraftbereich', adresse: './#/material' },
+  { name: 'Lernbereich', adresse: './#/lernen' },
+  { name: 'Datenschutz', adresse: './#/datenschutz' },
 ] as const;
 
 /* Angetippt wird auf schmalen Geräten; auf 1024 und 1440 wird geklickt. */
@@ -44,8 +46,9 @@ const TIPPBREITEN = 768;
 for (const ansicht of ANSICHTEN) {
   test.describe(ansicht.name, () => {
     test.beforeEach(async ({ page }) => {
+      const fehlschlaege = fehlschlaegeBeobachten(page);
       await page.goto(ansicht.adresse);
-      await expect(page.getByRole('main')).toBeVisible();
+      await seiteIstDa(page, BREITEN_APP.grundpfad, fehlschlaege);
     });
 
     test(`@breiten ${ansicht.name}: nichts läuft über den rechten Rand`, async ({ page }) => {

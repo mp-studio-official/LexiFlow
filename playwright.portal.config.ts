@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-import { ablaufProjekt, breitenProjekte } from './e2e/pruefbank';
+import { ablaufProjekt } from './e2e/pruefbank';
 
 const executablePath = process.env['PLAYWRIGHT_CHROMIUM_PATH'];
 
@@ -44,11 +44,11 @@ export default defineConfig({
     ...(executablePath ? { launchOptions: { executablePath } } : {}),
   },
   /*
-    Dieselbe Prüfbank wie in `playwright.config.ts` – und das ist der Punkt.
-    Zwei Konfigurationen mit je eigener Breitenliste wären zwei Listen, die
-    auseinanderlaufen, sobald jemand eine davon pflegt.
+    Der Portalablauf bleibt auf 4183. Die Breitenprüfungen des Portals laufen
+    unter `playwright.portal-breiten.config.ts` auf einem eigenen Port; die
+    Marke `@breiten` hält sie hier heraus.
   */
-  projects: [ablaufProjekt(), ...breitenProjekte()],
+  projects: [ablaufProjekt()],
   webServer: {
     /*
       Bauen und ausliefern in einem Befehl, damit der Unterpfad in beiden

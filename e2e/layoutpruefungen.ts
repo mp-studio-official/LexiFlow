@@ -165,3 +165,72 @@ export async function zoomProbe(page: Page): Promise<void> {
     await page.setViewportSize(vorher);
   }
 }
+
+/**
+ * Beobachtet, was der Browser vergeblich anfordert.
+ *
+ * Ohne das lautet die Meldung eines fehlenden Bündels „element(s) not found"
+ * – die Folge, nicht die Ursache. Mit dem hier steht der 404 in derselben
+ * Zeile wie die leere Wurzel.
+ */
+export function fehlschlaegeBeobachten(page: Page): () => string[] {
+  const fehlschlaege: string[] = [];
+  page.on('response', (antwort) => {
+    if (antwort.status() >= 400) {
+      fehlschlaege.push(`${antwort.status()} ${new URL(antwort.url()).pathname}`);
+    }
+  });
+  page.on('requestfailed', (anfrage) => {
+    fehlschlaege.push(`abgebrochen ${new URL(anfrage.url()).pathname}`);
+  });
+  return () => [...new Set(fehlschlaege)];
+}
+
+/**
+ * Ist das hier überhaupt die Anwendung, die geprüft werden soll?
+ *
+ * Drei Fragen in dieser Reihenfolge, weil jede die nächste erklärt:
+ *
+ * 1. **Liegt die Seite, wo sie liegen soll?** Ein `/LexiFlow/` statt `/` heißt
+ *    nicht „Layoutfehler", sondern „falscher Server".
+ * 2. **Ist die React-Wurzel gefüllt?** Eine leere Wurzel heißt, dass das
+ *    JavaScript nicht kam – die Fehlschlagliste sagt, welches.
+ * 3. Erst dann: **Gibt es ein `<main>`?**
+ *
+ * Vorher meldete sich Frage 1 als Antwort auf Frage 3, nach sieben Sekunden
+ * Warten, achtundvierzigmal.
+ */
+export async function seiteIstDa(
+  page: Page,
+  grundpfad: string,
+  fehlschlaege: () => string[] = () => [],
+): Promise<void> {
+  const pfad = new URL(page.url()).pathname;
+  expect(
+    pfad,
+    `die Seite liegt unter ${pfad} statt unter ${grundpfad} – auf diesem Port ` +
+      `antwortet ein fremder Server`,
+  ).toBe(grundpfad);
+
+  const wurzel = page.locator('#root');
+  await expect(wurzel, 'im HTML steht keine React-Wurzel (#root)').toHaveCount(1, {
+    timeout: 2_000,
+  });
+
+  try {
+    await expect(wurzel.locator(':scope > *').first()).toBeAttached({ timeout: 5_000 });
+  } catch {
+    const liste = fehlschlaege();
+    throw new Error(
+      `Die React-Wurzel ist leer geblieben – die Anwendung hat nicht gestartet.\n` +
+        (liste.length > 0
+          ? `Der Browser bekam diese Antworten nicht:\n  ${liste.join('\n  ')}`
+          : `Es wurde nichts vergeblich angefordert; der Fehler liegt dann im ` +
+            `JavaScript selbst (siehe Trace).`),
+    );
+  }
+
+  await expect(page.getByRole('main'), 'die Anwendung startete, zeigt aber kein <main>').toBeVisible(
+    { timeout: 5_000 },
+  );
+}

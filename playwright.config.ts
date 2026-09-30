@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-import { ablaufProjekt, breitenProjekte } from './e2e/pruefbank';
+import { ablaufProjekt } from './e2e/pruefbank';
 
 const PORT = 4173;
 
@@ -26,16 +26,14 @@ export default defineConfig({
     ...(executablePath ? { launchOptions: { executablePath } } : {}),
   },
   /*
-    Die Projekte kommen aus `e2e/pruefbank.ts` und nicht aus dieser Datei.
+    Diese Suite bleibt, was sie war: Desktop Chrome, ein Server auf 4173.
 
-    `ablaufProjekt()` ist das bisherige Projekt: Desktop Chrome, alles außer
-    den Prüfungen mit der Marke `@breiten`. Es läuft genau so lange wie vorher.
-
-    `breitenProjekte()` sind acht Projekte – vier Breiten mal zwei Maschinen –
-    die **nur** die markierten Prüfungen fahren. Ein Ablauf ist kein Layout;
-    ihn achtmal zu fahren kostete das Achtfache und fände nichts.
+    `ablaufProjekt()` schließt die Prüfungen mit der Marke `@breiten` aus. Sie
+    laufen unter `playwright.breiten.config.ts`, mit eigenem Port und ohne
+    Wiederverwenden eines fremden Servers – Playwright startet je
+    Konfiguration genau einen Server, und beide Suiten brauchen einen eigenen.
   */
-  projects: [ablaufProjekt(), ...breitenProjekte()],
+  projects: [ablaufProjekt()],
   webServer: {
     command: `npm run build && npx vite preview --port ${PORT} --strictPort --host 127.0.0.1`,
     url: `http://127.0.0.1:${PORT}`,
