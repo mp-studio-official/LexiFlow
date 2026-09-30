@@ -62,10 +62,11 @@ test.describe('Marke – Auslieferung', () => {
     }
 
     /*
-      Satoshi steht im Stack an erster Stelle, wird aber nicht mitgeliefert –
-      die Lizenzlage für die Weitergabe in einer portablen Lerndatei ließ
-      sich nicht zweifelsfrei klären. Was hier gilt: Es darf keine
-      Satoshi-Datei in der Auslieferung liegen und keine angefragt werden.
+      Satoshi ist seit E10 ganz aus dem Stack verschwunden – die Lizenzlage
+      für die Weitergabe in einer portablen Lerndatei ließ sich nie
+      zweifelsfrei klären. Diese Zusicherung bleibt trotzdem stehen: Sie
+      kostet nichts und beschreibt weiterhin, was gelten muss, falls die
+      Schrift je über einen Umweg zurückkommt.
     */
     expect(requests.filter((url) => /satoshi/i.test(url))).toEqual([]);
   });

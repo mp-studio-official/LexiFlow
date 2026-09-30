@@ -260,11 +260,16 @@ test.describe('Lokale Schriften', () => {
       };
     });
 
-    // Satoshi steht im Stack an erster Stelle, ausgeliefert wird Manrope –
-    // die Ersatzschrift muss deshalb überall zweiter Eintrag sein.
-    expect(families.body).toContain('Manrope Variable');
-    expect(families.display).toContain('Manrope Variable');
-    expect(families.body).toContain('Satoshi');
+    /*
+      Seit E10 steht Manrope **vorn**, nicht an zweiter Stelle hinter Satoshi.
+
+      Vorher stand dort eine Schrift, die nie ausgeliefert wurde: Wer sie
+      lokal installiert hatte, sah eine andere Oberfläche als alle anderen.
+      Die Erwartung ist deshalb schärfer geworden, nicht milder – geprüft wird
+      jetzt, dass die ausgelieferte Schrift auch die erste ist.
+    */
+    expect(families.body.split(',')[0]?.trim()).toBe('"Manrope Variable"');
+    expect(families.display.split(',')[0]?.trim()).toBe('"Manrope Variable"');
     // Newsreader trägt seit dem Markensystem nur noch Beispielsätze und Zitate.
     expect(families.quote).toContain('Newsreader Variable');
     // Geladen wird ausschließlich vom eigenen Server.

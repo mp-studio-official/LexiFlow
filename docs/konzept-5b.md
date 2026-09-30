@@ -77,11 +77,11 @@ Eindruck vermuten lässt. Vorhanden und **durch Tests festgehalten**:
 neben Bausteinen. Genau das ist der Gegenstand von 5B.
 
 Schriften: **Manrope Variable** und **Newsreader Variable** liegen lokal
-eingebettet vor; Satoshi wird nur benutzt, wenn jemand sie installiert hat
-(Lizenzlage für die Weitergabe ungeklärt). Die Forderung „freie Schriften
-lokal mitliefern, keine externe Schriftanforderung" ist damit **bereits
-erfüllt** und bleibt es — die *unbestimmte* Erstwahl Satoshi fällt mit E10
-weg (Abschnitt 12).
+eingebettet vor. Die Forderung „freie Schriften lokal mitliefern, keine
+externe Schriftanforderung" ist damit **bereits erfüllt** und bleibt es. Die
+*unbestimmte* Erstwahl Satoshi ist mit E10 weggefallen und seit **P1a**
+(Block 5B.1) auch aus `tokens.css` verschwunden — `src/styles/neueToken.test.ts`
+hält das fest (Abschnitt 12).
 
 > **Damit kein Missverständnis entsteht:** Dass die Token gut sind und die
 > Kontrastprüfung grün läuft, heißt **nicht**, dass das sichtbare Design dem
@@ -401,7 +401,7 @@ nicht eine Einstellung.
 **Bleibt unverändert:** Farben, Kontrastregeln, Laufweitenleiter, Radien,
 Fokus, Bewegung, Druckmaßstäbe. Die Token sind nicht das Problem.
 
-**Ändert sich:** `--font-sans` und `--font-display` verlieren Satoshi (E10).
+**Erledigt in P1a (5B.1):** `--font-sans` und `--font-display` haben Satoshi verloren; Manrope steht jetzt vorn (E10).
 Manrope trägt die Oberfläche, Newsreader bekommt mit `--font-display` die
 editoriale Überschriftenrolle; `--font-quote` bleibt daneben die Stimme im
 Lernmaterial. Zwei Token, eine Schriftdatei. Eine Schrift, die nur auf manchen
@@ -885,7 +885,7 @@ Genau **vier** Ziele: Heute · Lernen · Üben · Mein Fortschritt.
 
 Satoshi ist **nicht** mehr die unbestimmte erste Wahl. Eine Schrift, die nur
 auf manchen Geräten da ist, erzeugt ein Design, das sich nicht reproduzieren
-lässt — und genau das steht heute in `--font-sans` und `--font-display`.
+lässt — und genau das stand bis P1a in `--font-sans` und `--font-display`.
 
 Verbindlich, beide bereits lokal eingebettet:
 
@@ -894,9 +894,15 @@ Verbindlich, beide bereits lokal eingebettet:
 | Oberfläche, Bedienelemente, Fließtext | **Manrope** |
 | editoriale Überschriften | **Newsreader**, gezielt |
 
-Satoshi kann entfernt werden, solange es keine eindeutig dokumentierte Lizenz
-und keine mitgelieferte Datei gibt. Das ist eine Änderung an `tokens.css` und
-gehört in Block 5B.1, nicht in einen Dokumentationscommit.
+Satoshi ist in **P1a** entfernt worden: Es gab weder eine eindeutig
+dokumentierte Lizenz noch eine mitgelieferte Datei. Manrope steht seither in
+beiden Token an erster Stelle; `src/styles/neueToken.test.ts` prüft, dass die
+ausgelieferte Schrift auch die erste ist.
+
+Die Umschaltung von `--font-display` auf Newsreader ist **P1b** und wartet auf
+die Freigabe der statischen Entwürfe: Sie änderte jeden bestehenden Bildschirm
+sichtbar, bevor jemand den neuen gesehen hat. P1a hat dafür `--font-editorial`
+angelegt — definiert und noch nirgends benutzt.
 
 Newsreader trägt damit zwei Rollen — Beispielsätze im Lernmaterial und
 editoriale Überschriften. Sie sind auseinanderzuhalten: `--font-quote` bleibt

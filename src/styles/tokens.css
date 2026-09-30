@@ -65,20 +65,89 @@
 
   /* ---------------------------------------------------------- Typografie */
   /*
-    Satoshi zuerst: Wer die Schrift lokal installiert hat, sieht sie. Geliefert
-    wird sie nicht – die Lizenzlage der Fontshare-Datei ließ sich für die
-    Weitergabe in einer portablen Einzel-HTML nicht zweifelsfrei klären, und
-    eine ungeklärte Schrift bettet man nicht ein (siehe README).
-    Manrope ist die lokal eingebettete, offen lizenzierte Ersatzschrift: eine
-    geometrische Grotesk mit derselben ruhigen, leicht technischen Anmutung.
+    Manrope zuerst – und das ist seit E10 eine Entscheidung, keine Notlösung.
+
+    Bis Sprint 5B stand hier Satoshi an erster Stelle: Wer die Schrift lokal
+    installiert hatte, sah sie; geliefert wurde sie nie, weil die Lizenzlage
+    der Fontshare-Datei für die Weitergabe in einer portablen Einzel-HTML
+    nicht zweifelsfrei zu klären war.
+
+    Das heißt aber: Dieselbe Oberfläche sah auf zwei Rechnern verschieden aus,
+    je nachdem, was dort installiert ist – und die Fassung, die niemand
+    ausliefert, war die, gegen die gestaltet wurde. Ein Entwurf, der sich
+    nicht reproduzieren lässt, ist keiner.
+
+    Verbindlich ist deshalb, was LexiFlow selbst mitbringt: **Manrope** für
+    Oberfläche, Bedienelemente und Fließtext. Eine geometrische Grotesk mit
+    ruhiger, leicht technischer Anmutung – lokal eingebettet, offen lizenziert.
   */
-  --font-sans: 'Satoshi', 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
-  --font-display: 'Satoshi', 'Manrope Variable', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Manrope Variable', system-ui, -apple-system, sans-serif;
   /* Newsreader bleibt für Beispielsätze und Zitate – die redaktionelle Stimme
      im Lernmaterial, klar unterscheidbar von der Oberfläche. */
   --font-quote: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /*
+    ---------------------------------------------------------------------
+    Ab hier: Token für den Umbau in 5B. Sie sind **angelegt und noch
+    nirgends benutzt** – dieser Block ändert an keinem Bildschirm etwas.
+    Das ist Absicht: Die Entwürfe sind noch nicht freigegeben, und eine
+    Gestaltung, die vor ihrer Freigabe im Produkt steht, ist keine
+    Freigabe mehr. `src/styles/neueToken.test.ts` hält beides fest.
+    ---------------------------------------------------------------------
+  */
+
+  /*
+    Die editoriale Stimme der **Oberfläche** – Newsreader, dieselbe Datei wie
+    `--font-quote`, aber eine andere Rolle.
+
+    Sie auseinanderzuhalten ist der Punkt: `--font-quote` ist die redaktionelle
+    Stimme **im Lernmaterial** (Beispielsätze, Zitate). `--font-editorial` wird
+    die Stimme **der Oberfläche** – große Überschriften, die tragen sollen.
+    Zwei Token, eine Schriftdatei.
+
+    In P1b übernimmt `--font-display` diesen Wert. Solange die Entwürfe nicht
+    freigegeben sind, steht er hier und wirkt nirgends.
+  */
+  --font-editorial: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+
+  /*
+    Titelbilder stehen im Verhältnis 16 : 10 (E4).
+
+    Nicht 16 : 9 und nicht 3 : 2: Auf einer Paketkarte am Telefon ist 16 : 9 zu
+    flach, um ein Motiv zu tragen, und 3 : 2 nimmt dem Text darunter die Höhe.
+    Als Token, weil dasselbe Verhältnis in der Karte, im Detail und im
+    Zuschnitt beim Hochladen gelten muss – drei Stellen, eine Zahl.
+  */
+  --cover-ratio: 16 / 10;
+
+  /*
+    Die Abstände **zwischen gestapelten Blöcken** – nicht innerhalb eines.
+
+    `--space-*` beantwortet „wie viel Luft hat dieses Element?". Die
+    Stapelabstände beantworten „wie weit stehen zwei Sinnabschnitte
+    auseinander?". Das ist eine andere Frage, und sie bisher mit derselben
+    Leiter zu beantworten hat zu handgesetzten Einzelwerten geführt – dieselbe
+    Beobachtung wie bei der Laufweite in 4D.
+  */
+  --stack-tight: var(--space-2);
+  --stack-snug: var(--space-3);
+  --stack-normal: var(--space-5);
+  --stack-loose: var(--space-7);
+  --stack-section: var(--space-10);
+
+  /*
+    Die warme, hochwertige Fläche für editoriale Bereiche – Titelbereiche,
+    Paketkarten, der ruhige Rahmen um Lerninhalte.
+
+    Sie liegt zwischen `--canvas` (Pergament) und `--surface` (fast weiß):
+    wärmer als die Arbeitsfläche, ruhiger als die Seite. `--text-editorial` ist
+    die Tinte darauf; beide werden zusammen benutzt oder gar nicht, sonst
+    entsteht eine Kombination, deren Kontrast niemand nachgerechnet hat.
+  */
+  --surface-editorial: #fbf4ea;
+  --text-editorial: var(--brand-aubergine);
 
   --text-2xs: 0.6875rem;
   --text-xs: 0.75rem;
@@ -143,7 +212,7 @@
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
-  /* Die Wortmarke steht so schwer wie die Schrift hergibt („Satoshi Black“). */
+  /* Die Wortmarke steht so schwer wie die Schrift hergibt – bei Manrope 800. */
   --weight-black: 800;
 
   /* -------------------------------------------------------- Flächen */
