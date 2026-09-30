@@ -11,7 +11,7 @@
   <header class="blatt__kopf">
     <p class="blatt__rueck"><a href="index.html">← Übersicht</a> · <a href="ueben.html">← Üben</a> · <a href="navigation.html">Weiter: Navigation →</a></p>
     <h1 class="blatt__titel">Werkstatt — Lernpaket erstellen</h1>
-    <p class="blatt__lead">Die fünf Schritte vom Text zum veröffentlichten Lernpaket. Im Portal ist das Neubau: Heute existieren die Schritte 2 bis 6 dort gar nicht.</p>
+    <p class="blatt__lead">Sechs Schritte vom Text zum veröffentlichten Lernpaket. Im Portal ist das Neubau: Heute existieren die Schritte 2 bis 6 dort gar nicht.</p>
   </header>
 
   <div class="schalter">
@@ -22,15 +22,23 @@
         <button type="button" data-schaltet="leer" aria-pressed="false">leer</button>
         <button type="button" data-schaltet="fehler" aria-pressed="false">fehlerhaft</button>
         <button type="button" data-schaltet="offline" aria-pressed="false">offline</button>
+        </div>
+        <div class="schalter__gruppe"><span class="schalter__marke">Titelbild</span>
+        <button type="button" data-schaltet="bild-hochladen" aria-pressed="false">hochladen</button>
+        <button type="button" data-schaltet="bild-zuschnitt" aria-pressed="false">Zuschnitt</button>
+        <button type="button" data-schaltet="bild-ersetzen" aria-pressed="false">ersetzen</button>
+        <button type="button" data-schaltet="bild-entfernen" aria-pressed="false">entfernen</button>
+        <button type="button" data-schaltet="bild-standard" aria-pressed="false">ohne Bild</button>
     </div>
     <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite" id="zustandsansage"></p>
   </div>
 
   <div class="notiz">
-    <p><strong>Eine Eingabe der Lehrkraft wird nie überschrieben.</strong> Ein später eintreffender Vorschlag ändert nichts, was schon eingetragen wurde — auch kein bewusst geleertes Feld.</p>
-    <p><strong>Der Fehlerfall ist der wichtige.</strong> Fällt der KI-Zugang aus, geht keine Arbeit verloren und der Weg von Hand bleibt offen. Ein Werkzeug, das ohne seine Vorschläge stillsteht, ist ein Werkzeug weniger.</p>
-    <p><strong>Bilder (E5).</strong> Bis 10 MB lokal, vor dem Hochladen auf 1600 px verkleinert und ohne Metadaten. Hochgeladen wird nur das verarbeitete Bild.</p>
-    <p><strong>Am Telefon untereinander.</strong> Quelltext oben, Vorschläge darunter — nebeneinander wären beide zu schmal zum Arbeiten.</p>
+    <p><strong>Grammatik ist kein Freitext.</strong> „told" trägt vier Formen, ein Ergänzungsmuster und eine Lernform, die keine davon ist: gelernt wird <em>to tell sb. sth.</em>, im Text stand nur <em>told</em>. „story" trägt einen Plural, den man nicht ableiten kann — wer ihn errechnet, bekommt <em>storys</em>. Beides gehört in eigene Felder, sonst ist die Struktur weg, die später jede Übungsform braucht.</p>
+    <p><strong>Eine Eingabe der Lehrkraft wird nie automatisch überschrieben.</strong> Jedes Feld trägt seine Herkunft. Was „von dir" ist, bleibt — was Vorschlag oder Wörterbuch ist, darf ein späteres Ergebnis ersetzen, bis jemand es anfasst.</p>
+    <p><strong>Offline heißt weiterarbeiten.</strong> Das Band steht <em>über</em> dem Arbeitsbereich, nicht an seiner Stelle: Quelltext, Wortauswahl und alle Felder bleiben sichtbar und bearbeitbar. Gesperrt sind nur neue Vorschläge und das Veröffentlichen — beide sagen an Ort und Stelle, dass sie wiederkommen.</p>
+    <p><strong>Titelbild (E4, E17).</strong> Fünf Zustände unter „Titelbild" rechts im Schalter: hochladen, Zuschnitt auf 16 : 10, ersetzen, entfernen, Standardmotiv ohne Bild. In 5B ausschließlich eigener Upload — keine Unsplash-Anbindung.</p>
+    <p><strong>Am Telefon untereinander.</strong> Quelltext oben, Wörter darunter; die Grammatikfelder einspaltig. Zwei Spalten à 160 px trügen weder „Past Participle" noch seinen Inhalt.</p>
   </div>
 
   <section class="rahmen">
@@ -75,58 +83,137 @@
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
                 <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
                 <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
+<div class="notiz" style="margin:0 0 var(--stack-normal);
+                                                 border-color:var(--border)">
+  <p><strong>Eine Eingabe der Lehrkraft wird nie automatisch überschrieben.</strong>
+    Jedes Feld trägt seine Herkunft: <span class="plakette plakette--gut">von dir</span>
+    bleibt, was auch immer später eintrifft.
+    <span class="plakette">Vorschlag</span> und <span class="plakette">Wörterbuch</span>
+    dürfen ersetzt werden — bis sie jemand anfasst.</p>
+</div>
             <div class="raster raster--werkstatt">
               <section>
                 <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
                 <div class="karte" style="line-height:1.9;font-size:15px">
-                  <p>The neighbourhood is
+                  <p>The man
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">told</mark>
+                    a
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">story</mark>
+                    about the neighbourhood. It is
                     <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
-                    in the evening. There is a lot of
-                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">litter</mark>
-                    on the pavement, and the
-                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">traffic</mark>
-                    is loud. Most people take the bus to the city centre.</p>
+                    in the evening, and there is a lot of
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement.</p>
                   <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
                     aufgenommene Wörter stehen rot.</p>
                 </div>
               </section>
-
               <section>
-                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Vorschläge prüfen</h2>
-                <div class="karte" style="gap:var(--stack-snug)">
-                  <div>
-                    <p style="font-weight:700;font-size:17px">crowded</p>
-                    <p class="karte__text">Adjektiv · Wörterbuch</p>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                  <div style="margin-bottom:var(--stack-snug)">
+                    <button class="btn" type="button">Neue Vorschläge holen</button>
                   </div>
-                  <label style="display:grid;gap:6px">
-                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
-                    <input type="text" value="überfüllt, voll"
-                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
-                                  border:1px solid var(--border-strong);
-                                  border-radius:var(--radius-control);background:var(--surface)">
-                  </label>
-                  <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
-                    <button class="btn" type="button">Übernehmen</button>
-                    <button class="btn btn--still" type="button">Verwerfen</button>
-                  </div>
-                </div>
-                <div class="karte" style="margin-top:var(--space-4);gap:var(--space-2)">
-                  <div>
-                    <p style="font-weight:700;font-size:17px">litter</p>
-                    <p class="karte__text">Substantiv · Vorschlag der KI</p>
-                  </div>
-                  <label style="display:grid;gap:6px">
-                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
-                    <input type="text" placeholder="noch offen"
-                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
-                                  border:1px solid var(--danger);
-                                  border-radius:var(--radius-control);background:var(--surface)">
-                  </label>
-                  <p class="karte__text" style="color:var(--danger)">Ohne Antwort wird dieses
-                    Wort nicht veröffentlicht.</p>
-                </div>
+<article class="grammatik" data-fall="verb">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+  
+</article>
+<article class="grammatik" data-fall="substantiv">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
               </section>
             </div>
           </main>
@@ -170,15 +257,16 @@
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
                 <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
                 <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
             <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">
               Vorschläge werden erstellt</p>
             <div class="raster raster--werkstatt" aria-hidden="true">
               <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
               <div>
-                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
               </div>
             </div>
           </main>
@@ -278,17 +366,140 @@
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
                 <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
                 <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
-            <div class="fehler" role="alert">
+            <div class="fehler" role="alert" style="margin-bottom:var(--stack-normal)">
               <p class="fehler__titel">Die Vorschläge konnten nicht erstellt werden</p>
               <p>Der KI-Zugang hat nicht geantwortet. Deine Wortauswahl und alles, was du
-                bereits eingetragen hast, ist unverändert — du kannst von Hand weiterarbeiten
-                oder es später erneut versuchen.</p>
+                bereits eingetragen hast, ist unverändert — du kannst von Hand
+                weiterarbeiten oder es später erneut versuchen.</p>
               <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
                 <button class="btn" type="button">Erneut versuchen</button>
                 <button class="btn btn--still" type="button">Ohne Vorschläge weiterarbeiten</button>
               </div>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="karte" style="line-height:1.9;font-size:15px">
+                  <p>The man
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">told</mark>
+                    a
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">story</mark>
+                    about the neighbourhood. It is
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
+                    in the evening, and there is a lot of
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement.</p>
+                  <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
+                    aufgenommene Wörter stehen rot.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                  <div style="margin-bottom:var(--stack-snug)">
+                    <button class="btn" type="button">Neue Vorschläge holen</button>
+                  </div>
+<article class="grammatik" data-fall="verb">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+  
+</article>
+<article class="grammatik" data-fall="substantiv">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
             </div>
           </main>
         </div>
@@ -315,12 +526,191 @@
         </div>
       </div>
           <main class="inhalt">
-            <div class="band">Offline — Vorschläge brauchen eine Verbindung</div>
+            <div class="band">Offline — du kannst weiterarbeiten. Neue Vorschläge
+              und das Veröffentlichen gehen erst wieder online.</div>
             <header class="kopf">
               <div class="kopf__text">
                 <p class="oberzeile">Werkstatt · Entwurf</p>
                 <h1 class="titel">Unit 3 — City life</h1>
                 <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <span class="btn gesperrt" aria-disabled="true">Veröffentlichen</span>
+                <span class="spaeter">erst wieder online</span>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<div class="notiz" style="margin:0 0 var(--stack-normal);
+                                                 border-color:var(--border)">
+  <p><strong>Eine Eingabe der Lehrkraft wird nie automatisch überschrieben.</strong>
+    Jedes Feld trägt seine Herkunft: <span class="plakette plakette--gut">von dir</span>
+    bleibt, was auch immer später eintrifft.
+    <span class="plakette">Vorschlag</span> und <span class="plakette">Wörterbuch</span>
+    dürfen ersetzt werden — bis sie jemand anfasst.</p>
+</div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="karte" style="line-height:1.9;font-size:15px">
+                  <p>The man
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">told</mark>
+                    a
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">story</mark>
+                    about the neighbourhood. It is
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
+                    in the evening, and there is a lot of
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement.</p>
+                  <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
+                    aufgenommene Wörter stehen rot.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                  <div style="display:flex;gap:var(--space-2);
+                              align-items:center;flex-wrap:wrap;
+                              margin-bottom:var(--stack-snug)">
+                    <span class="btn gesperrt" aria-disabled="true">Neue Vorschläge holen</span>
+                    <span class="spaeter">erst wieder online</span>
+                  </div>
+<article class="grammatik" data-fall="verb">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+  <p class="karte__text">Neue Vorschläge kommen erst wieder online. Was hier steht, bleibt bearbeitbar.</p>
+</article>
+<article class="grammatik" data-fall="substantiv">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-hochladen">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
               </div>
               <div class="kopf__aktionen">
                 <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
@@ -330,15 +720,289 @@
                          display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
                 <li><span class="plakette plakette--gut">1 Quelle</span></li>
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
-                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
-                <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
-            <div class="fehler fehler--offline">
-              <p class="fehler__titel">Gerade keine Verbindung</p>
-              <p>Am Entwurf kannst du weiterarbeiten; er liegt auf diesem Gerät. Neue
-                Vorschläge und das Veröffentlichen gehen erst wieder online.</p>
-            </div>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · hochladen</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Der Einstieg. In 5B ausschließlich eigener Upload — keine Unsplash-Anbindung.</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche bildweg__flaeche--leer">
+    <p class="bildweg__hinweis">Noch kein Titelbild</p>
+  </div>
+  <div class="bildweg__seite">
+    <p class="karte__text">Ein eigenes Foto der Buchseite, ein Motiv aus dem Unterricht
+      oder gar nichts — ohne Bild bekommt das Paket ein gesetztes Standardmotiv.</p>
+    <ul class="bildweg__regeln">
+      <li>Höchstens 10 MB</li>
+      <li>Wird auf dem Gerät auf 1600 px verkleinert</li>
+      <li>Metadaten werden entfernt; hochgeladen wird nur das verarbeitete Bild</li>
+    </ul>
+    <label class="btn btn--primaer" for="bilddatei">Bild wählen</label>
+    <input id="bilddatei" type="file" accept="image/*" class="nur-fuer-hilfsmittel">
+  </div>
+</div>
+</section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-zuschnitt">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · Zuschnitt 16 : 10</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Ein festes Verhältnis, ein beweglicher Ausschnitt (E4).</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px)">
+    <div class="bildweg__rahmen"><span class="bildweg__marke">16 : 10</span></div>
+  </div>
+  <div class="bildweg__seite">
+    <p class="karte__text">Der Ausschnitt steht fest auf 16 : 10 — dasselbe Verhältnis in
+      Karte, Detail und Vorschau. Verschieben lässt sich das Motiv darin.</p>
+    <p class="karte__text">Der Fokuspunkt ist kein Feinschliff: Er verhindert, dass ein
+      Bild auf schmalen Geräten an der falschen Stelle beschnitten wird.</p>
+    <div class="bildweg__knoepfe">
+      <button class="btn btn--primaer" type="button">Zuschnitt übernehmen</button>
+      <button class="btn" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>
+</section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-ersetzen">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · ersetzen</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Ein gesetztes Bild — mit allen drei Wegen, die es von hier aus gibt.</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px)"></div>
+  <div class="bildweg__seite">
+    <p class="karte__text"><strong>Titelbild gesetzt</strong> · hochgeladen am
+      29. September, 1600 × 1000 px, ohne Metadaten</p>
+    <div class="bildweg__knoepfe">
+      <label class="btn btn--primaer" for="bildneu">Bild ersetzen</label>
+      <input id="bildneu" type="file" accept="image/*" class="nur-fuer-hilfsmittel">
+      <button class="btn" type="button">Zuschnitt ändern</button>
+      <button class="btn btn--still" type="button">Bild entfernen</button>
+    </div>
+  </div>
+</div>
+</section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-entfernen">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · entfernen</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Die Rückfrage benennt die Folge — „Standardmotiv", nicht „kein Bild".</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px);opacity:.35"></div>
+  <div class="bildweg__seite">
+    <div class="fehler fehler--offline" style="max-width:none">
+      <p class="fehler__titel">Titelbild entfernen?</p>
+      <p>Das Lernpaket bekommt danach das Standardmotiv. Das hochgeladene Bild wird
+        gelöscht und lässt sich nicht zurückholen.</p>
+      <div class="bildweg__knoepfe">
+        <button class="btn btn--primaer" type="button">Behalten</button>
+        <button class="btn" type="button">Entfernen</button>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+          </main>
+        </div>
+</div>
+<div data-zustand="bild-standard">
+        <div class="app app--desktop">
+      <div class="spalte auf-dunkel">
+        <a class="marke" href="#/start">
+          <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+        </a>
+        <nav class="nav" aria-label="Hauptnavigation">
+          <p class="nav__marke">Lehrkraft</p>
+          <a class="nav__ziel" href="#/start"><span class="nav__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="nav__ziel" href="#/kurse"><span class="nav__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="nav__ziel" href="#/pakete" aria-current="page"><span class="nav__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="nav__ziel" href="#/ki"><span class="nav__symbol" aria-hidden="true">✳</span>KI-Zugang</a>
+          <a class="nav__ziel" href="#/verwaltung"><span class="nav__symbol" aria-hidden="true">⚙</span>Verwaltung</a>
+        </nav>
+        <div class="spalte__fuss">
+          <div class="spalte__person">
+            <span class="person__kreis" aria-hidden="true">AB</span>
+            <span>A. Bergmann<br><span style="opacity:.7">Lehrkraft</span></span>
+          </div>
+        </div>
+      </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · Standardmotiv ohne Bild</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Muss auch ohne Bild hochwertig wirken (E17).</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche bildweg__flaeche--motiv">
+    <p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p>
+  </div>
+  <div class="bildweg__seite">
+    <p class="karte__text">Ohne eigenes Bild setzt LexiFlow Thema und Titel auf eine
+      gesetzte Fläche. Das ist kein Platzhalter, sondern der Normalfall — die meisten
+      Pakete werden nie ein Foto bekommen.</p>
+    <div class="bildweg__knoepfe">
+      <label class="btn" for="bildspaeter">Doch ein Bild wählen</label>
+      <input id="bildspaeter" type="file" accept="image/*" class="nur-fuer-hilfsmittel">
+    </div>
+  </div>
+</div>
+</section>
           </main>
         </div>
 </div>
@@ -375,58 +1039,137 @@
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
                 <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
                 <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
+<div class="notiz" style="margin:0 0 var(--stack-normal);
+                                                 border-color:var(--border)">
+  <p><strong>Eine Eingabe der Lehrkraft wird nie automatisch überschrieben.</strong>
+    Jedes Feld trägt seine Herkunft: <span class="plakette plakette--gut">von dir</span>
+    bleibt, was auch immer später eintrifft.
+    <span class="plakette">Vorschlag</span> und <span class="plakette">Wörterbuch</span>
+    dürfen ersetzt werden — bis sie jemand anfasst.</p>
+</div>
             <div class="raster raster--werkstatt">
               <section>
                 <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
                 <div class="karte" style="line-height:1.9;font-size:15px">
-                  <p>The neighbourhood is
+                  <p>The man
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">told</mark>
+                    a
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">story</mark>
+                    about the neighbourhood. It is
                     <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
-                    in the evening. There is a lot of
-                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">litter</mark>
-                    on the pavement, and the
-                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">traffic</mark>
-                    is loud. Most people take the bus to the city centre.</p>
+                    in the evening, and there is a lot of
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement.</p>
                   <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
                     aufgenommene Wörter stehen rot.</p>
                 </div>
               </section>
-
               <section>
-                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Vorschläge prüfen</h2>
-                <div class="karte" style="gap:var(--stack-snug)">
-                  <div>
-                    <p style="font-weight:700;font-size:17px">crowded</p>
-                    <p class="karte__text">Adjektiv · Wörterbuch</p>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                  <div style="margin-bottom:var(--stack-snug)">
+                    <button class="btn" type="button">Neue Vorschläge holen</button>
                   </div>
-                  <label style="display:grid;gap:6px">
-                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
-                    <input type="text" value="überfüllt, voll"
-                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
-                                  border:1px solid var(--border-strong);
-                                  border-radius:var(--radius-control);background:var(--surface)">
-                  </label>
-                  <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
-                    <button class="btn" type="button">Übernehmen</button>
-                    <button class="btn btn--still" type="button">Verwerfen</button>
-                  </div>
-                </div>
-                <div class="karte" style="margin-top:var(--space-4);gap:var(--space-2)">
-                  <div>
-                    <p style="font-weight:700;font-size:17px">litter</p>
-                    <p class="karte__text">Substantiv · Vorschlag der KI</p>
-                  </div>
-                  <label style="display:grid;gap:6px">
-                    <span style="font-size:13px;font-weight:600">Deutsche Antwort</span>
-                    <input type="text" placeholder="noch offen"
-                           style="min-height:var(--tap);padding:0 var(--space-3);font:inherit;
-                                  border:1px solid var(--danger);
-                                  border-radius:var(--radius-control);background:var(--surface)">
-                  </label>
-                  <p class="karte__text" style="color:var(--danger)">Ohne Antwort wird dieses
-                    Wort nicht veröffentlicht.</p>
-                </div>
+<article class="grammatik" data-fall="verb">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+  
+</article>
+<article class="grammatik" data-fall="substantiv">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
               </section>
             </div>
           </main>
@@ -463,15 +1206,16 @@
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
                 <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
                 <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
             <p class="nur-fuer-hilfsmittel" role="status" aria-live="polite">
               Vorschläge werden erstellt</p>
             <div class="raster raster--werkstatt" aria-hidden="true">
               <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
               <div>
-                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
-                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
+                <div class="karte" style="margin-top:var(--space-4)"><div class="skelett"><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div><div class="skelett__zeile"></div></div></div>
               </div>
             </div>
           </main>
@@ -557,17 +1301,140 @@
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
                 <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
                 <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
-            <div class="fehler" role="alert">
+            <div class="fehler" role="alert" style="margin-bottom:var(--stack-normal)">
               <p class="fehler__titel">Die Vorschläge konnten nicht erstellt werden</p>
               <p>Der KI-Zugang hat nicht geantwortet. Deine Wortauswahl und alles, was du
-                bereits eingetragen hast, ist unverändert — du kannst von Hand weiterarbeiten
-                oder es später erneut versuchen.</p>
+                bereits eingetragen hast, ist unverändert — du kannst von Hand
+                weiterarbeiten oder es später erneut versuchen.</p>
               <div style="display:flex;gap:var(--space-3);flex-wrap:wrap">
                 <button class="btn" type="button">Erneut versuchen</button>
                 <button class="btn btn--still" type="button">Ohne Vorschläge weiterarbeiten</button>
               </div>
+            </div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="karte" style="line-height:1.9;font-size:15px">
+                  <p>The man
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">told</mark>
+                    a
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">story</mark>
+                    about the neighbourhood. It is
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
+                    in the evening, and there is a lot of
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement.</p>
+                  <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
+                    aufgenommene Wörter stehen rot.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                  <div style="margin-bottom:var(--stack-snug)">
+                    <button class="btn" type="button">Neue Vorschläge holen</button>
+                  </div>
+<article class="grammatik" data-fall="verb">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+  
+</article>
+<article class="grammatik" data-fall="substantiv">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
             </div>
           </main>
         <nav class="unten" aria-label="Hauptnavigation">
@@ -587,12 +1454,184 @@
           <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
         </div>
           <main class="inhalt">
-            <div class="band">Offline — Vorschläge brauchen eine Verbindung</div>
+            <div class="band">Offline — du kannst weiterarbeiten. Neue Vorschläge
+              und das Veröffentlichen gehen erst wieder online.</div>
             <header class="kopf">
               <div class="kopf__text">
                 <p class="oberzeile">Werkstatt · Entwurf</p>
                 <h1 class="titel">Unit 3 — City life</h1>
                 <p class="lead">24 Wörter erkannt · 7 brauchen noch eine Entscheidung</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <span class="btn gesperrt" aria-disabled="true">Veröffentlichen</span>
+                <span class="spaeter">erst wieder online</span>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
+                <li><span class="plakette">4 Prüfen</span></li>
+                <li><span class="plakette">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<div class="notiz" style="margin:0 0 var(--stack-normal);
+                                                 border-color:var(--border)">
+  <p><strong>Eine Eingabe der Lehrkraft wird nie automatisch überschrieben.</strong>
+    Jedes Feld trägt seine Herkunft: <span class="plakette plakette--gut">von dir</span>
+    bleibt, was auch immer später eintrifft.
+    <span class="plakette">Vorschlag</span> und <span class="plakette">Wörterbuch</span>
+    dürfen ersetzt werden — bis sie jemand anfasst.</p>
+</div>
+            <div class="raster raster--werkstatt">
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">Quelltext</h2>
+                <div class="karte" style="line-height:1.9;font-size:15px">
+                  <p>The man
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">told</mark>
+                    a
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">story</mark>
+                    about the neighbourhood. It is
+                    <mark style="background:var(--accent-soft);border-radius:4px;padding:1px 4px">crowded</mark>
+                    in the evening, and there is a lot of
+                    <mark style="background:var(--surface-sunken);border-radius:4px;padding:1px 4px">litter</mark>
+                    on the pavement.</p>
+                  <p class="karte__text">Angetipptes Wort wird aufgenommen. Bereits
+                    aufgenommene Wörter stehen rot.</p>
+                </div>
+              </section>
+              <section>
+                <h2 class="abschnitt__titel" style="margin-bottom:var(--space-3)">
+                  Wörter prüfen</h2>
+                  <div style="display:flex;gap:var(--space-2);
+                              align-items:center;flex-wrap:wrap;
+                              margin-bottom:var(--stack-snug)">
+                    <span class="btn gesperrt" aria-disabled="true">Neue Vorschläge holen</span>
+                    <span class="spaeter">erst wieder online</span>
+                  </div>
+<article class="grammatik" data-fall="verb">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">told</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Verb · unregelmäßig</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="to tell sb. sth." placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Verb (unregelmäßig)" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Grundform<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="tell" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Simple<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Past Participle<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="told" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Ergänzungsmuster<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="jemandem (Dat.) etwas (Akk.)" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="erzählen, sagen" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">The man told a story.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--gut">von dir</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">Der Mann erzählte eine Geschichte.</textarea>
+</label>
+  </div>
+  <p class="karte__text">Neue Vorschläge kommen erst wieder online. Was hier steht, bleibt bearbeitbar.</p>
+</article>
+<article class="grammatik" data-fall="substantiv">
+  <header class="grammatik__kopf">
+    <div>
+      <p class="grammatik__wort">story</p>
+      <p class="grammatik__quelle">aus „The man told a story"</p>
+    </div>
+    <span class="plakette plakette--akzent">Substantiv</span>
+  </header>
+
+  <div class="grammatik__raster">
+    <label class="feld feld--breit">
+  <span class="feld__marke">Lernform<span class="plakette">Vorschlag</span></span>
+  <input class="feld__eingabe" type="text" value="a story, stories" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Wortart<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="Substantiv" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Singular<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="story" placeholder="">
+</label>
+    <label class="feld">
+  <span class="feld__marke">Plural<span class="plakette">Wörterbuch</span></span>
+  <input class="feld__eingabe" type="text" value="stories" placeholder="">
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Übersetzung<span class="plakette plakette--gut">von dir</span></span>
+  <input class="feld__eingabe" type="text" value="Geschichte, Erzählung" placeholder="">
+</label>
+  </div>
+
+  <div class="grammatik__saetze">
+    <p class="grammatik__abschnitt">Beispielsätze</p>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Englisch<span class="plakette">Vorschlag</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="">She reads two stories every evening.</textarea>
+</label>
+    <label class="feld feld--breit">
+  <span class="feld__marke">Deutsch<span class="plakette plakette--fehler">offen</span></span>
+  <textarea class="feld__eingabe" rows="2" placeholder="noch offen"></textarea>
+</label>
+  </div>
+</article>
+              </section>
+            </div>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="bild-hochladen">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
               </div>
               <div class="kopf__aktionen">
                 <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
@@ -602,15 +1641,261 @@
                          display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
                 <li><span class="plakette plakette--gut">1 Quelle</span></li>
                 <li><span class="plakette plakette--gut">2 Wörter</span></li>
-                <li><span class="plakette plakette--akzent">3 Vorschläge</span></li>
-                <li><span class="plakette">4 Prüfen</span></li>
-                <li><span class="plakette">5 Veröffentlichen</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
               </ol>
-            <div class="fehler fehler--offline">
-              <p class="fehler__titel">Gerade keine Verbindung</p>
-              <p>Am Entwurf kannst du weiterarbeiten; er liegt auf diesem Gerät. Neue
-                Vorschläge und das Veröffentlichen gehen erst wieder online.</p>
-            </div>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · hochladen</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Der Einstieg. In 5B ausschließlich eigener Upload — keine Unsplash-Anbindung.</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche bildweg__flaeche--leer">
+    <p class="bildweg__hinweis">Noch kein Titelbild</p>
+  </div>
+  <div class="bildweg__seite">
+    <p class="karte__text">Ein eigenes Foto der Buchseite, ein Motiv aus dem Unterricht
+      oder gar nichts — ohne Bild bekommt das Paket ein gesetztes Standardmotiv.</p>
+    <ul class="bildweg__regeln">
+      <li>Höchstens 10 MB</li>
+      <li>Wird auf dem Gerät auf 1600 px verkleinert</li>
+      <li>Metadaten werden entfernt; hochgeladen wird nur das verarbeitete Bild</li>
+    </ul>
+    <label class="btn btn--primaer" for="bilddatei">Bild wählen</label>
+    <input id="bilddatei" type="file" accept="image/*" class="nur-fuer-hilfsmittel">
+  </div>
+</div>
+</section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="bild-zuschnitt">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · Zuschnitt 16 : 10</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Ein festes Verhältnis, ein beweglicher Ausschnitt (E4).</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px)">
+    <div class="bildweg__rahmen"><span class="bildweg__marke">16 : 10</span></div>
+  </div>
+  <div class="bildweg__seite">
+    <p class="karte__text">Der Ausschnitt steht fest auf 16 : 10 — dasselbe Verhältnis in
+      Karte, Detail und Vorschau. Verschieben lässt sich das Motiv darin.</p>
+    <p class="karte__text">Der Fokuspunkt ist kein Feinschliff: Er verhindert, dass ein
+      Bild auf schmalen Geräten an der falschen Stelle beschnitten wird.</p>
+    <div class="bildweg__knoepfe">
+      <button class="btn btn--primaer" type="button">Zuschnitt übernehmen</button>
+      <button class="btn" type="button">Abbrechen</button>
+    </div>
+  </div>
+</div>
+</section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="bild-ersetzen">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · ersetzen</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Ein gesetztes Bild — mit allen drei Wegen, die es von hier aus gibt.</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px)"></div>
+  <div class="bildweg__seite">
+    <p class="karte__text"><strong>Titelbild gesetzt</strong> · hochgeladen am
+      29. September, 1600 × 1000 px, ohne Metadaten</p>
+    <div class="bildweg__knoepfe">
+      <label class="btn btn--primaer" for="bildneu">Bild ersetzen</label>
+      <input id="bildneu" type="file" accept="image/*" class="nur-fuer-hilfsmittel">
+      <button class="btn" type="button">Zuschnitt ändern</button>
+      <button class="btn btn--still" type="button">Bild entfernen</button>
+    </div>
+  </div>
+</div>
+</section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="bild-entfernen">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · entfernen</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Die Rückfrage benennt die Folge — „Standardmotiv", nicht „kein Bild".</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche" style="background-image:linear-gradient(140deg, rgba(47,9,45,.55), rgba(47,9,45,.15)), repeating-linear-gradient(48deg, #b9895f 0 18px, #a9764f 18px 36px);opacity:.35"></div>
+  <div class="bildweg__seite">
+    <div class="fehler fehler--offline" style="max-width:none">
+      <p class="fehler__titel">Titelbild entfernen?</p>
+      <p>Das Lernpaket bekommt danach das Standardmotiv. Das hochgeladene Bild wird
+        gelöscht und lässt sich nicht zurückholen.</p>
+      <div class="bildweg__knoepfe">
+        <button class="btn btn--primaer" type="button">Behalten</button>
+        <button class="btn" type="button">Entfernen</button>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+          </main>
+        <nav class="unten" aria-label="Hauptnavigation">
+          <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
+          <a class="unten__ziel" href="#/kurse"><span class="unten__symbol" aria-hidden="true">❏</span>Kurse</a>
+          <a class="unten__ziel" href="#/pakete" aria-current="page"><span class="unten__symbol" aria-hidden="true">▤</span>Lernpakete</a>
+          <a class="unten__ziel" href="#/verwaltung"><span class="unten__symbol" aria-hidden="true">⚙</span>Einstellungen</a>
+        </nav>
+        </div>
+</div>
+<div data-zustand="bild-standard">
+        <div class="app app--telefon">
+        <div class="telefonkopf auf-dunkel">
+          <a class="marke" href="#/start">
+            <span class="marke__zeichen" aria-hidden="true">Lx</span>LexiFlow
+          </a>
+          <a class="btn btn--still" href="#/vorschau" style="color:var(--parchment)">Als Lernende ansehen</a>
+        </div>
+          <main class="inhalt">
+            <header class="kopf">
+              <div class="kopf__text">
+                <p class="oberzeile">Werkstatt · Entwurf</p>
+                <h1 class="titel">Unit 3 — City life</h1>
+                <p class="lead">Schritt 5 von 6 · Titelbild</p>
+              </div>
+              <div class="kopf__aktionen">
+                <a class="btn" href="#/pakete/1/vorschau">Vorschau</a>
+                <a class="btn btn--primaer" href="#/pakete/1/veroeffentlichen">Veröffentlichen</a>
+              </div>
+            </header>              <ol style="list-style:none;padding:0;margin:0 0 var(--stack-normal);
+                         display:flex;gap:var(--space-2);flex-wrap:wrap;font-size:13px">
+                <li><span class="plakette plakette--gut">1 Quelle</span></li>
+                <li><span class="plakette plakette--gut">2 Wörter</span></li>
+                <li><span class="plakette plakette--gut">3 Vorschläge</span></li>
+                <li><span class="plakette plakette--gut">4 Prüfen</span></li>
+                <li><span class="plakette plakette--akzent">5 Titelbild</span></li>
+                <li><span class="plakette">6 Veröffentlichen</span></li>
+              </ol>
+<section class="abschnitt">
+  <div class="abschnitt__kopf">
+    <h2 class="abschnitt__titel">Titelbild · Standardmotiv ohne Bild</h2>
+  </div>
+  <p class="lead" style="margin-bottom:var(--stack-snug)">Muss auch ohne Bild hochwertig wirken (E17).</p>
+  <div class="bildweg">
+  <div class="bildweg__flaeche bildweg__flaeche--motiv">
+    <p class="paket__motiv"><small>Englisch 7b</small>Unit 3 — City life</p>
+  </div>
+  <div class="bildweg__seite">
+    <p class="karte__text">Ohne eigenes Bild setzt LexiFlow Thema und Titel auf eine
+      gesetzte Fläche. Das ist kein Platzhalter, sondern der Normalfall — die meisten
+      Pakete werden nie ein Foto bekommen.</p>
+    <div class="bildweg__knoepfe">
+      <label class="btn" for="bildspaeter">Doch ein Bild wählen</label>
+      <input id="bildspaeter" type="file" accept="image/*" class="nur-fuer-hilfsmittel">
+    </div>
+  </div>
+</div>
+</section>
           </main>
         <nav class="unten" aria-label="Hauptnavigation">
           <a class="unten__ziel" href="#/start"><span class="unten__symbol" aria-hidden="true">◆</span>Start</a>
