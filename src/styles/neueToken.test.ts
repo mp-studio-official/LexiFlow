@@ -108,21 +108,64 @@ describe('die neuen Token für 5B sind angelegt', () => {
   });
 });
 
-describe('und sie wirken noch nirgends', () => {
+/**
+ * Der Stilcode, der **heute einen Bildschirm trifft** – also alles außer dem
+ * Block der Zustandsbausteine.
+ *
+ * ## Warum diese Unterscheidung nötig wurde
+ *
+ * P1a hat die Token angelegt und zugesichert: „wird von keiner Regel
+ * benutzt". Das war für P1a richtig und für P2 zu eng. P2 legt `Skeleton`,
+ * `PageTitle` und `ErrorState` an, gibt ihnen Stil – und benutzt dabei
+ * `--cover-ratio` und die Stapelabstände. Kein Bildschirm setzt diese
+ * Bausteine ein, also ändert sich nichts; die alte Formulierung fiel
+ * trotzdem.
+ *
+ * Die Zusicherung ist deshalb nicht gelockert, sondern genauer gefasst: Die
+ * Token dürfen **nur** im Block der Zustandsbausteine vorkommen. Dass diesen
+ * Block kein Bildschirm erreicht, prüft `src/ui/zustaende.unbenutzt.test.ts`.
+ */
+const MARKE_ZUSTAENDE = 'Zustandsbausteine (5B.P2)';
+
+function ohneZustandsblock(text: string): string {
+  const anfang = text.indexOf(MARKE_ZUSTAENDE);
+  return anfang < 0 ? text : text.slice(0, anfang);
+}
+
+const STILE_IM_EINSATZ = STILDATEIEN.map((datei) =>
+  ohneKommentare(ohneZustandsblock(lies(`src/styles/${datei}`))),
+).join('\n');
+
+describe('und sie erreichen noch keinen Bildschirm', () => {
   /*
-    Der Kern von P1a. Wird eines dieser Token irgendwo benutzt, ändert sich ein
-    Bildschirm – und zwar vor der Freigabe der Entwürfe. Dann gehört die
-    Änderung nach P1b oder P2, nicht hierher.
+    Der Kern von P1a, in der Fassung, die P2 überlebt: Keines dieser Token
+    darf in einer Regel stehen, die ein heutiger Bildschirm trifft. Steht es
+    dort, ändert sich etwas – und zwar vor der Freigabe der Entwürfe.
   */
   for (const token of NEUE_TOKEN) {
-    it(`${token} wird von keiner Regel benutzt`, () => {
-      const benutzungen = [...ALLE_STILE.matchAll(new RegExp(`var\\(${token}[,)]`, "g"))];
+    it(`${token} steht in keiner Regel, die heute greift`, () => {
+      const benutzungen = [...STILE_IM_EINSATZ.matchAll(new RegExp(`var\\(${token}[,)]`, 'g'))];
       expect(
         benutzungen.length,
-        `${token} ist in Benutzung – das gehört nach P1b oder P2, nicht in P1a`,
+        `${token} wirkt auf einen bestehenden Bildschirm – das gehört in dessen Umbau`,
       ).toBe(0);
     });
   }
+
+  it('--font-editorial wird überhaupt noch nirgends benutzt', () => {
+    /*
+      Bei dieser einen bleibt es hart. Sie ist die Schrift der Oberfläche; sie
+      irgendwo einzusetzen ist P1b und wartet auf die Freigabe der Entwürfe –
+      auch in einem Baustein, den noch niemand sieht.
+    */
+    const benutzungen = [...ALLE_STILE.matchAll(/var\(--font-editorial[,)]/g)];
+    expect(benutzungen.length).toBe(0);
+  });
+
+  it('der Block der Zustandsbausteine ist überhaupt da', () => {
+    // Sonst ginge die Unterscheidung oben ins Leere und prüfte scheinbar mehr.
+    expect(lies('src/styles/global.css')).toContain(MARKE_ZUSTAENDE);
+  });
 
   it('--font-display trägt noch nicht die editoriale Schrift', () => {
     /*

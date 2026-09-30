@@ -4738,3 +4738,139 @@ progress {
   cursor: default;
   opacity: 0.65;
 }
+
+/* ------------------------------------------------- Zustandsbausteine (5B.P2)
+
+   Skeleton, PageTitle und ErrorState. Sie sind angelegt und werden von keinem
+   Bildschirm benutzt — die Entwürfe sind nicht freigegeben, und eine
+   Gestaltung, die vor ihrer Freigabe im Produkt steht, ist keine Freigabe
+   mehr. `src/ui/zustaende.unbenutzt.test.ts` hält das fest.
+
+   `EmptyState` ist hier ausdrücklich nicht dabei: Er ist in sieben Bereichen
+   produktiv, und jede Vereinheitlichung änderte dort das Bild.
+   ------------------------------------------------------------------------ */
+
+.skeleton__stack {
+  display: grid;
+  gap: var(--space-2);
+}
+.skeleton__line,
+.skeleton__cover {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-control);
+}
+.skeleton__line {
+  block-size: 1rem;
+}
+/*
+  Die letzte Zeile bleibt kurz. Ein Absatz endet mittendrin — ein Block aus
+  lauter gleich langen Balken sieht aus wie eine Tabelle und nicht wie Text.
+*/
+.skeleton__line:last-child {
+  inline-size: 62%;
+}
+.skeleton--card .skeleton__stack {
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+}
+.skeleton__cover {
+  aspect-ratio: var(--cover-ratio);
+  inline-size: 100%;
+}
+
+/*
+  Das Flimmern ist eine Zusage („es tut sich etwas"), kein Schmuck. Wer
+  Bewegung abbestellt hat, bekommt den ruhigen Balken — die Zusage trägt dann
+  der Satz im Live-Bereich.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton__line,
+  .skeleton__cover {
+    animation: skeleton-puls 1.4s var(--ease-out) infinite;
+  }
+}
+@keyframes skeleton-puls {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.page-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--stack-snug) var(--space-5);
+  margin-block-end: var(--stack-normal);
+}
+.page-title__text {
+  display: grid;
+  gap: var(--space-2);
+  max-inline-size: var(--width-prose);
+}
+.page-title__eyebrow {
+  margin: 0;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+.page-title__heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+}
+.page-title__description {
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+}
+.page-title__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.error-state {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-surface);
+  background: var(--danger-soft);
+  max-inline-size: var(--width-prose);
+}
+.error-state__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--danger);
+}
+.error-state__text {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+/*
+  Offline ist kein Fehler. Wer im Bus übt, ist nicht kaputt: Die Verbindung
+  ist weg, der Lernstand bleibt liegen und geht später hinaus. Dieselbe rote
+  Fläche wie für einen Serverfehler täuschte eine Dringlichkeit vor, die es
+  nicht gibt.
+*/
+.error-state--offline {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+.error-state--offline .error-state__title {
+  color: var(--warning);
+}
