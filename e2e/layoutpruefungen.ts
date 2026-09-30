@@ -153,10 +153,14 @@ export async function fokusIndikatorIstSichtbar(page: Page): Promise<void> {
  * eine Systemeinstellung als Mangel der Oberfläche auszugeben.
  */
 export async function tastaturErreichbarkeit(page: Page, maschine: string): Promise<void> {
-  const formularfelder = await page
-    .locator('input:not([type=hidden]), select, textarea')
-    .filter({ visible: true })
-    .count();
+  /*
+    Die Zahl kommt aus `tippzielbefunde` und damit aus derselben Regel wie die
+    Tippzielprüfung. Vorher zählte hier Playwrights eigener Sichtbarkeitsbegriff
+    mit: Ein visuell verstecktes Dateifeld (1 × 1 px, `clip`) galt als
+    Formularfeld, und WebKit musste es mit Tab erreichen. Zwei Definitionen von
+    „sichtbar" in einer Prüfbank sind eine zu viel.
+  */
+  const { sichtbareFormularfelder: formularfelder } = await page.evaluate(tippzielbefunde, {});
 
   if (maschine === 'webkit' && formularfelder === 0) {
     /*

@@ -198,6 +198,40 @@ describe('die Breitensuiten haben je einen eigenen, frischen Server', () => {
   }
 });
 
+describe('die Prüfbank benutzt einen einzigen Sichtbarkeitsbegriff', () => {
+  const messungen = ohneKommentare(lies('e2e/layoutpruefungen.ts'));
+
+  it('die Formularfelder werden über `tippzielbefunde` gezählt', () => {
+    /*
+      Der Rückfall, den der dritte Mac-Lauf erzwungen hat: Die Tastaturprüfung
+      fragte Playwright nach sichtbaren Formularfeldern und bekam das visuell
+      versteckte Dateifeld mitgezählt. Damit galten in einer Prüfbank zwei
+      Sichtbarkeitsbegriffe – und der falsche entschied, ob WebKit geprüft wird.
+    */
+    expect(messungen).toMatch(/sichtbareFormularfelder: formularfelder/);
+    expect(
+      messungen,
+      'kein eigener Sichtbarkeitsbegriff über Playwrights Filter',
+    ).not.toMatch(/filter\(\{ visible: true \}\)/);
+  });
+
+  it('die Messfunktionen tragen keine freie Benennung im Parameterkopf', () => {
+    /*
+      Playwright überträgt den Quelltext, nicht die Funktion. Ob das wirklich
+      trägt, prüft `scripts/serialisierung.test.mjs` in einem eigenen Realm –
+      hier steht nur die Form, die dazu geführt hatte: ein Vorgabewert im
+      Parameterkopf, der etwas außerhalb benennt.
+    */
+    for (const datei of ['e2e/tippziele.ts', 'e2e/fokus.ts']) {
+      const text = ohneKommentare(lies(datei));
+      const koepfe = [...text.matchAll(/export function \w+\(([^)]*)\)/g)].map((t) => t[1]);
+      for (const kopf of koepfe) {
+        expect(kopf, `${datei}: Vorgabewert im Parameterkopf`).not.toMatch(/=/);
+      }
+    }
+  });
+});
+
 describe('die Breitendateien tragen die Marke und prüfen die Adresse', () => {
   for (const datei of BREITENDATEIEN) {
     const text = lies(datei);

@@ -1,20 +1,17 @@
 /**
- * Wie groß ein Tippziel ist – und was überhaupt eines ist.
+ * Wie groß ein Tippziel ist, was überhaupt eines ist – und wie viele
+ * Formularfelder eine Ansicht wirklich hat.
  *
  * ## Der Befund, der diese Datei nötig gemacht hat
  *
- * Der erste vollständige Mac-Lauf meldete unter anderem
- * `input.visually-hidden 1×1`. Das ist kein Tippziel: Ein visuell verstecktes
- * Dateifeld wird nie angetippt. Angetippt wird sein Label.
+ * Der erste vollständige Mac-Lauf meldete `input.visually-hidden 1×1`. Das ist
+ * kein Tippziel: Ein visuell verstecktes Dateifeld wird nie angetippt.
+ * Angetippt wird sein Label.
  *
- * Die Klasse `.visually-hidden` hart auszunehmen wäre die falsche Antwort
- * gewesen – sie prüfte einen Namen, nicht einen Sachverhalt. Ein anders
- * benanntes verstecktes Feld rutschte weiter durch, und ein verstecktes Feld
- * **ohne** brauchbaren Auslöser – ein echter Bedienfehler – bliebe unsichtbar.
+ * Die Klasse hart auszunehmen wäre die falsche Antwort gewesen – das prüfte
+ * einen Namen, nicht einen Sachverhalt.
  *
  * ## Die Regel
- *
- * Ein Bedienelement ist entweder **wahrnehmbar** oder **nur technisch da**:
  *
  * | Zustand | woran erkennbar | was geprüft wird |
  * | --- | --- | --- |
@@ -22,16 +19,30 @@
  * | nur technisch da | `opacity:0`, `clip`, `clip-path`, Kante ≤ 4 px, aus dem Bild geschoben | **sein sichtbarer Auslöser** |
  * | wahrnehmbar | alles andere | **es selbst** |
  *
- * Der Auslöser ist das, was die Bedienung wirklich anfasst: ein `label[for]`,
- * ein umschließendes `label`, oder was `aria-labelledby` benennt. Findet sich
- * keiner, ist das ein eigener Befund – nicht etwa ein Freifahrtschein.
+ * Findet sich zu einem versteckten Bedienelement kein sichtbarer Auslöser, ist
+ * das ein eigener Befund – kein Freifahrtschein.
+ *
+ * ## Warum auch die Formularfelder hier gezählt werden
+ *
+ * Der zweite Mac-Lauf zeigte, dass die Tastaturprüfung eine **andere**
+ * Sichtbarkeit benutzte als diese Regel: Sie zählte das versteckte Dateifeld
+ * als Formularfeld und verlangte deshalb unter WebKit, dass Tab es erreicht.
+ * Zwei Definitionen von „sichtbar" in einer Prüfbank sind eine zu viel.
+ * Deshalb kommt die Zahl aus derselben Funktion und damit aus derselben Regel.
  *
  * ## Warum diese Funktion so geschrieben ist, wie sie geschrieben ist
  *
- * Sie hat **keine** Abhängigkeiten außerhalb ihrer selbst. Damit kann
- * Playwright sie in die Seite hineinreichen (`page.evaluate`) und Vitest sie
- * unter jsdom direkt aufrufen. Ohne das wäre die Regel nur durch einen echten
- * Browserlauf prüfbar – also praktisch nie.
+ * Playwright **serialisiert** sie und führt ihren Quelltext in der Seite aus.
+ * Alles, was sie von außen benennt, ist dort nicht vorhanden. Der erste
+ * Versuch hatte `auswahl = TIPPZIELAUSWAHL` als Vorgabewert – eine
+ * Modulvariable. Unter jsdom lief das, weil der direkte Aufruf das Modul
+ * dabei hat; in der Seite scheiterten alle 32 schmalen Messungen mit
+ * `TIPPZIELAUSWAHL is not defined`, und die Prüfung maß nichts.
+ *
+ * Deshalb: **keine freie Benennung, auch nicht in einem Vorgabewert.** Alle
+ * Vorgaben stehen als Literale im Rumpf. `scripts/tippziele.test.mjs` führt
+ * den Quelltext in einem eigenen Realm ohne Modulumgebung aus – ein direkter
+ * Aufruf kann diesen Fehler nicht finden.
  */
 
 export interface Tippzielbefunde {
@@ -41,20 +52,29 @@ export interface Tippzielbefunde {
   ohneAusloeser: string[];
   /** Wie viele Ziele überhaupt gemessen wurden – gegen eine leere Prüfung. */
   gemessen: number;
+  /** Formularfelder, die wirklich wahrnehmbar sind – für die Tastaturfrage. */
+  sichtbareFormularfelder: number;
 }
 
-export const TIPPZIELAUSWAHL =
-  'a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=link]';
-
 /**
- * Die Messung selbst. Läuft im Browser **und** unter jsdom.
+ * Die Messung. Läuft serialisiert im Browser und direkt unter jsdom.
  *
- * `mass` ist 44 px: die Zahl aus WCAG 2.5.5 und aus Apples Richtlinie, nicht
- * eine gerundete Schätzung.
+ * `mass` ist 44 px: die Zahl aus WCAG 2.5.5 und aus Apples Richtlinie.
  */
 export function tippzielbefunde(
-  { mass = 44, auswahl = TIPPZIELAUSWAHL }: { mass?: number; auswahl?: string } = {},
+  einstellungen?: { mass?: number; auswahl?: string },
 ): Tippzielbefunde {
+  /*
+    Alle Vorgaben als Literale im Rumpf – siehe der Dateikopf. Ein
+    Vorgabewert im Parameterkopf, der etwas außerhalb benennt, überlebt die
+    Serialisierung nicht.
+  */
+  const mass = einstellungen?.mass ?? 44;
+  const auswahl =
+    einstellungen?.auswahl ??
+    'a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=link]';
+  const formularauswahl = 'input:not([type=hidden]), select, textarea';
+
   const benenne = (el: Element): string => {
     const kennung = el.id ? `#${el.id}` : '';
     const klassen =
@@ -89,6 +109,8 @@ export function tippzielbefunde(
     return false;
   };
 
+  const wahrnehmbar = (el: Element): boolean => gerendert(el) && !nurTechnischDa(el);
+
   /** Was die Bedienung statt des versteckten Elements wirklich anfasst. */
   const ausloeserZu = (el: Element): Element | undefined => {
     const kandidaten: Element[] = [];
@@ -113,7 +135,7 @@ export function tippzielbefunde(
       }
     }
 
-    return kandidaten.find((kandidat) => gerendert(kandidat) && !nurTechnischDa(kandidat));
+    return kandidaten.find(wahrnehmbar);
   };
 
   const masse = (el: Element): string => {
@@ -160,5 +182,19 @@ export function tippzielbefunde(
     if (zuKleinFuer(el)) zuKlein.push(`${benenne(el)} ${masse(el)}`);
   }
 
-  return { zuKlein: zuKlein.slice(0, 12), ohneAusloeser: ohneAusloeser.slice(0, 12), gemessen };
+  /*
+    Dieselbe Regel, andere Frage: Wie viele Formularfelder kann eine Person
+    wirklich sehen? Ein verstecktes Dateifeld ist keines – und darf deshalb
+    unter WebKit nicht die Erwartung auslösen, dass Tab es erreicht.
+  */
+  const sichtbareFormularfelder = Array.from(document.querySelectorAll(formularauswahl)).filter(
+    (el) => wahrnehmbar(el) && !el.hasAttribute('disabled'),
+  ).length;
+
+  return {
+    zuKlein: zuKlein.slice(0, 12),
+    ohneAusloeser: ohneAusloeser.slice(0, 12),
+    gemessen,
+    sichtbareFormularfelder,
+  };
 }

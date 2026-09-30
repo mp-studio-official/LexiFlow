@@ -80,9 +80,14 @@ export function indikatorAendertSich(vorher: Fokusstil | null, nachher: Fokussti
  * danach kommen Schaltflächen und Verweise – dort hängt es an der Engine, und
  * genau deshalb gibt es den Rückfall auf die Regelprüfung.
  */
-export function fokusIndikatorMessen(
-  { auswahl = 'a[href], button, input:not([type=hidden]), select, textarea' }: { auswahl?: string } = {},
-): Fokusbefund {
+export function fokusIndikatorMessen(einstellungen?: { auswahl?: string }): Fokusbefund {
+  /*
+    Vorgabe als Literal im Rumpf. Playwright serialisiert diese Funktion; ein
+    Vorgabewert im Parameterkopf, der etwas außerhalb benennt, überlebt das
+    nicht – genau daran sind in einem Lauf 32 Messungen gescheitert.
+  */
+  const auswahl =
+    einstellungen?.auswahl ?? 'a[href], button, input:not([type=hidden]), select, textarea';
   const leer: Fokusbefund = {
     name: '—',
     gefunden: false,
