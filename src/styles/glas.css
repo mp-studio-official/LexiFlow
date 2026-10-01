@@ -1,0 +1,61 @@
+/* ===========================================================================
+   Glas — ein Baustein, ein Rückfall (Block 5B.1)
+   ===========================================================================
+
+   Die eine durchscheinende Fläche dieses Designsystems. Genau eine, und das
+   ist die Entscheidung: Glas ist kein Material, das man überall auftragen
+   kann, sondern die Aussage „das hier schwebt über dem Inhalt".
+
+   ## Wo es hingehört
+
+   Schwebende Navigation, Filterleisten, sekundäre Schaltflächen, kleine
+   Statusflächen, Dialoge. Also: kurz, klein, obenauf.
+
+   ## Wo es nicht hingehört
+
+   Lange Formulare, Tabellen, der Grammatikeditor, Fehlermeldungen, längere
+   Lesetexte. Dort ist Lesbarkeit die einzige Anforderung, und ein
+   durchscheinender Grund macht sie kaputt — besonders über einem
+   Aurora-Verlauf, wo der Kontrast von Pixel zu Pixel schwankt. Eine
+   Fehlermeldung auf Glas ist eine Fehlermeldung, die man je nach Scrollstand
+   lesen kann oder nicht.
+
+   ## Warum der deckende Rückfall nicht optional ist
+
+   Ohne `backdrop-filter` ist durchscheinendes Weiß über Pastell nicht
+   „etwas weniger schön", sondern unlesbar: Die Transparenz bleibt, die
+   Unschärfe fehlt, und der Verlauf steht ungefiltert hinter der Schrift.
+
+   Und auffallen würde das nie bei dem, der den Entwurf abnimmt — sein
+   Browser kann es. Es fällt der Person auf, die es nicht kann. Deshalb
+   prüft `glas.test.ts` jede Glasregel gegen ihren Rückfall, statt sich auf
+   den Blick zu verlassen.
+
+   Diese Datei wird in 5B.1 von **keinem** Bildschirm geladen. Sie wird
+   eingebunden, wenn die Hülle in 5B.2 ihre schwebende Navigation bekommt.
+   =========================================================================== */
+
+.glas {
+  background: var(--glas-grund);
+  border: 1px solid var(--glas-kante);
+  box-shadow: var(--schatten-schwebend);
+  -webkit-backdrop-filter: var(--glas-unschaerfe);
+  backdrop-filter: var(--glas-unschaerfe);
+}
+
+/*
+  Dieselbe Fläche, dichter und flacher: für das, was aufliegt statt schwebt —
+  eine Statusfläche in einer Karte, nicht die Navigation über der Seite.
+*/
+.glas--fest {
+  background: var(--glas-grund-fest);
+  box-shadow: var(--schatten-flach);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glas,
+  .glas--fest {
+    background: var(--flaeche);
+    border-color: var(--rand);
+  }
+}
