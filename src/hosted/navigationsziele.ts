@@ -80,14 +80,60 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
   '#/einstellungen': { zustand: 'geplant', block: '5B.7' },
 };
 
-/** Der Umsetzungszustand eines Ziels. Ein unbekanntes Ziel gilt als geplant. */
-export function umsetzungVon(pfad: string): Umsetzung {
-  return UMSETZUNG[pfad] ?? { zustand: 'geplant' };
+/**
+ * Die Menge der bekannten Ziele — genau die aus E23, nicht mehr.
+ *
+ * Gebildet aus der Matrix in `src/ui/navigation.ts` und nicht aus den
+ * Schlüsseln von `UMSETZUNG`: Sonst würde ein Tippfehler **hier** sich selbst
+ * zum bekannten Ziel erklären.
+ */
+const BEKANNT: ReadonlySet<string> = new Set(
+  (['lehrkraft', 'lernende'] as const).flatMap((profil) =>
+    zieleAuf(profil, 'schreibtisch').map((ziel) => ziel.pfad),
+  ),
+);
+
+/** Ob dieser Pfad überhaupt ein Navigationsziel aus E23 ist. */
+export function istBekanntesZiel(pfad: string): boolean {
+  return BEKANNT.has(pfad);
 }
 
-/** Ob ein Ziel heute gerendert werden darf. */
+/**
+ * Der Umsetzungszustand eines **bekannten** Ziels, sonst `undefined`.
+ *
+ * ## Warum ein unbekanntes Ziel nicht „geplant" ist
+ *
+ * Weil `geplant` eine Aussage ist: „Dieses Ziel aus E23 gibt es noch nicht,
+ * und Block X baut es." Ein Pfad, den niemand entschieden hat, trägt diese
+ * Aussage nicht — er ist ein Fehler.
+ *
+ * Der Unterschied ist nicht theoretisch. Hieße `#/kures` stillschweigend
+ * `geplant`, dann verschwände bei einem Schreibfehler in der Matrix
+ * **kommentarlos ein Navigationseintrag**: Die Prüfungen blieben grün, die
+ * Hülle rendert ihn nicht, und niemand erführe, warum „Kurse" eines Tages
+ * fehlt. Genau dieselbe Mechanik ließe `#/verwaltung` als „geplantes Ziel"
+ * durchgehen, obwohl sie ausdrücklich keines ist.
+ */
+export function umsetzungVon(pfad: string): Umsetzung | undefined {
+  if (!BEKANNT.has(pfad)) return undefined;
+  /*
+    Ein bekanntes Ziel ohne Eintrag ist eine Lücke in dieser Datei, kein
+    Zustand. Es als `geplant` auszugeben wäre bequem und falsch: Die
+    Entscheidung, in welchem Block es scharf geschaltet wird, ist dann noch
+    nicht getroffen, und das soll auffallen.
+  */
+  return UMSETZUNG[pfad];
+}
+
+/**
+ * Ob ein Ziel heute gerendert werden darf.
+ *
+ * Für Unbekanntes `false` — eine Hülle, die einen Tippfehler übergeben
+ * bekommt, soll nichts rendern und nicht abstürzen. Dass der Tippfehler
+ * **auffällt**, ist Aufgabe der Prüfungen, nicht dieser Funktion.
+ */
 export function istFreigeschaltet(pfad: string): boolean {
-  const { zustand } = umsetzungVon(pfad);
+  const zustand = umsetzungVon(pfad)?.zustand;
   return zustand === 'vorhanden' || zustand === 'weiterleitung';
 }
 
@@ -101,9 +147,19 @@ export function sichtbareZiele(profil: Profil, groesse: Groesse): readonly Ziel[
   return zieleAuf(profil, groesse).filter((ziel) => istFreigeschaltet(ziel.pfad));
 }
 
-/** Alle Ziele mit ihrem Zustand — für die Prüfungen und für die Endabnahme. */
-export function zielmatrix(): ReadonlyArray<{ ziel: Ziel; umsetzung: Umsetzung; profil: Profil }> {
-  const zeilen: Array<{ ziel: Ziel; umsetzung: Umsetzung; profil: Profil }> = [];
+/**
+ * Alle Ziele mit ihrem Zustand — für die Prüfungen und für die Endabnahme.
+ *
+ * `umsetzung` kann `undefined` sein: Dann ist ein Ziel aus E23 hier nicht
+ * eingetragen. Das ist eine Lücke, und `navigationsziele.test.tsx` macht sie
+ * rot.
+ */
+export function zielmatrix(): ReadonlyArray<{
+  ziel: Ziel;
+  umsetzung: Umsetzung | undefined;
+  profil: Profil;
+}> {
+  const zeilen: Array<{ ziel: Ziel; umsetzung: Umsetzung | undefined; profil: Profil }> = [];
   for (const profil of ['lehrkraft', 'lernende'] as const) {
     for (const ziel of zieleAuf(profil, 'schreibtisch')) {
       zeilen.push({ ziel, umsetzung: umsetzungVon(ziel.pfad), profil });

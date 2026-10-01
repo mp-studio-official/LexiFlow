@@ -168,12 +168,16 @@ describe('die Schichtentrennung', () => {
   const quelle = readFileSync(resolve(import.meta.dirname, 'navigation.ts'), 'utf8');
   const ohneKommentare = quelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
-  it('die Matrix kennt keine Anmeldung, keine Rolle, keine Cloud', () => {
+  it('die Matrix hängt an keiner Anmeldung, Rolle, Cloud und an keinem Router', () => {
     /*
-      Diese Datei liegt in `src/ui/` und darf damit in jedem Bündel landen —
-      auch in der portablen Lerndatei, die kein Konto kennt. Ein `useSession()`
-      zöge den halben Cloudzweig hinter sich her, und zwar unbemerkt: Ein
-      Import fällt niemandem auf.
+      **Das ist die verbindliche Regel.** Diese Datei liegt in `src/ui/` und
+      darf damit in jedem Bündel landen — auch in der portablen Lerndatei, die
+      kein Konto kennt. Ein `useSession()` zöge den halben Cloudzweig hinter
+      sich her, und zwar unbemerkt: Ein Import fällt niemandem auf.
+
+      Der Router steht mit auf der Liste, weil die Matrix Adressen *nennt* und
+      nicht navigiert. Wer hier `useNavigate` einführt, hat die Schicht
+      gewechselt, ohne die Datei zu verschieben.
     */
     for (const verboten of [
       'useSession',
@@ -184,14 +188,23 @@ describe('die Schichtentrennung', () => {
       'supabase',
       'hosted/',
       'cloud/',
+      'react-router',
     ]) {
       expect(ohneKommentare, `navigation.ts greift auf ${verboten} zu`).not.toContain(verboten);
     }
   });
 
-  it('sie importiert überhaupt nichts', () => {
-    // Noch stärker als die Liste oben: Was nichts importiert, kann nichts
-    // hereinziehen - auch nichts, woran bei der Liste niemand gedacht hat.
+  it('und kommt derzeit ganz ohne Importe aus', () => {
+    /*
+      Das ist **kein Architekturgesetz**, sondern der heutige Stand — und er
+      ist angenehm, weil er die Liste darüber nicht braucht: Was nichts
+      importiert, kann nichts hereinziehen, auch nichts, woran bei einer
+      Verbotsliste niemand gedacht hat.
+
+      Ein späterer reiner UI-Typimport wäre kein Bruch. Dann wird dieser Test
+      gestrichen und die Liste darüber bleibt; was er zusätzlich hält, hält
+      sie auch.
+    */
     expect(ohneKommentare).not.toMatch(/^\s*import\s/m);
   });
 
