@@ -42,15 +42,39 @@ function quelldateien(ordner: string): string[] {
   return gefunden;
 }
 
-const EIGENE = ['zustaende.tsx', 'zustaende.test.tsx', 'zustaende.unbenutzt.test.ts'];
+const EIGENE = [
+  'zustaende.tsx',
+  'zustaende.test.tsx',
+  'zustaende.unbenutzt.test.ts',
+  'bausteine.tsx',
+  'bausteine.test.tsx',
+];
 const ALLE = quelldateien(wurzel).filter(
   (pfad) => !EIGENE.some((name) => pfad.endsWith(`/${name}`)),
 );
 
 const GLOBAL = readFileSync(resolve(wurzel, 'styles/global.css'), 'utf8');
+/*
+  Seit 5B.1 stehen die Regeln der Bausteine bei ihren Bausteinen. Eine Regel
+  im Rumpf von `global.css` wird beim Umbau ihres Bausteins vergessen und
+  bleibt als tote Zeile liegen; hier verschwindet sie mit ihm.
+*/
+const BAUSTEINSTILE = ['zustaende.css', 'bausteine.css']
+  .map((datei) => readFileSync(resolve(wurzel, 'ui', datei), 'utf8'))
+  .join('\n');
 
 describe('die neuen Zustandsbausteine stehen bereit und sonst nichts', () => {
-  for (const baustein of ['Skeleton', 'PageTitle', 'ErrorState']) {
+  const NEU = [
+    'Skeleton',
+    'PageTitle',
+    'ErrorState',
+    'Kurskarte',
+    'Paketkarte',
+    'Fortschritt',
+    'LeererZustand',
+  ];
+
+  for (const baustein of NEU) {
     it(`${baustein} wird von keinem Bildschirm eingesetzt`, () => {
       const stellen = ALLE.filter((pfad) => {
         const text = readFileSync(pfad, 'utf8');
@@ -59,20 +83,76 @@ describe('die neuen Zustandsbausteine stehen bereit und sonst nichts', () => {
 
       expect(
         stellen,
-        `${baustein} ist in Benutzung — das gehört in den Umbau des Bildschirms, nicht in P2`,
+        `${baustein} ist in Benutzung — das gehört in den Umbau des Bildschirms, nicht in 5B.1`,
       ).toEqual([]);
     });
   }
 
   it('niemand importiert sie außer ihrem eigenen Test', () => {
-    const importe = ALLE.filter((pfad) => /from '.*zustaende'/.test(readFileSync(pfad, 'utf8')));
+    const importe = ALLE.filter((pfad) =>
+      /from '.*(zustaende|bausteine)'/.test(readFileSync(pfad, 'utf8')),
+    );
     expect(importe.map((pfad) => pfad.slice(wurzel.length + 1))).toEqual([]);
   });
 
   it('sie haben aber schon Stil — sonst wären sie im Entwurf nicht zu beurteilen', () => {
-    for (const klasse of ['.skeleton__line', '.page-title__heading', '.error-state']) {
-      expect(GLOBAL, `${klasse} fehlt`).toContain(`${klasse} `);
+    for (const klasse of [
+      '.skeleton__line',
+      '.page-title__heading',
+      '.error-state',
+      '.karte__cover',
+      '.fortschritt__fuellung',
+      '.leer__titel',
+    ]) {
+      expect(BAUSTEINSTILE, `${klasse} fehlt`).toContain(`${klasse} `);
     }
+  });
+
+  it('und ihr Stil erreicht trotzdem keinen Bildschirm', () => {
+    /*
+      Die Prüfung oben zeigt nur, dass der Stil existiert. Dass er niemanden
+      trifft, hängt an zwei Dingen: Das Stylesheet wird allein vom Modul
+      geladen, und das Modul lädt niemand. Beides steht hier, weil das erste
+      stillschweigend zurückgenommen wäre, sobald jemand es in `global.css`
+      importiert.
+    */
+    expect(GLOBAL).not.toMatch(/@import[^;]*(zustaende|bausteine)\.css/);
+    expect(GLOBAL, 'die Regeln sind nach 5B.1 nicht mehr in global.css').not.toContain(
+      '.page-title__heading',
+    );
+
+    const zustaende = readFileSync(resolve(wurzel, 'ui/zustaende.tsx'), 'utf8');
+    const bausteine = readFileSync(resolve(wurzel, 'ui/bausteine.tsx'), 'utf8');
+    expect(zustaende).toContain("import './zustaende.css'");
+    expect(bausteine).toContain("import './bausteine.css'");
+  });
+
+  it('die neuen Bausteine fassen die produktiven nicht an', () => {
+    /*
+      `LeererZustand` ist die E19-Fassung des leeren Zustands und ein eigener
+      Baustein — nicht ein Prop an `EmptyState`. Ihm eine Variante anzubauen
+      hieße, die Datei anzufassen, die sieben Bildschirme tragen, und zwar in
+      dem Moment, in dem die Zusicherung aus P2 etwas wert wäre.
+    */
+    const bausteine = readFileSync(resolve(wurzel, 'ui/bausteine.tsx'), 'utf8');
+    expect(bausteine).toContain('export function LeererZustand(');
+
+    /*
+      Ohne Kommentare: Die Datei *erklärt* im Kopf, warum sie `EmptyState`
+      nicht anfasst. Diese Erklärung mitzuprüfen hieße, sie zu verbieten.
+    */
+    const quelltext = (text: string): string =>
+      text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+
+    expect(quelltext(bausteine)).not.toMatch(/from '\.\/components'/);
+    expect(quelltext(bausteine), 'der neue Baustein greift auf den produktiven zu').not.toMatch(
+      /EmptyState/,
+    );
+
+    // Und umgekehrt: `components.tsx` weiß nichts von den neuen.
+    const produktiv = quelltext(readFileSync(resolve(wurzel, 'ui/components.tsx'), 'utf8'));
+    expect(produktiv).not.toMatch(/bausteine/);
+    expect(produktiv).not.toMatch(/LeererZustand/);
   });
 });
 

@@ -1,0 +1,152 @@
+/* ===========================================================================
+   Zustandsbausteine — Laden, Titel, Fehler (5B.1, Gestaltung nach E19)
+   ===========================================================================
+
+   Diese Regeln standen bis 5B.1 am Ende von `global.css`. Sie liegen jetzt
+   neben ihrem Baustein, und das ist nicht Ordnungsliebe: Eine Regel, die in
+   einer 4 700-Zeilen-Datei steht, wird beim Umbau ihres Bausteins vergessen
+   und bleibt als tote Zeile liegen. Hier verschwindet sie mit ihm.
+
+   Geladen wird diese Datei nur, wenn `zustaende.tsx` geladen wird — und das
+   tut in 5B.1 kein Bildschirm.
+
+   Die Farben sind die von E19. Die Bausteine standen bisher auf Pergament,
+   weil es nichts anderes gab; mit der neuen Palette stehen sie auf dem
+   kühlen Grund, für den sie entworfen wurden.
+   =========================================================================== */
+
+.skeleton__stack {
+  display: grid;
+  gap: var(--space-2);
+}
+.skeleton__line,
+.skeleton__cover {
+  background: var(--flaeche-stumpf);
+  border-radius: var(--rund-klein);
+}
+.skeleton__line {
+  block-size: 1rem;
+}
+/*
+  Die letzte Zeile bleibt kurz. Ein Absatz endet mittendrin — ein Block aus
+  lauter gleich langen Balken sieht aus wie eine Tabelle und nicht wie Text.
+*/
+.skeleton__line:last-child {
+  inline-size: 62%;
+}
+.skeleton--card .skeleton__stack {
+  padding: var(--space-5);
+  border: 1px solid var(--rand);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+}
+.skeleton__cover {
+  aspect-ratio: var(--cover-ratio);
+  inline-size: 100%;
+}
+
+/*
+  Das Flimmern ist eine Zusage („es tut sich etwas"), kein Schmuck. Wer
+  Bewegung abbestellt hat, bekommt den ruhigen Balken — die Zusage trägt dann
+  der Satz im Live-Bereich.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton__line,
+  .skeleton__cover {
+    animation: skeleton-puls 1.4s var(--ease-out) infinite;
+  }
+}
+@keyframes skeleton-puls {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.page-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--stack-snug) var(--space-5);
+  margin-block-end: var(--stack-normal);
+}
+.page-title__text {
+  display: grid;
+  gap: var(--space-2);
+  max-inline-size: var(--width-prose);
+}
+.page-title__eyebrow {
+  margin: 0;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--tinte-2);
+}
+/*
+  Manrope 800, nicht Newsreader: E21 hat die editoriale Überschriftenstimme
+  der Oberfläche zurückgenommen. Newsreader steht nur noch auf Titelbildern.
+*/
+.page-title__heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-black);
+  font-size: var(--text-3xl);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+  color: var(--tinte);
+}
+.page-title__description {
+  margin: 0;
+  color: var(--tinte-2);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+}
+.page-title__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/*
+  Kein Glas. Ein Fehler ist das eine, was man ohne Nachdenken lesen können
+  muss — über einem Aurora-Verlauf schwankte sein Kontrast von Pixel zu Pixel.
+*/
+.error-state {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border: 1px solid var(--fehler);
+  border-radius: var(--rund-gross);
+  background: var(--fehler-weich);
+  max-inline-size: var(--width-prose);
+}
+.error-state__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--fehler);
+}
+.error-state__text {
+  margin: 0;
+  color: var(--tinte);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+/*
+  Offline ist kein Fehler. Wer im Bus übt, ist nicht kaputt: Die Verbindung
+  ist weg, der Lernstand bleibt liegen und geht später hinaus. Dieselbe rote
+  Fläche wie für einen Serverfehler täuschte eine Dringlichkeit vor, die es
+  nicht gibt.
+*/
+.error-state--offline {
+  border-color: var(--warn);
+  background: var(--warn-weich);
+}
+.error-state--offline .error-state__title {
+  color: var(--warn);
+}

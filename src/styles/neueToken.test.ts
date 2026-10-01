@@ -109,39 +109,29 @@ describe('die neuen Token für 5B sind angelegt', () => {
 });
 
 /**
- * Der Stilcode, der **heute einen Bildschirm trifft** – also alles außer dem
- * Block der Zustandsbausteine.
+ * Der Stilcode, der **heute einen Bildschirm trifft**.
  *
- * ## Warum diese Unterscheidung nötig wurde
+ * ## Warum das inzwischen einfach ist
  *
- * P1a hat die Token angelegt und zugesichert: „wird von keiner Regel
- * benutzt". Das war für P1a richtig und für P2 zu eng. P2 legt `Skeleton`,
- * `PageTitle` und `ErrorState` an, gibt ihnen Stil – und benutzt dabei
- * `--cover-ratio` und die Stapelabstände. Kein Bildschirm setzt diese
- * Bausteine ein, also ändert sich nichts; die alte Formulierung fiel
- * trotzdem.
+ * P2 hatte seine Regeln ans Ende von `global.css` gehängt und dort mit einer
+ * Textmarke umstellt, damit diese Prüfung sie überspringen konnte. Das war
+ * eine Hilfskonstruktion: Eine Datei, die Ausgeliefertes und Vorbereitetes
+ * nebeneinander trägt, muss man beim Lesen auseinanderhalten.
  *
- * Die Zusicherung ist deshalb nicht gelockert, sondern genauer gefasst: Die
- * Token dürfen **nur** im Block der Zustandsbausteine vorkommen. Dass diesen
- * Block kein Bildschirm erreicht, prüft `src/ui/zustaende.unbenutzt.test.ts`.
+ * Seit 5B.1 liegen die Regeln der Bausteine bei ihren Bausteinen —
+ * `src/ui/zustaende.css` und `src/ui/bausteine.css`, geladen nur, wenn das
+ * Modul geladen wird. Die Stylesheets hier sind damit wieder genau das, was
+ * an den Einstiegspunkten hängt, und die Prüfung braucht keine Ausnahme mehr.
+ *
+ * Dass die Bausteine selbst keinen Bildschirm erreichen, prüft
+ * `src/ui/zustaende.unbenutzt.test.ts` — an der Stelle, an der es hingehört:
+ * am Import, nicht am Stylesheet.
  */
-const MARKE_ZUSTAENDE = 'Zustandsbausteine (5B.P2)';
-
-function ohneZustandsblock(text: string): string {
-  const anfang = text.indexOf(MARKE_ZUSTAENDE);
-  return anfang < 0 ? text : text.slice(0, anfang);
-}
-
 const STILE_IM_EINSATZ = STILDATEIEN.map((datei) =>
-  ohneKommentare(ohneZustandsblock(lies(`src/styles/${datei}`))),
+  ohneKommentare(lies(`src/styles/${datei}`)),
 ).join('\n');
 
 describe('und sie erreichen noch keinen Bildschirm', () => {
-  /*
-    Der Kern von P1a, in der Fassung, die P2 überlebt: Keines dieser Token
-    darf in einer Regel stehen, die ein heutiger Bildschirm trifft. Steht es
-    dort, ändert sich etwas – und zwar vor der Freigabe der Entwürfe.
-  */
   for (const token of NEUE_TOKEN) {
     it(`${token} steht in keiner Regel, die heute greift`, () => {
       const benutzungen = [...STILE_IM_EINSATZ.matchAll(new RegExp(`var\\(${token}[,)]`, 'g'))];
@@ -155,23 +145,35 @@ describe('und sie erreichen noch keinen Bildschirm', () => {
   it('--font-editorial wird überhaupt noch nirgends benutzt', () => {
     /*
       Bei dieser einen bleibt es hart. Sie ist die Schrift der Oberfläche; sie
-      irgendwo einzusetzen ist P1b und wartet auf die Freigabe der Entwürfe –
+      irgendwo einzusetzen wäre die Umschaltung, die E21 zurückgenommen hat —
       auch in einem Baustein, den noch niemand sieht.
     */
-    const benutzungen = [...ALLE_STILE.matchAll(/var\(--font-editorial[,)]/g)];
+    const bausteinstile = ['src/ui/zustaende.css', 'src/ui/bausteine.css']
+      .map((pfad) => ohneKommentare(lies(pfad)))
+      .join('\n');
+    const benutzungen = [...(ALLE_STILE + bausteinstile).matchAll(/var\(--font-editorial[,)]/g)];
     expect(benutzungen.length).toBe(0);
   });
 
-  it('der Block der Zustandsbausteine ist überhaupt da', () => {
-    // Sonst ginge die Unterscheidung oben ins Leere und prüfte scheinbar mehr.
-    expect(lies('src/styles/global.css')).toContain(MARKE_ZUSTAENDE);
+  it('die Stylesheets der Bausteine hängen an keinem Einstiegspunkt', () => {
+    /*
+      Sonst wäre die Erleichterung oben keine: Ein `@import './ui/bausteine.css'`
+      in `global.css` brächte alles zurück, was gerade herausgezogen wurde.
+    */
+    for (const datei of STILDATEIEN) {
+      const css = lies(`src/styles/${datei}`);
+      expect(css, `${datei} bindet ein Bausteinstylesheet ein`).not.toMatch(
+        /@import[^;]*(zustaende|bausteine)\.css/,
+      );
+    }
   });
 
   it('--font-display trägt noch nicht die editoriale Schrift', () => {
     /*
-      Die Umschaltung ist P1b und wartet auf die Freigabe der Entwürfe. Sie
-      hier vorwegzunehmen hieße, jeden bestehenden Bildschirm zu ändern, bevor
-      jemand den neuen gesehen hat.
+      Mit E21 ist das keine Wartestellung mehr, sondern eine Entscheidung:
+      Überschriften stehen in Manrope 700–800, Newsreader steht nur noch auf
+      Titelbildern. Der Test hält fest, dass die zurückgenommene Umschaltung
+      nicht doch noch passiert.
     */
     const stile = ohneKommentare(TOKENS);
     const zeile = /--font-display:\s*([^;]+);/.exec(stile);

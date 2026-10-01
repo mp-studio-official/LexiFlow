@@ -1,0 +1,208 @@
+/* ===========================================================================
+   Karten, Fortschritt, leerer Zustand (5B.1, Gestaltung nach E19)
+   ===========================================================================
+
+   Trennung durch Fläche statt durch Linien: Die Karten stehen weiß auf dem
+   kühlen Grund, mit einem flachen Schatten und einem großen Radius. Ein
+   Rahmen käme dazu nur, wo die Fläche allein nicht trägt.
+
+   Kein Glas. Eine Karte liegt, sie schwebt nicht.
+   =========================================================================== */
+
+.karte {
+  position: relative;
+  display: grid;
+  gap: var(--stack-snug);
+  align-content: start;
+  padding: var(--space-5);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  box-shadow: var(--schatten-flach);
+  color: var(--tinte);
+  overflow: hidden;
+}
+
+/*
+  Das Band am Kopf der Kurskarte. Es ist das, was die Karte unterscheidbar
+  macht, ohne dass sie ein Bild braucht — und es ist aus demselben Grund
+  schmal: Eine große Aurora-Fläche über einer Kurskarte sähe aus wie ein
+  Titelbild, das es nicht gibt.
+*/
+.karte__band {
+  display: block;
+  block-size: 6px;
+  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) 0;
+  background: linear-gradient(90deg, var(--aurora-violett), var(--aurora-himmel));
+}
+
+/* Die Titelbildfläche. Immer da, auch ohne Bild — sonst entstünden zwei
+   verschieden hohe Karten in derselben Liste. */
+.karte__cover {
+  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) 0;
+  aspect-ratio: var(--cover-ratio);
+  background: var(--flaeche-stumpf);
+  overflow: hidden;
+}
+.karte__cover > img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/*
+  Die vier Motive. Sie färben Band und leere Titelbildfläche — nie einen
+  Hintergrund, auf dem Text steht.
+*/
+.karte--violett .karte__cover[data-leer] {
+  background: linear-gradient(135deg, var(--aurora-violett), var(--aurora-rosa));
+}
+.karte--rosa .karte__cover[data-leer] {
+  background: linear-gradient(135deg, var(--aurora-rosa), var(--aurora-pfirsich));
+}
+.karte--himmel .karte__cover[data-leer] {
+  background: linear-gradient(135deg, var(--aurora-himmel), var(--aurora-violett));
+}
+.karte--pfirsich .karte__cover[data-leer] {
+  background: linear-gradient(135deg, var(--aurora-pfirsich), var(--aurora-rosa));
+}
+.karte--rosa .karte__band {
+  background: linear-gradient(90deg, var(--aurora-rosa), var(--aurora-pfirsich));
+}
+.karte--himmel .karte__band {
+  background: linear-gradient(90deg, var(--aurora-himmel), var(--aurora-violett));
+}
+.karte--pfirsich .karte__band {
+  background: linear-gradient(90deg, var(--aurora-pfirsich), var(--aurora-rosa));
+}
+
+.karte__text {
+  display: grid;
+  gap: var(--space-2);
+}
+.karte__eyebrow {
+  margin: 0;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--tinte-2);
+}
+.karte__titel {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-xl);
+  letter-spacing: var(--tracking-snug);
+  line-height: var(--leading-snug);
+}
+.karte__beschreibung {
+  margin: 0;
+  color: var(--tinte-2);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+/* Die Metadaten am Fuß — Wert über Bezeichnung, nicht nebeneinander: Auf
+   390 px bricht eine Zeile aus Paaren sonst an der falschen Stelle um. */
+.karte__fuss {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--rand);
+}
+.karte__angabe dt {
+  font-size: var(--text-xs);
+  color: var(--tinte-3);
+}
+.karte__angabe dd {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+.karte__aktion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ---------------------------------------------------------- Fortschritt */
+
+.fortschritt {
+  display: grid;
+  gap: var(--space-2);
+}
+.fortschritt__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+}
+.fortschritt__label {
+  font-weight: var(--weight-semibold);
+}
+.fortschritt__wert {
+  color: var(--tinte-2);
+  font-variant-numeric: tabular-nums;
+}
+.fortschritt__bahn {
+  block-size: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--flaeche-stumpf);
+  overflow: hidden;
+}
+.fortschritt__fuellung {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  /*
+    Tomato als Fläche — hier ist es Grafik, kein Text. Als Schrift erschiene
+    auf hellem Grund `--akzent`, die dunkle Ableitung.
+  */
+  background: var(--brand-tomato);
+}
+.fortschritt--gut .fortschritt__fuellung {
+  background: var(--gut);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fortschritt__fuellung {
+    transition: inline-size var(--duration-base) var(--ease-out);
+  }
+}
+
+/* ------------------------------------------------------- Leerer Zustand */
+
+/*
+  Gestrichelter Rahmen, keine abgesenkte Fläche: Auf dem kühlen Grund wäre
+  eine zweite helle Fläche kaum zu sehen, und „hier fehlt noch etwas" ist
+  genau die Aussage, für die eine gestrichelte Kante steht.
+*/
+.leer {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-7) var(--space-5);
+  border: 1px dashed var(--rand-stark);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  max-inline-size: var(--width-prose);
+}
+.leer__titel {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--tinte);
+}
+.leer__text {
+  margin: 0;
+  color: var(--tinte-2);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+.leer__aktion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

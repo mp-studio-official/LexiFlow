@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import './zustaende.css';
+
 /**
  * Die drei Zustandsbausteine für 5B — Laden, Titel, Fehler.
  *
