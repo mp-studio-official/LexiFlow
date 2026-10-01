@@ -63,7 +63,8 @@ sind — nicht, wenn sein Code steht.
 | **5B.2b** | Die Zeichen der Icon-Leiste | E23 | 5B.2a | offen |
 | **5B.2c** | Die Hülle als Baustein — unbenutzt, isoliert, ohne Routing- und Rollenwissen | E12, E23 | 5B.2b | offen |
 | **5B.2c′** | **Übergangsredirect** `#/pakete` → `#/material`, mit Integrationsprüfung am Router | E13 | 5B.2c | offen |
-| **5B.2d** | Das Portal schaltet um — **erste sichtbare Produktivänderung** | E12, E23 | 5B.2c′ | offen |
+| **5B.7** | **Einstellungen unter `#/einstellungen`** — vorgezogen, siehe unten | E23 | 5B.2c′ | offen |
+| **5B.2d** | Das Portal schaltet um — **erste sichtbare Produktivänderung** | E12, E23 | **5B.7** | offen |
 
 > Zusammengeführt werden ausschließlich die drei Portalhüllen (`PublicShell`,
 > `LearnerShell`, `TeacherShell`). `AppShell` und `StudentShell` bleiben in
@@ -72,6 +73,22 @@ sind — nicht, wenn sein Code steht.
 > Nach 5B.2d sind sichtbar: **Kurse · Lernpakete · KI-Zugang** (Lehrkraft)
 > und **Lernen** (Lernende). Alles andere bleibt `geplant` — siehe die
 > progressive Freischaltung in E23.
+
+#### Warum 5B.7 vor 5B.2d steht
+
+Die Nummer bleibt; die Reihenfolge ändert sich. Der Grund ist der
+**Adminzugang**, und er ist keine Feinheit:
+
+E23 nimmt `#/verwaltung` aus der Navigation. Der neue Einstieg liegt
+innerhalb von `#/einstellungen` — und das gibt es noch nicht. Schaltet die
+Hülle vorher um, landet eine Verwaltung nach der Anmeldung über
+`HOME_PER_ROLE.admin` zwar weiterhin in der Verwaltung, hätte aber **keinen
+regulären Weg zurück**: Der alte Navigationspunkt ist weg, der neue noch
+nicht da. Übrig bliebe die Adresszeile.
+
+Das ist der allgemeine Fall, auf den beim Umschalten zu achten ist: Ein
+Hüllenwechsel **entfernt** Zugangswege. Jeder davon muss seinen neuen Ort
+schon haben, bevor der alte verschwindet — nicht danach.
 
 #### E13 in zwei Phasen — und warum die Richtung wichtig ist
 
@@ -102,10 +119,12 @@ eine Seite, die nicht mehr lädt.
 | **5B.4** | „Heute" | E1, E2, E3, E9 | 5B.2d | offen |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14 | 5B.2d | offen |
 | **5B.6** | „Mein Fortschritt": Lernzeit, Lernserie mit Ruhetagen, freiwilliges Wochenziel | E1, E2, E3, E6 | 5B.4 | offen |
-| **5B.7** | Einstellungen unter `#/einstellungen`; Verwaltungseinstieg nur für Admins | E23 | 5B.2d | offen |
+| ~~**5B.7**~~ | ~~Einstellungen~~ — **vorgezogen vor 5B.2d**, siehe oben | E23 | 5B.2c′ | — |
 
 > Die Reihenfolge folgt **E16**: Lehrkräfte-Dashboard zuerst, dann der
-> Lernendenbereich, dann der übrige Lehrkraftbereich. Jeder dieser Blöcke
+> Lernendenbereich, dann der übrige Lehrkraftbereich. **Ausgenommen 5B.7**,
+> das vor 5B.2d gezogen wurde — E16 ordnet die Bereiche, nicht die
+> Voraussetzungen der Hülle. Jeder dieser Blöcke
 > schaltet sein Ziel von `geplant` auf `vorhanden` — **in demselben Commit**,
 > in dem die Route und ihr Inhalt entstehen.
 
@@ -166,6 +185,27 @@ Für Blöcke, die einen Bildschirm verändern, zusätzlich:
 5. **Breitensuite** für die betroffene Auslieferung: `npm run e2e:breiten`
    beziehungsweise `e2e:breiten:portal`, vier Breiten × zwei Maschinen.
 6. **Altregeln entfernt** — siehe unten.
+
+### Vor 5B.2d: kein Weg darf verschwinden
+
+Ein Hüllenwechsel entfernt Zugangswege. Bevor umgeschaltet wird, muss für
+jeden bestehenden Weg nachgewiesen sein, dass es ihn danach noch gibt:
+
+- Lernende: **„Mit Code beitreten"** bleibt aus dem Lernbereich erreichbar.
+- **Datenschutz** liegt in der Fußzeile beziehungsweise in den Einstellungen.
+- Lehrkräfte: **„Als Lernende ansehen"** liegt im Kopf und führt zu `/lernen`.
+- **Abmelden** bleibt eine echte Handlung, kein Verweis.
+- Die **Adminverwaltung** ist ausschließlich über die Einstellungen
+  erreichbar.
+- Die **Marke** führt zum gültigen Rollenstart, nicht blind zur öffentlichen
+  Landungsseite.
+- Die **`PublicShell`** bleibt ohne Bereichsnavigation.
+- Die **Lazy-Trennung** zwischen Lernenden- und Lehrkraftbündel bleibt
+  erhalten.
+
+Jeder dieser Punkte bekommt in 5B.2d eine Prüfung am echten Router. „Ist noch
+da" ist keine Beobachtung, sondern eine Behauptung, solange sie niemand
+nachgesehen hat.
 
 ### Zu E18: wann Altregeln fallen
 
