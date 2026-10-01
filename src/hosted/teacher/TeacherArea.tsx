@@ -4,6 +4,7 @@ import { Alert, Card } from '../../ui/components';
 import { CourseDetailPage } from './CourseDetailPage';
 import { CoursesPage } from './CoursesPage';
 import { MaterialPage } from './MaterialPage';
+import { SettingsPage } from './SettingsPage';
 
 /**
  * Der KI-Zugang – lazy, weil eine Lehrkraft ohne KI ihn nie braucht.
@@ -34,7 +35,7 @@ const AiPage = lazy(() => import('./AiPage'));
  * Abschnitt in seiner Phase, dann innerhalb seiner eigenen Datei.
  */
 
-export const TEACHER_SECTIONS = ['kurse', 'material', 'ki', 'verwaltung'] as const;
+export const TEACHER_SECTIONS = ['kurse', 'material', 'ki', 'einstellungen', 'verwaltung'] as const;
 export type TeacherSection = (typeof TEACHER_SECTIONS)[number];
 
 interface Platz {
@@ -53,6 +54,11 @@ const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
     titel: 'Material',
     phase: 'Phase 5',
     text: 'Pakete im Konto anlegen, aus der lokalen Fassung übernehmen, als unveränderliche Revision veröffentlichen und einem Kurs zuweisen.',
+  },
+  einstellungen: {
+    titel: 'Einstellungen',
+    phase: 'Phase 5',
+    text: 'KI-Zugang, Daten und – für die Verwaltung – Konten und Rollen.',
   },
   ki: {
     titel: 'KI-Zugang',
@@ -86,6 +92,18 @@ export function TeacherArea({ section }: { section: TeacherSection }) {
     return (
       <Routes>
         <Route index element={<MaterialPage />} />
+      </Routes>
+    );
+  }
+
+  if (section === 'einstellungen') {
+    /*
+      Kein eigener `Routes`-Block mit Unterseiten: Die Einstellungen sind ein
+      Verzeichnis und haben keine. Einer auf Vorrat wäre eine Route ohne Ziel.
+    */
+    return (
+      <Routes>
+        <Route index element={<SettingsPage />} />
       </Routes>
     );
   }

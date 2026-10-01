@@ -133,6 +133,22 @@ export function HostedRoutes() {
             </Suspense>
           }
         />
+        {/*
+          Die Einstellungen (E23): für **jede** Lehrkraft zugänglich, nicht
+          nur für die Verwaltung. Innerhalb des Lehrkraftriegels, damit
+          Lernende sie nicht erreichen — und ausdrücklich **nicht** hinter
+          `RequireArea area="admin"`: Der Adminteil ist ein Abschnitt der
+          Seite, nicht ihre Voraussetzung.
+        */}
+        <Route
+          path="einstellungen/*"
+          element={
+            <Suspense fallback={<Laedt was="Die Einstellungen" />}>
+              <TeacherArea section="einstellungen" />
+            </Suspense>
+          }
+        />
+
         <Route
           path="ki/*"
           element={

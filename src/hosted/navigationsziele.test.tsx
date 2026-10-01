@@ -187,6 +187,7 @@ describe('der Stand, den dieser Block festhält', () => {
       '#/kurse',
       '#/pakete',
       '#/ki',
+      '#/einstellungen',
     ]);
     expect(sichtbareZiele('lernende', 'schreibtisch').map((z) => z.pfad)).toEqual(['#/lernen']);
   });
@@ -329,6 +330,106 @@ describe('der Übergangsredirect `#/pakete` → `#/material` (E13)', () => {
       await screen.findByRole('heading', { name: 'Kurse', level: 1 }),
       'ein Schritt zurück landet nicht auf der Seite davor — der Redirect steht im Verlauf',
     ).toBeInTheDocument();
+  });
+});
+
+describe('die Einstellungen (5B.7)', () => {
+  /*
+    Diese Seite ist ein Verzeichnis und keine neue Funktion: Sie führt zu
+    Dingen, die es gibt. Geprüft wird deshalb, **was man von dort erreicht** —
+    und wer was davon überhaupt sieht.
+  */
+
+  it('eine Lehrkraft findet KI-Zugang und Datenschutz, aber keine Verwaltung', async () => {
+    oeffne('/einstellungen', 'u-lehrerin');
+    expect(
+      await screen.findByRole('heading', { name: 'Einstellungen', level: 1 }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('link', { name: /KI-Zugang öffnen/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Datenschutz öffnen/ })).toBeInTheDocument();
+
+    /*
+      Nicht ausgegraut, sondern nicht da. Ein gesperrter Eintrag erzählt von
+      einer Tür — eine Auskunft, die niemand gegeben hat.
+    */
+    expect(screen.queryByRole('link', { name: /Konten und Rollen/ })).toBeNull();
+    expect(screen.queryByText(/Konten und Rollen/)).toBeNull();
+  });
+
+  it('eine Verwaltung findet zusätzlich „Konten und Rollen"', async () => {
+    oeffne('/einstellungen', 'u-verwaltung');
+    await screen.findByRole('heading', { name: 'Einstellungen', level: 1 });
+    expect(screen.getByRole('link', { name: 'Konten und Rollen verwalten' })).toBeInTheDocument();
+  });
+
+  it('der Adminverweis erreicht den wirklich gerenderten Verwaltungsbereich', async () => {
+    /*
+      Nicht nur „der Verweis zeigt auf /verwaltung": Ein Verweis auf eine
+      Adresse, die in der Wildcard endet, sähe genauso aus.
+    */
+    oeffne('/einstellungen', 'u-verwaltung');
+    const verweis = await screen.findByRole('link', { name: 'Konten und Rollen verwalten' });
+    expect(verweis.getAttribute('href')).toBe('/verwaltung');
+
+    const { userEvent } = await import('@testing-library/user-event');
+    await userEvent.setup().click(verweis);
+
+    expect(await screen.findByRole('heading', { name: 'Verwaltung', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: LANDUNG, level: 1 })).toBeNull();
+  });
+
+  it('eine lernende Person erreicht die Seite nicht', async () => {
+    oeffne('/einstellungen', 'u-lernend');
+    expect(await screen.findByText(/nicht für dieses Konto/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Einstellungen', level: 1 })).toBeNull();
+  });
+
+  it('ohne Anmeldung führt sie zur Anmeldung', async () => {
+    oeffne('/einstellungen');
+    expect(await screen.findByRole('heading', { name: 'Anmelden' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Einstellungen', level: 1 })).toBeNull();
+  });
+
+  it('weder Wildcard noch Landungsseite haben gegriffen', async () => {
+    for (const konto of ['u-lehrerin', 'u-verwaltung']) {
+      cleanup();
+      oeffne('/einstellungen', konto);
+      await screen.findByRole('heading', { name: 'Einstellungen', level: 1 });
+      expect(screen.queryByRole('heading', { name: LANDUNG, level: 1 })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Anmelden' })).toBeNull();
+    }
+  });
+
+  it('steht innerhalb des Lehrkraftriegels und nicht hinter dem Adminriegel', () => {
+    /*
+      Zwei Fehler wären hier möglich. Vor dem Lehrkraftriegel wäre die Seite
+      für Lernende offen. Hinter dem Adminriegel käme keine normale Lehrkraft
+      mehr an ihren KI-Zugang — und genau dieser Weg ist der Grund, warum es
+      die Seite gibt.
+    */
+    const quelle = readFileSync(resolve(import.meta.dirname, 'HostedApp.tsx'), 'utf8');
+    const stelle = quelle.indexOf('path="einstellungen/*"');
+    const lehrkraftriegel = quelle.indexOf('<RequireArea area="teacher">');
+    const ende = quelle.indexOf('<Route path="*"', lehrkraftriegel);
+    expect(stelle, 'die Route fehlt').toBeGreaterThan(0);
+    expect(stelle > lehrkraftriegel && stelle < ende, 'außerhalb des Lehrkraftbereichs').toBe(true);
+
+    const adminriegel = quelle.indexOf('<RequireArea area="admin">');
+    const adminEnde = quelle.indexOf('</RequireArea>', adminriegel);
+    expect(
+      stelle > adminriegel && stelle < adminEnde,
+      'die Einstellungen liegen hinter dem Adminriegel',
+    ).toBe(false);
+  });
+
+  it('`#/verwaltung` steht weiterhin in keiner Navigation', () => {
+    for (const profil of PROFILE) {
+      for (const groesse of ['schreibtisch', 'telefon'] as const) {
+        expect(sichtbareZiele(profil, groesse).map((z) => z.pfad)).not.toContain('#/verwaltung');
+      }
+    }
+    expect(zielmatrix().map(({ ziel }) => ziel.pfad)).not.toContain('#/verwaltung');
   });
 });
 

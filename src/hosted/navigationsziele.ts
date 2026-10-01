@@ -80,7 +80,12 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
   '#/heute': { zustand: 'geplant', block: '5B.4' },
   '#/ueben': { zustand: 'geplant', block: '5B.5' },
   '#/fortschritt': { zustand: 'geplant', block: '5B.6' },
-  '#/einstellungen': { zustand: 'geplant', block: '5B.7' },
+  /*
+    Seit 5B.7 eine echte Route — im selben Commit, in dem sie Inhalt bekam.
+    Zugänglich für jede Lehrkraft; der Adminteil ist ein Abschnitt der Seite
+    und nicht ihre Voraussetzung.
+  */
+  '#/einstellungen': { zustand: 'vorhanden', route: '/einstellungen' },
 };
 
 /**
