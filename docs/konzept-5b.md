@@ -732,6 +732,11 @@ alles danach.
 sie von der Hülle abhängen — nicht, weil sie klein wären. Wer 5B plant und
 diese drei Blöcke überliest, plant die Hälfte der Arbeit weg.
 
+> **Zu E11:** Diese Liste soll durch einen Verweis auf den operativen
+> Umsetzungsplan ersetzt werden, sobald dieser im Verzeichnis liegt. Bis
+> dahin ist sie die einzige Blockliste des Projekts — siehe Abschnitt 15,
+> E11.
+
 Nicht Teil von 5B: Unsplash, kleine Spiele, Dunkelmodus.
 
 ---
@@ -1209,83 +1214,133 @@ unterschieden sind sie nur in der visuellen Ebene.
 
 ## 15. Entscheidungen E11 bis E18 — nachgetragen
 
-Diese acht wurden am 29./30.09.2026 im Arbeitsgespräch entschieden und sind
-nie in dieses Dokument gewandert. Sie leben seitdem in den Entwürfen und in
-Commit-Botschaften — also an Orten, die man nur findet, wenn man schon weiß,
-dass es sie gibt. Als 5B.2a sich auf E13 berufen wollte, war die Entscheidung
-ausschließlich als Satz in `docs/mockups/portal/navigation.html` greifbar.
+### Woher der Wortlaut stammt
 
-**Rekonstruiert, nicht erinnert.** Jede Entscheidung unten steht mit der
-Stelle, aus der ihr Wortlaut stammt. Wo sich nichts belegen ließ, steht das
-da — und nicht eine plausible Formulierung.
+Am 29.09.2026 lag für den Designblock eine **Entscheidungsvorlage** vor: eine
+Bestandsaufnahme aller Portalrouten mit ihrem Ist-Zustand, dazu ein Abschnitt
+„Entscheidungen, die deine Freigabe brauchen" mit acht nummerierten Fragen
+und je einem Vorschlag. Marc hat diese acht Fragen am selben Tag beantwortet;
+seine Antworten sind E11 bis E18 und sind seitdem verbindlich.
 
-### E11 — **Lücke**
+Die Vorlage selbst ist **nie in dieses Projektverzeichnis gelangt** — sie
+bestand nur im Arbeitsgespräch. Deshalb steht ihr Inhalt, soweit er
+entschieden wurde, ab hier hier: im Konzept, versioniert, auffindbar.
 
-Zu „E11" findet sich im gesamten Projekt kein einziger Beleg: nicht in den
-Entwürfen, nicht in `docs/`, nicht in `src/`, nicht in einer Commit-Botschaft.
-Gesucht wurde nach dem Wort mit Wortgrenze in allen Textdateien und, unter
-Ausschluss der Base64-Blöcke, in allen Entwurfsblättern.
+**Zwei Antworten weichen vom damaligen Vorschlag ab** (E12 und E16). Das ist
+unten vermerkt, weil der Vorschlag sonst leicht für die Entscheidung gehalten
+wird — er war das Gegenteil davon.
 
-Entweder trug die Entscheidung eine andere Nummer, oder sie ist beim Zählen
-übersprungen worden. Ich trage hier nichts ein. **Marc, wenn du weißt, was
-E11 war, gehört es hierher; sonst bleibt die Nummer frei.**
+### Was in diesem Abschnitt steht und was nicht
 
-### E12 — Navigation und Beschriftungen
+Jede Entscheidung erscheint in ihrem **ursprünglichen Wortlaut**. Alles, was
+später daraus geworden ist — Ausgestaltungen, Details, Umsetzungen — steht
+als solches gekennzeichnet darunter und **nicht** als die Entscheidung
+selbst. Diese Trennung ist der Grund für diesen Nachtrag: In der ersten
+Fassung vom 01.10.2026 waren vier spätere Erkenntnisse an die Stelle der
+Entscheidungen getreten, die sie präzisieren sollten.
 
-*Beleg: `docs/mockups/portal/navigation.html` (Zeilen 29, 92 ff.),
-`docs/mockups/portal/lehrkraft-dashboard.html` (Zeile 14),
-`docs/mockups/portal/index.html` (Zeile 48).*
+---
 
-- Vier Ziele in der unteren Navigation: **Start · Kurse · Lernpakete ·
-  Einstellungen** für Lehrkräfte, **Heute · Lernen · Üben · Mein Fortschritt**
-  für Lernende. Fünf wären am Telefon zu schmal für 44 px breite Tippziele.
-- **„Vorschau" heißt „Als Lernende ansehen"** — eine verständliche Handlung
-  statt eines Fachworts. Sie steht im **Kopfbereich**, nicht in der
-  Navigation.
-- Lehrkräfte bekommen einen **eigenen Startbildschirm** („Lehrkräfte-
-  Dashboard"), nicht die Kursliste als Einstieg.
+### E11 — Zwei Dokumente, zwei Aufgaben
 
-> Die Zahl der Schreibtischziele hat **E23** später neu gefasst (fünf statt
-> vier, KI-Zugang als eigenes Ziel). Die Beschriftungen und „Als Lernende
-> ansehen" gelten unverändert.
+**Das Portaldesign-Dokument ist der operative Umsetzungsplan;
+`konzept-5b.md` bleibt das Produktziel.** Die doppelte Blockliste in
+Abschnitt 10 wird durch einen Verweis auf den Umsetzungsplan ersetzt.
 
-### E13 — `#/material` heißt `#/pakete`
+Der Grund: Zwei Listen, die dasselbe meinen und auseinanderlaufen, sind
+schlimmer als eine ungenaue.
 
-*Beleg: `docs/mockups/portal/navigation.html`, Zeile 89 und folgende:
-„`#/material` heißt künftig `#/pakete` — „Material" ist ein Wort aus der
-Werkzeugsicht".*
+> **Stand der Umsetzung, 01.10.2026: noch nicht erfolgt — und zwar nicht aus
+> Versäumnis.** Der Umsetzungsplan, auf den E11 verweist, ist nie in dieses
+> Verzeichnis gelangt (`git log` kennt keine solche Datei). Damit gibt es im
+> Projekt **keine** zweite Blockliste; die in Abschnitt 10 ist derzeit die
+> einzige. Sie jetzt durch einen Verweis auf ein Dokument zu ersetzen, das es
+> nicht gibt, hieße die Liste ersatzlos zu streichen.
+>
+> E11 ist also entschieden und **offen**. Erledigt ist sie in dem Moment, in
+> dem der Umsetzungsplan im Verzeichnis liegt — dann, und nur dann, wird
+> Abschnitt 10 zum Verweis.
 
-Die Route und die Beschriftung heißen künftig **Lernpakete**. Bis die Route
-umbenannt ist, leitet `#/pakete` auf `#/material` weiter (siehe die Regeln zur
-progressiven Freischaltung in E23).
+### E12 — Eigenes Lehrkräfte-Dashboard
 
-### E14 — Übungsrunde: sofort speichern, und nur dann fragen
+**Lehrkräfte bekommen ein eigenes Dashboard unter `#/start`.** Die Kursliste
+bleibt ein eigener Bereich. **„Als Lernende ansehen"** liegt im Kopfbereich,
+nicht in der Navigation.
 
-*Beleg: `docs/mockups/portal/ueben.html`, Zeilen 30–33.*
+> **Abweichung vom Vorschlag.** Die Vorlage schlug das Gegenteil vor — kein
+> Dashboard, Einstieg über die Kursliste, mit der Begründung, eine
+> Zwischenseite mit Zahlen wäre ein Klick ohne Inhalt. Marc hat anders
+> entschieden. Die Sorge hinter dem Vorschlag ist dadurch nicht erledigt,
+> sondern in die Ausgestaltung gewandert: Auf dem Dashboard stehen Zahlen
+> über *eigene Inhalte*, nie über das Lernen anderer.
 
-- **Jede abgeschlossene Antwort ist gesichert.** Browser-Zurück, Neuladen und
-  Schließen dürfen nicht still zu Datenverlust führen.
-- Die **Rückfrage beim Abbruch erscheint nur, wenn wirklich etwas verloren
-  ginge**, und benennt genau *was*. Eine Rückfrage, die bei jedem Verlassen
-  kommt, wird weggeklickt — und dann auch die eine, die zählt.
+> **Später präzisiert durch E23.** Die endgültige Navigation — fünf Ziele am
+> Schreibtisch, vier auf dem Telefon, `#/einstellungen` statt `#/verwaltung` —
+> steht in Abschnitt 14.
+
+**Dashboard-Ausgestaltung zu E12** *(spätere Festlegung, aus den Entwürfen
+vom 30.09.2026; nicht Teil der ursprünglichen Entscheidung)*
+
+„Offene Stellen und Prüfhinweise" heißt **ausschließlich**: Lücken und
+Widersprüche in den **eigenen Paketentwürfen** — fehlende Übersetzungen,
+doppelte Einträge, Abweichungen vom Wörterbuch. **Keine** Rückfragen von
+Lernenden, **keine** Nachrichtenfunktion.
+
+Das Dashboard trägt sieben Blöcke: Entwürfe mit offenen Stellen · Kurse ·
+demnächst Veröffentlichtes · KI-Zugang · Schnellaktionen · Neues ·
+Kopfbereich mit „Als Lernende ansehen". Dazu die ausdrückliche
+Datenschutzzusage: keine individuellen Lernstände, keine Aktivitätszeiten,
+keine Trefferquoten, keine Klassendurchschnitte, keine anonymisierten
+Lernaggregate, keine Ranglisten. Die reine Mitgliederzahl eines Kurses ist
+zulässig.
+
+### E13 — `#/material` wird zu `#/pakete`
+
+**Mit dauerhafter Weiterleitung.** „Material" ist ein Wort aus der
+Werkzeugsicht; was dort liegt, sind Lernpakete.
+
+> Die Weiterleitung ist **dauerhaft**, nicht übergangsweise: Adressen, die
+> jemand gespeichert oder weitergegeben hat, sollen nicht ins Leere laufen.
+> Die Regeln, unter denen ein weitergeleitetes Ziel in der Navigation
+> erscheinen darf, stehen in E23.
+
+### E14 — Die Übungsrunde blendet die Navigation aus
+
+**Während einer laufenden Übungsrunde werden Seiten- und Bottom-Navigation
+ausgeblendet.** Verlassen wird die Runde nur über **„Runde beenden"**, mit
+Rückfrage.
+
+**Spätere Ausgestaltung zu E14** *(aus den Entwürfen vom 30.09.2026)*
+
+- **Jede abgeschlossene Antwort ist sofort gesichert.** Browser-Zurück,
+  Neuladen und Schließen dürfen nicht still zu Datenverlust führen.
+- Die Rückfrage erscheint **nur, wenn wirklich etwas verloren ginge**, und
+  benennt genau *was*. Eine Rückfrage, die bei jedem Verlassen kommt, wird
+  weggeklickt — und dann auch die eine, die zählt.
 - **„Hierbleiben" führt zurück ins Antwortfeld**, nicht an den Seitenanfang.
-- **Keine untere Navigation während der Übung.** Am Telefon nimmt die Aufgabe
-  den Platz; der Weg hinaus führt über „Beenden" oben.
 
-### E15 — Umfang der statischen Entwürfe
+### E15 — Die statischen Entwürfe
 
-*Beleg: `docs/mockups/portal/navigation.html`, Zeilen 14 und 28; Commit
-`11fb4ce`.*
+**Sieben eigenständige statische HTML-Entwürfe unter
+`docs/mockups/portal/`, mit Übersicht.** Verbindlich dabei: Desktop **und**
+Telefon, definierte Zustände, Tastaturfokus, **reale deutsche Texte** statt
+Platzhalter, **beide** Rollennavigationen — und **keine Produktivänderung**.
 
-Sieben Blätter, jedes auf **Desktop 1440 × 900** und **Telefon 390 × 844**,
-jeweils in den Zuständen **normal, ladend, leer, fehlerhaft** und — wo es
-etwas bedeutet — **offline**. Die Navigationsübersicht muss **beide Systeme
-vollständig** demonstrieren, in beiden Rollen; deshalb ist sie ein eigenes
-Blatt und nicht nur der Rand der anderen sechs.
+Ansehbar, versioniert, ohne Produktivcode.
 
-### E16 — Welche sieben Bildschirme, und in welcher Reihenfolge
+### E16 — Umsetzungsreihenfolge
 
-*Beleg: Commit `11fb4ce`, „Die sieben, in der Reihenfolge aus E16".*
+**Lehrkräfte-Dashboard zuerst, danach der Lernendenbereich, danach der
+übrige Lehrkraftbereich.**
+
+> **Abweichung vom Vorschlag.** Die Vorlage schlug „Lernende vor Lehrkräften"
+> vor, weil der Lernendenbereich im Portal am dünnsten ist und am häufigsten
+> benutzt wird. Entschieden wurde die angepasste Reihenfolge oben — sie folgt
+> E12: Das Dashboard ist die neue Entscheidung und wird deshalb zuerst
+> greifbar gemacht.
+
+**Umsetzung von E15 und E16** *(die konkreten sieben Blätter, Commit
+`11fb4ce`; nicht die Definition von E16)*
 
 | # | Blatt | Rolle | greift auf |
 | --- | --- | --- | --- |
@@ -1297,31 +1352,42 @@ Blatt und nicht nur der Rand der anderen sechs.
 | 6 | Werkstatt | Lehrkraft | E5 |
 | 7 | Navigation, beide Systeme | beide | E12, E13, E15 |
 
-### E17 — Das Standardmotiv muss ohne Bild tragen
+Jedes Blatt zeigt denselben Bildschirm auf Desktop 1440 × 900 und Telefon
+390 × 844, in den Zuständen normal, ladend, leer, fehlerhaft und — wo es
+etwas bedeutet — offline.
 
-*Beleg: `docs/mockups/portal/lernpakete.html`, Zeile 31;
-`docs/mockups/portal-variante-b/werkstatt.html`, Zeile 40.*
+### E17 — Titelbilder vor der Werkstatt
 
-Ein Lernpaket ohne hochgeladenes Titelbild bekommt **eine gesetzte Fläche mit
-Thema und Titel** — keinen grauen Kasten mit Symbol. Ein fehlendes Bild
-hinterlässt kein Loch.
+**Der Titelbildbaustein kommt vor der Werkstatt**, nicht nach ihr: Die
+Paketkarte braucht das Cover, und die Werkstatt braucht den Uploadschritt.
 
-> In der Variante B ist das Standardmotiv **zwei überlagerte Aurora-Flächen**;
-> hochgeladene Bilder bleiben echte Titelbilder. Die editoriale Schrift auf
-> dem Motiv ist mit **E21** auf das Titelbild beschränkt worden.
+Zum Baustein gehören: **Uploadformate**, der **16 : 10-Zuschnitt** und ein
+**Fokuspunkt**, ein **Pflicht-Alternativtext**, ein **Standardmotiv**,
+**responsive Größen**, **Verarbeitung und Validierung**, ein **privater
+Bucket** sowie **kurzlebige signierte URLs**.
 
-### E18 — Was „offene Stellen und Prüfhinweise" heißt
+**Externe Bildquellen sind nicht Teil von 5B.**
 
-*Beleg: `docs/mockups/portal/lehrkraft-dashboard.html`, Zeile 31.*
+**Detail zu E17** *(spätere Festlegung, aus den Entwürfen vom 30.09.2026)*
 
-**Ausschließlich Lücken und Widersprüche in den eigenen Paketentwürfen** —
-fehlende Übersetzungen, doppelte Einträge, Abweichungen vom Wörterbuch.
-**Keine** Rückfragen von Lernenden, **keine** Nachrichtenfunktion.
+Das Standardmotiv muss **auch ohne hochgeladenes Bild tragen**: eine gesetzte
+Fläche mit Thema und Titel, kein grauer Kasten mit Symbol. Ein fehlendes Bild
+hinterlässt kein Loch. In der Variante B sind das zwei überlagerte
+Aurora-Flächen; hochgeladene Bilder bleiben echte Titelbilder.
 
-Das Dashboard trägt sieben Blöcke: Entwürfe mit offenen Stellen · Kurse ·
-demnächst Veröffentlichtes · KI-Zugang · Schnellaktionen · Neues ·
-Kopfbereich mit „Als Lernende ansehen". Dazu die ausdrückliche
-Datenschutzzusage: keine individuellen Lernstände, keine Aktivitätszeiten,
-keine Trefferquoten, keine Klassendurchschnitte, keine anonymisierten
-Lernaggregate, keine Ranglisten. Die reine Mitgliederzahl eines Kurses ist
-zulässig.
+### E18 — `global.css` wird schrittweise entschlackt
+
+**Jeder umgestellte Baustein entfernt seine alten Regeln im selben Block**;
+der Schlussblock räumt nur den Rest auf.
+
+> Damit ist E18 die Entscheidung, die hinter dem Abnahmekriterium „mindestens
+> 40 % kürzer" steht, und hinter dem Bericht `scripts/stilumfang.mjs`.
+>
+> **Ein Hinweis aus 5B.1, der zu E18 gehört:** `.app-nav`, `.bottom-nav` und
+> die übrigen Hüllenklassen gehören `AppShell` **und** `PortalShell`
+> gemeinsam. Solange nur eine der beiden umgestellt ist, kann ihr Block seine
+> Altregeln **nicht** entfernen, ohne die andere zu zerstören. „Im selben
+> Block" heißt deshalb genauer: im selben Block, sofern keine zweite Hülle
+> dieselben Regeln noch braucht; sonst im Block, der die letzte von ihnen
+> umstellt.
+
