@@ -57,6 +57,32 @@ export interface Navigationsziel {
   readonly zeichen: Zeichen;
 }
 
+/**
+ * Eine Handlung unten in der Leiste — Abmelden, und was später dazukommt.
+ *
+ * ## Warum kein `Navigationsziel`
+ *
+ * Weil Abmelden kein Ort ist. Als Navigationsziel gemodelt bräuchte es einen
+ * `pfad`, und den gäbe es nicht — man müsste `#/abmelden` erfinden. Eine
+ * erfundene Adresse ist kein Schönheitsfehler: Sie steht im `href`, landet
+ * beim Rechtsklick in „Link in neuem Tab öffnen", im Verlauf und in den
+ * Lesezeichen, und führt überall dorthin ins Leere.
+ *
+ * Also ein eigener Typ, und die Hülle rendert ihn als `button`. Ein Knopf
+ * verändert keine Adresse, reagiert von sich aus auf Eingabe- **und**
+ * Leertaste, und `aria-current` kommt bei ihm nicht in Frage: Eine Handlung
+ * ist nie „die aktuelle Seite".
+ *
+ * Was beim Auslösen passiert, weiß die Hülle nicht. Sie kennt weder Sitzung
+ * noch Abmeldung — sie ruft zurück.
+ */
+export interface Huellenaktion {
+  readonly label: string;
+  readonly zeichen: Zeichen;
+  /** Was geschehen soll. Die Hülle entscheidet nichts darüber. */
+  readonly ausloesen: () => void;
+}
+
 export interface HuelleProps {
   /**
    * Die Ziele der Icon-Leiste, in der Reihenfolge, in der sie stehen sollen.
@@ -78,8 +104,15 @@ export interface HuelleProps {
   readonly markePfad: string;
   /** Was im Kopfbereich rechts steht — etwa „Als Lernende ansehen". */
   readonly kopfAktionen?: ReactNode;
-  /** Die Einträge unten in der Leiste: Konto, Abmelden. */
+  /**
+   * Echte Verweise unten in der Leiste — „Konto und Profil" etwa.
+   *
+   * Nur das, was wirklich eine Adresse hat. Handlungen gehören in
+   * `fussAktionen`.
+   */
   readonly fussZiele?: readonly Navigationsziel[];
+  /** Handlungen unten in der Leiste — „Abmelden". Werden als Knopf gerendert. */
+  readonly fussAktionen?: readonly Huellenaktion[];
   /** Was unter dem Inhalt steht. */
   readonly fusszeile?: ReactNode;
   readonly children: ReactNode;
@@ -128,6 +161,28 @@ function Eintrag({
   );
 }
 
+function Aktion({ aktion }: { aktion: Huellenaktion }) {
+  /*
+    `type="button"` ist nicht Zierde: Ohne sie ist ein Knopf innerhalb eines
+    Formulars ein Absendeknopf. Und `aria-current` fehlt hier bewusst — eine
+    Handlung ist keine Seite.
+  */
+  return (
+    <button
+      type="button"
+      className="huelle-leiste__ziel huelle-leiste__aktion"
+      aria-label={aktion.label}
+      onClick={aktion.ausloesen}
+    >
+      <span className="huelle-leiste__marker" aria-hidden="true" />
+      <NavigationsZeichen zeichen={aktion.zeichen} />
+      <span className="huelle-leiste__tipp" aria-hidden="true">
+        {aktion.label}
+      </span>
+    </button>
+  );
+}
+
 export function Huelle({
   zieleSchreibtisch,
   zieleTelefon,
@@ -136,6 +191,7 @@ export function Huelle({
   markePfad,
   kopfAktionen,
   fussZiele = [],
+  fussAktionen = [],
   fusszeile,
   children,
 }: HuelleProps) {
@@ -159,10 +215,13 @@ export function Huelle({
           ))}
         </nav>
 
-        {fussZiele.length > 0 ? (
+        {fussZiele.length > 0 || fussAktionen.length > 0 ? (
           <div className="huelle-leiste__fuss">
             {fussZiele.map((ziel) => (
               <Eintrag key={ziel.pfad} ziel={ziel} aktiv={istAktiv(ziel.pfad)} art="leiste" />
+            ))}
+            {fussAktionen.map((aktion) => (
+              <Aktion key={aktion.label} aktion={aktion} />
             ))}
           </div>
         ) : null}

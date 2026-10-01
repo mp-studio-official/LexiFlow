@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 
-import { Huelle, type Navigationsziel } from './Huelle';
+import { Huelle, type Huellenaktion, type Navigationsziel } from './Huelle';
 
 /**
  * Die Hülle — was sich ohne Layout entscheiden lässt.
@@ -148,15 +148,83 @@ describe('Sprungziel, Kopf und Inhalt', () => {
 
   it('stellt Konto und Abmelden unten in die Leiste', () => {
     zeige({
-      fussZiele: [
-        { pfad: '#/konto', label: 'Konto und Profil', zeichen: 'einstellungen' },
-        { pfad: '#/abmelden', label: 'Abmelden', zeichen: 'start' },
-      ],
+      fussZiele: [{ pfad: '#/konto', label: 'Konto und Profil', zeichen: 'einstellungen' }],
+      fussAktionen: [{ label: 'Abmelden', zeichen: 'start', ausloesen: () => {} }],
     });
     const konto = screen.getByRole('link', { name: 'Konto und Profil' });
     // Unten in der Leiste, nicht in der Hauptnavigation.
     expect(konto.closest('nav')).toBeNull();
     expect(konto.closest('[class*="__fuss"]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Abmelden' }).closest('[class*="__fuss"]')).not.toBeNull();
+  });
+});
+
+describe('eine Handlung ist kein Navigationsziel', () => {
+  /*
+    Abmelden ist kein Ort. Als Navigationsziel gemodelt bräuchte es einen
+    erfundenen `pfad` — und der stünde im `href`, landete beim Rechtsklick in
+    „Link in neuem Tab öffnen", im Verlauf und in den Lesezeichen, und führte
+    überall dorthin ins Leere.
+  */
+  const abmelden = (ausloesen = () => {}) => ({
+    label: 'Abmelden',
+    zeichen: 'start' as const,
+    ausloesen,
+  });
+
+  it('wird als Knopf gerendert, nicht als Verweis', () => {
+    zeige({ fussAktionen: [abmelden()] });
+    const knopf = screen.getByRole('button', { name: 'Abmelden' });
+    expect(knopf.tagName).toBe('BUTTON');
+    // `type="button"`: Ohne sie wäre es in einem Formular ein Absendeknopf.
+    expect(knopf.getAttribute('type')).toBe('button');
+    expect(screen.queryByRole('link', { name: 'Abmelden' })).toBeNull();
+  });
+
+  it('trägt keine Adresse — auch keine erfundene', () => {
+    const { container } = zeige({ fussAktionen: [abmelden()] });
+    const knopf = screen.getByRole('button', { name: 'Abmelden' });
+    expect(knopf.getAttribute('href')).toBeNull();
+    for (const verweis of container.querySelectorAll('a')) {
+      expect(verweis.getAttribute('href')).not.toMatch(/abmelden/i);
+    }
+  });
+
+  it('bekommt nie `aria-current` — eine Handlung ist keine Seite', () => {
+    /*
+      Auch dann nicht, wenn die Adresse zufällig so hieße: Die Hülle vergibt
+      `aria-current` ausschließlich an Navigationsziele.
+    */
+    zeige({ aktiverPfad: 'Abmelden', fussAktionen: [abmelden()] });
+    expect(screen.getByRole('button', { name: 'Abmelden' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('löst mit Eingabe- und Leertaste aus', async () => {
+    /*
+      Das kann ein `button` von sich aus — und genau deshalb ist er hier
+      richtig. Ein `div` mit `onClick` müsste beides von Hand nachbauen, und
+      die Leertaste wird dabei regelmäßig vergessen.
+    */
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+    let gezaehlt = 0;
+    zeige({ fussAktionen: [abmelden(() => { gezaehlt += 1; })] });
+
+    const knopf = screen.getByRole('button', { name: 'Abmelden' });
+    knopf.focus();
+    await nutzer.keyboard('{Enter}');
+    expect(gezaehlt, 'Eingabetaste löst nicht aus').toBe(1);
+    await nutzer.keyboard(' ');
+    expect(gezaehlt, 'Leertaste löst nicht aus').toBe(2);
+  });
+
+  it('ruft zurück, statt selbst etwas zu entscheiden', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+    let gerufen = false;
+    zeige({ fussAktionen: [abmelden(() => { gerufen = true; })] });
+    await nutzer.click(screen.getByRole('button', { name: 'Abmelden' }));
+    expect(gerufen).toBe(true);
   });
 });
 
@@ -176,6 +244,59 @@ describe('die Zeichen tragen keinen Namen', () => {
     for (const tipp of container.querySelectorAll('[class*="__tipp"]')) {
       expect(tipp.getAttribute('aria-hidden')).toBe('true');
     }
+  });
+});
+
+describe('die Trennung hält auch im Typ und im Quelltext', () => {
+  /*
+    Ohne Kommentare gelesen: Die Datei *erklärt*, warum eine Handlung kein
+    `aria-current` bekommt — diese Erklärung mitzuzählen hieße, sie zu
+    verbieten.
+  */
+  const quelle = readFileSync(resolve(import.meta.dirname, 'Huelle.tsx'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\/.*$/gm, '');
+
+  it('eine Handlung hat keinen Pfad, und ein Ziel keinen Rückruf', () => {
+    /*
+      Der Typ ist die erste Verteidigung: Wer „Abmelden" wieder als Verweis
+      modellieren will, müsste dafür einen `pfad` erfinden — und bekommt ihn
+      nicht angenommen.
+    */
+    // @ts-expect-error — eine Handlung kennt keinen `pfad`.
+    const mitPfad: Huellenaktion = { label: 'Abmelden', zeichen: 'start', pfad: '#/abmelden', ausloesen: () => {} };
+    // @ts-expect-error — ein Navigationsziel kennt kein `ausloesen`.
+    const mitRueckruf: Navigationsziel = { pfad: '#/x', label: 'X', zeichen: 'start', ausloesen: () => {} };
+    // @ts-expect-error — eine Handlung ohne `ausloesen` tut nichts.
+    const ohneRueckruf: Huellenaktion = { label: 'Abmelden', zeichen: 'start' };
+    void mitPfad;
+    void mitRueckruf;
+    void ohneRueckruf;
+    expect(true).toBe(true);
+  });
+
+  it('die Handlung wird als Knopf gebaut, nicht als Verweis', () => {
+    /*
+      Am Quelltext, nicht nur am gerenderten Baum: Eine zweite Stelle, die
+      eine Handlung doch als `<a href>` ausgibt, fiele einem Test auf, der nur
+      die eine Handlung prüft, die er selbst übergibt.
+    */
+    const anfang = quelle.indexOf('function Aktion(');
+    expect(anfang, 'die Handlung hat keine eigene Komponente mehr').toBeGreaterThanOrEqual(0);
+    const rumpf = quelle.slice(anfang, quelle.indexOf('\nexport function Huelle', anfang));
+
+    expect(rumpf).toContain('<button');
+    expect(rumpf, 'eine Handlung wird als Verweis gerendert').not.toMatch(/<a[\s>]/);
+    expect(rumpf, 'eine Handlung bekommt eine Adresse').not.toContain('href');
+    expect(rumpf, 'eine Handlung bekommt aria-current').not.toContain('aria-current');
+  });
+
+  it('`aria-current` steht ausschließlich an Navigationszielen', () => {
+    const stellen = [...quelle.matchAll(/aria-current/g)].length;
+    const imEintrag = quelle.slice(quelle.indexOf('function Eintrag('), quelle.indexOf('function Aktion('));
+    expect(stellen, 'aria-current steht mehr als einmal im Quelltext').toBe(1);
+    expect(imEintrag).toContain('aria-current');
   });
 });
 

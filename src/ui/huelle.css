@@ -221,6 +221,20 @@
     gap: var(--space-2);
   }
 
+  /*
+    Der Knopf einer Handlung sieht aus wie ein Navigationsziel und ist keines.
+    Browser geben einem `button` eigene Voreinstellungen mit — Rahmen,
+    Hintergrund, Schriftart —, die ein `a` nicht hat; ohne diese Zeilen stünde
+    „Abmelden" sichtbar anders da als „Konto".
+  */
+  .huelle-leiste__aktion {
+    appearance: none;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+
   .huelle-leiste__ziel {
     position: relative;
     inline-size: 48px;
