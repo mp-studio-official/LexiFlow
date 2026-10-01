@@ -184,3 +184,109 @@ describe('Zustände, die man auseinanderhalten muss', () => {
     expect(token('info')).not.toBe(token('danger'));
   });
 });
+
+/**
+ * E19 — die Palette der Variante B, gerechnet statt übernommen.
+ *
+ * Die Werte stammen aus dem freigegebenen Entwurf. Das macht sie nicht
+ * geprüft: Der Entwurf stand auf hellem Grund und in großen Flächen, und
+ * dieselbe Farbe, die dort als Überschrift funktioniert, kann als 13-px-Text
+ * auf einer abgesetzten Fläche durchfallen. Gerechnet wird deshalb jedes
+ * Paar, das die Bausteine wirklich bilden können.
+ *
+ * Zwei Befunde sind dabei herausgekommen; beide stehen unten als Test, damit
+ * sie nicht wieder verloren gehen.
+ */
+describe('E19: lesbarer Text (AA, 4,5 : 1)', () => {
+  const paare: readonly [string, string, string][] = [
+    ['Tinte auf Grund', 'tinte', 'grund'],
+    ['Tinte auf Fläche', 'tinte', 'flaeche'],
+    ['Tinte auf tiefem Grund', 'tinte', 'grund-tief'],
+    ['Tinte auf stumpfer Fläche', 'tinte', 'flaeche-stumpf'],
+    ['Zweitschrift auf Grund', 'tinte-2', 'grund'],
+    ['Zweitschrift auf Fläche', 'tinte-2', 'flaeche'],
+    ['Zweitschrift auf tiefem Grund', 'tinte-2', 'grund-tief'],
+    ['Zweitschrift auf stumpfer Fläche', 'tinte-2', 'flaeche-stumpf'],
+    ['Gedämpfte Schrift auf Grund', 'tinte-3', 'grund'],
+    ['Gedämpfte Schrift auf Fläche', 'tinte-3', 'flaeche'],
+    ['Gedämpfte Schrift auf stumpfer Fläche', 'tinte-3', 'flaeche-stumpf'],
+    ['Umgekehrte Schrift auf Tinte', 'tinte-invers', 'tinte'],
+    ['Gut auf gut-weich', 'gut', 'gut-weich'],
+    ['Gut auf Grund', 'gut', 'grund'],
+    ['Warnung auf warn-weich', 'warn', 'warn-weich'],
+    ['Warnung auf Grund', 'warn', 'grund'],
+    ['Fehler auf fehler-weich', 'fehler', 'fehler-weich'],
+    ['Fehler auf Grund', 'fehler', 'grund'],
+    ['Akzent auf akzent-weich', 'akzent', 'akzent-weich'],
+    ['Akzent auf Grund', 'akzent', 'grund'],
+    ['Tinte auf allen vier weichen Zustandsflächen (1)', 'tinte', 'gut-weich'],
+    ['Tinte auf allen vier weichen Zustandsflächen (2)', 'tinte', 'warn-weich'],
+    ['Tinte auf allen vier weichen Zustandsflächen (3)', 'tinte', 'fehler-weich'],
+    ['Tinte auf allen vier weichen Zustandsflächen (4)', 'tinte', 'akzent-weich'],
+  ];
+
+  it.each(paare)('%s', (_label, vorne, hinten) => {
+    expect(ratio(vorne, hinten)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('E19: Bedienelemente und Grafik (3 : 1)', () => {
+  const paare: readonly [string, string, string][] = [
+    ['Feldrand auf Fläche', 'rand-bedienung', 'flaeche'],
+    ['Feldrand auf Grund', 'rand-bedienung', 'grund'],
+    ['Feldrand auf stumpfer Fläche', 'rand-bedienung', 'flaeche-stumpf'],
+    ['Feldrand auf tiefem Grund', 'rand-bedienung', 'grund-tief'],
+  ];
+
+  it.each(paare)('%s', (_label, vorne, hinten) => {
+    expect(ratio(vorne, hinten)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('E19: Aurora trägt Fläche, nicht Schrift', () => {
+  const aurora = ['aurora-violett', 'aurora-rosa', 'aurora-himmel', 'aurora-pfirsich'] as const;
+
+  /*
+    Die Regel lautet „Aurora trägt nie Text". Eine Regel, die nur im Kommentar
+    steht, hält bis zum ersten Entwurf, in dem eine Überschrift gut aussieht.
+    Hier steht sie als zwei Tests — einer für den Fall, dass doch Text darauf
+    landet, einer gegen den Fall, in dem es schiefginge.
+  */
+  it.each(aurora)('dunkle Tinte wäre auf %s lesbar', (farbe) => {
+    expect(ratio('tinte', farbe)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(aurora)('umgekehrte Schrift wäre auf %s unlesbar', (farbe) => {
+    // Unter 2 : 1 — kein Grenzfall, über den man diskutieren könnte.
+    expect(ratio('tinte-invers', farbe)).toBeLessThan(2);
+  });
+});
+
+describe('E19: Kombinationen, die es nicht geben darf', () => {
+  it('--rand-stark begrenzt keine Bedienung', () => {
+    /*
+      Der erste Befund. Der freigegebene Entwurf setzt `--rand-stark` als
+      Feldrand ein; gegen Weiß sind das 1,65 : 1, verlangt sind 3 : 1. Der
+      Test hält beides fest: dass diese Farbe die Grenze nicht erreicht — und
+      dass es eine gibt, die es tut.
+    */
+    expect(ratio('rand-stark', 'flaeche')).toBeLessThan(3);
+    expect(ratio('rand-bedienung', 'flaeche')).toBeGreaterThanOrEqual(3);
+  });
+
+  it('--tinte-3 steht nicht auf tiefem Grund', () => {
+    /*
+      Der zweite Befund. 4,35 : 1 — knapp daneben, und knapp daneben ist
+      daneben. Die gedämpfte Schrift gehört auf Grund, Fläche und stumpfe
+      Fläche; auf dem tiefen Grund trägt `--tinte-2`.
+    */
+    expect(ratio('tinte-3', 'grund-tief')).toBeLessThan(4.5);
+    expect(ratio('tinte-2', 'grund-tief')).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('die alte und die neue Grundfläche sind nicht dieselbe Farbe', () => {
+    // Sonst liefe die Palette still in die alte zurück, und E19 wäre Papier.
+    expect(token('grund')).not.toBe(token('canvas'));
+    expect(token('tinte')).not.toBe(token('ink'));
+  });
+});

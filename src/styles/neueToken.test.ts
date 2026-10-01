@@ -179,3 +179,129 @@ describe('und sie erreichen noch keinen Bildschirm', () => {
     expect(zeile?.[1]).not.toMatch(/--font-editorial/);
   });
 });
+
+/**
+ * E19 — dieselben Zahlen wie im freigegebenen Entwurf.
+ *
+ * ## Warum das geprüft wird
+ *
+ * Die Palette ist zweimal aufgeschrieben: einmal in
+ * `docs/mockups/portal-variante-b/variante.css`, wogegen Marc sie abgenommen
+ * hat, und einmal hier, wo sie wirkt. Zwei Fassungen derselben Entscheidung
+ * laufen auseinander — das ist keine Vermutung, genau so ist der
+ * Navigationswiderspruch entstanden, den E23 aufräumen musste.
+ *
+ * Also: Wer hier eine Farbe ändert, ohne den Entwurf zu ändern, bekommt es
+ * gesagt. Und wer den Entwurf ändert, ohne hier nachzuziehen, auch.
+ *
+ * ## Was ausdrücklich **nicht** übereinstimmen muss
+ *
+ * `--rand-bedienung` hat im Entwurf keine Entsprechung — der Entwurf setzt
+ * dort `--rand-stark` ein, das die 3 : 1 für die Kontur eines Bedienelements
+ * nicht erreicht (siehe `contrast.test.ts`). Die Abweichung ist Absicht und
+ * steht deshalb hier, nicht in der Abgleichtabelle.
+ */
+const ENTWURF = lies('docs/mockups/portal-variante-b/variante.css');
+
+/** Produktionsname → Name im Entwurf. Gleich, wo nicht anders vermerkt. */
+const E19_ABGLEICH: ReadonlyArray<readonly [string, string]> = [
+  ['--grund', '--grund'],
+  ['--grund-tief', '--grund-tief'],
+  ['--flaeche', '--flaeche'],
+  ['--flaeche-stumpf', '--flaeche-stumpf'],
+  ['--tinte', '--tinte'],
+  ['--tinte-2', '--tinte-2'],
+  ['--tinte-3', '--tinte-3'],
+  ['--tinte-invers', '--tinte-invers'],
+  ['--rand', '--rand'],
+  ['--rand-stark', '--rand-stark'],
+  ['--aurora-violett', '--aurora-violett'],
+  ['--aurora-rosa', '--aurora-rosa'],
+  ['--aurora-himmel', '--aurora-himmel'],
+  ['--aurora-pfirsich', '--aurora-pfirsich'],
+  ['--gut', '--gut'],
+  ['--gut-weich', '--gut-weich'],
+  ['--warn', '--warn'],
+  ['--warn-weich', '--warn-weich'],
+  ['--fehler', '--fehler'],
+  ['--fehler-weich', '--fehler-weich'],
+  ['--akzent', '--akzent'],
+  ['--akzent-weich', '--akzent-weich'],
+  // Radien: im Entwurf kürzer benannt, derselbe Wert.
+  ['--rund-klein', '--r-klein'],
+  ['--rund', '--r'],
+  ['--rund-gross', '--r-gross'],
+  ['--rund-xl', '--r-xl'],
+];
+
+function wert(css: string, name: string): string {
+  const treffer = new RegExp(`${name}:\\s*([^;]+);`).exec(ohneKommentare(css));
+  if (!treffer?.[1]) throw new Error(`${name} fehlt`);
+  return treffer[1].trim();
+}
+
+describe('E19 steht in Produktion und Entwurf gleich', () => {
+  it.each(E19_ABGLEICH)('%s entspricht %s im Entwurf', (hier, dort) => {
+    expect(wert(TOKENS, hier)).toBe(wert(ENTWURF, dort));
+  });
+
+  it('die Abgleichtabelle deckt jede neue Farbe ab', () => {
+    /*
+      Die Gegenprobe zur Gegenprobe: Eine Tabelle, aus der jemand eine Zeile
+      löscht, prüft weniger und bleibt grün. Gezählt wird deshalb, wie viele
+      E19-Farbtoken es gibt — jedes muss abgeglichen sein oder begründet nicht.
+    */
+    const block = TOKENS.slice(TOKENS.indexOf('E19 — die Oberflächenpalette'));
+    const farben = [...block.matchAll(/^\s*(--[a-z0-9-]+):\s*#[0-9a-f]{6};/gim)].map((t) => t[1]);
+    const abgeglichen = new Set(E19_ABGLEICH.map(([hier]) => hier));
+    const BEGRUENDET_ABWEICHEND = ['--rand-bedienung'];
+    const offen = farben.filter((f) => !abgeglichen.has(f) && !BEGRUENDET_ABWEICHEND.includes(f));
+    expect(offen, 'neue Farbe ohne Abgleich gegen den Entwurf').toEqual([]);
+    expect(farben.length).toBeGreaterThanOrEqual(22);
+  });
+
+  it('--rand-bedienung weicht bewusst ab und ist dunkler als der Entwurfsrand', () => {
+    expect(wert(TOKENS, '--rand-bedienung')).not.toBe(wert(ENTWURF, '--rand-stark'));
+  });
+});
+
+describe('die E19-Token erreichen in 5B.1 noch keinen Bildschirm', () => {
+  /*
+    Dieselbe Zusicherung wie bei P1a, für die neue Palette: Sie ist angelegt
+    und wirkt nirgends. Geprüft gegen die Stylesheets, die heute ausgeliefert
+    werden — `global.css` und `portal.css` hängen an den Einstiegspunkten.
+    Die Bausteine von 5B.1 bringen ihre eigenen Stylesheets mit und stehen
+    deshalb hier nicht; dass **sie** keinen Bildschirm erreichen, prüft
+    `src/ui/zustaende.unbenutzt.test.ts`.
+  */
+  const AUSGELIEFERT = ['global.css', 'portal.css']
+    .map((datei) => ohneKommentare(lies(`src/styles/${datei}`)))
+    .join('\n');
+
+  const E19_TOKEN = E19_ABGLEICH.map(([hier]) => hier).concat([
+    '--rand-bedienung',
+    '--schatten-flach',
+    '--schatten-schwebend',
+    '--glas-grund',
+    '--glas-grund-fest',
+    '--glas-kante',
+    '--glas-unschaerfe',
+  ]);
+
+  it.each(E19_TOKEN)('%s wirkt auf keinen heutigen Bildschirm', (token) => {
+    const benutzungen = [...AUSGELIEFERT.matchAll(new RegExp(`var\\(${token}[,)]`, 'g'))];
+    expect(benutzungen.length, `${token} gehört in den Umbau des Bildschirms, nicht nach 5B.1`).toBe(
+      0,
+    );
+  });
+
+  it('die alte Palette steht unverändert da', () => {
+    /*
+      5B.1 ist additiv. Würde hier `--canvas` auf den kühlen Grund gesetzt,
+      änderte sich mit einer Zeile jede Ansicht des Produkts.
+    */
+    expect(wert(TOKENS, '--canvas')).toBe('var(--brand-parchment)');
+    expect(wert(TOKENS, '--ink')).toBe('var(--brand-aubergine)');
+    expect(wert(TOKENS, '--brand-parchment')).toBe('#f8efe3');
+  });
+});

@@ -24,7 +24,8 @@
     "e2e:portal": "playwright test --config playwright.portal.config.ts",
     "e2e:breiten": "playwright test --config playwright.breiten.config.ts",
     "e2e:breiten:portal": "playwright test --config playwright.portal-breiten.config.ts",
-    "verify:deploy": "node scripts/verify-deploy.mjs"
+    "verify:deploy": "node scripts/verify-deploy.mjs",
+    "stilumfang": "node scripts/stilumfang.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",

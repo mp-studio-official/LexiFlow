@@ -384,4 +384,129 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --bottom-nav-height: 3.75rem;
   --tap-target: 44px;
+
+  /*
+    =======================================================================
+    E19 — die Oberflächenpalette der Variante B (Block 5B.1)
+    =======================================================================
+
+    Diese Token stehen **neben** den bisherigen, nicht an ihrer Stelle. Das
+    ist kein Zögern, sondern die Bedingung des Blocks: 5B.1 ist additiv, kein
+    bestehender Bildschirm darf sich ändern. Würde `--canvas` hier auf
+    `#f6f7fb` umgestellt, änderte sich mit einer Zeile jede Ansicht des
+    Produkts — vor dem ersten umgebauten Bildschirm.
+
+    Die alten Token verschwinden deshalb nicht hier, sondern dort, wo der
+    letzte Bildschirm sie loslässt: beim Umbau in 5B.2 und später. Bis dahin
+    laufen zwei Paletten nebeneinander, und das ist der ehrlichere Zustand.
+
+    ## Warum die Namen deutsch sind
+
+    Weil es dieselben Namen sind wie im freigegebenen Entwurf
+    (`docs/mockups/portal-variante-b/variante.css`). Eine Farbe, die dort
+    `--tinte` heißt und hier `--ink-2`, ist zweimal entschieden worden; und
+    `--ink` ist bereits vergeben — an Aubergine. `neueToken.test.ts` rechnet
+    die Werte gegen den Entwurf nach: Wer hier eine Farbe ändert, ohne den
+    Entwurf zu ändern, bekommt das gesagt.
+
+    Was aus der alten Palette bleibt: Aubergine und Tomato. Sie sind nach E19
+    keine Flächenfarben mehr, sondern Marke — Logo, Fortschritt, aktiver
+    Akzent. Sie stehen weiter oben als `--brand-…` und werden hier nicht
+    verdoppelt.
+  */
+
+  /* ------------------------------------------------------ E19 Grundflächen */
+  /* Sehr hell, leicht kühl. Das Gegenteil des warmen Pergaments — und der
+     Grund, warum Pastellverläufe darauf überhaupt lesbar bleiben. */
+  --grund: #f6f7fb;
+  --grund-tief: #edeff7;
+  --flaeche: #ffffff;
+  --flaeche-stumpf: #f2f4fa;
+
+  /* ----------------------------------------------------- E19 Tinte und Kontur */
+  /* Fast schwarzes Anthrazit — Textfarbe **und** Primärfarbe. 17,3 : 1 auf
+     Grund, gerechnet in `contrast.test.ts`. */
+  --tinte: #121318;
+  --tinte-2: #4a4d5a;
+  --tinte-3: #6b6f7e;
+  --tinte-invers: #ffffff;
+  --rand: #e4e7f0;
+  --rand-stark: #c5c9d8;
+  /*
+    Der Rand, der eine **Bedienung** begrenzt — Eingabefeld, Auswahl, Kontrollkästchen.
+
+    Er steht hier, weil der freigegebene Entwurf an dieser einen Stelle zu
+    hell ist: `--rand-stark` erreicht gegen Weiß 1,65 : 1, und WCAG 1.4.11
+    verlangt für die Kontur eines Bedienelements 3 : 1. Auf Pergament hält
+    `--border-strong` diese Grenze seit 4A.1c; sie beim Wechsel der Palette
+    stillschweigend zu unterschreiten wäre ein Rückschritt, den niemand
+    beschlossen hat.
+
+    `--rand` und `--rand-stark` bleiben, was sie im Entwurf sind: Trennlinien
+    und Kartenkanten. Die sind dekorativ — fällt eine weg, versteht man die
+    Seite trotzdem. Ein Feld ohne erkennbare Grenze ist dagegen kein Feld.
+
+    3,67 : 1 auf Weiß, 3,43 : 1 auf Grund, 3,20 : 1 auf tiefem Grund.
+  */
+  --rand-bedienung: #7f8599;
+
+  /* ------------------------------------------------------------ E19 Aurora */
+  /*
+    Die vier Pastelle. Sie tragen **nie** Text — sie sind Fläche, Tiefe und
+    Stimmung, und für Text ist keiner von ihnen hell genug gegen Weiß und
+    dunkel genug gegen Anthrazit. Wer hier Schrift hineinsetzt, setzt sie auf
+    einen Verlauf, dessen Kontrast von Pixel zu Pixel schwankt.
+  */
+  --aurora-violett: #cdbcff;
+  --aurora-rosa: #ffc7e0;
+  --aurora-himmel: #bfe3ff;
+  --aurora-pfirsich: #ffd9be;
+
+  /* ------------------------------------------------------- E19 Zustandsfarben */
+  /*
+    Eigene Werte, nicht die alten: `--success` und Co. sind gegen Pergament
+    gerechnet. Auf dem kühlen, helleren Grund ergibt dieselbe Farbe ein
+    anderes Verhältnis, und „war mal geprüft" ist keine Prüfung.
+  */
+  --gut: #0f6b4f;
+  --gut-weich: #e3f4ec;
+  --warn: #8a4a1c;
+  --warn-weich: #fdeedf;
+  --fehler: #a3182a;
+  --fehler-weich: #fde8eb;
+  /* Der aktive Akzent — die textsichere Ableitung von Tomato, dieselbe Zahl
+     wie `--accent-ink`. Tomato selbst bleibt auch hier Fläche und Grafik. */
+  --akzent: #b3201f;
+  --akzent-weich: #fde3e0;
+
+  /* ------------------------------------------------------------ E19 Radien */
+  /*
+    Deutlich größer als die bisherigen. Die Rundung kommt aus dem Logo, nicht
+    aus der Konvention für Formularfelder; `--radius-surface` (16 px) und
+    `--rund` (18 px) sind deshalb nicht dasselbe mit anderem Namen.
+  */
+  --rund-klein: 12px;
+  --rund: 18px;
+  --rund-gross: 26px;
+  --rund-xl: 34px;
+  /* Pillen bleiben Pillen — `--radius-pill` gilt weiter, hier kein zweiter Wert. */
+
+  /* ---------------------------------------------------------- E19 Schatten */
+  /* Neutral getönt statt auberginefarben: Auf kühlem Grund wirkt ein warmer
+     Schatten wie ein Druckfehler. */
+  --schatten-flach: 0 1px 2px rgb(18 19 24 / 4%), 0 4px 14px rgb(18 19 24 / 5%);
+  --schatten-schwebend: 0 2px 6px rgb(18 19 24 / 6%), 0 16px 40px rgb(18 19 24 / 12%);
+
+  /* -------------------------------------------------------------- E19 Glas */
+  /*
+    Glas ist eine Fläche mit drei Werten, nicht eine Farbe: der durchscheinende
+    Grund, seine Kante und die Unschärfe dahinter. Als Token, weil der
+    Baustein in `glas.css` und sein deckender Rückfall dieselben Zahlen
+    brauchen — und weil „etwas weißer" sonst an drei Stellen verschieden
+    ausfällt.
+  */
+  --glas-grund: rgb(255 255 255 / 58%);
+  --glas-grund-fest: rgb(255 255 255 / 72%);
+  --glas-kante: rgb(255 255 255 / 85%);
+  --glas-unschaerfe: blur(22px) saturate(1.5);
 }
