@@ -121,14 +121,19 @@ describe('5B.2b ist additiv', () => {
     /*
       Fällt dieser Test, ändert sich ein Bildschirm. Das ist 5B.2d und gehört
       in den Commit, der es beabsichtigt.
+
+      `Huelle.tsx` ist ausgenommen: Sie benutzt die Zeichen seit 5B.2c, ist
+      aber selbst von niemandem eingebunden. Dass das so bleibt, prüft
+      `Huelle.test.tsx` — die Kette darf genau ein Glied lang sein.
     */
+    const AUSGENOMMEN = ['navigationsZeichen', 'Huelle'];
     const wurzel = resolve(import.meta.dirname, '..');
     const dateien: string[] = [];
     const sammle = (ordner: string): void => {
       for (const eintrag of readdirSync(ordner)) {
         const pfad = join(ordner, eintrag);
         if (statSync(pfad).isDirectory()) sammle(pfad);
-        else if (/\.tsx?$/.test(eintrag) && !eintrag.startsWith('navigationsZeichen')) {
+        else if (/\.tsx?$/.test(eintrag) && !AUSGENOMMEN.some((n) => eintrag.startsWith(n))) {
           dateien.push(pfad);
         }
       }

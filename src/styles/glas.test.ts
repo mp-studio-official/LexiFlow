@@ -104,21 +104,55 @@ describe('Glas liegt nur, wo es hingehört', () => {
   });
 });
 
-describe('der Baustein erreicht in 5B.1 noch keinen Bildschirm', () => {
-  it('kein Stylesheet und kein Modul bindet glas.css ein', () => {
-    /*
-      5B.1 bereitet vor und schaltet nicht um. Eingebunden wird die Datei,
-      wenn die Hülle in 5B.2 ihre schwebende Navigation bekommt.
-    */
-    for (const datei of STILDATEIEN.filter((d) => d !== 'glas.css')) {
-      // Ohne Kommentare: `tokens.css` erwähnt die Datei in einer Begründung.
-      expect(ohneKommentare(lies(datei)), `${datei} importiert glas.css`).not.toMatch(/glas\.css/);
-    }
+describe('der Baustein erreicht noch keinen Bildschirm', () => {
+  /**
+   * Alle Stylesheets unter `src/`, nicht nur die in diesem Ordner.
+   *
+   * Die erste Fassung sah nur `src/styles/`. Als die Hülle in 5B.2c ihr
+   * eigenes Stylesheet unter `src/ui/` bekam und von dort `glas.css`
+   * einband, blieb diese Prüfung grün und behauptete weiter, niemand binde
+   * es ein. Eine Prüfung, die am falschen Ort sucht, besteht immer.
+   */
+  const alleStylesheets = (() => {
+    const gefunden: string[] = [];
+    const sammle = (ordner: string): void => {
+      for (const eintrag of readdirSync(ordner, { withFileTypes: true })) {
+        const pfad = resolve(ordner, eintrag.name);
+        if (eintrag.isDirectory()) sammle(pfad);
+        else if (eintrag.name.endsWith('.css')) gefunden.push(pfad);
+      }
+    };
+    sammle(resolve(STILORDNER, '..'));
+    return gefunden;
+  })();
 
+  /** Wer `glas.css` einbindet — und wer es darf. */
+  const ERLAUBTE_EINBINDER = ['huelle.css'];
+
+  it('nur die Hülle bindet glas.css ein, und sonst kein Stylesheet', () => {
+    const einbindend = alleStylesheets
+      .filter((pfad) => !pfad.endsWith('glas.css'))
+      .filter((pfad) => /glas\.css/.test(ohneKommentare(readFileSync(pfad, 'utf8'))))
+      .map((pfad) => pfad.slice(pfad.lastIndexOf('/') + 1));
+
+    expect([...einbindend].sort()).toEqual([...ERLAUBTE_EINBINDER].sort());
+  });
+
+  it('die Hülle bindet es wirklich ein — sonst hätte sie kein Glas', () => {
     /*
-      Und die Module. Ein `import './styles/glas.css'` in einer Komponente
-      bindet die Datei genauso ein wie ein `@import` — die Prüfung, die nur
-      die Stylesheets ansieht, hätte das nicht gesehen.
+      Die Gegenprobe zur Zeile darüber: Eine leere Liste bestünde sie
+      ebenfalls, und dann stünde `.glas` an der Hülle ohne jede Regel.
+    */
+    const huelle = alleStylesheets.find((pfad) => pfad.endsWith('ui/huelle.css'));
+    expect(huelle, 'src/ui/huelle.css fehlt').toBeDefined();
+    expect(readFileSync(huelle!, 'utf8')).toMatch(/@import\s+'[^']*glas\.css'/);
+  });
+
+  it('kein Modul bindet glas.css unmittelbar ein', () => {
+    /*
+      Ein `import './styles/glas.css'` in einer Komponente bindet die Datei
+      genauso ein wie ein `@import` — die Prüfung, die nur Stylesheets
+      ansieht, hätte das nicht gesehen.
     */
     const quellen = resolve(STILORDNER, '..');
     const module: string[] = [];
@@ -132,7 +166,9 @@ describe('der Baustein erreicht in 5B.1 noch keinen Bildschirm', () => {
     };
     sammle(quellen);
     expect(module.length).toBeGreaterThan(50);
-    const einbindend = module.filter((pfad) => /['"][^'"]*glas\.css['"]/.test(readFileSync(pfad, 'utf8')));
+    const einbindend = module.filter((pfad) =>
+      /['"][^'"]*glas\.css['"]/.test(readFileSync(pfad, 'utf8')),
+    );
     expect(einbindend, 'ein Modul bindet glas.css ein').toEqual([]);
   });
 

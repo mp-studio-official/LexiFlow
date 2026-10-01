@@ -236,6 +236,57 @@ describe('das Portal', () => {
   });
 });
 
+describe('die gemeinsame Hülle bleibt reine Oberfläche', () => {
+  /*
+    Die Hülle liegt in `src/ui/` und darf damit in jedem Bündel landen — auch
+    in der portablen Lerndatei. Das ist die Bedingung, unter der sie dort
+    liegen darf: Ein `useSession()` in ihr zöge den halben Cloudzweig hinter
+    sich her, und zwar unbemerkt, weil ein Import niemandem auffällt.
+
+    Geprüft wird am Importgraphen und nicht an einer Liste verbotener Wörter:
+    Was die Hülle über drei Ecken erreicht, erreicht sie auch dann, wenn in
+    ihrer eigenen Datei nichts Verdächtiges steht.
+  */
+  const HUELLE = graphAb('src/ui/Huelle.tsx');
+
+  it('ihr Graph ist überhaupt lesbar', () => {
+    expect(HUELLE.dateien).toContain('src/ui/Huelle.tsx');
+    expect(HUELLE.dateien.size).toBeGreaterThan(1);
+  });
+
+  it('erreicht keine Datei des Portals und keinen Cloudzweig', () => {
+    const verdaechtig = [...HUELLE.dateien].filter(
+      (datei) => datei.startsWith('src/hosted/') || datei.startsWith('src/cloud/'),
+    );
+    expect(verdaechtig).toEqual([]);
+  });
+
+  it('erreicht weder Supabase noch den Router', () => {
+    const verdaechtig = [...HUELLE.pakete].filter((paket) =>
+      /supabase|react-router/i.test(paket),
+    );
+    expect(verdaechtig).toEqual([]);
+  });
+
+  it('erreicht die Speicher der Anwendung nicht', () => {
+    // Eine Hülle, die ein Repository kennt, entscheidet irgendwann etwas.
+    const verdaechtig = [...HUELLE.dateien].filter((datei) =>
+      datei.startsWith('src/application/'),
+    );
+    expect(verdaechtig).toEqual([]);
+  });
+
+  it('und kein portables Bündel erreicht sie — noch nicht', () => {
+    /*
+      Fällt diese Zeile, ändert sich eine Auslieferung, die nach Weitergabe
+      niemand mehr aktualisieren kann. In 5B.2 ist das ausgeschlossen.
+    */
+    expect(LEHRKRAFT.dateien).not.toContain('src/ui/Huelle.tsx');
+    expect(LERNDATEI.dateien).not.toContain('src/ui/Huelle.tsx');
+    expect(PORTAL.dateien).not.toContain('src/ui/Huelle.tsx');
+  });
+});
+
 describe('die Lerndatei bleibt eine Lerndatei', () => {
   it('erreicht keine Lehrkraftansicht', () => {
     const verdaechtig = [...LERNDATEI.dateien].filter((datei) =>

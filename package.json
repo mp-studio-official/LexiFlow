@@ -26,7 +26,8 @@
     "e2e:breiten:portal": "playwright test --config playwright.portal-breiten.config.ts",
     "verify:deploy": "node scripts/verify-deploy.mjs",
     "stilumfang": "node scripts/stilumfang.mjs",
-    "zeichen": "node scripts/zeichen-unterscheidbar.mjs"
+    "zeichen": "node scripts/zeichen-unterscheidbar.mjs",
+    "huelle:messen": "node scripts/huelle-messen.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
