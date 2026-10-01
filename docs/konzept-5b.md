@@ -239,7 +239,7 @@ Vier Sätze, an denen sich jede Entscheidung in 5B messen lässt:
 | --- | --- |
 | **Typografie** | kräftige Überschriften in Manrope 700–800 (~~editoriale Überschriftenstimme, Newsreader~~ — **ersetzt durch E21**), ruhigere, größere Fließtextmaße, weniger Schriftgrade je Ansicht |
 | **Seitenaufbau** | ein Seitentitelbereich statt Überschrift-im-Fluss; breitere Ränder; ein Rhythmus statt handgesetzter Abstände |
-| **Navigation** | je vier Ziele, unten auf dem Telefon, seitlich am Schreibtisch |
+| **Navigation** | unten auf dem Telefon, als kompakte Icon-Leiste am Schreibtisch; Lernende vier Ziele auf beiden Größen, Lehrkräfte fünf am Schreibtisch und vier auf dem Telefon (**E23**) |
 | **Karten** | Kurs- und Paketkarten mit Cover, Metadaten am Fuß, **einer** deutlichen Aktion |
 | **Bilder** | Cover gibt es überhaupt erst — heute ist jede Liste textgrau |
 | **Abstände** | mehr Weißraum, weniger Rahmen; Trennung durch Fläche statt durch Linien |
@@ -285,19 +285,43 @@ weiterhin von `contrast.test.ts` nachgerechnet.
 | **Üben** | Übungsformen quer über Pakete | Formen vorhanden, Bereich neu |
 | **Mein Fortschritt** | ausschließlich die eigene Person | neu |
 
-Vier Ziele, weil fünf auf 390 px nicht mehr lesbar beschriftet sind.
+Vier Ziele, weil fünf auf 390 px nicht mehr lesbar beschriftet sind. Am
+Schreibtisch bleiben es dieselben vier — hier gäbe es Platz für mehr, aber
+kein fünftes Ziel, das dorthin gehörte (E23).
 
-### 3.2 Lehrkräfte — vier Ziele
+### 3.2 Lehrkräfte — fünf Ziele am Schreibtisch, vier auf dem Telefon
+
+Verbindlich festgelegt in **E23**. Die Zahl ist nicht für beide Größen
+dieselbe, weil der Platz es nicht ist.
+
+**Schreibtisch — fünf Ziele in der Icon-Leiste:**
 
 | Ziel | Inhalt |
 | --- | --- |
+| **Start** | Einstieg der Lehrkraft: Kurse, zuletzt bearbeitete Pakete, Hinweise |
 | **Kurse** | Lerngruppen, Einladungscodes, Archivierung |
 | **Lernpakete** | erstellen, bearbeiten, veröffentlichen, exportieren |
-| **Lernen/Vorschau** | derselbe Lernbereich wie bei Lernenden, ausdrücklich zur Vorschau |
-| **Einstellungen** | KI-Zugang, Konto, Daten |
+| **KI-Zugang** | Schlüssel, Anbieter, Kontingent — eigenes Ziel, weil daneben Platz ist |
+| **Verwaltung** | Konto, Daten, Export, Einstellungen |
 
-„KI-Zugang" wandert unter **Einstellungen**. Er ist einmal im Halbjahr
-relevant und beansprucht heute ein Fünftel der Navigation.
+**Telefon — vier Ziele in der unteren Navigation:**
+
+| Ziel | Inhalt |
+| --- | --- |
+| **Start** | wie am Schreibtisch |
+| **Kurse** | wie am Schreibtisch |
+| **Lernpakete** | wie am Schreibtisch |
+| **Einstellungen** | dieselbe Verwaltungsfläche, hier beschriftet als „Einstellungen" — **einschließlich KI-Zugang** |
+
+Auf dem Telefon ist KI-Zugang also **innerhalb** von Einstellungen erreichbar,
+nicht als eigenes Navigationsziel. Das ist eine bewusste responsive
+Verdichtung und **keine** unterschiedliche Berechtigung und keine
+unterschiedliche Funktion: Eine Lehrkraft kann auf dem Telefon genau das, was
+sie am Schreibtisch kann; nur der Weg dorthin ist einen Schritt länger.
+
+Der Lernbereich ist für Lehrkräfte kein Navigationsziel, sondern eine
+Vorschau: „Als Lernende ansehen" steht im Kopfbereich, nicht in der
+Navigation (vgl. Variante B).
 
 **Lehrkräfte dürfen den Lernbereich weiter verwenden.** Sichtbar als Vorschau
 gekennzeichnet, damit nicht der Eindruck entsteht, hier werde der Lernstand
@@ -480,7 +504,10 @@ die vier Breiten erweitern — sonst ist „mobilfähig" weiterhin eine Behauptu
 
 ### 6.2 Regeln
 
-- Bottom-Navigation für Lernende; höchstens fünf Ziele, in 5B vier.
+- Bottom-Navigation auf dem Telefon; höchstens fünf Ziele, in 5B vier —
+  für Lernende **und** für Lehrkräfte (E23).
+- Am Schreibtisch tritt an ihre Stelle die kompakte Icon-Leiste: Lernende
+  vier Ziele, Lehrkräfte fünf.
 - Einspaltige Paketkarten bis 768 px.
 - Interaktionsflächen mindestens 44 × 44 px (`--tap-target` existiert).
 - **Keine Funktion nur über Hover.** Jede Hover-Aufdeckung braucht einen
@@ -680,7 +707,7 @@ alles danach.
 | --- | --- | --- |
 | **5B.0** | Prüfbank: WebKit und vier Breiten in Playwright, Tapziel- und Kontrastprüfung auf gerenderte Ansichten ausgedehnt | — |
 | **5B.1** | Token-Ergänzungen und die ersten Bausteine: Seitentitel, Kurskarte, Paketkarte mit Coverfläche, Fortschrittsanzeige, leere Zustände | 5B.0 |
-| **5B.2** | Eine Hülle mit Rollenprofilen; Navigation Lernende (4 Ziele) und Lehrkräfte (4 Ziele); KI-Zugang unter Einstellungen | 5B.1 |
+| **5B.2** | Eine Hülle mit Rollenprofilen; Navigation nach **E23**: Lernende 4 Ziele auf beiden Größen, Lehrkräfte 5 am Schreibtisch und 4 auf dem Telefon, KI-Zugang dort innerhalb von Einstellungen | 5B.1 |
 | **5B.3** | „Heute" | 5B.2 |
 | **5B.4** | „Üben" als Bereich; Karte „Schwierige Wörter"; „Fällige Wiederholungen" als Einstieg | 5B.2 |
 | **5B.5** | „Mein Fortschritt" samt Lernzeit, Lernserie mit Ruhetagen, freiwilligem Wochenziel | 5B.3 |
@@ -745,7 +772,13 @@ Messbar heißt: eine Prüfung kann es entscheiden, nicht ein Eindruck.
 
 ### Lehrkraftbereich
 
-- [ ] Vier Navigationsziele; KI-Zugang unter Einstellungen.
+- [ ] Am Schreibtisch **fünf** Navigationsziele: Start · Kurse · Lernpakete ·
+      KI-Zugang · Verwaltung.
+- [ ] Auf dem Telefon **vier**: Start · Kurse · Lernpakete · Einstellungen.
+- [ ] KI-Zugang ist auf dem Telefon innerhalb von Einstellungen erreichbar —
+      geprüft als Weg, nicht als Behauptung.
+- [ ] Keine Funktion und keine Berechtigung hängt an der Bildschirmbreite: Was
+      am Schreibtisch geht, geht auf dem Telefon auch.
 - [ ] Der Lernbereich ist für Lehrkräfte sichtbar als Vorschau gekennzeichnet.
 - [ ] Kein Weg führt von einer Lehrkraftansicht zum Lernstand einer
       namentlichen Person — **auch kein aggregierter** (E7).
@@ -889,7 +922,10 @@ sind nicht Teil davon.
 
 ### E9 — Navigation der Lernenden
 
-Genau **vier** Ziele: Heute · Lernen · Üben · Mein Fortschritt.
+Genau **vier** Ziele: Heute · Lernen · Üben · Mein Fortschritt. **Dieselben
+vier auf beiden Größen** — die Verdichtung aus E23 betrifft nur Lehrkräfte.
+Auf dem Telefon darf „Mein Fortschritt" zu „Fortschritt" verkürzt beschriftet
+sein; das Ziel bleibt dasselbe.
 
 ### E10 — Schriften *(teilweise überholt durch E21)*
 
@@ -952,11 +988,12 @@ die redaktionelle Stimme **im Material**, `--font-display` wird die Stimme
 
 ---
 
-## 14. Entscheidungen E19 bis E22 — die visuelle Richtung, neu gefasst
+## 14. Entscheidungen E19 bis E23 — die visuelle Richtung, neu gefasst
 
-Marc hat am 30.09.2026 nach Ansicht der Variante B entschieden. Diese vier
-Entscheidungen **ersetzen** ältere Festlegungen dieses Dokuments; wo sie
-einander widersprechen, gilt was hier steht.
+Marc hat am 30.09.2026 nach Ansicht der Variante B entschieden, E23 am
+01.10.2026 nach Freigabe der Icon-Leiste. Diese Entscheidungen **ersetzen**
+ältere Festlegungen dieses Dokuments; wo sie einander widersprechen, gilt was
+hier steht.
 
 ### E19 — Die Oberflächenpalette wird ersetzt
 
@@ -1031,6 +1068,50 @@ Pastellverläufe lassen sich nicht invertieren: Was hell und zurückhaltend ist,
 wird dunkel nicht automatisch dunkel und zurückhaltend, sondern schmutzig. Ein
 Dunkelmodus ist ein eigener, vollständig geprüfter Block — dieselbe
 Überlegung, die schon in `tokens.css` steht, jetzt als Entscheidung.
+
+### E23 — Navigationsziele je Rolle und Größe
+
+Die Icon-Leiste am Schreibtisch hat Platz, den die untere Navigation auf
+390 px nicht hat. Daraus folgt eine Zahl je Rolle **und** Größe, nicht eine
+Zahl je Rolle. Verbindlich:
+
+<!-- navigation:anfang — maschinell geprüft von pruefe-variante.mjs, Reihenfolge verbindlich -->
+
+| Rolle | Größe | Ziele |
+| --- | --- | --- |
+| Lehrkraft | Schreibtisch | `#/start` · `#/kurse` · `#/pakete` · `#/ki` · `#/verwaltung` |
+| Lehrkraft | Telefon | `#/start` · `#/kurse` · `#/pakete` · `#/verwaltung` |
+| Lernende | Schreibtisch | `#/heute` · `#/lernen` · `#/ueben` · `#/fortschritt` |
+| Lernende | Telefon | `#/heute` · `#/lernen` · `#/ueben` · `#/fortschritt` |
+
+<!-- navigation:ende -->
+
+Beschriftet sind sie: Start · Kurse · Lernpakete · KI-Zugang · Verwaltung
+(Lehrkraft, Schreibtisch), Start · Kurse · Lernpakete · **Einstellungen**
+(Lehrkraft, Telefon), Heute · Lernen · Üben · Mein Fortschritt (Lernende,
+beide Größen).
+
+Zwei Dinge daran sind leicht misszuverstehen und deshalb ausdrücklich gesagt:
+
+1. **`#/verwaltung` ist auf dem Telefon dasselbe Ziel wie am Schreibtisch**,
+   nur anders beschriftet — und es enthält dort zusätzlich den KI-Zugang. Es
+   gibt keine zweite Verwaltungsfläche und keinen zweiten KI-Bereich.
+2. **Es ist eine Verdichtung, keine Beschneidung.** Rolle, Berechtigung und
+   Funktionsumfang sind auf beiden Größen identisch. Wer das Gegenteil aus
+   „vier statt fünf" liest, liest einen Fehler hinein, den es nicht gibt.
+
+KI-Zugang ist am Schreibtisch ein eigenes Ziel, obwohl er einmal im Halbjahr
+gebraucht wird. Das war in der alten Fassung das Argument, ihn wegzuräumen —
+es galt für eine beschriftete Navigation mit vier Plätzen. Eine Icon-Leiste
+mit fünf Symbolen kostet keine Breite; der Platz, den er beansprucht, ist
+76 px mal 44 px, und die sind ohnehin da.
+
+Die Gegenprüfung steht in `docs/mockups/portal-variante-b/pruefe-variante.mjs`
+(Abschnitt 5): Sie liest die Tabelle oben aus diesem Dokument und vergleicht
+sie mit den tatsächlichen Navigationen in den Entwürfen — getrennt nach
+Schreibtisch (`.rail__nav`) und Telefon (`.unten`). Weichen Dokument und
+Entwurf voneinander ab, ist die Prüfung rot. Dieselbe Prüfung hält fest, dass
+die beiden Größen sich für Lernende **nicht** unterscheiden dürfen.
 
 ### Wo die Richtung zu sehen ist
 

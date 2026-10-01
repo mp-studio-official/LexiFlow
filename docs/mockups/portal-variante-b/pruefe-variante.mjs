@@ -10,6 +10,8 @@
     3. Glas **nur** dort, wo es hingehört — und jede Glasregel hat einen
        deckenden Rückfall ohne `backdrop-filter`
     4. die Kontraste, gerechnet statt geschätzt
+    5. die Navigationsziele je Rolle **und** Größe — gegen `docs/konzept-5b.md`
+       geprüft, damit Dokument und Entwurf sich nicht wieder widersprechen
 
   Punkt 3 ist der eigentliche Grund für diese Datei. Ob Glas an der falschen
   Stelle liegt, sieht man nicht: Über einer weißen Fläche sieht Glas aus wie
@@ -90,6 +92,129 @@ const PAARE = [
 for (const [name, vorne, hinten, mass] of PAARE) {
   const wert = kontrast(token(vorne), token(hinten));
   if (wert < mass) befunde.push(`Kontrast ${name}: ${wert.toFixed(2)} : 1, nötig ${mass} : 1`);
+}
+
+/* ------------------------------------- 5. Navigation: Dokument gegen Entwurf */
+
+/*
+  Diese Prüfung hält die Entscheidung E23 fest — die eine, bei der sich das
+  Dokument schon einmal selbst widersprochen hat („Lehrkräfte (4 Ziele)",
+  während die freigegebene Icon-Leiste fünf zeigt). Ein Widerspruch zwischen
+  Konzept und Entwurf ist keine Geschmacksfrage und soll nicht davon abhängen,
+  dass jemand beide Stellen gleichzeitig im Kopf hat.
+
+  Gelesen wird die Tabelle zwischen den Marken `navigation:anfang` und
+  `navigation:ende` in `docs/konzept-5b.md`. Verglichen wird sie mit den
+  tatsächlichen Navigationen der Blätter, getrennt nach Größe:
+
+    Schreibtisch = `nav.rail__nav`   (die kompakte Icon-Leiste)
+    Telefon      = `nav.unten`       (die untere Navigation)
+
+  Die Rolle wird am Inhalt erkannt, nicht am Dateinamen: Wer `#/heute` führt,
+  ist der Lernendenbereich; wer `#/kurse` führt, der Lehrkraftbereich. So kann
+  ein neues Blatt nicht dadurch durchrutschen, dass es anders heißt.
+
+  Verglichen werden **Ziele (href)**, nicht Beschriftungen. Dass „Verwaltung"
+  auf dem Telefon „Einstellungen" heißt und „Mein Fortschritt" dort
+  „Fortschritt", ist beabsichtigt; dass es dasselbe Ziel ist, ist der Punkt.
+*/
+
+const KONZEPT = readFileSync(resolve(HIER, '..', '..', 'konzept-5b.md'), 'utf8');
+
+function sollNavigation() {
+  const anfang = KONZEPT.indexOf('navigation:anfang');
+  const ende = KONZEPT.indexOf('navigation:ende');
+  if (anfang < 0 || ende < 0 || ende < anfang) {
+    throw new Error('docs/konzept-5b.md: Navigationstabelle (navigation:anfang/ende) fehlt');
+  }
+  const soll = new Map();
+  for (const zeile of KONZEPT.slice(anfang, ende).split('\n')) {
+    const spalten = zeile.split('|').map((z) => z.trim());
+    if (spalten.length < 5) continue;
+    const [, rolle, groesse, ziele] = spalten;
+    if (!/^(Lehrkraft|Lernende)$/.test(rolle)) continue;
+    if (!/^(Schreibtisch|Telefon)$/.test(groesse)) continue;
+    soll.set(`${rolle}/${groesse}`, [...ziele.matchAll(/`(#\/[a-zäöüß-]+)`/g)].map((t) => t[1]));
+  }
+  if (soll.size !== 4) {
+    throw new Error(`docs/konzept-5b.md: 4 Navigationszeilen erwartet, ${soll.size} gelesen`);
+  }
+  for (const [schluessel, ziele] of soll) {
+    if (ziele.length < 4) throw new Error(`docs/konzept-5b.md: ${schluessel} nennt nur ${ziele.length} Ziele`);
+  }
+  return soll;
+}
+
+const SOLL = sollNavigation();
+
+/* Was das Dokument ausdrücklich verspricht, muss es auch halten. */
+if (SOLL.get('Lehrkraft/Schreibtisch').length !== 5) {
+  befunde.push('E23: Lehrkraft am Schreibtisch muss fünf Ziele nennen');
+}
+if (SOLL.get('Lehrkraft/Telefon').length !== 4) {
+  befunde.push('E23: Lehrkraft auf dem Telefon muss vier Ziele nennen');
+}
+if (SOLL.get('Lernende/Schreibtisch').join() !== SOLL.get('Lernende/Telefon').join()) {
+  befunde.push('E23: Lernende müssen auf beiden Größen dieselben Ziele haben — das Dokument sagt etwas anderes');
+}
+/* Die Verdichtung ist eine Verdichtung: das Telefon lässt weg, erfindet nichts. */
+{
+  const schreibtisch = new Set(SOLL.get('Lehrkraft/Schreibtisch'));
+  const fremd = SOLL.get('Lehrkraft/Telefon').filter((z) => !schreibtisch.has(z));
+  if (fremd.length) {
+    befunde.push(`E23: Telefon der Lehrkraft führt Ziele, die der Schreibtisch nicht hat: ${fremd.join(', ')}`);
+  }
+}
+
+/** Alle `<nav class="…">…</nav>` einer Sorte, je als Liste von href. */
+function navigationen(html, klasse) {
+  const muster = new RegExp(`<nav[^>]*class="[^"]*\\b${klasse}\\b[^"]*"[^>]*>([\\s\\S]*?)</nav>`, 'g');
+  return [...html.matchAll(muster)].map((t) => [...t[1].matchAll(/href="(#\/[^"]+)"/g)].map((h) => h[1]));
+}
+
+for (const datei of readdirSync(HIER).filter((d) => d.endsWith('.html'))) {
+  const html = readFileSync(resolve(HIER, datei), 'utf8');
+  for (const [klasse, groesse] of [['rail__nav', 'Schreibtisch'], ['unten', 'Telefon']]) {
+    for (const ist of navigationen(html, klasse)) {
+      if (!ist.length) {
+        befunde.push(`${datei}: ${groesse}-Navigation ohne Ziele`);
+        continue;
+      }
+      const rolle = ist.includes('#/heute') ? 'Lernende' : ist.includes('#/kurse') ? 'Lehrkraft' : null;
+      if (!rolle) {
+        befunde.push(`${datei}: ${groesse}-Navigation keiner Rolle zuzuordnen: ${ist.join(' ')}`);
+        continue;
+      }
+      const soll = SOLL.get(`${rolle}/${groesse}`);
+      if (ist.join() !== soll.join()) {
+        befunde.push(
+          `${datei}: ${rolle} / ${groesse} weicht von E23 ab — ` +
+            `Entwurf ${ist.join(' · ')}, Dokument ${soll.join(' · ')}`,
+        );
+      }
+    }
+  }
+}
+
+/*
+  Gegenprobe zur Gegenprobe: Hätte kein Blatt eine der beiden Navigationen,
+  wäre alles oben still durchgelaufen. Beide Sorten müssen vorkommen, und für
+  beide Rollen.
+*/
+{
+  const gesehen = new Set();
+  for (const datei of readdirSync(HIER).filter((d) => d.endsWith('.html'))) {
+    const html = readFileSync(resolve(HIER, datei), 'utf8');
+    for (const [klasse, groesse] of [['rail__nav', 'Schreibtisch'], ['unten', 'Telefon']]) {
+      for (const ist of navigationen(html, klasse)) {
+        if (ist.includes('#/heute')) gesehen.add(`Lernende/${groesse}`);
+        if (ist.includes('#/kurse')) gesehen.add(`Lehrkraft/${groesse}`);
+      }
+    }
+  }
+  for (const schluessel of SOLL.keys()) {
+    if (!gesehen.has(schluessel)) befunde.push(`Kein Entwurf zeigt ${schluessel} — ungeprüft, nicht bestanden`);
+  }
 }
 
 /* ------------------------------------------------- 1, 2, 3b. Im Browser */
@@ -405,6 +530,7 @@ if (befunde.length) {
 
 console.log(
   'Variante B bestanden: %d Blätter, kein Überlauf, kein Tippziel unter 44 px, ' +
-    'Glas nur an erlaubten Stellen mit deckendem Rückfall, Kontraste gerechnet.',
+    'Glas nur an erlaubten Stellen mit deckendem Rückfall, Kontraste gerechnet, ' +
+    'Navigation deckungsgleich mit E23 (Lehrkraft 5 / 4, Lernende 4 / 4).',
   blaetter.length,
 );
