@@ -66,12 +66,15 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
   '#/lernen': { zustand: 'vorhanden', route: '/lernen' },
 
   /*
-    E13: `#/material` heißt künftig `#/pakete`, mit dauerhafter Weiterleitung.
-    Die Weiterleitung existiert noch nicht — deshalb steht hier `geplant` und
-    nicht `weiterleitung`. Erst der Block, der sie baut und prüft, darf das
-    ändern (5B.2c′).
+    E13, Übergangsphase: Die Seite liegt noch unter `/material`, also zeigt
+    `#/pakete` dorthin. Gebaut und geprüft in 5B.2c′ — vorher stand hier
+    `geplant`, weil ein Zustand eine Aussage über die Wirklichkeit ist.
+
+    Später dreht sich die Richtung um: `#/pakete` wird die echte Route,
+    `#/material` die dauerhafte Weiterleitung. Dann verschwindet diese Zeile
+    zugunsten eines schlichten `vorhanden`.
   */
-  '#/pakete': { zustand: 'geplant', block: '5B.2c′' },
+  '#/pakete': { zustand: 'weiterleitung', route: '/pakete', leitetAuf: '/material' },
 
   '#/start': { zustand: 'geplant', block: '5B.3' },
   '#/heute': { zustand: 'geplant', block: '5B.4' },

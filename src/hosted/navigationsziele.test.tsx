@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 
 import { RepositoryProvider } from '../application/RepositoryContext';
 import { createFakeCloud } from '../application/fakeCloudRepositories';
@@ -40,9 +42,10 @@ afterEach(cleanup);
 /** Die Überschrift, an der die öffentliche Landungsseite zu erkennen ist. */
 const LANDUNG = 'LexiFlow';
 
-function oeffne(route: string, userId: string) {
+function oeffne(route: string, userId?: string) {
   const cloud = createFakeCloud();
-  cloud.signInAs(userId);
+  // Ohne Konto: niemand ist angemeldet. `signInAs('')` wäre ein Fehler, kein Zustand.
+  if (userId) cloud.signInAs(userId);
   render(
     <RepositoryProvider value={cloud.repositories} mode="hosted">
       <SessionProvider>
@@ -95,7 +98,7 @@ describe('jedes sichtbare Ziel löst auf', () => {
       const ziel = umsetzung?.leitetAuf ?? umsetzung?.route;
       expect(ziel, `${pfad} ist freigeschaltet, nennt aber keine Route`).toBeDefined();
 
-      oeffne(pfad.replace('#', ''), KONTO[profil] ?? '');
+      oeffne(pfad.replace('#', ''), KONTO[profil]);
 
       /*
         Zwei Dinge dürfen nicht passiert sein: die Wildcard (erkennbar an der
@@ -179,18 +182,153 @@ describe('der Stand, den dieser Block festhält', () => {
     alles fertig ist. Festgehalten wird, was heute gilt, damit ein Hochsetzen
     ohne Route auffällt.
   */
-  it('sichtbar sind genau die drei Routen, die es gibt', () => {
+  it('sichtbar sind genau die Ziele, die auflösen', () => {
     expect(sichtbareZiele('lehrkraft', 'schreibtisch').map((z) => z.pfad)).toEqual([
       '#/kurse',
+      '#/pakete',
       '#/ki',
     ]);
     expect(sichtbareZiele('lernende', 'schreibtisch').map((z) => z.pfad)).toEqual(['#/lernen']);
   });
 
-  it('`#/pakete` ist noch nicht weitergeleitet', () => {
-    // E13 ist entschieden, die Weiterleitung existiert noch nicht. `geplant`
-    // ist die ehrliche Antwort, bis 5B.2c' sie baut und prüft.
-    expect(umsetzungVon('#/pakete')?.zustand).toBe('geplant');
+  it('`#/pakete` ist seit 5B.2c′ weitergeleitet', () => {
+    const umsetzung = umsetzungVon('#/pakete');
+    expect(umsetzung?.zustand).toBe('weiterleitung');
+    expect(umsetzung?.leitetAuf).toBe('/material');
+  });
+});
+
+describe('der Übergangsredirect `#/pakete` → `#/material` (E13)', () => {
+  /*
+    Die Richtung ist in dieser Phase ausdrücklich die hier und nicht die aus
+    E13: Die Seite liegt noch unter `/material`, also zeigt die neue Adresse
+    auf die alte. Erst wenn die Seite umzieht, dreht sich das um. Beide
+    Richtungen gleichzeitig wären kein Grenzfall, sondern eine Seite, die
+    nicht mehr lädt.
+  */
+
+  it('eine Lehrkraft landet wirklich im Materialbereich', async () => {
+    /*
+      Geprüft wird der **gerenderte Bereich**, nicht die Adresse. Eine
+      Weiterleitung, die die Adresse ändert und dann auf der Startseite
+      endet, hätte eine Prüfung auf `location.pathname` bestanden.
+    */
+    oeffne('/pakete', 'u-lehrerin');
+    expect(await screen.findByRole('heading', { name: 'Material', level: 1 })).toBeInTheDocument();
+  });
+
+  it('weder Wildcard noch Landungsseite haben gegriffen', async () => {
+    oeffne('/pakete', 'u-lehrerin');
+    await screen.findByRole('heading', { name: 'Material', level: 1 });
+    expect(screen.queryByRole('heading', { name: LANDUNG, level: 1 })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Anmelden' })).toBeNull();
+  });
+
+  it('eine lernende Person kommt darüber nicht in den Lehrkraftbereich', async () => {
+    /*
+      Die Weiterleitung liegt **innerhalb** des Lehrkraftriegels. Läge sie
+      davor, wäre sie ein Weg um `RequireArea` herum — und zwar einer, den
+      niemand sucht, weil er wie eine Umbenennung aussieht.
+    */
+    oeffne('/pakete', 'u-lernend');
+    expect(await screen.findByText(/nicht für dieses Konto/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Material', level: 1 })).toBeNull();
+  });
+
+  it('ohne Anmeldung führt sie zur Anmeldung, nicht ins Material', async () => {
+    oeffne('/pakete');
+    expect(await screen.findByRole('heading', { name: 'Anmelden' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Material', level: 1 })).toBeNull();
+  });
+
+  it('`/material` leitet in dieser Phase **nicht** auf `/pakete`', async () => {
+    /*
+      Sonst zeigten beide Adressen aufeinander. Der Browser läuft dann im
+      Kreis, bis er aufgibt — und zwar ohne Fehlermeldung, die auf die Ursache
+      zeigt.
+    */
+    oeffne('/material', 'u-lehrerin');
+    expect(await screen.findByRole('heading', { name: 'Material', level: 1 })).toBeInTheDocument();
+    const quelle = readFileSync(resolve(import.meta.dirname, 'HostedApp.tsx'), 'utf8');
+    const ohneKommentare = quelle.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '');
+    expect(ohneKommentare, 'es gibt eine Rückweiterleitung — das ist die Schleife').not.toMatch(
+      /path="material"\s+element=\{<Navigate/,
+    );
+  });
+
+  it('steht innerhalb des Lehrkraftriegels', () => {
+    /*
+      Verhalten unterscheidet das **nicht**: Das Ziel `/material` ist selbst
+      geschützt, eine lernende Person käme also auch über eine öffentlich
+      stehende Weiterleitung nicht hinein. Geprüft wird es trotzdem, und am
+      Aufbau statt am Ergebnis — denn die Regel soll auch dann noch gelten,
+      wenn `/material` eines Tages aus einem anderen Grund offener wird. Eine
+      Weiterleitung, die vor dem Riegel steht, ist ein Weg um ihn herum, den
+      niemand sucht: Sie sieht wie eine Umbenennung aus.
+    */
+    const quelle = readFileSync(resolve(import.meta.dirname, 'HostedApp.tsx'), 'utf8');
+    const stelle = quelle.indexOf('path="pakete"');
+    expect(stelle, 'die Weiterleitung fehlt').toBeGreaterThan(0);
+
+    const lehrkraftriegel = quelle.indexOf('<RequireArea area="teacher">');
+    const danach = quelle.indexOf('<Route path="*"', lehrkraftriegel);
+    expect(lehrkraftriegel, 'der Lehrkraftriegel fehlt').toBeGreaterThan(0);
+    expect(
+      stelle > lehrkraftriegel && stelle < danach,
+      'die Weiterleitung steht außerhalb des Lehrkraftbereichs',
+    ).toBe(true);
+  });
+
+  it('nur die Wurzel, keine erfundenen Unterpfade', async () => {
+    /*
+      Unter `/material` gibt es heute keine Unterpfade — `TeacherArea` hat
+      dort einzig `index`. Eine Weiterleitung für `pakete/*` erfände Adressen,
+      die nirgends hinführen.
+    */
+    oeffne('/pakete/irgendwas', 'u-lehrerin');
+    expect(await screen.findByRole('heading', { name: LANDUNG, level: 1 })).toBeInTheDocument();
+  });
+
+  it('tauscht den Verlaufseintrag aus, statt ihn anzuhängen', async () => {
+    /*
+      `replace`: Ohne das stünde die Weiterleitung im Verlauf. Ein Schritt
+      zurück aus dem Material führte dann wieder auf `/pakete` und von dort
+      wieder ins Material — man käme nicht mehr heraus.
+
+      Geprüft wird, wo ein Schritt zurück landet: auf der Seite **davor**.
+    */
+    const cloud = createFakeCloud();
+    cloud.signInAs('u-lehrerin');
+
+    function Zurueck() {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => navigate(-1)}>
+          einen zurück
+        </button>
+      );
+    }
+
+    render(
+      <RepositoryProvider value={cloud.repositories} mode="hosted">
+        <SessionProvider>
+          <MemoryRouter initialEntries={['/kurse', '/pakete']} initialIndex={1}>
+            <Zurueck />
+            <HostedRoutes />
+          </MemoryRouter>
+        </SessionProvider>
+      </RepositoryProvider>,
+    );
+
+    await screen.findByRole('heading', { name: 'Material', level: 1 });
+
+    const { userEvent } = await import('@testing-library/user-event');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'einen zurück' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Kurse', level: 1 }),
+      'ein Schritt zurück landet nicht auf der Seite davor — der Redirect steht im Verlauf',
+    ).toBeInTheDocument();
   });
 });
 

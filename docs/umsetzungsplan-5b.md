@@ -62,7 +62,7 @@ sind — nicht, wenn sein Code steht.
 | **5B.2a** | Navigationsdefinition: Darstellung in `src/ui/`, Umsetzungszustand in `src/hosted/` | E12, E13, E23 | 5B.1 | **offen** |
 | **5B.2b** | Die Zeichen der Icon-Leiste | E23 | 5B.2a | offen |
 | **5B.2c** | Die Hülle als Baustein — unbenutzt, isoliert, ohne Routing- und Rollenwissen | E12, E23 | 5B.2b | offen |
-| **5B.2c′** | Der echte Redirect `#/pakete` → `#/material`, mit Integrationsprüfung am Router | E13 | 5B.2c | offen |
+| **5B.2c′** | **Übergangsredirect** `#/pakete` → `#/material`, mit Integrationsprüfung am Router | E13 | 5B.2c | offen |
 | **5B.2d** | Das Portal schaltet um — **erste sichtbare Produktivänderung** | E12, E23 | 5B.2c′ | offen |
 
 > Zusammengeführt werden ausschließlich die drei Portalhüllen (`PublicShell`,
@@ -72,6 +72,27 @@ sind — nicht, wenn sein Code steht.
 > Nach 5B.2d sind sichtbar: **Kurse · Lernpakete · KI-Zugang** (Lehrkraft)
 > und **Lernen** (Lernende). Alles andere bleibt `geplant` — siehe die
 > progressive Freischaltung in E23.
+
+#### E13 in zwei Phasen — und warum die Richtung wichtig ist
+
+E13 sagt: `#/material` wird zu `#/pakete`, mit dauerhafter Weiterleitung. Das
+geschieht in **zwei Phasen mit entgegengesetzter Richtung**, und sie dürfen
+nicht gleichzeitig gelten — sonst zeigen beide Adressen aufeinander, und
+daraus wird eine Schleife.
+
+| Phase | Kanonisch | Weiterleitung | Block |
+| --- | --- | --- | --- |
+| **Übergang** | `#/material` (dort liegt die Seite heute) | `#/pakete` → `#/material` | 5B.2c′ |
+| **Endzustand** | `#/pakete` | `#/material` → `#/pakete` | der Block, der die Seite umbenennt |
+
+**Im Übergang gibt es ausdrücklich keine Weiterleitung von `#/material`.**
+Die alte Adresse bleibt die echte, bis die Seite umzieht; erst dann dreht
+sich die Richtung, und erst dann ist die Weiterleitung die aus E13 gemeinte
+dauerhafte.
+
+Der Block, der die Seite umbenennt, entfernt im selben Zug die Weiterleitung
+dieser Phase. Zwei Weiterleitungen gleichzeitig wären kein Grenzfall, sondern
+eine Seite, die nicht mehr lädt.
 
 ### Bereiche
 

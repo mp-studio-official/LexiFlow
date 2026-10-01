@@ -101,6 +101,30 @@ export function HostedRoutes() {
             </Suspense>
           }
         />
+        {/*
+          E13, **Übergangsphase**: `#/material` heißt künftig `#/pakete`. Die
+          Seite liegt heute noch unter `/material`, also zeigt die neue
+          Adresse vorerst auf die alte.
+
+          Die Richtung dreht sich später um — dann wird `#/pakete` die echte
+          Route und `#/material` die dauerhafte Weiterleitung aus E13. Beide
+          Richtungen gleichzeitig wären kein Grenzfall, sondern eine Seite,
+          die nicht mehr lädt: Deshalb gibt es hier **keine** Weiterleitung
+          von `/material`.
+
+          `replace`, nicht `push`: Sonst stünde die Weiterleitung im Verlauf,
+          und ein Schritt zurück aus dem Material führte wieder hierher und
+          von hier wieder ins Material.
+
+          Innerhalb des Lehrkraftriegels, nicht davor — eine Weiterleitung
+          außerhalb wäre ein Weg um `RequireArea` herum.
+
+          Nur die Wurzel: Unter `/material` gibt es heute keine Unterpfade
+          (`TeacherArea` hat dort einzig `index`). Eine Weiterleitung für
+          `pakete/*` würde Adressen erfinden, die nirgends hinführen.
+        */}
+        <Route path="pakete" element={<Navigate to="/material" replace />} />
+
         <Route
           path="material/*"
           element={
