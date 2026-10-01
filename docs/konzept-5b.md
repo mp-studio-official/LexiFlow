@@ -1132,6 +1132,64 @@ es galt für eine beschriftete Navigation mit vier Plätzen. Eine Icon-Leiste
 mit fünf Symbolen kostet keine Breite; der Platz, den er beansprucht, ist
 76 px mal 44 px, und die sind ohnehin da.
 
+#### Die Tabelle beschreibt den Endzustand am Ende von 5B
+
+Nicht den Zustand während der Umsetzung. Das ist keine Abschwächung, sondern
+die einzige Lesart, die funktioniert: Von den neun Zielen oben existieren
+heute drei als Route (`#/kurse`, `#/ki`, `#/lernen`). Fünf — `#/start`,
+`#/einstellungen`, `#/heute`, `#/ueben`, `#/fortschritt` — müssen erst gebaut
+werden, und `#/pakete` wird zunächst auf `#/material` weitergeleitet (E13).
+
+Eine Navigation, die alle neun zeigt, würde heute überwiegend ins Leere
+führen — und zwar unsichtbar, weil die Wildcard in `HostedApp.tsx` alles
+Unbekannte still auf `/` umleitet. Ein totes Ziel sähe damit nicht kaputt
+aus, sondern wie ein Sprung zur Startseite.
+
+**Progressive Freischaltung.** Jedes Ziel trägt in der Portalkonfiguration
+einen Umsetzungszustand:
+
+| Zustand | Bedeutung |
+| --- | --- |
+| `vorhanden` | Die Route existiert mit Inhalt. Das Ziel wird gerendert. |
+| `weiterleitung` | Eine echte, geprüfte Weiterleitung erreicht ihr Ziel. Das Ziel wird gerendert. |
+| `geplant` | Noch nicht gebaut. Das Ziel wird **nicht** gerendert — nicht sichtbar, nicht fokussierbar, nicht im Accessibility-Baum. |
+
+Vier Regeln dazu, und sie sind der Grund, warum das kein Schlupfloch ist:
+
+1. Ein Ziel wird **ausschließlich in demselben Commit** von `geplant` auf
+   `vorhanden` gesetzt, in dem seine Route und deren Inhalt entstehen.
+2. `weiterleitung` ist nur zulässig, wenn die Weiterleitung implementiert
+   **und** geprüft ist — geprüft heißt: aufgerufen, und das erwartete Ziel
+   wurde erreicht.
+3. Jedes gerenderte Ziel ist tatsächlich auflösbar. Nachgewiesen wird das
+   gegen den echten Router, nicht per Textsuche: Das Ziel wird aufgerufen,
+   und es wird belegt, dass weder die Wildcard noch die öffentliche
+   Landungsseite gegriffen hat.
+4. Der Umsetzungszustand gehört in die Portalkonfiguration, **nicht** in den
+   allgemeinen Baustein. Die Hülle bekommt die sichtbaren Einträge als
+   Eigenschaften gereicht und weiß nichts von Routen, Rollen, Anmeldung oder
+   Cloud.
+
+**Am Ende von 5B bestätigt eine eigene Abnahme, dass kein Ziel mehr
+`geplant` ist.** Das ist der Punkt, an dem die Tabelle oben wieder
+wörtlich gilt — fünf Ziele am Schreibtisch, vier auf dem Telefon.
+
+Eine dauerhafte Prüfung, die *mindestens ein* geplantes Ziel verlangt, gibt
+es ausdrücklich nicht: Sie würde am Ende rot, wenn alles fertig ist. Die
+Invarianten sind stattdessen: jedes Ziel hat genau einen nachvollziehbaren
+Zustand, jedes gerenderte Ziel löst auf, kein geplantes Ziel wird gerendert.
+
+#### Die Entwürfe zeigen den Endzustand, die Hülle die freigeschaltete Teilmenge
+
+`docs/mockups/portal-variante-b/` bildet alle Ziele aus E23 ab — sie sind der
+Entwurf dessen, was am Ende dasteht, und sollen es bleiben. Die produktive
+Hülle zeigt währenddessen weniger. Dass die Entwürfe und das laufende Portal
+sich darin unterscheiden, ist deshalb **kein Befund**, sondern die
+Arbeitsteilung zwischen Entwurf und Umsetzung.
+
+Die Prüfung in `pruefe-variante.mjs` vergleicht aus demselben Grund die
+Entwürfe gegen **diese Tabelle** und nicht gegen das Portal.
+
 Die Gegenprüfung steht in `docs/mockups/portal-variante-b/pruefe-variante.mjs`
 (Abschnitt 5): Sie liest die Tabelle oben aus diesem Dokument und vergleicht
 sie mit den tatsächlichen Navigationen in den Entwürfen — getrennt nach
@@ -1146,3 +1204,124 @@ die beiden Größen sich für Lernende **nicht** unterscheiden dürfen.
 Fassung, die abgelöst wurde. Aufbau, UX, Navigation, Zustände,
 Informationsarchitektur und alle Datenschutzregeln sind in beiden identisch;
 unterschieden sind sie nur in der visuellen Ebene.
+
+---
+
+## 15. Entscheidungen E11 bis E18 — nachgetragen
+
+Diese acht wurden am 29./30.09.2026 im Arbeitsgespräch entschieden und sind
+nie in dieses Dokument gewandert. Sie leben seitdem in den Entwürfen und in
+Commit-Botschaften — also an Orten, die man nur findet, wenn man schon weiß,
+dass es sie gibt. Als 5B.2a sich auf E13 berufen wollte, war die Entscheidung
+ausschließlich als Satz in `docs/mockups/portal/navigation.html` greifbar.
+
+**Rekonstruiert, nicht erinnert.** Jede Entscheidung unten steht mit der
+Stelle, aus der ihr Wortlaut stammt. Wo sich nichts belegen ließ, steht das
+da — und nicht eine plausible Formulierung.
+
+### E11 — **Lücke**
+
+Zu „E11" findet sich im gesamten Projekt kein einziger Beleg: nicht in den
+Entwürfen, nicht in `docs/`, nicht in `src/`, nicht in einer Commit-Botschaft.
+Gesucht wurde nach dem Wort mit Wortgrenze in allen Textdateien und, unter
+Ausschluss der Base64-Blöcke, in allen Entwurfsblättern.
+
+Entweder trug die Entscheidung eine andere Nummer, oder sie ist beim Zählen
+übersprungen worden. Ich trage hier nichts ein. **Marc, wenn du weißt, was
+E11 war, gehört es hierher; sonst bleibt die Nummer frei.**
+
+### E12 — Navigation und Beschriftungen
+
+*Beleg: `docs/mockups/portal/navigation.html` (Zeilen 29, 92 ff.),
+`docs/mockups/portal/lehrkraft-dashboard.html` (Zeile 14),
+`docs/mockups/portal/index.html` (Zeile 48).*
+
+- Vier Ziele in der unteren Navigation: **Start · Kurse · Lernpakete ·
+  Einstellungen** für Lehrkräfte, **Heute · Lernen · Üben · Mein Fortschritt**
+  für Lernende. Fünf wären am Telefon zu schmal für 44 px breite Tippziele.
+- **„Vorschau" heißt „Als Lernende ansehen"** — eine verständliche Handlung
+  statt eines Fachworts. Sie steht im **Kopfbereich**, nicht in der
+  Navigation.
+- Lehrkräfte bekommen einen **eigenen Startbildschirm** („Lehrkräfte-
+  Dashboard"), nicht die Kursliste als Einstieg.
+
+> Die Zahl der Schreibtischziele hat **E23** später neu gefasst (fünf statt
+> vier, KI-Zugang als eigenes Ziel). Die Beschriftungen und „Als Lernende
+> ansehen" gelten unverändert.
+
+### E13 — `#/material` heißt `#/pakete`
+
+*Beleg: `docs/mockups/portal/navigation.html`, Zeile 89 und folgende:
+„`#/material` heißt künftig `#/pakete` — „Material" ist ein Wort aus der
+Werkzeugsicht".*
+
+Die Route und die Beschriftung heißen künftig **Lernpakete**. Bis die Route
+umbenannt ist, leitet `#/pakete` auf `#/material` weiter (siehe die Regeln zur
+progressiven Freischaltung in E23).
+
+### E14 — Übungsrunde: sofort speichern, und nur dann fragen
+
+*Beleg: `docs/mockups/portal/ueben.html`, Zeilen 30–33.*
+
+- **Jede abgeschlossene Antwort ist gesichert.** Browser-Zurück, Neuladen und
+  Schließen dürfen nicht still zu Datenverlust führen.
+- Die **Rückfrage beim Abbruch erscheint nur, wenn wirklich etwas verloren
+  ginge**, und benennt genau *was*. Eine Rückfrage, die bei jedem Verlassen
+  kommt, wird weggeklickt — und dann auch die eine, die zählt.
+- **„Hierbleiben" führt zurück ins Antwortfeld**, nicht an den Seitenanfang.
+- **Keine untere Navigation während der Übung.** Am Telefon nimmt die Aufgabe
+  den Platz; der Weg hinaus führt über „Beenden" oben.
+
+### E15 — Umfang der statischen Entwürfe
+
+*Beleg: `docs/mockups/portal/navigation.html`, Zeilen 14 und 28; Commit
+`11fb4ce`.*
+
+Sieben Blätter, jedes auf **Desktop 1440 × 900** und **Telefon 390 × 844**,
+jeweils in den Zuständen **normal, ladend, leer, fehlerhaft** und — wo es
+etwas bedeutet — **offline**. Die Navigationsübersicht muss **beide Systeme
+vollständig** demonstrieren, in beiden Rollen; deshalb ist sie ein eigenes
+Blatt und nicht nur der Rand der anderen sechs.
+
+### E16 — Welche sieben Bildschirme, und in welcher Reihenfolge
+
+*Beleg: Commit `11fb4ce`, „Die sieben, in der Reihenfolge aus E16".*
+
+| # | Blatt | Rolle | greift auf |
+| --- | --- | --- | --- |
+| 1 | Lehrkräfte-Dashboard | Lehrkraft | E12, E18 |
+| 2 | Heute (Startseite Lernende) | Lernende | E1, E2, E3, E9 |
+| 3 | Kursdetailseite | Lehrkraft | E7 |
+| 4 | Lernpaketkarte und -detail | Lernende | E4, E17 |
+| 5 | Übungsbereich | Lernende | E14 |
+| 6 | Werkstatt | Lehrkraft | E5 |
+| 7 | Navigation, beide Systeme | beide | E12, E13, E15 |
+
+### E17 — Das Standardmotiv muss ohne Bild tragen
+
+*Beleg: `docs/mockups/portal/lernpakete.html`, Zeile 31;
+`docs/mockups/portal-variante-b/werkstatt.html`, Zeile 40.*
+
+Ein Lernpaket ohne hochgeladenes Titelbild bekommt **eine gesetzte Fläche mit
+Thema und Titel** — keinen grauen Kasten mit Symbol. Ein fehlendes Bild
+hinterlässt kein Loch.
+
+> In der Variante B ist das Standardmotiv **zwei überlagerte Aurora-Flächen**;
+> hochgeladene Bilder bleiben echte Titelbilder. Die editoriale Schrift auf
+> dem Motiv ist mit **E21** auf das Titelbild beschränkt worden.
+
+### E18 — Was „offene Stellen und Prüfhinweise" heißt
+
+*Beleg: `docs/mockups/portal/lehrkraft-dashboard.html`, Zeile 31.*
+
+**Ausschließlich Lücken und Widersprüche in den eigenen Paketentwürfen** —
+fehlende Übersetzungen, doppelte Einträge, Abweichungen vom Wörterbuch.
+**Keine** Rückfragen von Lernenden, **keine** Nachrichtenfunktion.
+
+Das Dashboard trägt sieben Blöcke: Entwürfe mit offenen Stellen · Kurse ·
+demnächst Veröffentlichtes · KI-Zugang · Schnellaktionen · Neues ·
+Kopfbereich mit „Als Lernende ansehen". Dazu die ausdrückliche
+Datenschutzzusage: keine individuellen Lernstände, keine Aktivitätszeiten,
+keine Trefferquoten, keine Klassendurchschnitte, keine anonymisierten
+Lernaggregate, keine Ranglisten. Die reine Mitgliederzahl eines Kurses ist
+zulässig.
