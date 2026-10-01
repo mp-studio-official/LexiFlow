@@ -64,9 +64,12 @@ describe('die Hülle zeigt, was ihr übergeben wird — und nichts sonst', () =>
       nie ankommt, kann nicht versehentlich doch gerendert werden.
     */
     zeige({ zieleSchreibtisch: [], zieleTelefon: [] });
-    for (const nav of screen.getAllByRole('navigation', { name: 'Hauptnavigation' })) {
-      expect(nav.querySelectorAll('a')).toHaveLength(0);
-    }
+    /*
+      Und ohne Ziele gar keine Navigation: Ein leeres `<nav>` mit Namen steht
+      im Accessibility-Baum und verspricht etwas, das es nicht gibt — vor der
+      Anmeldung gibt es nichts zu navigieren.
+    */
+    expect(screen.queryAllByRole('navigation', { name: 'Hauptnavigation' })).toHaveLength(0);
   });
 
   it('nimmt den Namen aus den Daten, nicht aus dem Zeichen', () => {
@@ -411,33 +414,43 @@ describe('die Hülle ist reine Oberfläche', () => {
   });
 });
 
-describe('5B.2c ist additiv', () => {
-  it('keine bestehende Hülle und keine Route bindet die Hülle ein', () => {
-    /*
-      Fällt dieser Test, ändert sich ein Bildschirm. Das ist 5B.2d und gehört
-      in den Commit, der es beabsichtigt.
-    */
-    const wurzel = resolve(import.meta.dirname, '..');
-    const dateien: string[] = [];
+describe('die Hülle ist seit 5B.2d in Benutzung — und nur dort', () => {
+  const wurzel = resolve(import.meta.dirname, '..');
+
+  function quelldateien(): string[] {
+    const gefunden: string[] = [];
     const sammle = (ordner: string): void => {
       for (const eintrag of readdirSync(ordner)) {
         const pfad = join(ordner, eintrag);
         if (statSync(pfad).isDirectory()) sammle(pfad);
-        else if (/\.tsx?$/.test(eintrag) && !eintrag.startsWith('Huelle')) dateien.push(pfad);
+        else if (/\.tsx?$/.test(eintrag) && !eintrag.startsWith('Huelle')) gefunden.push(pfad);
       }
     };
     sammle(wurzel);
+    return gefunden;
+  }
+
+  it('genau eine Datei bindet sie ein: der Portaladapter', () => {
+    /*
+      Nicht „irgendwer benutzt sie": genau einer. Zwei Einbinder wären zwei
+      Orte, an denen Rolle und Navigation zusammengesetzt werden — und der
+      zweite liefe auseinander.
+    */
+    const dateien = quelldateien();
     expect(dateien.length).toBeGreaterThan(50);
 
     const benutzer = dateien
       .filter((pfad) => /from '[^']*\/Huelle'|from '\.\/Huelle'/.test(readFileSync(pfad, 'utf8')))
       .map((pfad) => pfad.slice(wurzel.length + 1));
-    expect(benutzer).toEqual([]);
+    expect(benutzer).toEqual(['hosted/PortalShell.tsx']);
   });
 
-  it('AppShell, StudentShell und PortalShell sind unverändert', () => {
-    const wurzel = resolve(import.meta.dirname, '..');
-    for (const datei of ['ui/AppShell.tsx', 'portable/StudentShell.tsx', 'hosted/PortalShell.tsx']) {
+  it('AppShell und StudentShell bleiben unangetastet', () => {
+    /*
+      Die portablen Auslieferungen ändern sich in 5B.2 um kein Byte. Eine
+      weitergegebene Datei kann niemand nachträglich reparieren.
+    */
+    for (const datei of ['ui/AppShell.tsx', 'portable/StudentShell.tsx']) {
       const quelle = readFileSync(resolve(wurzel, datei), 'utf8');
       expect(quelle, `${datei} benutzt die neue Hülle`).not.toMatch(/Huelle|huelle\.css/);
     }

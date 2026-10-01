@@ -156,6 +156,53 @@ export function sichtbareZiele(profil: Profil, groesse: Groesse): readonly Ziel[
 }
 
 /**
+ * Welches Navigationsziel zu dieser Adresse gehört — je Größe verschieden.
+ *
+ * ## Warum das hier steht und nicht in der Hülle
+ *
+ * Weil es Routingwissen ist. Dass `/verwaltung` unter „Einstellungen" hängt,
+ * weiß man nur, wenn man die Routen und E23 kennt; die Hülle vergleicht
+ * Zeichenketten.
+ *
+ * ## Warum je Größe verschieden
+ *
+ * Auf `/ki` ist am Schreibtisch „KI-Zugang" aktiv — dort ist es ein eigenes
+ * Ziel. Auf dem Telefon gibt es dieses Ziel nicht; der KI-Zugang liegt dort
+ * innerhalb der Einstellungen. Ein gemeinsamer Wert ließe die untere Leiste
+ * unmarkiert, und eine Navigation ohne Markierung sagt „du bist nirgends".
+ */
+const ZUORDNUNG: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^\/kurse(\/|$)/, '#/kurse'],
+  /* `/material` ist die Route, `#/pakete` das Ziel (E13, Übergangsphase). */
+  [/^\/(material|pakete)(\/|$)/, '#/pakete'],
+  [/^\/ki(\/|$)/, '#/ki'],
+  /*
+    Die Verwaltung ist kein Navigationsziel. Aktiv ist der Ort, über den man
+    hinkommt — die Einstellungen.
+  */
+  [/^\/(einstellungen|verwaltung)(\/|$)/, '#/einstellungen'],
+  [/^\/lernen(\/|$)/, '#/lernen'],
+];
+
+export function aktivesZiel(pfad: string, groesse: Groesse): string | undefined {
+  const treffer = ZUORDNUNG.find(([muster]) => muster.test(pfad))?.[1];
+  if (!treffer) return undefined;
+
+  /*
+    Nur markieren, was auf dieser Größe überhaupt steht. `#/ki` gibt es unten
+    nicht — dort rutscht die Markierung auf die Einstellungen, in denen der
+    KI-Zugang liegt. Dass diese Ersetzung genau einen Schritt weit geht und
+    nicht beliebig, ist Absicht: Eine Kette von Ersatzzielen wäre eine zweite
+    Informationsarchitektur.
+  */
+  const sichtbar = new Set(sichtbareZiele('lehrkraft', groesse).map((z) => z.pfad));
+  for (const ziel of sichtbareZiele('lernende', groesse)) sichtbar.add(ziel.pfad);
+  if (sichtbar.has(treffer)) return treffer;
+  if (treffer === '#/ki' && sichtbar.has('#/einstellungen')) return '#/einstellungen';
+  return undefined;
+}
+
+/**
  * Alle Ziele mit ihrem Zustand — für die Prüfungen und für die Endabnahme.
  *
  * `umsetzung` kann `undefined` sein: Dann ist ein Ziel aus E23 hier nicht

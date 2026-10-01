@@ -276,14 +276,23 @@ describe('die gemeinsame Hülle bleibt reine Oberfläche', () => {
     expect(verdaechtig).toEqual([]);
   });
 
-  it('und kein portables Bündel erreicht sie — noch nicht', () => {
+  it('kein portables Bündel erreicht sie', () => {
     /*
       Fällt diese Zeile, ändert sich eine Auslieferung, die nach Weitergabe
-      niemand mehr aktualisieren kann. In 5B.2 ist das ausgeschlossen.
+      niemand mehr aktualisieren kann. Das bleibt ausgeschlossen.
     */
     expect(LEHRKRAFT.dateien).not.toContain('src/ui/Huelle.tsx');
     expect(LERNDATEI.dateien).not.toContain('src/ui/Huelle.tsx');
-    expect(PORTAL.dateien).not.toContain('src/ui/Huelle.tsx');
+  });
+
+  it('das Portal dagegen erreicht sie — seit 5B.2d', () => {
+    /*
+      Bis 5B.2c war die Hülle unbenutzt; dieselbe Prüfung verlangte damals
+      auch vom Portal, sie nicht zu erreichen. Mit dem Hüllenwechsel ist das
+      Gegenteil die Bedingung: Käme die Hülle im Portalbündel nicht vor,
+      stünde `PortalShell` nur scheinbar auf ihr.
+    */
+    expect(PORTAL.dateien).toContain('src/ui/Huelle.tsx');
   });
 });
 

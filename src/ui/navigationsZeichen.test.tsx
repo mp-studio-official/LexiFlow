@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 
 import { PROFILE, zieleFuer } from './navigation';
-import { NavigationsZeichen, zeichnungVon } from './navigationsZeichen';
+import { NavigationsZeichen, ZEICHEN_NAMEN, zeichnungVon } from './navigationsZeichen';
 
 /**
  * Die Zeichen der Navigation — was an ihnen prüfbar ist.
@@ -25,7 +25,9 @@ import { NavigationsZeichen, zeichnungVon } from './navigationsZeichen';
 
 afterEach(cleanup);
 
-const ALLE_ZEICHEN = PROFILE.flatMap((profil) => zieleFuer(profil).map((ziel) => ziel.zeichen));
+/** Die neun Zeichen der E23-Ziele plus `konto` und `abmelden` im Fuß. */
+const ALLE_ZEICHEN = ZEICHEN_NAMEN;
+const E23_ZEICHEN = PROFILE.flatMap((profil) => zieleFuer(profil).map((ziel) => ziel.zeichen));
 
 describe('jedes Ziel aus E23 hat genau ein bekanntes Zeichen', () => {
   it.each(ALLE_ZEICHEN)('%s ist gezeichnet', (zeichen) => {
@@ -34,10 +36,18 @@ describe('jedes Ziel aus E23 hat genau ein bekanntes Zeichen', () => {
     expect(formen.length, `${zeichen} ist leer`).toBeGreaterThan(0);
   });
 
-  it('es gibt neun Ziele und neun Zeichen', () => {
+  it('es gibt neun E23-Ziele mit je eigenem Zeichen', () => {
     // Sonst liefe die Schleife oben über weniger, als E23 verlangt.
-    expect(ALLE_ZEICHEN).toHaveLength(9);
-    expect(new Set(ALLE_ZEICHEN).size).toBe(9);
+    expect(E23_ZEICHEN).toHaveLength(9);
+    expect(new Set(E23_ZEICHEN).size).toBe(9);
+    for (const zeichen of E23_ZEICHEN) expect(ALLE_ZEICHEN).toContain(zeichen);
+  });
+
+  it('dazu `konto` und `abmelden` für den Fuß der Leiste', () => {
+    // Sie gehören zu keinem Navigationsziel, brauchen aber dasselbe Format.
+    expect(ALLE_ZEICHEN).toContain('konto');
+    expect(ALLE_ZEICHEN).toContain('abmelden');
+    expect(ALLE_ZEICHEN).toHaveLength(11);
   });
 });
 
@@ -116,18 +126,15 @@ describe('die Zeichen sind eigene Zeichnungen', () => {
   });
 });
 
-describe('5B.2b ist additiv', () => {
-  it('keine produktive Hülle benutzt die Zeichen', () => {
+describe('die Zeichen erreichen Bildschirme nur über die Hülle', () => {
+  it('keine andere Datei zeichnet sie', () => {
     /*
-      Fällt dieser Test, ändert sich ein Bildschirm. Das ist 5B.2d und gehört
-      in den Commit, der es beabsichtigt.
-
-      `Huelle.tsx` ist ausgenommen: Sie benutzt die Zeichen seit 5B.2c, ist
-      aber selbst von niemandem eingebunden. Dass das so bleibt, prüft
-      `Huelle.test.tsx` — die Kette darf genau ein Glied lang sein.
+      Die Kette ist genau ein Glied lang: Zeichen → Hülle → Portaladapter. Ein
+      zweiter Weg wäre eine zweite Stelle, an der ein Zeichen ohne Namen
+      danebenstehen kann.
     */
-    const AUSGENOMMEN = ['navigationsZeichen', 'Huelle'];
     const wurzel = resolve(import.meta.dirname, '..');
+    const AUSGENOMMEN = ['navigationsZeichen', 'Huelle'];
     const dateien: string[] = [];
     const sammle = (ordner: string): void => {
       for (const eintrag of readdirSync(ordner)) {

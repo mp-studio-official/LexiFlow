@@ -58,6 +58,19 @@ const pfad = (d: string): Form => ({ art: 'pfad', d });
  * unten bei `lernen` steht.
  */
 const ZEICHNUNG: Readonly<Record<Zeichen, readonly Form[]>> = {
+  /* Eine Person — das eigene Konto. */
+  konto: [
+    { art: 'kreis', cx: 12, cy: 8.4, r: 3.6 },
+    pfad('M4.6 20c0-3.8 3.2-6.2 7.4-6.2s7.4 2.4 7.4 6.2'),
+  ],
+
+  /* Eine Tür mit Pfeil hinaus. Keine Hand, kein Schalter. */
+  abmelden: [
+    pfad('M14.4 4.6H6.8a2 2 0 0 0-2 2v10.8a2 2 0 0 0 2 2h7.6'),
+    pfad('M17.4 8.6 20.8 12l-3.4 3.4'),
+    pfad('M10.2 12h10.2'),
+  ],
+
   /* Ein Haus: der Ort, an dem man anfängt. */
   start: [
     pfad('M3.5 10.5 12 3.5l8.5 7'),
@@ -185,6 +198,9 @@ export function NavigationsZeichen({
     </svg>
   );
 }
+
+/** Alle gezeichneten Namen — für die Prüfungen. */
+export const ZEICHEN_NAMEN = Object.keys(ZEICHNUNG) as readonly Zeichen[];
 
 /** Die Geometrie, für die Prüfungen. Kein Produktivcode liest sie. */
 export function zeichnungVon(zeichen: Zeichen): readonly Form[] {

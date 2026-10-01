@@ -163,15 +163,25 @@
   background: currentColor;
 }
 
-/* Der Inhalt endet über der Leiste, nicht darunter. */
-.huelle__arbeit {
+/*
+  Der Inhalt endet über der Leiste, nicht darunter — aber nur dort, wo es eine
+  gibt. Vor der Anmeldung rendert die Hülle keine untere Leiste; der Abstand
+  wäre dann ein leerer Streifen unter der Fußzeile, für den niemand eine
+  Erklärung hätte. `:has()` fragt das am Baum, wie schon bei der Rasterspalte.
+*/
+.huelle:has(.huelle-unten) .huelle__arbeit {
   padding-block-end: calc(4.5rem + var(--safe-bottom));
 }
 
 /* ============================================ Schreibtisch ab 62rem (992 px) */
 
 @media (min-width: 62rem) {
-  .huelle {
+  /*
+    Die Spalte entsteht nur, wenn es eine Leiste gibt. Vor der Anmeldung gibt
+    es keine — `:has()` fragt das am Baum und nicht an einer zweiten Klasse,
+    die jemand zu setzen vergessen kann.
+  */
+  .huelle:has(.huelle-leiste) {
     display: grid;
     grid-template-columns: 76px 1fr;
   }

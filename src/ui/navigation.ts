@@ -47,8 +47,16 @@ export type Groesse = (typeof GROESSEN)[number];
 export const PROFILE = ['lehrkraft', 'lernende'] as const;
 export type Profil = (typeof PROFILE)[number];
 
-/** Die Zeichen, die die Icon-Leiste kennt. Gezeichnet werden sie in 5B.2b. */
+/**
+ * Die Zeichen, die die Icon-Leiste kennt.
+ *
+ * Neun für die Ziele aus E23, dazu `konto` und `abmelden` für den Fuß der
+ * Leiste. Die beiden gehören zu keinem Navigationsziel — `abmelden` ist eine
+ * Handlung —, brauchen aber dasselbe Zeichenformat.
+ */
 export type Zeichen =
+  | 'konto'
+  | 'abmelden'
   | 'start'
   | 'kurse'
   | 'pakete'

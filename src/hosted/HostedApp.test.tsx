@@ -73,17 +73,26 @@ describe('als lernende Person', () => {
 
   it('sieht in ihrer Navigation keinen Weg zur Werkstatt', async () => {
     setup('/lernen', 'u-lernend');
-    const nav = await screen.findByRole('navigation', { name: 'Hauptnavigation' });
     /*
+      Seit 5B.2d gibt es **zwei** Navigationen im Baum — Icon-Leiste und
+      untere Leiste —, von denen je nach Breite genau eine sichtbar ist.
+      Geprüft werden beide: Ein Weg, der nur in der unsichtbaren steht, ist
+      trotzdem einer.
+
       Auf die Verweisziele geprüft und nicht auf Wörter: Der Lernbereich heißt
       „Deine Kurse und Pakete“ und enthält damit selbst das Wort „Kurse“. Ein
       Wortvergleich wäre hier nicht bloß streng, sondern schlicht falsch.
     */
-    const ziele = [...nav.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-    expect(ziele).not.toContain('/kurse');
-    expect(ziele).not.toContain('/material');
-    expect(ziele).not.toContain('/verwaltung');
-    expect(ziele).toContain('/lernen');
+    const navigationen = await screen.findAllByRole('navigation', { name: 'Hauptnavigation' });
+    expect(navigationen.length).toBe(2);
+    for (const nav of navigationen) {
+      const ziele = [...nav.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+      expect(ziele).not.toContain('#/kurse');
+      expect(ziele).not.toContain('#/pakete');
+      expect(ziele).not.toContain('#/verwaltung');
+      expect(ziele).not.toContain('#/ki');
+      expect(ziele).toContain('#/lernen');
+    }
   });
 });
 
@@ -109,10 +118,14 @@ describe('als Lehrkraft', () => {
 
   it('sieht keinen Verwaltungspunkt in der Navigation', async () => {
     setup('/kurse', 'u-lehrerin');
-    const nav = await screen.findByRole('navigation', { name: 'Hauptnavigation' });
-    const ziele = [...nav.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-    expect(ziele).toContain('/material');
-    expect(ziele).not.toContain('/verwaltung');
+    const navigationen = await screen.findAllByRole('navigation', { name: 'Hauptnavigation' });
+    expect(navigationen.length).toBe(2);
+    for (const nav of navigationen) {
+      const ziele = [...nav.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+      /* `#/pakete` heißt die Adresse seit E13; sie leitet auf `/material`. */
+      expect(ziele).toContain('#/pakete');
+      expect(ziele).not.toContain('#/verwaltung');
+    }
   });
 });
 

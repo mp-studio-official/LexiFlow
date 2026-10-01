@@ -1,211 +1,204 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useOptionalRepository, useRuntimeMode } from '../application/RepositoryContext';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useOptionalRepository } from '../application/RepositoryContext';
 import { Copyright } from '../ui/Copyright';
-import { Logo, LogoMark } from '../ui/Logo';
-import { mayEnter } from '../runtime/access';
+import { Logo } from '../ui/Logo';
+import { Huelle, type Huellenaktion, type Navigationsziel } from '../ui/Huelle';
+import { HOME_PER_ROLE } from '../runtime/access';
+import { beschriftung, type Groesse, type Profil } from '../ui/navigation';
 import { soloUrlFrom } from '../runtime/entryUrls';
+import { aktivesZiel, sichtbareZiele } from './navigationsziele';
 import { useSession } from './SessionContext';
 
 /**
- * Die Hüllen des Portals – zwei, und sie unterscheiden sich nicht nur im Menü.
+ * Die Hüllen des Portals — jetzt dünne Adapter auf `Huelle`.
  *
- * ## Warum zwei Shells und nicht eine mit Bedingungen
+ * ## Was hier geblieben ist und was gegangen
  *
- * Eine gemeinsame Shell mit `{istLehrkraft && <Werkstatt/>}` sieht sparsamer
- * aus und ist es nicht: Der Lehrkraftteil läge dann im selben Bündel wie der
- * Lernteil, und die Zusage „eine lernende Person bekommt die Werkstatt nicht“
- * hinge an einer Bedingung statt an einem Import. Getrennte Shells erlauben
- * das, worauf es ankommt – der Lehrkraftbereich wird **lazy** geladen und
- * kommt bei Lernenden nie an.
+ * Geblieben ist alles, was eine Entscheidung ist: Welche Rolle welches
+ * Navigationsprofil bekommt, wer die Verwaltung sehen darf, wohin die Marke
+ * führt, was beim Abmelden passiert, welche Zusage in der Fußzeile steht.
  *
- * ## Was beide gemeinsam haben
+ * Gegangen sind die vier handgeschriebenen Navigationslisten. Sie kommen
+ * jetzt aus `navigationsziele.ts`, und zwar nur die, die wirklich auflösen —
+ * geplante Ziele erreichen die Hülle gar nicht. Eine zweite Liste hier wäre
+ * genau die Dopplung, die E23 schon einmal auseinanderlaufen ließ.
  *
- * Die Marke, das Sprungziel, die Fußzeile. Das steht hier, damit es sich nicht
- * auseinanderentwickelt.
+ * ## Warum die Hülle nichts davon weiß
+ *
+ * Sie liegt in `src/ui/` und darf in jedem Bündel landen — auch im portablen,
+ * das kein Konto kennt. Rolle, Berechtigung, Sitzung und Router bleiben
+ * deshalb hier; sie bekommt Daten und Rückrufe.
  */
 
-interface NavPunkt {
-  to: string;
-  label: string;
-  hint: string;
+/** Die Marke, auf beiden Größen dieselbe. */
+function Marke() {
+  return <Logo tone="brand" size={26} />;
 }
 
-function Rahmen({ nav, hinweis }: { nav: readonly NavPunkt[]; hinweis: string }) {
+/**
+ * Wohin die Marke führt.
+ *
+ * **Nicht blind auf die Landungsseite.** Wer angemeldet ist, landet dort auf
+ * einer Seite, die ihm erklärt, dass es LexiFlow gibt — und muss sich
+ * zurückklicken. Der Rollenstart kommt aus `HOME_PER_ROLE`, derselben Quelle,
+ * die auch die Anmeldung benutzt; zwei Antworten auf „wo fängt diese Rolle
+ * an" wären eine zu viel.
+ */
+function useMarkePfad(): string {
+  const { status, role } = useSession();
+  if (status === 'angemeldet' && role) return HOME_PER_ROLE[role];
+  return '/';
+}
+
+/** Die sichtbaren Ziele eines Profils, in der Form, die die Hülle braucht. */
+function zieleFuerHuelle(profil: Profil, groesse: Groesse): Navigationsziel[] {
+  return sichtbareZiele(profil, groesse).map((ziel) => {
+    const kurz = beschriftung(ziel, groesse);
+    return {
+      pfad: ziel.pfad,
+      label: ziel.label,
+      zeichen: ziel.zeichen,
+      ...(kurz === ziel.label ? {} : { labelKurz: kurz }),
+    };
+  });
+}
+
+/** „Abmelden" — eine Handlung, kein Ort. Deshalb ein Rückruf, kein Pfad. */
+function useAbmelden(): Huellenaktion | undefined {
   const auth = useOptionalRepository('auth');
   const { status } = useSession();
   const navigate = useNavigate();
-
-  return (
-    <div className="app">
-      <a className="skip-link" href="#inhalt">
-        Zum Inhalt springen
-      </a>
-
-      <header className="app-header">
-        <div className="app-header__inner">
-          <Link className="brand" to="/" aria-label="LexiFlow – Startseite">
-            <Logo tone="on-dark" size={28} />
-          </Link>
-        </div>
-      </header>
-
-      <div className="app-body">
-        <nav className="app-nav" aria-label="Hauptnavigation">
-          <Link className="app-nav__brand" to="/" aria-label="LexiFlow – Startseite">
-            <LogoMark size={30} tone="on-dark" />
-            <span className="app-nav__wordmark">LexiFlow</span>
-          </Link>
-
-          <ul className="app-nav__list">
-            {nav.map((punkt) => (
-              <li key={punkt.to}>
-                <NavLink className="app-nav__link" to={punkt.to} aria-label={punkt.label}>
-                  <span className="app-nav__mark" aria-hidden="true" />
-                  <span className="app-nav__text">
-                    <span className="app-nav__label">{punkt.label}</span>
-                    <span className="app-nav__hint">{punkt.hint}</span>
-                  </span>
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-
-          <p className="app-nav__note">{hinweis}</p>
-
-          {status === 'angemeldet' && auth ? (
-            <button
-              type="button"
-              className="app-nav__link"
-              onClick={() => {
-                void auth.signOut().then(() => navigate('/', { replace: true }));
-              }}
-            >
-              <span className="app-nav__text">
-                <span className="app-nav__label">Abmelden</span>
-              </span>
-            </button>
-          ) : null}
-        </nav>
-
-        <div className="app-work">
-          <main className="app-main" id="inhalt" tabIndex={-1}>
-            <Outlet />
-          </main>
-
-          <footer className="app-footer">
-            <div className="app-footer__inner">
-              <p style={{ margin: 0 }}>{hinweis}</p>
-              <Copyright />
-            </div>
-          </footer>
-        </div>
-      </div>
-
-      <nav className="bottom-nav" aria-label="Bereichsnavigation">
-        {nav.map((punkt) => (
-          <NavLink key={punkt.to} className="bottom-nav__link" to={punkt.to}>
-            <span className="bottom-nav__mark" aria-hidden="true" />
-            {punkt.label}
-          </NavLink>
-        ))}
-      </nav>
-    </div>
-  );
+  if (status !== 'angemeldet' || !auth) return undefined;
+  return {
+    label: 'Abmelden',
+    zeichen: 'abmelden',
+    ausloesen: () => {
+      void auth.signOut().then(() => navigate('/', { replace: true }));
+    },
+  };
 }
 
-const LERN_NAV: readonly NavPunkt[] = [
-  { to: '/lernen', label: 'Lernen', hint: 'Deine Kurse und Pakete' },
-  { to: '/beitreten', label: 'Beitreten', hint: 'Neuer Kurs per Code' },
-  { to: '/datenschutz', label: 'Daten', hint: 'Was gespeichert wird' },
-];
+/*
+  Kein „Konto und Profil" im Fuß der Leiste. Der Entwurf zeigt es, eine Route
+  dafür gibt es nicht — und ein Navigationsziel ohne Ziel ist genau das, was
+  die progressive Freischaltung verhindern soll. Es kommt, wenn die Seite
+  kommt.
+*/
+function Rahmen({
+  profil,
+  hinweis,
+  kopfAktionen,
+}: {
+  profil: Profil;
+  hinweis: string;
+  kopfAktionen?: React.ReactNode;
+}) {
+  const { pathname } = useLocation();
+  const abmelden = useAbmelden();
+  const markePfad = useMarkePfad();
+
+  return (
+    <Huelle
+      zieleSchreibtisch={zieleFuerHuelle(profil, 'schreibtisch')}
+      zieleTelefon={zieleFuerHuelle(profil, 'telefon')}
+      {...(aktivesZiel(pathname, 'schreibtisch')
+        ? { aktiverPfadSchreibtisch: aktivesZiel(pathname, 'schreibtisch') as string }
+        : {})}
+      {...(aktivesZiel(pathname, 'telefon')
+        ? { aktiverPfadTelefon: aktivesZiel(pathname, 'telefon') as string }
+        : {})}
+      marke={<Marke />}
+      markePfad={markePfad}
+      {...(kopfAktionen ? { kopfAktionen } : {})}
+      {...(abmelden ? { fussAktionen: [abmelden] } : {})}
+      fusszeile={
+        <>
+          <p style={{ margin: 0 }}>{hinweis}</p>
+          <p style={{ margin: 0 }}>
+            <Link to="/datenschutz">Datenschutz</Link>
+          </p>
+          <Copyright />
+        </>
+      }
+    >
+      <Outlet />
+    </Huelle>
+  );
+}
 
 /**
  * Die Hülle für Lernende.
  *
- * Sie enthält keinen Verweis auf die Werkstatt – nicht, weil er versteckt
- * wäre, sondern weil `LERN_NAV` ihn nicht kennt und das lazy geladene
+ * Kein Verweis auf die Werkstatt — nicht weil er versteckt wäre, sondern weil
+ * das Profil `lernende` ihn nicht kennt und das lazy geladene
  * Lehrkraftbündel hier nie angefordert wird.
  */
 export function LearnerShell() {
   return (
     <Rahmen
-      nav={LERN_NAV}
+      profil="lernende"
       hinweis="Dein Lernstand gehört dir. Lehrkräfte sehen nicht, wie oft du geübt hast."
     />
   );
 }
 
-const LEHR_NAV: readonly NavPunkt[] = [
-  { to: '/kurse', label: 'Kurse', hint: 'Lerngruppen und Einladungen' },
-  { to: '/material', label: 'Material', hint: 'Pakete erstellen und veröffentlichen' },
-  { to: '/ki', label: 'KI-Zugang', hint: 'Anbieter hinterlegen' },
-  { to: '/lernen', label: 'Lernen', hint: 'Dein eigenes Üben' },
-  { to: '/datenschutz', label: 'Daten', hint: 'Was gespeichert wird' },
-];
-
-const VERWALTUNG: NavPunkt = { to: '/verwaltung', label: 'Verwaltung', hint: 'Konten und Rollen' };
-
-/** Die Hülle für Lehrkräfte – mit Werkstatt, und für die Verwaltung einem Punkt mehr. */
+/**
+ * Die Hülle für Lehrkräfte.
+ *
+ * „Als Lernende ansehen" steht im Kopf und nicht in der Navigation (E12): Es
+ * ist eine Handlung, kein Ort. Vorher war es ein Navigationspunkt „Lernen";
+ * E23 kennt ihn für Lehrkräfte nicht mehr, und ohne diesen Verweis wäre der
+ * Weg in den Lernbereich für Lehrkräfte verschwunden.
+ */
 export function TeacherShell() {
-  const { role } = useSession();
-  const mode = useRuntimeMode();
-  const nav = mayEnter({ role, area: 'admin', mode }) ? [...LEHR_NAV, VERWALTUNG] : LEHR_NAV;
-
   return (
     <Rahmen
-      nav={nav}
+      profil="lehrkraft"
       hinweis="Du siehst, wer in deinen Kursen ist – nicht, wie viel jemand geübt hat."
+      kopfAktionen={
+        <Link className="btn btn--quiet" to="/lernen">
+          Als Lernende ansehen
+        </Link>
+      }
     />
   );
 }
 
 /**
- * Die Hülle vor der Anmeldung.
+ * Die Hülle vor der Anmeldung — **ohne Bereichsnavigation**.
  *
- * Sie fehlte im ersten Entwurf, und das fiel erst auf, als ein Test ein
- * `<main>` suchte und keines fand: Landung, Anmeldung, Beitritt und
- * Wiederherstellung rendeten nackt – ohne Marke, ohne Sprungziel zum Inhalt,
- * ohne Fußzeile. Genau diese vier Seiten sieht aber jemand als erstes, und für
- * eine Vorlesehilfe war der Inhalt ohne Landmarke gar nicht auffindbar.
+ * Vor der Anmeldung gibt es nichts zu navigieren. Die Hülle bekommt deshalb
+ * leere Ziellisten und rendert dann gar kein `<nav>`: Ein leeres mit Namen
+ * stünde im Accessibility-Baum und verspräche eine Navigation, die es nicht
+ * gibt.
  *
- * Keine Navigation: Vor der Anmeldung gibt es nichts zu navigieren. Der eine
- * Verweis, der hierhergehört, führt hinaus – zur Fassung ohne Konto.
+ * Der eine Verweis, der hierhergehört, führt hinaus — zur Fassung ohne Konto.
  */
 export function PublicShell() {
   return (
-    <div className="app">
-      <a className="skip-link" href="#inhalt">
-        Zum Inhalt springen
-      </a>
-
-      <header className="app-header">
-        <div className="app-header__inner">
-          <Link className="brand" to="/" aria-label="LexiFlow – Startseite">
-            <Logo tone="on-dark" size={28} />
-          </Link>
-        </div>
-      </header>
-
-      <div className="app-body">
-        <div className="app-work">
-          <main className="app-main" id="inhalt" tabIndex={-1}>
-            <Outlet />
-          </main>
-
-          <footer className="app-footer">
-            <div className="app-footer__inner">
-              <p style={{ margin: 0 }}>
-                Freiwillige Lernhilfe. Lehrkräfte sehen keine individuellen Lernstände.
-              </p>
-              <p style={{ margin: 0 }}>
-                <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> läuft
-                vollständig im Browser – ohne Anmeldung und ohne Server.
-              </p>
-              <Copyright />
-            </div>
-          </footer>
-        </div>
-      </div>
-    </div>
+    <Huelle
+      zieleSchreibtisch={[]}
+      zieleTelefon={[]}
+      marke={<Marke />}
+      markePfad="/"
+      fusszeile={
+        <>
+          <p style={{ margin: 0 }}>
+            Freiwillige Lernhilfe. Lehrkräfte sehen keine individuellen Lernstände.
+          </p>
+          <p style={{ margin: 0 }}>
+            <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> läuft
+            vollständig im Browser – ohne Anmeldung und ohne Server.
+          </p>
+          <p style={{ margin: 0 }}>
+            <Link to="/datenschutz">Datenschutz</Link>
+          </p>
+          <Copyright />
+        </>
+      }
+    >
+      <Outlet />
+    </Huelle>
   );
 }
+

@@ -476,8 +476,26 @@ describe('ein unbekanntes Ziel ist kein geplantes Ziel', () => {
   });
 });
 
-describe('5B.2a ist additiv', () => {
-  it('keine Hülle benutzt die Definition bisher', async () => {
+describe('seit 5B.2d benutzt der Adapter die Definition', () => {
+  it('PortalShell leitet seine Navigation daraus ab', async () => {
+    const { readFileSync: lies } = await import('node:fs');
+    const { resolve: pfad } = await import('node:path');
+    const quelle = lies(pfad(import.meta.dirname, 'PortalShell.tsx'), 'utf8');
+    expect(quelle).toMatch(/from '\.\/navigationsziele'/);
+    /*
+      Und keine zweite, handgeschriebene Liste daneben: Genau die hat E23
+      schon einmal auseinanderlaufen lassen.
+    */
+    const ohneKommentare = quelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+    for (const alt of ['LERN_NAV', 'LEHR_NAV', 'NavPunkt', 'VERWALTUNG']) {
+      expect(ohneKommentare, `${alt} ist eine zweite Navigationsliste`).not.toContain(alt);
+    }
+    expect(ohneKommentare, 'die Verwaltung steht wieder in der Navigation').not.toContain(
+      '/verwaltung',
+    );
+  });
+
+  it('die portablen Hüllen benutzen sie weiterhin nicht', async () => {
     /*
       Die Umschaltung ist 5B.2d. Bis dahin liegen Matrix und Zustand bereit
       und ändern an keinem Bildschirm etwas — nachgewiesen am Import, nicht
@@ -490,7 +508,7 @@ describe('5B.2a ist additiv', () => {
     const { resolve } = await import('node:path');
     const wurzel = resolve(import.meta.dirname, '..');
 
-    for (const datei of ['hosted/PortalShell.tsx', 'ui/AppShell.tsx', 'portable/StudentShell.tsx']) {
+    for (const datei of ['ui/AppShell.tsx', 'portable/StudentShell.tsx']) {
       const quelle = readFileSync(resolve(wurzel, datei), 'utf8');
       expect(quelle, `${datei} benutzt die neue Navigationsdefinition schon`).not.toMatch(
         /from '[^']*navigations?(ziele)?'/,

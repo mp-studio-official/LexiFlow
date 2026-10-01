@@ -96,8 +96,8 @@ function zeichnungen() {
 }
 
 const ZEICHEN = zeichnungen();
-if (ZEICHEN.size !== 9) {
-  console.error('Es wurden %d Zeichen gelesen, erwartet sind 9 — die Quelle hat sich geändert.', ZEICHEN.size);
+if (ZEICHEN.size !== 11) {
+  console.error('Es wurden %d Zeichen gelesen, erwartet sind 11 — die Quelle hat sich geändert.', ZEICHEN.size);
   process.exit(1);
 }
 

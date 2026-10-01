@@ -224,16 +224,29 @@ export function Huelle({
       </a>
 
       {/* ------------------------------------------- Schreibtisch: Leiste */}
+      {/*
+        Ganz ohne Ziele und Fußeinträge bleibt die Leiste weg. Eine leere
+        76-px-Spalte neben der Anmeldeseite wäre ein Rand ohne Inhalt.
+      */}
+      {zieleSchreibtisch.length > 0 || fussZiele.length > 0 || fussAktionen.length > 0 ? (
       <div className="huelle-leiste glas" data-groesse="schreibtisch">
         <a className="huelle-leiste__marke" href={markePfad} aria-label="LexiFlow – Startseite">
           {marke}
         </a>
 
-        <nav className="huelle-leiste__nav" aria-label="Hauptnavigation">
-          {zieleSchreibtisch.map((ziel) => (
-            <Eintrag key={ziel.pfad} ziel={ziel} aktiv={aktivAufLeiste(ziel.pfad)} art="leiste" />
-          ))}
-        </nav>
+        {/*
+          Ohne Ziele keine Navigation. Ein leeres `<nav aria-label=
+          "Hauptnavigation">` steht im Accessibility-Baum und verspricht eine
+          Navigation, die es nicht gibt — vor der Anmeldung gibt es nichts zu
+          navigieren.
+        */}
+        {zieleSchreibtisch.length > 0 ? (
+          <nav className="huelle-leiste__nav" aria-label="Hauptnavigation">
+            {zieleSchreibtisch.map((ziel) => (
+              <Eintrag key={ziel.pfad} ziel={ziel} aktiv={aktivAufLeiste(ziel.pfad)} art="leiste" />
+            ))}
+          </nav>
+        ) : null}
 
         {fussZiele.length > 0 || fussAktionen.length > 0 ? (
           <div className="huelle-leiste__fuss">
@@ -246,6 +259,7 @@ export function Huelle({
           </div>
         ) : null}
       </div>
+      ) : null}
 
       <div className="huelle__arbeit">
         {/*
@@ -268,11 +282,13 @@ export function Huelle({
       </div>
 
       {/* ------------------------------------------------ Telefon: unten */}
-      <nav className="huelle-unten glas" aria-label="Hauptnavigation" data-groesse="telefon">
-        {zieleTelefon.map((ziel) => (
-          <Eintrag key={ziel.pfad} ziel={ziel} aktiv={aktivUnten(ziel.pfad)} art="unten" />
-        ))}
-      </nav>
+      {zieleTelefon.length > 0 ? (
+        <nav className="huelle-unten glas" aria-label="Hauptnavigation" data-groesse="telefon">
+          {zieleTelefon.map((ziel) => (
+            <Eintrag key={ziel.pfad} ziel={ziel} aktiv={aktivUnten(ziel.pfad)} art="unten" />
+          ))}
+        </nav>
+      ) : null}
     </div>
   );
 }
