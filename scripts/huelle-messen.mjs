@@ -54,7 +54,14 @@ export const markup = renderToStaticMarkup(
   h(Huelle, {
     zieleSchreibtisch: schreibtisch,
     zieleTelefon: telefon,
-    aktiverPfad: '#/kurse',
+    /*
+      Zwei verschiedene Aktivwerte: Am Schreibtisch ist der KI-Zugang aktiv,
+      auf dem Telefon die Einstellungen - dort gibt es das KI-Ziel nicht. So
+      misst der Lauf auch, dass die verborgene Navigation trotz eigenem
+      Aktivwert aus dem Baum bleibt.
+    */
+    aktiverPfadSchreibtisch: '#/ki',
+    aktiverPfadTelefon: '#/einstellungen',
     marke: h('span', null, 'LF'),
     markePfad: '#/',
     kopfAktionen: h('button', { type: 'button' }, 'Als Lernende ansehen'),
@@ -201,6 +208,32 @@ for (const breite of BREITEN) {
     (el) => el.querySelectorAll('[aria-current="page"]').length,
   );
   if (aktive !== 1) melde(`${breite} px: ${aktive} aktive Einträge in der sichtbaren Navigation`);
+
+  /*
+    Und die verborgene Navigation trägt zwar einen eigenen Aktivwert, ist aber
+    trotzdem nicht erreichbar. Das ist der Fall, den zwei getrennte Werte erst
+    schaffen: Vorher stand links wie unten dasselbe, jetzt steht dort
+    Verschiedenes — und beides darf nicht gleichzeitig vorgelesen werden.
+  */
+  const aktivVersteckt = await versteckte.evaluate((el) => ({
+    markiert: el.querySelectorAll('[aria-current="page"]').length,
+    sichtbar: getComputedStyle(el).display !== 'none',
+  }));
+  if (aktivVersteckt.sichtbar) {
+    melde(`${breite} px: die verborgene Navigation ist sichtbar, obwohl sie es nicht sein darf`);
+  }
+
+  /* Das aktive Ziel der sichtbaren Navigation — gemeldet, nicht geraten. */
+  const aktivesZiel = await (amSchreibtisch ? leiste : unten).evaluate(
+    (el) => el.querySelector('[aria-current="page"]')?.getAttribute('aria-label') ?? '—',
+  );
+  console.log(
+    '  %d px  sichtbar: %s · aktiv: %s · verborgen trägt %d Markierung(en), nicht im Baum',
+    breite,
+    amSchreibtisch ? 'Icon-Leiste' : 'untere Leiste',
+    aktivesZiel,
+    aktivVersteckt.markiert,
+  );
 
   if (amSchreibtisch) {
     /* ---------------------------- Breite vor, während und nach Tooltip */

@@ -92,12 +92,25 @@ export interface HuelleProps {
   /** Die Ziele der unteren Leiste. Ebenfalls bereits gefiltert. */
   readonly zieleTelefon: readonly Navigationsziel[];
   /**
-   * Der Pfad des aktiven Ziels, oder `undefined`.
+   * Das aktive Ziel der Icon-Leiste, oder `undefined`.
    *
-   * Von außen bestimmt: Ob `/kurse/7b` noch „Kurse" ist, weiß der Router und
-   * nicht die Hülle.
+   * ## Warum zwei Werte und nicht einer
+   *
+   * Weil derselbe Ort je nach Größe zu **verschiedenen** Zielen gehört. Auf
+   * `/ki` ist am Schreibtisch „KI-Zugang" aktiv — dort ist es ein eigenes
+   * Ziel. Auf dem Telefon gibt es dieses Ziel nicht; der KI-Zugang liegt dort
+   * innerhalb der Einstellungen, also ist „Einstellungen" aktiv.
+   *
+   * Mit einem gemeinsamen Wert wäre auf dem Telefon **gar nichts** markiert:
+   * `#/ki` kommt in der unteren Leiste nicht vor. Eine Navigation ohne
+   * Markierung sagt „du bist nirgends".
+   *
+   * Beide Werte kommen von außen. Die Zuordnung ist Routing- und
+   * Rollenwissen; die Hülle vergleicht nur Zeichenketten.
    */
-  readonly aktiverPfad?: string;
+  readonly aktiverPfadSchreibtisch?: string;
+  /** Das aktive Ziel der unteren Leiste. Siehe oben — oft ein anderes. */
+  readonly aktiverPfadTelefon?: string;
   /** Die Marke oben in der Leiste und im Telefonkopf. */
   readonly marke: ReactNode;
   /** Wohin die Marke führt. */
@@ -186,7 +199,8 @@ function Aktion({ aktion }: { aktion: Huellenaktion }) {
 export function Huelle({
   zieleSchreibtisch,
   zieleTelefon,
-  aktiverPfad,
+  aktiverPfadSchreibtisch,
+  aktiverPfadTelefon,
   marke,
   markePfad,
   kopfAktionen,
@@ -195,7 +209,13 @@ export function Huelle({
   fusszeile,
   children,
 }: HuelleProps) {
-  const istAktiv = (pfad: string): boolean => pfad === aktiverPfad;
+  /*
+    Zwei getrennte Vergleiche. Ein gemeinsamer wäre kürzer und falsch: Er
+    müsste raten, welche Größe gerade gemeint ist — und die Hülle rendert
+    beide gleichzeitig.
+  */
+  const aktivAufLeiste = (pfad: string): boolean => pfad === aktiverPfadSchreibtisch;
+  const aktivUnten = (pfad: string): boolean => pfad === aktiverPfadTelefon;
 
   return (
     <div className="huelle">
@@ -211,14 +231,14 @@ export function Huelle({
 
         <nav className="huelle-leiste__nav" aria-label="Hauptnavigation">
           {zieleSchreibtisch.map((ziel) => (
-            <Eintrag key={ziel.pfad} ziel={ziel} aktiv={istAktiv(ziel.pfad)} art="leiste" />
+            <Eintrag key={ziel.pfad} ziel={ziel} aktiv={aktivAufLeiste(ziel.pfad)} art="leiste" />
           ))}
         </nav>
 
         {fussZiele.length > 0 || fussAktionen.length > 0 ? (
           <div className="huelle-leiste__fuss">
             {fussZiele.map((ziel) => (
-              <Eintrag key={ziel.pfad} ziel={ziel} aktiv={istAktiv(ziel.pfad)} art="leiste" />
+              <Eintrag key={ziel.pfad} ziel={ziel} aktiv={aktivAufLeiste(ziel.pfad)} art="leiste" />
             ))}
             {fussAktionen.map((aktion) => (
               <Aktion key={aktion.label} aktion={aktion} />
@@ -250,7 +270,7 @@ export function Huelle({
       {/* ------------------------------------------------ Telefon: unten */}
       <nav className="huelle-unten glas" aria-label="Hauptnavigation" data-groesse="telefon">
         {zieleTelefon.map((ziel) => (
-          <Eintrag key={ziel.pfad} ziel={ziel} aktiv={istAktiv(ziel.pfad)} art="unten" />
+          <Eintrag key={ziel.pfad} ziel={ziel} aktiv={aktivUnten(ziel.pfad)} art="unten" />
         ))}
       </nav>
     </div>

@@ -90,7 +90,7 @@ describe('die Hülle zeigt, was ihr übergeben wird — und nichts sonst', () =>
 
 describe('der aktive Eintrag', () => {
   it('trägt in jeder Navigation genau ein `aria-current`', () => {
-    zeige({ aktiverPfad: '#/kurse' });
+    zeige({ aktiverPfadSchreibtisch: '#/kurse', aktiverPfadTelefon: '#/kurse' });
     for (const nav of screen.getAllByRole('navigation', { name: 'Hauptnavigation' })) {
       expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
     }
@@ -98,7 +98,7 @@ describe('der aktive Eintrag', () => {
 
   it('trägt keines, wenn kein übergebenes Ziel aktiv ist', () => {
     // Etwa auf einer Unterseite, die zu keinem Navigationsziel gehört.
-    zeige({ aktiverPfad: '#/einstellungen' });
+    zeige({ aktiverPfadSchreibtisch: '#/einstellungen', aktiverPfadTelefon: '#/einstellungen' });
     for (const nav of screen.getAllByRole('navigation', { name: 'Hauptnavigation' })) {
       expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(0);
     }
@@ -115,7 +115,10 @@ describe('der aktive Eintrag', () => {
       über seine Maße: Eine Breite, die sich ändert, wäre eine
       Layoutänderung.
     */
-    const { container } = zeige({ aktiverPfad: '#/kurse' });
+    const { container } = zeige({
+      aktiverPfadSchreibtisch: '#/kurse',
+      aktiverPfadTelefon: '#/kurse',
+    });
     const aktiv = container.querySelectorAll('[data-aktiv="ja"]');
     expect(aktiv.length).toBe(2);
     for (const eintrag of aktiv) {
@@ -125,6 +128,80 @@ describe('der aktive Eintrag', () => {
     expect(container.querySelectorAll('[class*="__marker"]').length).toBe(
       SCHREIBTISCH.length + TELEFON.length,
     );
+  });
+});
+
+describe('derselbe Ort, zwei Ziele', () => {
+  /*
+    Der Fall, für den es zwei Aktivwerte gibt: Auf `/ki` ist am Schreibtisch
+    „KI-Zugang" aktiv, auf dem Telefon „Einstellungen" — dort gibt es das Ziel
+    `#/ki` nicht. Mit einem gemeinsamen Wert wäre unten **gar nichts**
+    markiert, und eine Navigation ohne Markierung sagt „du bist nirgends".
+  */
+  const LEHRKRAFT_LEISTE: Navigationsziel[] = [
+    { pfad: '#/kurse', label: 'Kurse', zeichen: 'kurse' },
+    { pfad: '#/pakete', label: 'Lernpakete', zeichen: 'pakete' },
+    { pfad: '#/ki', label: 'KI-Zugang', zeichen: 'ki' },
+    { pfad: '#/einstellungen', label: 'Einstellungen', zeichen: 'einstellungen' },
+  ];
+  const LEHRKRAFT_UNTEN = LEHRKRAFT_LEISTE.filter((ziel) => ziel.pfad !== '#/ki');
+
+  function beide(schreibtisch: string, telefon: string) {
+    return render(
+      <Huelle
+        zieleSchreibtisch={LEHRKRAFT_LEISTE}
+        zieleTelefon={LEHRKRAFT_UNTEN}
+        aktiverPfadSchreibtisch={schreibtisch}
+        aktiverPfadTelefon={telefon}
+        marke={<span>LexiFlow</span>}
+        markePfad="#/"
+      >
+        <h1>Inhalt</h1>
+      </Huelle>,
+    );
+  }
+
+  /** Das Ziel mit `aria-current` in der Navigation an dieser Stelle. */
+  function aktivesZiel(stelle: 0 | 1): string | null {
+    const nav = screen.getAllByRole('navigation', { name: 'Hauptnavigation' })[stelle];
+    const aktiv = nav?.querySelector('[aria-current="page"]');
+    return aktiv?.getAttribute('aria-label') ?? null;
+  }
+
+  it('`/ki`: am Schreibtisch KI-Zugang, auf dem Telefon Einstellungen', () => {
+    beide('#/ki', '#/einstellungen');
+    expect(aktivesZiel(0)).toBe('KI-Zugang');
+    expect(aktivesZiel(1)).toBe('Einstellungen');
+  });
+
+  it('`/verwaltung`: auf beiden Größen Einstellungen', () => {
+    /*
+      `#/verwaltung` ist kein Navigationsziel (E23). Aktiv ist der Ort, über
+      den man hinkommt — die Einstellungen.
+    */
+    beide('#/einstellungen', '#/einstellungen');
+    expect(aktivesZiel(0)).toBe('Einstellungen');
+    expect(aktivesZiel(1)).toBe('Einstellungen');
+  });
+
+  it('`/material` und `/pakete`: auf beiden Größen Lernpakete', () => {
+    beide('#/pakete', '#/pakete');
+    expect(aktivesZiel(0)).toBe('Lernpakete');
+    expect(aktivesZiel(1)).toBe('Lernpakete');
+  });
+
+  it('je Navigation genau eines — auch wenn die Werte verschieden sind', () => {
+    beide('#/ki', '#/einstellungen');
+    for (const nav of screen.getAllByRole('navigation', { name: 'Hauptnavigation' })) {
+      expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    }
+  });
+
+  it('ein Wert, den die jeweilige Größe nicht kennt, markiert dort nichts', () => {
+    // Statt irgendetwas zu markieren: `#/ki` gibt es unten nicht.
+    beide('#/ki', '#/ki');
+    expect(aktivesZiel(0)).toBe('KI-Zugang');
+    expect(aktivesZiel(1)).toBeNull();
   });
 });
 
@@ -195,7 +272,7 @@ describe('eine Handlung ist kein Navigationsziel', () => {
       Auch dann nicht, wenn die Adresse zufällig so hieße: Die Hülle vergibt
       `aria-current` ausschließlich an Navigationsziele.
     */
-    zeige({ aktiverPfad: 'Abmelden', fussAktionen: [abmelden()] });
+    zeige({ aktiverPfadSchreibtisch: 'Abmelden', aktiverPfadTelefon: 'Abmelden', fussAktionen: [abmelden()] });
     expect(screen.getByRole('button', { name: 'Abmelden' })).not.toHaveAttribute('aria-current');
   });
 
