@@ -249,6 +249,83 @@ for (const datei of readdirSync(HIER).filter((d) => d.endsWith('.html'))) {
   }
 }
 
+/* ------------------------------ 5b. Die Verwaltung ist kein Navigationsziel */
+
+/*
+  `#/verwaltung` ist die Fläche für Konten und Rollen und liegt hinter
+  `RequireArea area="admin"`. `#/einstellungen` ist für jede Lehrkraft da.
+  Beides gleichzusetzen — wie die erste Fassung von E23 — erzeugt eine von
+  zwei Schäden: ein Navigationsziel, das die Mehrheit der Lehrkräfte nicht
+  öffnen darf, oder eine Autorisierung, die man dafür aufweicht.
+
+  Geprüft wird deshalb beides:
+
+    1. `#/verwaltung` steht in **keiner** Navigation — nicht in der
+       Icon-Leiste, nicht in der unteren Leiste, in keiner Rolle.
+    2. Wo sie überhaupt vorkommt, liegt sie **innerhalb** eines Bereichs, der
+       als Einstellungen ausgewiesen ist (`data-bereich="einstellungen"`).
+
+  Die zweite Regel wäre für sich genommen leicht zu bestehen, indem der
+  Einstieg ganz verschwindet. Deshalb steht darunter die Forderung, dass es
+  ihn gibt: Sonst prüfte diese Datei, dass eine Funktion fehlt.
+*/
+{
+  let inNavigation = 0;
+  let ausserhalbEinstellungen = 0;
+  let gefunden = 0;
+
+  for (const datei of readdirSync(HIER).filter((d) => d.endsWith('.html'))) {
+    const html = readFileSync(resolve(HIER, datei), 'utf8');
+
+    for (const [klasse, groesse] of [['rail__nav', 'Icon-Leiste'], ['unten', 'untere Leiste']]) {
+      for (const ist of navigationen(html, klasse)) {
+        if (ist.includes('#/verwaltung')) {
+          inNavigation += 1;
+          befunde.push(`${datei}: #/verwaltung steht in der ${groesse} — sie ist kein Navigationsziel`);
+        }
+      }
+    }
+
+    /*
+      Die Einstellungsbereiche des Blattes, ausgeschnitten. Gesucht wird das
+      zugehörige schließende Tag über einen Tiefenzähler — ein `[\s\S]*?</div>`
+      endete am ersten inneren `</div>` und hielte den halben Bereich für
+      „außerhalb".
+    */
+    const bereiche = [];
+    const start = /<div[^>]*data-bereich="einstellungen"[^>]*>/g;
+    let anfang;
+    while ((anfang = start.exec(html)) !== null) {
+      let tiefe = 1;
+      const tags = /<(\/?)div\b[^>]*>/g;
+      tags.lastIndex = anfang.index + anfang[0].length;
+      let tag;
+      while (tiefe > 0 && (tag = tags.exec(html)) !== null) {
+        tiefe += tag[1] === '/' ? -1 : 1;
+      }
+      bereiche.push([anfang.index, tiefe === 0 ? tags.lastIndex : html.length]);
+    }
+
+    for (const treffer of html.matchAll(/href="#\/verwaltung"/g)) {
+      gefunden += 1;
+      const drin = bereiche.some(([von, bis]) => treffer.index > von && treffer.index < bis);
+      if (!drin) {
+        ausserhalbEinstellungen += 1;
+        befunde.push(`${datei}: Verweis auf #/verwaltung außerhalb der Einstellungen`);
+      }
+    }
+  }
+
+  if (gefunden === 0) {
+    befunde.push(
+      'Kein Blatt zeigt den Verwaltungseinstieg — die Regel „nur innerhalb der Einstellungen" ' +
+        'wäre damit ungeprüft, nicht erfüllt',
+    );
+  }
+  void inNavigation;
+  void ausserhalbEinstellungen;
+}
+
 /*
   Gegenprobe zur Gegenprobe: Hätte kein Blatt eine der beiden Navigationen,
   wäre alles oben still durchgelaufen. Beide Sorten müssen vorkommen, und für
@@ -584,7 +661,7 @@ if (befunde.length) {
 console.log(
   'Variante B bestanden: %d Blätter, kein Überlauf, kein Tippziel unter 44 px, ' +
     'Glas nur an erlaubten Stellen mit deckendem Rückfall, Kontraste gerechnet, ' +
-    'Bedienkonturen über 3 : 1, ' +
+    'Bedienkonturen über 3 : 1, Verwaltung nur innerhalb der Einstellungen, ' +
     'Navigation deckungsgleich mit E23 (Lehrkraft 5 / 4, Lernende 4 / 4).',
   blaetter.length,
 );

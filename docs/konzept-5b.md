@@ -302,7 +302,7 @@ dieselbe, weil der Platz es nicht ist.
 | **Kurse** | Lerngruppen, Einladungscodes, Archivierung |
 | **Lernpakete** | erstellen, bearbeiten, veröffentlichen, exportieren |
 | **KI-Zugang** | Schlüssel, Anbieter, Kontingent — eigenes Ziel, weil daneben Platz ist |
-| **Verwaltung** | Konto, Daten, Export, Einstellungen |
+| **Einstellungen** | Konto, Daten, Export, KI-Zugang — und für Admins der Einstieg zur Verwaltung |
 
 **Telefon — vier Ziele in der unteren Navigation:**
 
@@ -311,13 +311,21 @@ dieselbe, weil der Platz es nicht ist.
 | **Start** | wie am Schreibtisch |
 | **Kurse** | wie am Schreibtisch |
 | **Lernpakete** | wie am Schreibtisch |
-| **Einstellungen** | dieselbe Verwaltungsfläche, hier beschriftet als „Einstellungen" — **einschließlich KI-Zugang** |
+| **Einstellungen** | dieselbe Fläche wie am Schreibtisch — **einschließlich KI-Zugang** |
 
 Auf dem Telefon ist KI-Zugang also **innerhalb** von Einstellungen erreichbar,
 nicht als eigenes Navigationsziel. Das ist eine bewusste responsive
 Verdichtung und **keine** unterschiedliche Berechtigung und keine
 unterschiedliche Funktion: Eine Lehrkraft kann auf dem Telefon genau das, was
 sie am Schreibtisch kann; nur der Weg dorthin ist einen Schritt länger.
+
+**Die Verwaltung ist kein Navigationsziel.** `#/verwaltung` — Konten und
+Rollen — bleibt, was sie ist: eine Fläche hinter `RequireArea area="admin"`.
+Sie steht in keiner der beiden Listen oben, weder am Schreibtisch noch auf
+dem Telefon, und auch nicht „nur für Admins eingeblendet". Wer Admin ist,
+findet den Einstieg **innerhalb** der Einstellungen. Der Unterschied ist
+nicht kosmetisch: Ein Navigationsziel, das die Mehrheit einer Rolle nicht
+öffnen darf, ist entweder tot oder ein Loch in der Autorisierung.
 
 Der Lernbereich ist für Lehrkräfte kein Navigationsziel, sondern eine
 Vorschau: „Als Lernende ansehen" steht im Kopfbereich, nicht in der
@@ -773,8 +781,12 @@ Messbar heißt: eine Prüfung kann es entscheiden, nicht ein Eindruck.
 ### Lehrkraftbereich
 
 - [ ] Am Schreibtisch **fünf** Navigationsziele: Start · Kurse · Lernpakete ·
-      KI-Zugang · Verwaltung.
+      KI-Zugang · Einstellungen.
 - [ ] Auf dem Telefon **vier**: Start · Kurse · Lernpakete · Einstellungen.
+- [ ] `#/verwaltung` steht in **keiner** Navigation — in keiner Rolle und auf
+      keiner Größe. Der Einstieg für Admins liegt innerhalb der Einstellungen.
+- [ ] Eine Lehrkraft ohne Adminrolle bekommt kein Navigationsziel, das sie
+      nicht öffnen darf.
 - [ ] KI-Zugang ist auf dem Telefon innerhalb von Einstellungen erreichbar —
       geprüft als Weg, nicht als Behauptung.
 - [ ] Keine Funktion und keine Berechtigung hängt an der Bildschirmbreite: Was
@@ -1079,23 +1091,37 @@ Zahl je Rolle. Verbindlich:
 
 | Rolle | Größe | Ziele |
 | --- | --- | --- |
-| Lehrkraft | Schreibtisch | `#/start` · `#/kurse` · `#/pakete` · `#/ki` · `#/verwaltung` |
-| Lehrkraft | Telefon | `#/start` · `#/kurse` · `#/pakete` · `#/verwaltung` |
+| Lehrkraft | Schreibtisch | `#/start` · `#/kurse` · `#/pakete` · `#/ki` · `#/einstellungen` |
+| Lehrkraft | Telefon | `#/start` · `#/kurse` · `#/pakete` · `#/einstellungen` |
 | Lernende | Schreibtisch | `#/heute` · `#/lernen` · `#/ueben` · `#/fortschritt` |
 | Lernende | Telefon | `#/heute` · `#/lernen` · `#/ueben` · `#/fortschritt` |
 
 <!-- navigation:ende -->
 
-Beschriftet sind sie: Start · Kurse · Lernpakete · KI-Zugang · Verwaltung
-(Lehrkraft, Schreibtisch), Start · Kurse · Lernpakete · **Einstellungen**
+Beschriftet sind sie: Start · Kurse · Lernpakete · KI-Zugang · Einstellungen
+(Lehrkraft, Schreibtisch), Start · Kurse · Lernpakete · Einstellungen
 (Lehrkraft, Telefon), Heute · Lernen · Üben · Mein Fortschritt (Lernende,
 beide Größen).
 
 Zwei Dinge daran sind leicht misszuverstehen und deshalb ausdrücklich gesagt:
 
-1. **`#/verwaltung` ist auf dem Telefon dasselbe Ziel wie am Schreibtisch**,
-   nur anders beschriftet — und es enthält dort zusätzlich den KI-Zugang. Es
-   gibt keine zweite Verwaltungsfläche und keinen zweiten KI-Bereich.
+1. **`#/einstellungen` ist auf beiden Größen dasselbe Ziel und für jede
+   Lehrkraft zugänglich.** Auf dem Telefon liegt dort zusätzlich der
+   KI-Zugang; es gibt keinen zweiten KI-Bereich.
+
+   **`#/einstellungen` ist nicht `#/verwaltung`.** Die Verwaltung ist die
+   bestehende Fläche für Konten und Rollen, geschützt durch
+   `RequireArea area="admin"` in `src/hosted/HostedApp.tsx`. Sie gehört
+   **nicht** zur Rollennavigation: Eine normale Lehrkraft sieht sie nicht und
+   darf sie nicht öffnen. Wer Admin ist, findet **innerhalb** der
+   Einstellungen einen Einstieg dorthin — ein Weg, kein Navigationsziel.
+
+   Diese Unterscheidung ist am 01.10.2026 nachgetragen worden. Die erste
+   Fassung von E23 setzte „Verwaltung" und „Einstellungen" gleich. Das hätte
+   zwei Fehler auf einmal erzeugt: tote Navigation für jede Lehrkraft ohne
+   Adminrolle — oder, wenn man sie hätte funktionieren lassen wollen, eine
+   aufgeweichte Autorisierung. Ein Navigationsziel, das für die Hälfte seiner
+   Rolle ins Leere führt, ist kein Entwurfsdetail.
 2. **Es ist eine Verdichtung, keine Beschneidung.** Rolle, Berechtigung und
    Funktionsumfang sind auf beiden Größen identisch. Wer das Gegenteil aus
    „vier statt fünf" liest, liest einen Fehler hinein, den es nicht gibt.
