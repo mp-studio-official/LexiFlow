@@ -17,6 +17,7 @@
     <p><strong>Die Regel, um die es geht:</strong> Glas ist eine Aussage über Schweben, nicht über Schönheit. Es gehört auf schwebende Navigation, Filter, sekundäre Schaltflächen, kleine Statusflächen und Dialoge — und unter keinen Umständen unter lange Formulare, Tabellen, den Grammatikeditor, Fehlermeldungen oder längere Lesetexte.</p>
     <p><strong>Jede Glasfläche hat einen deckenden Rückfall.</strong> Ohne <code>backdrop-filter</code> ist durchscheinendes Weiß über einem Pastellverlauf nicht etwas weniger schön, sondern unlesbar. Der Rückfall steht in <code>@supports not</code> und lässt sich in den Entwicklerwerkzeugen prüfen, indem man den Filter abschaltet.</p>
     <p><strong>Kontrast ist gerechnet, nicht geschätzt.</strong> Tinte auf Grund 17,3 : 1, Tinte 2 auf Grund 7,9 : 1, Tinte 3 auf Grund 4,7 : 1, Weiß auf Tinte 18,6 : 1. Die vier Zustandsfarben liegen zwischen 5,5 : 1 und 6,6 : 1 auf ihrer weichen Fläche. Die Aurorafarben tragen nie Text — Tinte darauf käme zwar auf 10 : 1 und mehr, aber der Wert schwankt über den Verlauf hinweg, und ein Kontrast, der von der Stelle abhängt, ist keiner.</p>
+    <p><strong>Konturen sind etwas anderes als Text.</strong> Für die Kontur eines Bedienelements verlangt WCAG 1.4.11 drei statt viereinhalb zu eins — aber sie verlangt es. Die erste Fassung dieser Tafel führte <code>--rand-stark</code> für Eingabefelder; das sind 1,65 : 1 gegen Weiß und damit kein erkennbarer Feldrand. Eingabefelder, Auswahl und Textbereiche tragen deshalb <code>--rand-bedienung</code> mit 3,67 : 1. <code>--rand</code> und <code>--rand-stark</code> bleiben, was sie sind: Trennlinien und Kartenkanten, die wegfallen dürfen, ohne dass jemand die Seite nicht mehr versteht.</p>
   </div>
 
   <h2 class="abschnitt__titel" style="margin-bottom:var(--stack-normal)">Farbtoken</h2>
@@ -61,7 +62,12 @@
   <div class="farbe">
     <span class="farbe__klecks" style="background:#c5c9d8"></span>
     <span><strong>Rand stark</strong><br><code>--rand-stark</code> · #c5c9d8<br>
-      <span style="color:var(--tinte-2)">Eingabefelder, sekundäre Knöpfe.</span></span>
+      <span style="color:var(--tinte-2)">Trennlinien, Kartenkanten, gestrichelte Rahmen. 1,65 : 1 — bewusst dekorativ und <strong>nicht</strong> für Konturen, die eine Bedienung begrenzen.</span></span>
+  </div>
+  <div class="farbe">
+    <span class="farbe__klecks" style="background:#7f8599"></span>
+    <span><strong>Rand Bedienung</strong><br><code>--rand-bedienung</code> · #7f8599<br>
+      <span style="color:var(--tinte-2)">Eingabefelder, Auswahl, Textbereiche. 3,67 : 1 auf Fläche, 3,43 : 1 auf Grund, 3,20 : 1 auf tiefem Grund.</span></span>
   </div>
     </div>
     <div class="tafel__feld">

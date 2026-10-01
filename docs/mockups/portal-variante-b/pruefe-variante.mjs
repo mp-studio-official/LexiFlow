@@ -88,10 +88,45 @@ const PAARE = [
   ['Warnung auf warn-weich', '--warn', '--warn-weich', 4.5],
   ['Fehler auf fehler-weich', '--fehler', '--fehler-weich', 4.5],
   ['Akzent auf akzent-weich', '--akzent', '--akzent-weich', 4.5],
+  /*
+    Konturen sind etwas anderes als Text: WCAG 1.4.11 verlangt für die Kontur
+    eines Bedienelements 3 : 1 — aber sie verlangt es. `--rand-stark` erreichte
+    hier 1,65 : 1; das war kein erkennbarer Feldrand, sondern eine Andeutung.
+  */
+  ['Feldrand auf Fläche', '--rand-bedienung', '--flaeche', 3],
+  ['Feldrand auf Grund', '--rand-bedienung', '--grund', 3],
+  ['Feldrand auf tiefem Grund', '--rand-bedienung', '--grund-tief', 3],
 ];
 for (const [name, vorne, hinten, mass] of PAARE) {
   const wert = kontrast(token(vorne), token(hinten));
   if (wert < mass) befunde.push(`Kontrast ${name}: ${wert.toFixed(2)} : 1, nötig ${mass} : 1`);
+}
+
+/* -------------------------------- 4b. Konturen, die eine Bedienung begrenzen */
+
+/*
+  Dass die Farbe hell genug ist, heißt nicht, dass sie auch dort steht.
+
+  Geprüft wird deshalb die Regel selbst: Jede Regel, die ein Eingabefeld, eine
+  Auswahl oder einen Textbereich umrandet, muss `--rand-bedienung` nennen —
+  und `--rand-stark` darf in keiner solchen Regel mehr stehen. Die Zuordnung
+  kommt aus dem Klassennamen, weil sie im Entwurf daher kommt: `.feld__eingabe`
+  ist das Eingabefeld dieser Variante.
+*/
+const BEDIENKONTUREN = ['.feld__eingabe'];
+
+for (const auswahl of BEDIENKONTUREN) {
+  const regel = new RegExp(`\\${auswahl}\\s*\\{([^}]*)\\}`).exec(CSS);
+  if (!regel?.[1]) {
+    befunde.push(`variante.css: ${auswahl} gibt es nicht mehr — prüft die Prüfung noch etwas?`);
+    continue;
+  }
+  if (!/border[^;]*var\(--rand-bedienung\)/.test(regel[1])) {
+    befunde.push(`variante.css: ${auswahl} begrenzt eine Bedienung ohne --rand-bedienung`);
+  }
+  if (/border[^;]*var\(--rand-stark\)/.test(regel[1])) {
+    befunde.push(`variante.css: ${auswahl} trägt --rand-stark — 1,65 : 1, verlangt sind 3 : 1`);
+  }
 }
 
 /* ------------------------------------- 5. Navigation: Dokument gegen Entwurf */
@@ -531,6 +566,7 @@ if (befunde.length) {
 console.log(
   'Variante B bestanden: %d Blätter, kein Überlauf, kein Tippziel unter 44 px, ' +
     'Glas nur an erlaubten Stellen mit deckendem Rückfall, Kontraste gerechnet, ' +
+    'Bedienkonturen über 3 : 1, ' +
     'Navigation deckungsgleich mit E23 (Lehrkraft 5 / 4, Lernende 4 / 4).',
   blaetter.length,
 );

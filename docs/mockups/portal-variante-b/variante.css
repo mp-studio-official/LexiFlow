@@ -64,6 +64,19 @@
   --tinte-invers: #ffffff;
   --rand: #e4e7f0;
   --rand-stark: #c5c9d8;
+  /*
+    Die Kontur, die eine **Bedienung** begrenzt — Eingabefeld, Auswahl,
+    Textbereich.
+
+    Sie steht hier, weil `--rand-stark` dafür zu hell ist: 1,65 : 1 gegen
+    Weiß, verlangt sind 3 : 1 (WCAG 1.4.11, Kontur eines Bedienelements).
+    Eine Trennlinie darf blass sein — fällt sie weg, versteht man die Seite
+    trotzdem. Ein Feld ohne erkennbare Grenze ist dagegen kein Feld.
+
+    3,67 : 1 auf Fläche, 3,43 : 1 auf Grund, 3,20 : 1 auf tiefem Grund.
+    `pruefe-variante.mjs` rechnet das nach.
+  */
+  --rand-bedienung: #7f8599;
 
   /* -------------------------------------------------------------- Aurora */
   /* Pastelle. Sie tragen nie Text — sie sind Fläche, Tiefe und Stimmung. */
@@ -713,7 +726,7 @@ p {
   font-size: var(--text);
   min-height: var(--tap);
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--rand-stark);
+  border: 1px solid var(--rand-bedienung);
   border-radius: var(--r-klein);
   background: var(--flaeche);
   color: var(--tinte);

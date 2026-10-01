@@ -196,12 +196,16 @@ describe('und sie erreichen noch keinen Bildschirm', () => {
  * Also: Wer hier eine Farbe ändert, ohne den Entwurf zu ändern, bekommt es
  * gesagt. Und wer den Entwurf ändert, ohne hier nachzuziehen, auch.
  *
- * ## Was ausdrücklich **nicht** übereinstimmen muss
+ * ## Eine Abweichung, die wieder verschwunden ist
  *
- * `--rand-bedienung` hat im Entwurf keine Entsprechung — der Entwurf setzt
- * dort `--rand-stark` ein, das die 3 : 1 für die Kontur eines Bedienelements
- * nicht erreicht (siehe `contrast.test.ts`). Die Abweichung ist Absicht und
- * steht deshalb hier, nicht in der Abgleichtabelle.
+ * In 5B.1 stand `--rand-bedienung` nur hier: Der Entwurf setzte für
+ * Eingabefelder `--rand-stark` ein, das die 3 : 1 für die Kontur eines
+ * Bedienelements nicht erreicht. Mit dem Nachtrag zu 5B.1 ist der Entwurf
+ * nachgezogen — die Zeile steht jetzt in der Abgleichtabelle wie jede andere.
+ *
+ * Das ist die bessere Lage. Eine begründete Abweichung ist eine Stelle, an
+ * der zwei Fassungen auseinandergehen dürfen; und eine solche Stelle wächst,
+ * weil die nächste Abweichung sich an die erste anlehnen kann.
  */
 const ENTWURF = lies('docs/mockups/portal-variante-b/variante.css');
 
@@ -217,6 +221,7 @@ const E19_ABGLEICH: ReadonlyArray<readonly [string, string]> = [
   ['--tinte-invers', '--tinte-invers'],
   ['--rand', '--rand'],
   ['--rand-stark', '--rand-stark'],
+  ['--rand-bedienung', '--rand-bedienung'],
   ['--aurora-violett', '--aurora-violett'],
   ['--aurora-rosa', '--aurora-rosa'],
   ['--aurora-himmel', '--aurora-himmel'],
@@ -258,14 +263,28 @@ describe('E19 steht in Produktion und Entwurf gleich', () => {
       .map((t) => t[1])
       .filter((name): name is string => typeof name === 'string');
     const abgeglichen = new Set(E19_ABGLEICH.map(([hier]) => hier));
-    const BEGRUENDET_ABWEICHEND = ['--rand-bedienung'];
+    /*
+      Keine begründeten Ausnahmen mehr. Kommt eine dazu, gehört sie in diese
+      Liste **und** in eine Begründung — nicht in eine stillschweigend
+      ausgelassene Zeile der Tabelle oben.
+    */
+    const BEGRUENDET_ABWEICHEND: string[] = [];
     const offen = farben.filter((f) => !abgeglichen.has(f) && !BEGRUENDET_ABWEICHEND.includes(f));
     expect(offen, 'neue Farbe ohne Abgleich gegen den Entwurf').toEqual([]);
     expect(farben.length).toBeGreaterThanOrEqual(22);
   });
 
-  it('--rand-bedienung weicht bewusst ab und ist dunkler als der Entwurfsrand', () => {
-    expect(wert(TOKENS, '--rand-bedienung')).not.toBe(wert(ENTWURF, '--rand-stark'));
+  it('--rand-bedienung ist auch im Entwurf die Feldkontur', () => {
+    /*
+      Nicht nur derselbe Wert, sondern dieselbe Rolle: Der Entwurf muss ihn
+      dort einsetzen, wo er hingehört. Sonst stimmte die Farbe überein, und
+      das Eingabefeld hätte trotzdem 1,65 : 1.
+    */
+    expect(wert(ENTWURF, '--rand-bedienung')).not.toBe(wert(ENTWURF, '--rand-stark'));
+    const feld = /\.feld__eingabe\s*\{([^}]*)\}/.exec(ohneKommentare(ENTWURF));
+    expect(feld?.[1], '.feld__eingabe fehlt im Entwurf').toBeDefined();
+    expect(feld?.[1]).toMatch(/border[^;]*var\(--rand-bedienung\)/);
+    expect(feld?.[1]).not.toMatch(/border[^;]*var\(--rand-stark\)/);
   });
 });
 
