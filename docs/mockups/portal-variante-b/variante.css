@@ -66,7 +66,8 @@
   --rand-stark: #c5c9d8;
   /*
     Die Kontur, die eine **Bedienung** begrenzt — Eingabefeld, Auswahl,
-    Textbereich.
+    Textbereich und der sekundäre Knopf (auch sein deckender Rückfall aus
+    `.btn--glas`). Nicht der primäre: Dort grenzt die Füllung ab.
 
     Sie steht hier, weil `--rand-stark` dafür zu hell ist: 1,65 : 1 gegen
     Weiß, verlangt sind 3 : 1 (WCAG 1.4.11, Kontur eines Bedienelements).
@@ -580,7 +581,13 @@ p {
   cursor: pointer;
   color: var(--tinte);
   background: var(--flaeche);
-  border-color: var(--rand-stark);
+  /*
+    Die Grundausführung ist die sekundäre: weiße Fläche auf fast weißem Grund.
+    Was den Knopf dort abgrenzt, ist allein die Kontur — also trägt sie
+    `--rand-bedienung` und nicht `--rand-stark`. Beim primären Knopf ist das
+    anders: Dort grenzt die Füllung ab, und die Kontur ist nur ihre Kante.
+  */
+  border-color: var(--rand-bedienung);
 }
 /* Primär: deckend und kontrastreich. Hier ist kein Glas. */
 .btn--primaer {
@@ -600,7 +607,9 @@ p {
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .btn--glas {
     background: var(--flaeche);
-    border-color: var(--rand-stark);
+    /* Ohne Unschärfe ist er ein deckender sekundärer Knopf — und braucht
+       dieselbe erkennbare Kontur wie einer. */
+    border-color: var(--rand-bedienung);
   }
 }
 .btn--still {

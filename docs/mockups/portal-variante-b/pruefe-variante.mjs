@@ -113,7 +113,25 @@ for (const [name, vorne, hinten, mass] of PAARE) {
   kommt aus dem Klassennamen, weil sie im Entwurf daher kommt: `.feld__eingabe`
   ist das Eingabefeld dieser Variante.
 */
-const BEDIENKONTUREN = ['.feld__eingabe'];
+const BEDIENKONTUREN = ['.feld__eingabe', '.btn'];
+
+/*
+  Der Rückfall des Glasknopfs zählt mit: Ohne `backdrop-filter` ist er ein
+  deckender sekundärer Knopf, und der braucht dieselbe erkennbare Kontur.
+  Geprüft wird er getrennt, weil er in einem `@supports`-Block steht und die
+  Regelsuche unten nur die oberste Ebene sieht.
+*/
+{
+  const rueckfallBlock = [...CSS.matchAll(/@supports\s+not[^{]*\{([\s\S]*?)\n\}/g)]
+    .map((t) => t[1])
+    .join('\n');
+  const glasknopf = /\.btn--glas\s*\{([^}]*)\}/.exec(rueckfallBlock);
+  if (!glasknopf?.[1]) {
+    befunde.push('variante.css: .btn--glas hat keinen Rückfall — prüft die Prüfung noch etwas?');
+  } else if (!/border-color:\s*var\(--rand-bedienung\)/.test(glasknopf[1])) {
+    befunde.push('variante.css: der Rückfall von .btn--glas begrenzt einen Knopf ohne --rand-bedienung');
+  }
+}
 
 for (const auswahl of BEDIENKONTUREN) {
   const regel = new RegExp(`\\${auswahl}\\s*\\{([^}]*)\\}`).exec(CSS);
