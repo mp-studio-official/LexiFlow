@@ -646,7 +646,7 @@ Bild, das eine Lehrkraft für **eine** Klasse hochgeladen hat.
 | Offline-Export | komprimiert eingebettet |
 
 **Heute existiert dafür nichts** — weder Bucket noch Migration noch Feld. Das
-ist ein eigener Block (Abschnitt 10).
+ist ein eigener Block (siehe `docs/umsetzungsplan-5b.md`).
 
 ### 8.4 Datenmodell für das Cover
 
@@ -699,45 +699,26 @@ Nutzungsbedingungen abgenommen sind.
 | R7 | Safari und Mobil ungeprüft | Fehler erst bei Lernenden | WebKit und vier Breiten in die E2E-Prüfung, **vor** dem ersten 5B-Block |
 | R8 | 5B beginnt vor 5A-Abnahme | zwei bewegliche Teile | 5B beginnt erst nach dem Merge von 5A |
 | R9 | Zeitgesteuerte Veröffentlichung | braucht serverseitige Zeit | Sichtbarkeit aus `freigegeben && publish_at <= now()` in der Zugriffsregel; kein Zustand, der umgeschaltet wird (E8) |
-| **R10** | **Der Portalaufwand wird unterschätzt** | Die Schritte 2 bis 6 existieren im Portal **gar nicht** (1.4). Wer „der Code ist da" mit „das Portal kann das" verwechselt, plant den größten Block von 5B weg. | Abschnitt 1.4 nennt je Schritt die Laufzeit; die Blöcke 5B.11 und 5B.12 tragen den Portalbau ausdrücklich |
+| **R10** | **Der Portalaufwand wird unterschätzt** | Die Schritte 2 bis 6 existieren im Portal **gar nicht** (1.4). Wer „der Code ist da" mit „das Portal kann das" verwechselt, plant den größten Block von 5B weg. | Abschnitt 1.4 nennt je Schritt die Laufzeit; der Umsetzungsplan trägt den Portalbau als eigene Blöcke aus |
 | R11 | Zeitzone der lernenden Person | Serie und Ruhetage sind ohne sie nicht berechenbar; es gibt sie heute nicht | eigener kleiner Schritt in 5B.5, vor der Serienlogik |
 | R12 | Zwei Rollen für Newsreader | editoriale Überschrift und Materialstimme verwischen | zwei Token (`--font-display`, `--font-quote`), im Designsystem benannt und geprüft |
 
 ---
 
-## 10. Umsetzung in getrennt prüfbaren Blöcken
+## 10. Umsetzung — siehe Umsetzungsplan
 
-Jeder Block ist für sich lauffähig, für sich prüfbar und für sich
-zurücknehmbar. Die Reihenfolge ist nicht beliebig: 5B.0 ist die Messlatte für
-alles danach.
+Die Reihenfolge der Blöcke, ihre Abhängigkeiten, ihr Status, die
+Abnahmeschritte und die Commitgrenzen stehen in
+**`docs/umsetzungsplan-5b.md`**.
 
-| Block | Inhalt | hängt ab von |
-| --- | --- | --- |
-| **5B.0** | Prüfbank: WebKit und vier Breiten in Playwright, Tapziel- und Kontrastprüfung auf gerenderte Ansichten ausgedehnt | — |
-| **5B.1** | Token-Ergänzungen und die ersten Bausteine: Seitentitel, Kurskarte, Paketkarte mit Coverfläche, Fortschrittsanzeige, leere Zustände | 5B.0 |
-| **5B.2** | Eine Hülle mit Rollenprofilen; Navigation nach **E23**: Lernende 4 Ziele auf beiden Größen, Lehrkräfte 5 am Schreibtisch und 4 auf dem Telefon, KI-Zugang dort innerhalb von Einstellungen | 5B.1 |
-| **5B.3** | „Heute" | 5B.2 |
-| **5B.4** | „Üben" als Bereich; Karte „Schwierige Wörter"; „Fällige Wiederholungen" als Einstieg | 5B.2 |
-| **5B.5** | „Mein Fortschritt" samt Lernzeit, Lernserie mit Ruhetagen, freiwilligem Wochenziel | 5B.3 |
-| **5B.6** | Schemafassung 3 und Migrationsschritt 2 → 3, ohne Oberfläche | — (parallel möglich) |
-| **5B.7** | Grammatik in der Oberfläche: Eingabe im Paketeditor, Anzeige auf der Lernkarte, Übungsform „Zeitformen" | 5B.6, 5B.4 |
-| **5B.8** | Titelbilder Stufe 1: Bucket, Migration, Upload, Prüfung, Größen, Fokuspunkt, Einbettung im Offline-Export | 5B.1 |
-| **5B.9** | Mobile Sonderfälle: Tabellen als Karten, umschaltbare Werkstattansichten, sticky Aktionsleisten | 5B.2 |
-| **5B.10** | Zeitgesteuerte Veröffentlichung: `publish_at`, Auswertung beim Abruf über die Zugriffsregel, serverseitige Zeit | — |
-| **5B.11** | **Werkstatt im Portal, erste Hälfte:** Einlesen (Schritt 2) und Quelltextauswahl (Schritt 4) unter `/portal/material` | 5B.2 |
-| **5B.12** | **Werkstatt im Portal, zweite Hälfte:** Vorschläge und Prüfschritt (Schritte 3, 5, 6); Export vervollständigen (Schritt 8) | 5B.11 |
-| **5B.13** | Übungsformen im Portal erreichbar machen: Karteikarten, Selbsttest, freies Üben, Vokabelliste | 5B.4 |
+Hier standen sie bis zum 01.10.2026 ebenfalls — und damit zweimal. **E11**
+hat das entschieden: Dieses Dokument bleibt das Produktziel und die
+verbindliche Quelle für die Entscheidungen E1 bis E23; der Umsetzungsplan
+trägt den Weg dorthin und schreibt keine Entscheidung ab, sondern verweist
+auf sie.
 
-**5B.11 bis 5B.13 sind der eigentliche Umfang.** Sie stehen hier unten, weil
-sie von der Hülle abhängen — nicht, weil sie klein wären. Wer 5B plant und
-diese drei Blöcke überliest, plant die Hälfte der Arbeit weg.
-
-> **Zu E11:** Diese Liste soll durch einen Verweis auf den operativen
-> Umsetzungsplan ersetzt werden, sobald dieser im Verzeichnis liegt. Bis
-> dahin ist sie die einzige Blockliste des Projekts — siehe Abschnitt 15,
-> E11.
-
-Nicht Teil von 5B: Unsplash, kleine Spiele, Dunkelmodus.
+Zwei Listen, die dasselbe meinen, laufen auseinander — und zwar still: Beide
+sehen danach weiter richtig aus, nur nicht mehr gleich.
 
 ---
 
@@ -1250,16 +1231,16 @@ Abschnitt 10 wird durch einen Verweis auf den Umsetzungsplan ersetzt.
 Der Grund: Zwei Listen, die dasselbe meinen und auseinanderlaufen, sind
 schlimmer als eine ungenaue.
 
-> **Stand der Umsetzung, 01.10.2026: noch nicht erfolgt — und zwar nicht aus
-> Versäumnis.** Der Umsetzungsplan, auf den E11 verweist, ist nie in dieses
-> Verzeichnis gelangt (`git log` kennt keine solche Datei). Damit gibt es im
-> Projekt **keine** zweite Blockliste; die in Abschnitt 10 ist derzeit die
-> einzige. Sie jetzt durch einen Verweis auf ein Dokument zu ersetzen, das es
-> nicht gibt, hieße die Liste ersatzlos zu streichen.
+> **Erledigt am 01.10.2026.** Der Umsetzungsplan liegt als
+> `docs/umsetzungsplan-5b.md` im Verzeichnis, Abschnitt 10 ist ein Verweis.
 >
-> E11 ist also entschieden und **offen**. Erledigt ist sie in dem Moment, in
-> dem der Umsetzungsplan im Verzeichnis liegt — dann, und nur dann, wird
-> Abschnitt 10 zum Verweis.
+> Die Vorlage vom 29.09.2026, die E11 ursprünglich meinte, ist nie
+> hierhergelangt und wurde **nicht** übernommen: Sie steht an mehreren
+> Stellen gegen das, was seitdem entschieden wurde — bei E12 und E16 sogar
+> gegen die Antwort, die auf ihre eigene Frage gegeben wurde. Ein überholter
+> Plan als „operativer Plan" wäre dasselbe Problem noch einmal, nur mit
+> vertauschten Rollen. Der neue Plan ist auf dem Stand von heute, E19 bis E23
+> eingeschlossen.
 
 ### E12 — Eigenes Lehrkräfte-Dashboard
 
