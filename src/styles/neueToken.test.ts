@@ -252,7 +252,9 @@ describe('E19 steht in Produktion und Entwurf gleich', () => {
       E19-Farbtoken es gibt — jedes muss abgeglichen sein oder begründet nicht.
     */
     const block = TOKENS.slice(TOKENS.indexOf('E19 — die Oberflächenpalette'));
-    const farben = [...block.matchAll(/^\s*(--[a-z0-9-]+):\s*#[0-9a-f]{6};/gim)].map((t) => t[1]);
+    const farben = [...block.matchAll(/^\s*(--[a-z0-9-]+):\s*#[0-9a-f]{6};/gim)]
+      .map((t) => t[1])
+      .filter((name): name is string => typeof name === 'string');
     const abgeglichen = new Set(E19_ABGLEICH.map(([hier]) => hier));
     const BEGRUENDET_ABWEICHEND = ['--rand-bedienung'];
     const offen = farben.filter((f) => !abgeglichen.has(f) && !BEGRUENDET_ABWEICHEND.includes(f));
