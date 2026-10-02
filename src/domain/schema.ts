@@ -1,12 +1,18 @@
 import { z } from 'zod';
 import { CEFR_LEVELS, GRADES } from './cefr';
+import { flexionSchema } from './flexion';
 
 /**
  * Versionierung des Austauschformats `.vocabpack.json`.
  * Wird bei jeder inkompatiblen Änderung erhöht; `migrations.ts` hebt ältere
  * Dateien auf die aktuelle Version an.
+ *
+ * **Fassung 3** (5B.8) bringt die grammatischen Angaben: `occurrence`,
+ * `grammarNote`, `sourceSentence` und `inflection`. Alle vier sind optional,
+ * eine Datei der Fassung 2 ist inhaltlich bereits eine gültige Datei der
+ * Fassung 3.
  */
-export const VOCABPACK_FORMAT_VERSION = 2;
+export const VOCABPACK_FORMAT_VERSION = 3;
 export const VOCABPACK_KIND = 'lexiflow.vocabpack' as const;
 
 export const PART_OF_SPEECH = [
@@ -90,6 +96,37 @@ export const exampleSentenceSchema = z.preprocess(
 );
 export type ExampleSentence = z.infer<typeof exampleSentenceSchema>;
 
+/**
+ * Die Obergrenzen der Fassung-3-Felder — einmal, an einer Stelle, geprüft.
+ *
+ * Verstreute Zahlen in Zod-Aufrufen sind schwer zu überblicken und noch
+ * schwerer zu ändern: Wer eine davon anhebt, übersieht die anderen. Hier
+ * stehen sie zusammen, und `schemafassung3.test.ts` prüft sie zusammen.
+ */
+export const FELDGRENZEN = {
+  /** Die Fundstelle ist eine Wortform, keine Passage. */
+  occurrence: 200,
+  /** Ein Satz Einordnung, nicht ein Absatz Grammatikunterricht. */
+  grammarNote: 400,
+  /** Ein Satz aus dem Quelltext. Dieselbe Grenze wie bei Beispielsätzen. */
+  sourceSentence: 400,
+} as const;
+
+/**
+ * Ein optionales Textfeld, bei dem eine leere Eingabe **keine Angabe** ist.
+ *
+ * Eine leere Zelle aus einer Tabelle ist nicht die Aussage „hier steht
+ * nichts", sondern die Abwesenheit einer Aussage. Sie abzulehnen machte aus
+ * jeder nicht ausgefüllten Spalte einen Importfehler; sie zu speichern
+ * machte aus ihr eine Auskunft. Sie verschwindet.
+ */
+function optionalText(max: number) {
+  return z.preprocess(
+    (wert) => (typeof wert === 'string' && wert.trim() === '' ? undefined : wert),
+    z.string().trim().min(1).max(max).optional(),
+  );
+}
+
 export const vocabEntrySchema = z.object({
   id: nonEmpty,
   /**
@@ -140,10 +177,66 @@ export const vocabEntrySchema = z.object({
   exampleSentences: z.array(exampleSentenceSchema).max(10).default([]),
   topicTags: z.array(nonEmpty.max(60)).max(20).default([]),
   notes: trimmed.max(1000).optional(),
+  /**
+   * Die **Fundstelle**: die Form, in der das Wort im Quelltext stand.
+   *
+   * Zu `to tell sb. sth.` gehört die Fundstelle `told`, wenn der Satz
+   * „The man told a story." die Quelle war. Die Lernform bleibt davon
+   * unberührt — gelernt wird die Grundform, nachgeschlagen wird die Stelle.
+   *
+   * Das ist der Unterschied zu `lemma`: Das Lemma ist eine Eigenschaft des
+   * Wortes, die Fundstelle eine Eigenschaft **dieses Fundes**.
+   */
+  occurrence: optionalText(FELDGRENZEN.occurrence),
+  /**
+   * Eine kurze grammatische Einordnung in ganzen Worten: „Past Simple von
+   * to tell sb. sth."
+   *
+   * Für Menschen geschrieben und nicht für Maschinen geparst. Was eine
+   * Maschine braucht, steht in `inflection`; was ein Mensch beim Lernen
+   * liest, steht hier.
+   */
+  grammarNote: optionalText(FELDGRENZEN.grammarNote),
+  /**
+   * Der Satz, in dem das Wort gefunden wurde: „The man told a story."
+   *
+   * Nicht dasselbe wie `exampleSentences`: Die sind **ausgewählt**, um etwas
+   * zu zeigen, dieser hier ist **vorgefunden**. Ein vorgefundener Satz darf
+   * holprig sein; ein ausgewählter sollte es nicht.
+   */
+  sourceSentence: optionalText(FELDGRENZEN.sourceSentence),
+  /**
+   * Belegte Flexionsformen, nach Wortart unterschieden (siehe `flexion.ts`).
+   *
+   * Widerspricht die Art der Flexion der `partOfSpeech`, lehnt die Prüfung
+   * unten ab — ein Eintrag, der als Substantiv geführt wird und eine
+   * Verbflexion trägt, ist in einem der beiden Felder falsch, und welches es
+   * ist, kann niemand raten.
+   */
+  inflection: flexionSchema.optional(),
   /** 1 = sehr leicht … 5 = sehr schwer. */
   difficulty: z.number().int().min(1).max(5).optional(),
   sourceType: z.enum(SOURCE_TYPES),
-});
+})
+  .superRefine((eintrag, ctx) => {
+    /*
+      Wortart und Flexionsart dürfen sich nicht widersprechen.
+
+      Nur wenn **beide** dastehen: Bestehende Einträge ohne `partOfSpeech`
+      bleiben gültig, und eine Flexionsangabe ohne Wortart ist keine
+      Nachlässigkeit, sondern der Normalfall in älteren Dateien.
+    */
+    if (eintrag.partOfSpeech === undefined || eintrag.inflection === undefined) return;
+    if (eintrag.partOfSpeech !== eintrag.inflection.kind) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          `Die Wortart „${eintrag.partOfSpeech}" passt nicht zur Flexionsangabe ` +
+          `„${eintrag.inflection.kind}".`,
+        path: ['inflection', 'kind'],
+      });
+    }
+  });
 export type VocabEntry = z.infer<typeof vocabEntrySchema>;
 
 export const packMetaSchema = z.object({

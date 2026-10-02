@@ -87,9 +87,39 @@ function v1ToV2(doc: Doc): Doc {
   return { ...doc, formatVersion: 2 };
 }
 
+/**
+ * Version 2 → 3 (Sprint 5B.8): grammatische Angaben.
+ *
+ * Die neuen Felder – `occurrence`, `grammarNote`, `sourceSentence` und
+ * `inflection` – sind **allesamt optional**. Eine Datei der Version 2 ist
+ * inhaltlich bereits eine gültige Datei der Version 3; diese Migration hebt
+ * deshalb nur die Versionsnummer an und rührt keinen einzigen Wert an.
+ *
+ * Dieselbe Entscheidung wie bei 1 → 2, und aus demselben Grund. Man könnte
+ * hier versucht sein, aus `to tell` ein `pastSimple` zu bilden, aus
+ * `information` einen Plural oder aus `to look up` eine Partikel. Jedes
+ * davon wäre geraten:
+ *
+ * - `telled` wäre falsch, und zwar still.
+ * - `informations` wäre falsch, und zwar still.
+ * - Eine aus der Lernform zerlegte Partikel wäre bei `to look forward to`
+ *   schon daneben.
+ *
+ * Eine erfundene Form ist schlimmer als eine fehlende: Sie sieht geprüft aus.
+ * Wo eine Flexionsangabe steht, hat jemand sie eingetragen; wo keine steht,
+ * steht keine.
+ *
+ * `{ ...doc }` und nicht `doc`: Das Quelldokument wird nicht verändert. Wer
+ * importiert, hält hinterher dieselbe Datei in der Hand, die er geöffnet hat.
+ */
+function v2ToV3(doc: Doc): Doc {
+  return { ...doc, formatVersion: 3 };
+}
+
 const MIGRATIONS: Readonly<Record<number, (doc: Doc) => Doc>> = {
   0: v0ToV1,
   1: v1ToV2,
+  2: v2ToV3,
 };
 
 export class UnsupportedFormatVersionError extends Error {
