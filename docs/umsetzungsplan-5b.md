@@ -111,8 +111,8 @@ Abgenommen wurde:
 | Ziel | Beschriftung | schaltet frei in |
 | --- | --- | --- |
 | ~~`#/start`~~ | ~~Start~~ | **frei seit `8d74160` (5B.3)** |
+| ~~`#/ueben`~~ | ~~Üben~~ | **frei seit `5ce0363` (5B.5)** |
 | `#/heute` | Heute | 5B.4 |
-| `#/ueben` | Üben | 5B.5 |
 | `#/fortschritt` | Fortschritt | 5B.6 |
 
 Jedes dieser Ziele wechselt seinen Zustand **in demselben Commit**, in dem
@@ -198,7 +198,7 @@ eine Seite, die nicht mehr lädt.
 | --- | --- | --- | --- | --- |
 | **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
 | **5B.4** | „Heute" | E1, E2, E3, E9 | 5B.2d | offen |
-| **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14 | 5B.2d | offen |
+| **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14 | 5B.2d | **fertig** (`5ce0363`) |
 | **5B.6** | „Mein Fortschritt": Lernzeit, Lernserie mit Ruhetagen, freiwilliges Wochenziel | E1, E2, E3, E6 | 5B.4 | offen |
 | ~~**5B.7**~~ | ~~Einstellungen~~ — **vorgezogen vor 5B.2d**, siehe oben | E23 | 5B.2c′ | — |
 
@@ -218,6 +218,14 @@ eine Seite, die nicht mehr lädt.
 | **5B.10** | Grammatik in der Oberfläche: Eingabe im Paketeditor, Anzeige auf der Lernkarte, Übungsform „Zeitformen" | E8 | 5B.8, 5B.5 | offen |
 | **5B.11** | Zeitgesteuerte Veröffentlichung: `publish_at`, Auswertung beim Abruf über die Zugriffsregel | E6 | — | offen |
 | **5B.12** | Mobile Sonderfälle: Tabellen als Karten, umschaltbare Werkstattansichten, sticky Aktionsleisten | — | 5B.2d | offen |
+
+> **Die Blockade hat jetzt eine Vorlage.** `docs/migrationshistorie-audit.md`
+> hält den lokalen Stand, den dokumentierten Remote-Stand und einen exakten,
+> **noch nicht ausgeführten** Reparaturablauf fest — mit Vorprüfung,
+> einzelnen Repair-Befehlen, Kontrolle, Nachweis über unverändertes Schema
+> und unveränderte Nutzdaten, Abbruchbedingungen und Rückweg. Offen bleibt
+> genau eine Frage, die nur die Datenbank beantwortet: ob Migration 11 schon
+> gelaufen ist. Sie entscheidet, ob zehn oder elf Versionen markiert werden.
 
 > **5B.8 und 5B.9 sind blockiert, und zwar an derselben Stelle:** Beide
 > bringen eine Migration. Solange die Supabase-Migrationshistorie nicht
