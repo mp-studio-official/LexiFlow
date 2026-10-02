@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { soloUrlFrom } from '../../runtime/entryUrls';
 import { Alert, Button, Card, EmptyState } from '../../ui/components';
+import { Verbindungsfehler } from '../verbindung';
 import type { Course, PackSummary } from '../../application/repositories';
 
 /**
@@ -33,14 +34,23 @@ export function MaterialPage() {
   const [kurse, setKurse] = useState<Course[]>([]);
   const [fehler, setFehler] = useState('');
   const [meldung, setMeldung] = useState('');
+  /*
+    Getrennt von `fehler`: Der sagt, dass eine **Handlung** nicht geklappt
+    hat, und steht neben einer Liste, die es gibt. Dieser sagt, dass es die
+    Liste nicht gibt – und dann darf darunter nichts stehen, was aussieht,
+    als gäbe es sie doch. Vorher blieb `liste` undefiniert und darunter stand
+    „Material wird geladen …", ohne Ende.
+  */
+  const [ladefehler, setLadefehler] = useState(false);
 
   const laden = useCallback(async () => {
     if (!packs) return;
+    setLadefehler(false);
     try {
       setListe(await packs.list());
       if (courses) setKurse((await courses.myCourses()).filter((kurs) => !kurs.archived));
-    } catch (error) {
-      setFehler(error instanceof Error ? error.message : 'Das Material ist nicht abrufbar.');
+    } catch {
+      setLadefehler(true);
     }
   }, [packs, courses]);
 
@@ -61,6 +71,15 @@ export function MaterialPage() {
     } catch (error) {
       setFehler(error instanceof Error ? error.message : 'Das hat nicht geklappt.');
     }
+  }
+
+  if (ladefehler) {
+    return (
+      <div className="stack">
+        <h1>Material</h1>
+        <Verbindungsfehler was="Das Material" erneut={() => void laden()} />
+      </div>
+    );
   }
 
   return (

@@ -15,6 +15,7 @@ import { RecoveryPage } from './pages/RecoveryPage';
 import { PortalPrivacyPage } from './pages/PortalPrivacyPage';
 import { SetupPage } from './pages/SetupPage';
 import type { Repositories } from '../application/repositories';
+import { IST_PILOT, KI_IM_PILOT, PILOT_BAND_TEXT } from './pilot';
 
 /**
  * Das Webportal.
@@ -307,6 +308,59 @@ function Testband() {
   );
 }
 
+/**
+ * Die KI-Sperre des Pilots – am Speicherverbund, nicht an der Oberfläche.
+ *
+ * Eine Seite, die eine Schaltfläche versteckt, hat die Fähigkeit nicht
+ * abgeschaltet, sondern unsichtbar gemacht. Hier wird der Zugang **entfernt**:
+ * Danach gibt es nichts mehr, was eine Anfrage an `ai-gateway` stellen könnte
+ * – auch nicht aus einer Ansicht, die es später einmal gibt.
+ *
+ * Weggenommen wird der Weg, nicht der Inhalt: Hinterlegte Schlüssel bleiben
+ * versiegelt in der Datenbank, die Funktion bleibt deployt.
+ *
+ * Als eigene Funktion und nicht als drei Zeilen im `useMemo`, damit die
+ * Prüfung sie **aufrufen** kann. Eine Sperre, die nur im Zusammenspiel
+ * sichtbar ist, wird mit einer Prüfung belegt, die am Ende nichts prüft –
+ * der erste Entwurf dieser Datei hatte genau so eine.
+ */
+export function ohneGesperrteKi(speicher: Repositories): Repositories {
+  if (KI_IM_PILOT !== 'gesperrt' || !speicher.ai) return speicher;
+  const { ai: _gesperrt, ...ohneKi } = speicher;
+  return ohneKi;
+}
+
+/**
+ * Das Band über der Pilotfassung.
+ *
+ * Anders als `Testband` hängt es an **keiner** Fahne: Pilot 0.1 ist ein
+ * Stand des Produkts und keine Bauvariante (siehe `pilot.ts`). Wer eine
+ * Auslieferung ohne Band will, ändert eine Zeile im Quelltext und committet
+ * sie – genau diese Sichtbarkeit ist der Punkt.
+ *
+ * Gestaltung bewusst ruhiger als beim Testband: Das sagt „Vorsicht, nichts
+ * davon ist echt", dies sagt „in Erprobung". Zwei gleich laute Bänder
+ * übereinander hätten beide entwertet.
+ */
+function Pilotband() {
+  return (
+    <p
+      role="status"
+      style={{
+        margin: 0,
+        padding: '0.4rem 1rem',
+        background: 'var(--brand-parchment, #f8efe3)',
+        color: 'var(--brand-aubergine, #2f092d)',
+        borderBottom: '2px solid var(--brand-aubergine, #2f092d)',
+        fontWeight: 600,
+        textAlign: 'center',
+      }}
+    >
+      {PILOT_BAND_TEXT}
+    </p>
+  );
+}
+
 export function HostedApp({
   repositories,
   env = import.meta.env as unknown as Record<string, unknown>,
@@ -353,17 +407,21 @@ export function HostedApp({
   }, [fälschung, repositories]);
 
   const speicher = useMemo<Repositories>(() => {
-    if (repositories) return repositories;
-    if (fälschung) return fälschungsspeicher ?? {};
-    if (config.ok) {
-      return createCloudRepositories({
-        config: config.config,
-        origin: window.location.origin,
-        base: String(env['BASE_URL'] ?? '/'),
-      });
-    }
-    // Ohne Konfiguration entsteht nichts – die Seite unten sagt, was fehlt.
-    return {};
+    const gebaut = (() => {
+      if (repositories) return repositories;
+      if (fälschung) return fälschungsspeicher ?? {};
+      if (config.ok) {
+        return createCloudRepositories({
+          config: config.config,
+          origin: window.location.origin,
+          base: String(env['BASE_URL'] ?? '/'),
+        });
+      }
+      // Ohne Konfiguration entsteht nichts – die Seite unten sagt, was fehlt.
+      return {};
+    })();
+
+    return ohneGesperrteKi(gebaut);
   }, [repositories, fälschung, fälschungsspeicher, config, env]);
 
   if (fälschung && !repositories && !fälschungsspeicher) {
@@ -383,6 +441,7 @@ export function HostedApp({
   return (
     <RepositoryProvider value={speicher}>
       <SessionProvider>
+        {IST_PILOT ? <Pilotband /> : null}
         {fälschung ? <Testband /> : null}
         <HashRouter>
           <HostedRoutes />

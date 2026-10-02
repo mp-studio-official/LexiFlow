@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Alert, Button, Card, EmptyState, Field } from '../../ui/components';
 import type { Course } from '../../application/repositories';
+import { Verbindungsfehler } from '../verbindung';
 
 /**
  * Die Kursliste einer Lehrkraft.
@@ -20,15 +21,28 @@ import type { Course } from '../../application/repositories';
 export function CoursesPage() {
   const courses = useOptionalRepository('courses');
   const [kurse, setKurse] = useState<Course[] | undefined>(undefined);
-  const [fehler, setFehler] = useState('');
+  /*
+    Ein Zustand statt einer Fehlermeldung. Hier stand vorher `fehler` mit dem
+    Text der Ausnahme – und darunter trotzdem die Liste, die es nicht gab.
+    Das Anlegen hat seine eigene Meldung, in `NeuerKurs`; die hier sagt, dass
+    es überhaupt nichts zu zeigen gibt.
+  */
+  const [ladefehler, setLadefehler] = useState(false);
   const [zeigeArchiv, setZeigeArchiv] = useState(false);
 
   const laden = useCallback(async () => {
     if (!courses) return;
+    setLadefehler(false);
     try {
       setKurse(await courses.myCourses());
-    } catch (error) {
-      setFehler(error instanceof Error ? error.message : 'Die Kurse sind nicht abrufbar.');
+    } catch {
+      /*
+        Vorher stand hier die Meldung des Fehlers, und `kurse` blieb
+        `undefined`. Sichtbar war dann „Kurse werden geladen …" – für immer,
+        neben einem technischen Satz. Eine Ladeanzeige, die nie endet, ist
+        die unehrlichste Antwort von allen.
+      */
+      setLadefehler(true);
     }
   }, [courses]);
 
@@ -41,13 +55,25 @@ export function CoursesPage() {
   const aktive = (kurse ?? []).filter((kurs) => !kurs.archived);
   const archivierte = (kurse ?? []).filter((kurs) => kurs.archived);
 
+  if (ladefehler) {
+    /*
+      Auch das Anlegen fällt weg: Ein Formular, dessen Absenden gleich wieder
+      scheitert, ist ein Versprechen, das die Verbindung nicht hält.
+    */
+    return (
+      <div className="stack">
+        <h1>Kurse</h1>
+        <Verbindungsfehler was="Die Kursliste" erneut={() => void laden()} />
+      </div>
+    );
+  }
+
   return (
     <div className="stack">
       <h1>Kurse</h1>
 
       <NeuerKurs onAngelegt={laden} />
 
-      {fehler ? <Alert tone="error">{fehler}</Alert> : null}
       {kurse === undefined ? <p className="muted">Kurse werden geladen …</p> : null}
 
       {kurse !== undefined && aktive.length === 0 ? (

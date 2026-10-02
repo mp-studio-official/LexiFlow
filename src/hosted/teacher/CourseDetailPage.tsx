@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Alert, Button, Card, Field } from '../../ui/components';
 import type { Course, CourseInvite, CourseMember } from '../../application/repositories';
+import { Verbindungsfehler } from '../verbindung';
 
 /**
  * Ein Kurs: wer drin ist, und wie man hineinkommt.
@@ -27,16 +28,22 @@ export function CourseDetailPage() {
   const courses = useOptionalRepository('courses');
   const [kurs, setKurs] = useState<Course | undefined>(undefined);
   const [mitglieder, setMitglieder] = useState<CourseMember[]>([]);
-  const [fehler, setFehler] = useState('');
   const [geladen, setGeladen] = useState(false);
+  /*
+    „Nicht gefunden" und „nicht erreichbar" sind zwei Aussagen, und vorher
+    führten beide auf dieselbe Seite. Wer bei abgebrochener Verbindung
+    „Kurs nicht gefunden" liest, sucht den Kurs – und der ist da.
+  */
+  const [ladefehler, setLadefehler] = useState(false);
 
   const laden = useCallback(async () => {
     if (!courses || !courseId) return;
+    setLadefehler(false);
     try {
       setKurs(await courses.getCourse(courseId));
       setMitglieder(await courses.members(courseId));
-    } catch (error) {
-      setFehler(error instanceof Error ? error.message : 'Der Kurs ist nicht abrufbar.');
+    } catch {
+      setLadefehler(true);
     } finally {
       setGeladen(true);
     }
@@ -48,6 +55,16 @@ export function CourseDetailPage() {
 
   if (!courses || !courseId) return <Alert tone="info">In dieser Fassung gibt es keine Kurse.</Alert>;
   if (!geladen) return <p className="muted">Der Kurs wird geladen …</p>;
+  if (ladefehler) {
+    return (
+      <div className="stack">
+        <p className="small muted" style={{ margin: 0 }}>
+          <Link to="/kurse">Alle Kurse</Link>
+        </p>
+        <Verbindungsfehler was="Dieser Kurs" erneut={() => void laden()} />
+      </div>
+    );
+  }
   if (!kurs) {
     return (
       <div className="stack">
@@ -73,8 +90,6 @@ export function CourseDetailPage() {
           soll, wird aus der Mitgliederliste entfernt.
         </Alert>
       ) : null}
-
-      {fehler ? <Alert tone="error">{fehler}</Alert> : null}
 
       <Einladungen courseId={courseId} archiviert={kurs.archived} />
 

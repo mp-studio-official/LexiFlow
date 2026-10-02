@@ -106,6 +106,14 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
       'hosted/teacher/StartPage.tsx',
     ],
     ErrorState: [
+      /*
+        Pilot 0.1: `hosted/verbindung.tsx` ist der gemeinsame
+        Verbindungsfehler. Er steht hier und nicht in jeder Ansicht einzeln,
+        weil sonst sieben Fassungen desselben Satzes entstünden – und beim
+        nächsten Umbau sechs davon übrig blieben. Die Ansichten, die ihn
+        einsetzen, importieren `ErrorState` nicht selbst.
+      */
+      'hosted/verbindung.tsx',
       'hosted/learner/FortschrittPage.tsx',
       'hosted/learner/HeutePage.tsx',
       'hosted/learner/PaketAnsicht.tsx',

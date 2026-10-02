@@ -1,4 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+/*
+  Diese Datei beschreibt den KI-Zugang, wie es ihn gibt – und den gibt es
+  weiterhin, nur im Pilot nicht freigegeben (`pilot.ts`). Die Prüfungen
+  deshalb gegen den **freien** Zustand, damit sie weiter das prüfen, wofür
+  sie geschrieben wurden. Die Sperre selbst hat eine eigene Datei:
+  `kiSperre.test.tsx`. Sie hier mit schwächeren Erwartungen grün zu machen
+  hieße, die Zusagen über den Schlüssel aufzugeben, um eine Sperre zu zeigen.
+*/
+vi.mock('./pilot', async (original) => ({
+  ...(await original<typeof import('./pilot')>()),
+  KI_IM_PILOT: 'frei',
+}));
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';

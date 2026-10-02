@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Alert, Button, Card, EmptyState } from '../../ui/components';
 import type { AiConnectionSummary } from '../../application/repositories';
+import { KI_GESPERRT_TEXT, KI_IM_PILOT } from '../pilot';
 
 /**
  * Der KI-Zugang einer Lehrkraft – im Konto.
@@ -94,6 +95,30 @@ export function AiPage() {
   useEffect(() => {
     void laden();
   }, [laden]);
+
+  /*
+    Erst die Pilotsperre, dann alles andere.
+
+    Dass `ai` hier fehlt, ist im Pilot kein Zufall und keine Fassungsfrage:
+    `HostedApp` nimmt den Zugang aus dem Speicherverbund. Ohne diesen Zweig
+    stünde an dieser Stelle „In dieser Fassung gibt es keinen KI-Zugang" –
+    richtig, aber nichtssagend. Wer das liest, sucht den Schalter.
+  */
+  if (KI_IM_PILOT === 'gesperrt') {
+    return (
+      <div className="stack">
+        <h1>KI-Zugang</h1>
+        <Alert tone="info" title="Im Pilot nicht freigegeben">
+          {KI_GESPERRT_TEXT}
+        </Alert>
+        <p className="muted">
+          Freigegeben wird KI erst, wenn Anbieter, Datenfluss und Datenschutzhinweis abgenommen
+          sind und ein echter Durchlauf gelaufen ist. Bis dahin stellt das Portal keine Anfrage –
+          es gibt dafür keinen Weg, nicht nur keine Schaltfläche.
+        </p>
+      </div>
+    );
+  }
 
   if (!ai) {
     return <Alert tone="info">In dieser Fassung gibt es keinen KI-Zugang im Konto.</Alert>;
