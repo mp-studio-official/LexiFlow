@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formkarten, wegZu, zaehleFaellige, zaehleRichtung, zaehleSchwierige } from './uebungsformen';
+import {
+  UEBUNGSFORMEN,
+  formkarten,
+  wegZu,
+  zaehleFaellige,
+  zaehleRichtung,
+  zaehleSchwierige,
+} from './uebungsformen';
 import type { Paketstand } from './uebungsformen';
 import { directionKey } from './ids';
 import type { EntryProgress, LearningDirection, VocabEntry } from './schema';
@@ -86,9 +93,32 @@ describe('welche Karten überhaupt entstehen', () => {
   it('eine Form ohne ein einziges Ziel erscheint nicht', () => {
     const p = paket(['a'], [stand('a', { dueAt: '2026-10-01T10:00:00.000Z' })], 'en-de');
     const formen = formkarten([p], JETZT).map((karte) => karte.form);
-    expect(formen).toEqual(['faellig']);
+    /*
+      Fällig ist etwas, schwierig nichts, und eine Richtungswahl gibt es bei
+      einem Paket mit einer Richtung nicht. Die vier Ansichten aus 5B.15
+      brauchen nur Wörter — die gibt es, also stehen sie da.
+    */
+    expect(formen).toEqual(['faellig', 'karten', 'selbsttest', 'frei', 'liste']);
     expect(formen).not.toContain('schwierig');
     expect(formen).not.toContain('en-de');
+  });
+
+  it('ein Paket ohne Wörter gibt gar keine Karte her', () => {
+    const leer = paket([], [], 'both');
+    expect(formkarten([leer], JETZT)).toEqual([]);
+  });
+
+  it('keine zwei Formen führen an dieselbe Adresse', () => {
+    /*
+      Die Gegenprobe zur Vermehrung der Karten: Zwei Karten, die dasselbe
+      öffnen, sind eine Karte zu viel — und zwar eine, die etwas anderes
+      verspricht, als sie tut.
+    */
+    const ziel = { courseId: 'k-1', packId: 'p-1', titel: 'Unit 1', anzahl: 1 };
+    const adressen = UEBUNGSFORMEN.map((form) => wegZu(form, ziel));
+    expect(new Set(adressen).size, `doppelte Adresse in ${adressen.join(' | ')}`).toBe(
+      UEBUNGSFORMEN.length,
+    );
   });
 
   it('Zeitformen und Spiele gibt es in dieser Datei nicht — auch nicht als Absicht', () => {
@@ -115,6 +145,13 @@ describe('welche Karten überhaupt entstehen', () => {
 
 describe('wohin eine Karte führt', () => {
   const ziel = { courseId: 'k-1', packId: 'p-1', titel: 'Unit 1', anzahl: 3 };
+
+  it('die vier wiederverwendeten Ansichten haben eigene Adressen', () => {
+    expect(wegZu('karten', ziel)).toBe('/ueben/karten/k-1/p-1');
+    expect(wegZu('selbsttest', ziel)).toBe('/ueben/selbsttest/k-1/p-1');
+    expect(wegZu('frei', ziel)).toBe('/ueben/frei/k-1/p-1');
+    expect(wegZu('liste', ziel)).toBe('/ueben/liste/k-1/p-1');
+  });
 
   it('eine Richtung geht als Richtung mit, eine Auswahl als Auswahl', () => {
     expect(wegZu('en-de', ziel)).toBe('/lernen/kurs/k-1/ueben/p-1?richtung=en-de');

@@ -65,7 +65,29 @@ function buildRoundUrl(
   return `/lernen/${packId}/uebung?${params.toString()}`;
 }
 
-export function FreePracticeSetupPage() {
+/**
+ * Woher diese Seite ihr Paket und ihren Lernstand bekommt — und wohin sie führt.
+ *
+ * Ohne Angaben: aus der lokalen Datei, und die Runde liegt unter
+ * `/lernen/:packId/uebung`. Das Portal reicht beides herein: Sein Paket kommt
+ * aus dem Konto, sein Lernstand aus dem Lernstandspeicher, und seine Runde
+ * liegt woanders. Geplant wird trotzdem mit denselben Funktionen — diese
+ * Seite **plant nur** und baut keine zweite Übungslogik.
+ */
+export interface FreieRundeQuelle {
+  pack?: VocabPack;
+  staende?: ReadonlyMap<string, EntryProgress>;
+  /** Baut die Adresse der Runde aus den gewählten Werten. */
+  rundenAdresse?: (teil: string) => string;
+  zurueck?: string;
+}
+
+export function FreePracticeSetupPage({
+  pack: vorgegeben,
+  staende,
+  rundenAdresse,
+  zurueck = '/lernen',
+}: FreieRundeQuelle = {}) {
   const { packId = '' } = useParams();
   const navigate = useNavigate();
 
@@ -83,10 +105,10 @@ export function FreePracticeSetupPage() {
   useEffect(() => {
     let active = true;
     void (async () => {
-      const loaded = await getPack(packId);
+      const loaded = vorgegeben ?? (await getPack(packId));
       if (!active) return;
       if (loaded) {
-        const index = await getProgressIndex(packId);
+        const index = staende ?? (await getProgressIndex(packId));
         if (!active) return;
         setProgress(index);
       }
@@ -96,7 +118,7 @@ export function FreePracticeSetupPage() {
     return () => {
       active = false;
     };
-  }, [packId]);
+  }, [packId, vorgegeben, staende]);
 
   const entries = pack?.entries ?? [];
   const packDirection = pack?.meta.direction ?? 'en-de';
@@ -127,7 +149,7 @@ export function FreePracticeSetupPage() {
     return (
       <div className="stack">
         <h1>Paket nicht gefunden</h1>
-        <Link className="btn" to="/lernen">
+        <Link className="btn" to={zurueck}>
           Zurück zur Übersicht
         </Link>
       </div>
@@ -180,7 +202,13 @@ export function FreePracticeSetupPage() {
 
   function start(): void {
     if (preview.plannedCount === 0) return;
-    navigate(buildRoundUrl(packId, choice, selected, requested, seed));
+    const adresse = buildRoundUrl(packId, choice, selected, requested, seed);
+    /*
+      Dieselben Parameter, anderer Ort: Das Portal hängt seine Runde unter
+      `/lernen/kurs/:courseId/ueben/:packId`. Gebaut werden sie hier, damit
+      die Vorschau und die Runde garantiert dieselbe Runde meinen.
+    */
+    navigate(rundenAdresse ? rundenAdresse(adresse.slice(adresse.indexOf('?'))) : adresse);
   }
 
   const groupsWithKinds = KIND_GROUPS.map((group) => ({

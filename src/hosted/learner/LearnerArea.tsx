@@ -24,6 +24,28 @@ import type { Course, PackRevision } from '../../application/repositories';
 
 const PracticePage = lazy(() => import('./PracticePage'));
 import { UebenPage } from './UebenPage';
+import { PaketAnsicht } from './PaketAnsicht';
+
+/*
+  Die vier vorhandenen Ansichten (5B.15) — lazy, weil sie nur erreicht, wer
+  eine davon wirklich öffnet. Sie stammen aus der Fassung ohne Konto und
+  werden **unverändert** benutzt; was ihnen fehlt, ist allein die Herkunft des
+  Pakets, und die reicht `PaketAnsicht` herein.
+*/
+const CardStudyPage = lazy(() =>
+  import('../../routes/student/CardStudyPage').then((m) => ({ default: m.CardStudyPage })),
+);
+const SelfTestPage = lazy(() =>
+  import('../../routes/student/SelfTestPage').then((m) => ({ default: m.SelfTestPage })),
+);
+const VocabBrowsePage = lazy(() =>
+  import('../../routes/student/VocabBrowsePage').then((m) => ({ default: m.VocabBrowsePage })),
+);
+const FreePracticeSetupPage = lazy(() =>
+  import('../../routes/student/FreePracticeSetupPage').then((m) => ({
+    default: m.FreePracticeSetupPage,
+  })),
+);
 
 function Kursliste() {
   const courses = useOptionalRepository('courses');
@@ -166,6 +188,30 @@ function Kurs() {
 export const LEARNER_SECTIONS = ['lernen', 'ueben'] as const;
 export type LearnerSection = (typeof LEARNER_SECTIONS)[number];
 
+/**
+ * Freies Üben im Portal — dieselbe Planungsseite, andere Rundenadresse.
+ *
+ * Die Seite baut die Parameter (`mode`, `kinds`, `length`, `seed`,
+ * `direction`); wohin sie gehören, weiß nur das Portal. Deshalb kommt die
+ * Adresse von hier und die Planung von dort.
+ */
+function FreiesUeben() {
+  const { courseId = '', packId = '' } = useParams();
+  return (
+    <PaketAnsicht
+      was="Das freie Üben"
+      kinder={({ pack, staende }) => (
+        <FreePracticeSetupPage
+          pack={pack}
+          staende={staende}
+          zurueck="/ueben"
+          rundenAdresse={(teil) => `/lernen/kurs/${courseId}/ueben/${packId}${teil}`}
+        />
+      )}
+    />
+  );
+}
+
 export function LearnerArea({ section = 'lernen' }: { section?: LearnerSection }) {
   if (section === 'ueben') {
     /*
@@ -177,6 +223,52 @@ export function LearnerArea({ section = 'lernen' }: { section?: LearnerSection }
     return (
       <Routes>
         <Route index element={<UebenPage />} />
+        {/*
+          Die vier wiederverwendeten Wege. Jeder trägt Kurs **und** Paket in
+          der Adresse: Ohne den Kurs ließe sich die Zuweisung nicht prüfen,
+          und genau sie entscheidet, ob hier etwas zu sehen ist.
+        */}
+        <Route
+          path="karten/:courseId/:packId"
+          element={
+            <Suspense fallback={<p className="muted">Die Karteikarten werden geladen …</p>}>
+              <PaketAnsicht
+                was="Die Karteikarten"
+                kinder={({ pack }) => <CardStudyPage pack={pack} zurueck="/ueben" />}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="selbsttest/:courseId/:packId"
+          element={
+            <Suspense fallback={<p className="muted">Der Selbsttest wird geladen …</p>}>
+              <PaketAnsicht
+                was="Der Selbsttest"
+                kinder={({ pack }) => <SelfTestPage pack={pack} zurueck="/ueben" />}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="liste/:courseId/:packId"
+          element={
+            <Suspense fallback={<p className="muted">Die Vokabelliste wird geladen …</p>}>
+              <PaketAnsicht
+                was="Die Vokabelliste"
+                kinder={({ pack }) => <VocabBrowsePage pack={pack} zurueck="/ueben" />}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="frei/:courseId/:packId"
+          element={
+            <Suspense fallback={<p className="muted">Das freie Üben wird geladen …</p>}>
+              <FreiesUeben />
+            </Suspense>
+          }
+        />
       </Routes>
     );
   }

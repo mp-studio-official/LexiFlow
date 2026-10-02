@@ -169,9 +169,14 @@ describe('nur Karten, deren Weg heute funktioniert', () => {
     */
     const { cloud } = await kursMitPaket('en-de');
     zeige(cloud, '/ueben');
-    await screen.findByRole('heading', { name: 'Üben', level: 1 });
-    expect(await screen.findByRole('heading', { name: 'Gerade nichts offen' })).toBeInTheDocument();
+    /*
+      Die vier wiederverwendeten Ansichten brauchen nur Wörter und stehen
+      deshalb da — die Richtungswahl nicht: Bei einem Paket mit einer Richtung
+      wäre sie dieselbe Runde unter anderem Namen.
+    */
+    expect(await screen.findByRole('heading', { name: 'Karteikarten' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Englisch → Deutsch' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Deutsch → Englisch' })).toBeNull();
   });
 
   it('Zeitformen und Spiele kommen nicht vor', async () => {

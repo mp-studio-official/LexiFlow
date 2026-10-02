@@ -58,7 +58,25 @@ function freshSeed(): number {
   return Date.now() >>> 0;
 }
 
-export function SelfTestPage() {
+/**
+ * Woher diese Ansicht ihr Paket bekommt.
+ *
+ * Ohne Angabe: aus der lokalen Datei (`getPack`) — so, wie es seit jeher war.
+ * Mit Angabe: von außen. Das Portal hat keine lokale Paketdatei; seine Pakete
+ * kommen aus dem Konto, über die zugewiesene Fassung des Kurses.
+ *
+ * Eine zweite Ansicht fürs Portal wäre die Alternative gewesen — und damit
+ * zwei Orte, an denen dasselbe anders aussieht. Diese Eigenschaft ist der
+ * ganze Unterschied zwischen Wiederverwenden und Nachbauen.
+ */
+export interface PaketQuelle {
+  /** Das fertige Paket. Ist es gesetzt, wird nichts geladen. */
+  pack?: VocabPack;
+  /** Wohin „Zurück" führt. Ohne Angabe in den lokalen Lernbereich. */
+  zurueck?: string;
+}
+
+export function SelfTestPage({ pack: vorgegeben, zurueck = '/lernen' }: PaketQuelle = {}) {
   const { packId = '' } = useParams();
 
   const [pack, setPack] = useState<VocabPack | null>(null);
@@ -90,7 +108,7 @@ export function SelfTestPage() {
   useEffect(() => {
     let active = true;
     void (async () => {
-      const loaded = await getPack(packId);
+      const loaded = vorgegeben ?? (await getPack(packId));
       if (!active) return;
       setPack(loaded ?? null);
       setLoading(false);
@@ -98,7 +116,7 @@ export function SelfTestPage() {
     return () => {
       active = false;
     };
-  }, [packId]);
+  }, [packId, vorgegeben]);
 
   const entries = pack?.entries ?? [];
   const possibleGroups = useMemo(
@@ -132,7 +150,7 @@ export function SelfTestPage() {
     return (
       <div className="stack">
         <h1>Paket nicht gefunden</h1>
-        <Link className="btn" to="/lernen">
+        <Link className="btn" to={zurueck}>
           Zurück zur Übersicht
         </Link>
       </div>

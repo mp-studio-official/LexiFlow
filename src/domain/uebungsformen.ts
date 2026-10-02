@@ -36,8 +36,23 @@ import type { EntryProgress, LearningDirection, VocabEntry } from './schema';
  * Lernstände; es gibt keinen Parameter für eine andere Person.
  */
 
-/** Die Formen, die dieser Block erreichbar macht. */
-export const UEBUNGSFORMEN = ['faellig', 'schwierig', 'en-de', 'de-en'] as const;
+/**
+ * Die Formen, die erreichbar sind.
+ *
+ * `karten`, `selbsttest`, `frei` und `liste` kamen mit **5B.15** dazu: Die
+ * Ansichten gab es längst, nur im Portal führte kein Weg zu ihnen. Sie werden
+ * wiederverwendet, nicht nachgebaut.
+ */
+export const UEBUNGSFORMEN = [
+  'faellig',
+  'schwierig',
+  'en-de',
+  'de-en',
+  'karten',
+  'selbsttest',
+  'frei',
+  'liste',
+] as const;
 export type Uebungsform = (typeof UEBUNGSFORMEN)[number];
 
 export interface Formbeschreibung {
@@ -66,6 +81,26 @@ export const FORMEN: Readonly<Record<Uebungsform, Formbeschreibung>> = {
     form: 'de-en',
     titel: 'Deutsch → Englisch',
     satz: 'Nur selbst formulieren: Du siehst das deutsche Wort und schreibst das englische.',
+  },
+  karten: {
+    form: 'karten',
+    titel: 'Karteikarten',
+    satz: 'Durchblättern, umdrehen, weiter. Ohne Eingabe und ohne Bewertung.',
+  },
+  selbsttest: {
+    form: 'selbsttest',
+    titel: 'Selbsttest',
+    satz: 'Alle Aufgaben hintereinander, die Auswertung kommt am Ende.',
+  },
+  frei: {
+    form: 'frei',
+    titel: 'Frei üben',
+    satz: 'Du stellst die Runde selbst zusammen: Richtung, Formen und Länge.',
+  },
+  liste: {
+    form: 'liste',
+    titel: 'Vokabelliste',
+    satz: 'Alle Wörter des Pakets zum Nachlesen — kein Üben, kein Lernstand.',
   },
 };
 
@@ -129,6 +164,18 @@ export function zaehleRichtung(paket: Paketstand): number {
 }
 
 /**
+ * Wörter, die eine Ansicht ohne weitere Bedingung zeigen kann.
+ *
+ * Karteikarten, Selbsttest, freies Üben und die Vokabelliste brauchen nur
+ * Wörter — keine Fälligkeit, keinen Lernstand, keine zweite Richtung. Ein
+ * leeres Paket gibt trotzdem nichts her, und dann steht die Karte auch nicht
+ * da.
+ */
+export function zaehleWoerter(paket: Paketstand): number {
+  return paket.entries.length;
+}
+
+/**
  * Die Karten, die heute stehen dürfen.
  *
  * Eine Form ohne ein einziges Ziel mit einer Zahl > 0 erscheint nicht. Das
@@ -144,6 +191,10 @@ export function formkarten(
     schwierig: zaehleSchwierige,
     'en-de': zaehleRichtung,
     'de-en': zaehleRichtung,
+    karten: zaehleWoerter,
+    selbsttest: zaehleWoerter,
+    frei: zaehleWoerter,
+    liste: zaehleWoerter,
   };
 
   const karten: Formkarte[] = [];
@@ -169,7 +220,24 @@ export function formkarten(
 }
 
 /** Die Adresse, die eine Karte für ein Paket öffnet. */
+/**
+ * Die Adresse, die eine Karte für ein Paket öffnet.
+ *
+ * Vier Formen führen in die Runde (mit verschiedenen Parametern), vier in
+ * eine eigene Ansicht. Dass **keine zwei dieselbe** Adresse erzeugen, prüft
+ * `uebungsformen.test.ts` — sonst stünden zwei Karten da, die dasselbe tun.
+ */
+const EIGENE_ANSICHT: Partial<Record<Uebungsform, string>> = {
+  karten: 'karten',
+  selbsttest: 'selbsttest',
+  frei: 'frei',
+  liste: 'liste',
+};
+
 export function wegZu(form: Uebungsform, ziel: Formziel): string {
+  const eigene = EIGENE_ANSICHT[form];
+  if (eigene) return `/ueben/${eigene}/${ziel.courseId}/${ziel.packId}`;
+
   const grund = `/lernen/kurs/${ziel.courseId}/ueben/${ziel.packId}`;
   if (form === 'en-de' || form === 'de-en') return `${grund}?richtung=${form}`;
   return `${grund}?auswahl=${form}`;

@@ -6,7 +6,14 @@ import {
   antwortEreignis,
   erneutRechnen,
 } from '../../application/progressEvents';
-import { buildTasksForTargets, planSession } from '../../domain/exercises';
+import {
+  EXERCISE_KINDS,
+  buildTasksForTargets,
+  mulberry32,
+  planSession,
+  type ExerciseKind,
+} from '../../domain/exercises';
+import { planFreeSession } from '../../domain/freePractice';
 import {
   createSessionState,
   currentItem,
@@ -105,8 +112,23 @@ export function PracticePage() {
   const { courseId, packId } = useParams();
   const navigate = useNavigate();
   const [suche] = useSearchParams();
-  const richtungswahl = parseDirectionChoice(suche.get('richtung'));
+  const richtungswahl = parseDirectionChoice(suche.get('richtung') ?? suche.get('direction'));
   const auswahl = leseAuswahl(suche.get('auswahl'));
+
+  /*
+    Freies Üben (5B.15): **dieselben** Parameter wie in der Fassung ohne
+    Konto, weil die planende Seite dieselbe ist. Sie baut sie, diese Runde
+    liest sie — eine eigene Schreibweise hier hieße, dass die Vorschau und die
+    Runde über verschiedene Dinge reden.
+  */
+  const frei = suche.get('mode') === 'free';
+  const gewuenschteFormen = (suche.get('kinds') ?? '')
+    .split(',')
+    .filter((form): form is ExerciseKind => (EXERCISE_KINDS as readonly string[]).includes(form));
+  const roheLaenge = Number(suche.get('length') ?? '');
+  const laenge = Number.isFinite(roheLaenge) && roheLaenge > 0 ? roheLaenge : RUNDENLAENGE;
+  const roherSeed = Number(suche.get('seed') ?? '');
+  const seed = Number.isFinite(roherSeed) && roherSeed > 0 ? roherSeed >>> 0 : 0;
   const publication = useOptionalRepository('publication');
   const progress = useOptionalRepository('progress');
 
@@ -163,7 +185,27 @@ export function PracticePage() {
       */
       const richtung = effectiveDirection(gefunden.pack.meta.direction, richtungswahl);
       const jetzt = new Date();
-      const plan = planSession(gefunden.pack.entries, staende.current, richtung, RUNDENLAENGE);
+      /*
+        Ein Zufallsgenerator für Planung **und** Aufgabenbau — mit dem Seed aus
+        der Adresse ist die Runde genau die, die die Vorschau gezeigt hat.
+      */
+      const wuerfel = seed > 0 ? mulberry32(seed) : Math.random;
+      /*
+        `kinds` ist im freien Üben verbindlich: Wer Formen wählt, bekommt
+        ausschließlich diese. Im Lernplan bleibt es bei der automatischen
+        Wahl — dort geht es um die Wiederholung der Vokabel, nicht um die Form.
+      */
+      const streng = frei && gewuenschteFormen.length > 0;
+      const plan = frei
+        ? planFreeSession(
+            gefunden.pack.entries,
+            staende.current,
+            richtung,
+            laenge,
+            wuerfel,
+            streng ? gewuenschteFormen : [],
+          )
+        : planSession(gefunden.pack.entries, staende.current, richtung, RUNDENLAENGE, jetzt, wuerfel);
 
       const ziele = plan.targets.filter((ziel) =>
         passtZurAuswahl(auswahl, staende.current.get(directionKey(ziel.entry.id, ziel.direction)), jetzt),
@@ -172,17 +214,24 @@ export function PracticePage() {
       setErgebnis(null);
       setFehler('');
       setGezaehlt(0);
-      setNaechste(plan.nextDueAt);
+      setNaechste('nextDueAt' in plan ? plan.nextDueAt : undefined);
       setPack(gefunden.pack);
       setState(
         createSessionState(
-          buildTasksForTargets(ziele, gefunden.pack.entries, staende.current, [], Math.random),
+          buildTasksForTargets(
+            ziele,
+            gefunden.pack.entries,
+            staende.current,
+            gewuenschteFormen,
+            wuerfel,
+            streng ? 'strict' : 'auto',
+          ),
         ),
       );
     } catch (error) {
       setLadefehler(error instanceof Error ? error.message : 'Die Runde ließ sich nicht laden.');
     }
-  }, [publication, progress, courseId, packId, richtungswahl, auswahl]);
+  }, [publication, progress, courseId, packId, richtungswahl, auswahl, frei, laenge, seed, gewuenschteFormen.join(',')]);
 
   useEffect(() => {
     void laden();

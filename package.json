@@ -29,7 +29,8 @@
     "zeichen": "node scripts/zeichen-unterscheidbar.mjs",
     "huelle:messen": "node scripts/huelle-messen.mjs",
     "start:messen": "node scripts/start-messen.mjs",
-    "rueckfrage:messen": "node scripts/rueckfrage-messen.mjs"
+    "rueckfrage:messen": "node scripts/rueckfrage-messen.mjs",
+    "uebungsformen:messen": "node scripts/uebungsformen-messen.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",

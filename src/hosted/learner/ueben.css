@@ -30,3 +30,30 @@
   justify-content: space-between;
   gap: var(--space-2);
 }
+
+/* ---------------------------------- Die wiederverwendeten Ansichten (5B.15) */
+
+/*
+  Karteikarten, Selbsttest, Vokabelliste und freies Üben stammen aus der
+  Fassung ohne Konto und werden unverändert benutzt. Gemessen stehen ihre
+  kleinen Knöpfe bei 36 px — groß genug für die Maus, zu klein für die Hand.
+
+  `.btn--small` global höher zu machen wäre die naheliegende Lösung und die
+  falsche: Dieselbe Klasse trägt jeden kleinen Knopf im Produkt, auch in der
+  portablen Datei, die sich durch diesen Block nicht ändern soll. Die Regel
+  gilt deshalb nur dort, wo das Portal diese Ansichten zeigt.
+*/
+.ueben-ansicht .btn--small {
+  min-block-size: var(--tap-target);
+}
+
+/*
+  Dasselbe für die Auswahlzeilen. Getroffen wird das `<label>`, nicht der
+  18-px-Knopf darin — gemessen stand es bei 24 px. `align-items: center` statt
+  des geerbten `flex-start`, damit der Knopf in der nun höheren Zeile nicht
+  oben klebt.
+*/
+.ueben-ansicht .checkbox {
+  min-block-size: var(--tap-target);
+  align-items: center;
+}
