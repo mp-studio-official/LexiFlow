@@ -1,9 +1,67 @@
-# Migration 13 anwenden — lokale Lerntage
+# Migration 13 — lokale Lerntage
 
-Stand 03.10.2026. Die Migration ist lokal geprüft und **noch nicht
-angewandt**. Dieselbe Trennung wie bei Migration 12: die CLI für Historie
-und Anwendung, der SQL Editor für die Abnahme
-(`docs/abnahme/migration-13.sql`).
+**Angewandt und abgenommen im Staging am 03.10.2026.**
+
+Diese Datei war die Anleitung dorthin und ist jetzt das Protokoll.
+
+> ## Migration 13 ist ab jetzt unveränderlich
+>
+> Sie steht im Staging. `supabase/migrations/20261003090000_lokale_lerntage.sql`
+> wird **nicht mehr bearbeitet** — kein Tippfehler, kein Kommentar, keine
+> „kleine" Ergänzung. `db push` vergleicht Versionen, nicht Inhalte; eine
+> nachträglich geänderte Datei gilt als angewandt und läuft nie wieder.
+>
+> **Jede weitere Datenbankänderung ist eine neue additive Migration** — auch
+> eine Korrektur an dem, was 12 oder 13 angelegt haben.
+
+## Die gemessenen Werte
+
+| | vorher | nachher |
+| --- | --- | --- |
+| Tabellen | 16 | **16** |
+| Spalten | 101 | **101** |
+| Regeln | 28 | **28** |
+| Funktionen | 36 | **38** |
+| Trigger | 13 | **13** |
+
+Nur die Funktionen wachsen, und zwar um genau zwei. Alles andere steht
+still: Migration 13 legt nichts ab.
+
+Nutzdaten **unverändert**: 4 Profile · 2 Kurse · 4 Mitgliedschaften ·
+2 Pakete · 3 Fassungen · 2 Paketstände · 2 Eintragsstände · 4 Ereignisse.
+`learner_settings` weiterhin **0 Zeilen**.
+
+Die Einzelprüfungen aus Abschnitt B, alle bestanden:
+
+- genau **zwei** neue Funktionen, beide `security definer` **false**, beide
+  **ohne Argumente**;
+- `EXECUTE` ausschließlich für `authenticated`;
+- `my_local_today()` liefert ohne Einstellung **genau eine** Zeile mit drei
+  `null`-Werten — die Zusage, auf die es ankommt: eine Antwort auch dann,
+  wenn es nichts zu sagen gibt;
+- `my_learning_days()` bleibt ohne Einstellung leer;
+- Historie: **13** Versionen, zuletzt `20261003090000`.
+
+## Die WebKit-Abnahme
+
+Am selben Tag nachgeholt und bestanden: „Heute" misst in **Chromium und
+WebKit** bei 390, 768, 1024 und 1440 px ohne waagerechten Überlauf, ohne
+Bedienelement unter 44 × 44 px und mit allen sieben Bereichen.
+
+Sie konnte in der Entwicklungsumgebung nicht laufen — weder der
+Cloud-Container noch die lokale VM erreichen `cdn.playwright.dev`. Dass das
+Skript dort „NICHT gemessen: WebKit" auf stderr meldete statt „bestanden in
+zwei Browsern", war der Unterschied zwischen einer offenen Abnahme und einer
+behaupteten.
+
+Der Lauf brauchte außerdem `bc0b108`: `esbuild` war nur über Vites
+optionalen Peer-Vertrag im Lockfile und auf dem Arbeitsrechner nicht
+installiert.
+
+## Der Ablauf, so wie er gelaufen ist
+
+Dieselbe Trennung wie bei Migration 12: die CLI für Historie und Anwendung,
+der SQL Editor für die Abnahme (`docs/abnahme/migration-13.sql`).
 
 ## Was sie tut — und was nicht
 

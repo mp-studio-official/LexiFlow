@@ -195,9 +195,22 @@ eine Seite, die nicht mehr lädt.
 > **Migration 12 ist angewandt und damit unveränderlich.** Seit dem
 > 02.10.2026 steht `learner_settings` samt `my_due_overview` im Staging —
 > gemessen: 16 Tabellen, 101 Spalten, 28 Regeln, 36 Funktionen, 13 Trigger,
-> Nutzdaten unverändert. Die Migrationsdatei wird **nicht mehr bearbeitet**;
-> jede weitere Datenbankänderung ist eine **neue additive Migration**.
-> Protokoll: `docs/abnahme/migration-12.md`.
+> Nutzdaten unverändert. Protokoll: `docs/abnahme/migration-12.md`.
+>
+> **Migration 13 ebenfalls — angewandt am 03.10.2026.** Gemessen: dieselben
+> 16 / 101 / 28 / 13, Funktionen **38**; Nutzdaten unverändert,
+> `learner_settings` weiterhin leer. Protokoll:
+> `docs/abnahme/migration-13.md`.
+>
+> **Beide sind damit unveränderlich.** `db push` vergleicht Versionen, nicht
+> Inhalte — eine nachträglich geänderte Datei gilt als angewandt und läuft
+> nie wieder. **Jede weitere Datenbankänderung ist eine neue additive
+> Migration**, auch eine Korrektur an dem, was 12 oder 13 angelegt haben.
+>
+> **Die WebKit-Abnahme für „Heute" ist nachgeholt und bestanden**: Chromium
+> und WebKit bei 390, 768, 1024 und 1440 px. Sie brauchte `bc0b108` —
+> `esbuild` stand nur in Vites optionalem Peer-Vertrag und fehlte auf dem
+> Arbeitsrechner.
 
 ### Bereiche
 
@@ -205,7 +218,7 @@ eine Seite, die nicht mehr lädt.
 | --- | --- | --- | --- | --- |
 | **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
 | **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kursübergreifender Lernstandszugriff; **kein Bildschirm** | E1, E2, E3, **E26, E27, E28**, R11 | 5B.2d | **fertig** (`c49bdc6`, `0e5e077`); Migration 12 am 02.10.2026 **im Staging angewandt und abgenommen** — `docs/abnahme/migration-12.md` |
-| **5B.4** | „Heute" — **hier wird die Zeitzone bestätigt** (E27) | E1, E2, E3, E9, **E27, E28** | **5B.4a** | offen |
+| **5B.4** | „Heute" — **hier wird die Zeitzone bestätigt** (E27) | E1, E2, E3, E9, **E27, E28** | **5B.4a** | **fertig** (`34dd674`, `c3afee1`, `5186ae8`, `6f3db4a`); Migration 13 am 03.10.2026 **im Staging angewandt und abgenommen** — `docs/abnahme/migration-13.md` |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14, **E24** | 5B.2d | **fertig** (`5ce0363`, `8467267`, `3365861`) |
 | **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter; **hier werden Zeitzone und Ziel bearbeitet** | E1, E2, E3, **E25, E26, E27** | 5B.4 | offen |
 | ~~**5B.7**~~ | ~~Einstellungen~~ — **vorgezogen vor 5B.2d**, siehe oben | E23 | 5B.2c′ | — |

@@ -1,6 +1,7 @@
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Abnahme Migration 13 — my_local_today und my_learning_days          ║
--- ║  NOCH NICHT ANGEWANDT. Für den Supabase SQL Editor.                  ║
+-- ║  AUSGEFÜHRT am 03.10.2026, alle Prüfungen bestanden.                 ║
+-- ║  Für den Supabase SQL Editor; B bleibt jederzeit wiederholbar.       ║
 -- ║  A vor dem Anwenden, B danach. Nichts hier verändert Daten.          ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
 --
