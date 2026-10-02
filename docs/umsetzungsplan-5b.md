@@ -282,11 +282,11 @@ eine Seite, die nicht mehr lädt.
 
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
-| **5B.8** | Schemafassung 3 und Migrationsschritt 2 → 3, ohne Oberfläche | — | — (parallel) | offen |
-| **5B.9** | Titelbilder Stufe 1: Bucket, Migration, Upload, Prüfung, Größen, Fokuspunkt, Alternativtext, Einbettung im Offline-Export | E4, E17 | 5B.1 | offen |
-| **5B.10** | Grammatik in der Oberfläche: Eingabe im Paketeditor, Anzeige auf der Lernkarte, Übungsform „Zeitformen" | E8 | 5B.8, 5B.5 | offen |
-| **5B.11** | Zeitgesteuerte Veröffentlichung: `publish_at`, Auswertung beim Abruf über die Zugriffsregel | E6 | — | offen |
-| **5B.12** | Mobile Sonderfälle: Tabellen als Karten, umschaltbare Werkstattansichten, sticky Aktionsleisten | — | 5B.2d | offen |
+| **5B.8** | Schemafassung 3 und Migrationsschritt 2 → 3, ohne Oberfläche | — | — (parallel) | **fertig** (`0ea0ade`) |
+| **5B.9** | Titelbilder Stufe 1: Bucket, Migration, Upload, Prüfung, Größen, Fokuspunkt, Alternativtext, Einbettung im Offline-Export | E4, E17 | 5B.1 | **pausiert** (Pilot 0.1) |
+| **5B.10** | Grammatik in der Oberfläche: Eingabe im Paketeditor, Anzeige auf der Lernkarte, Übungsform „Zeitformen" | E8 | 5B.8, 5B.5 | **pausiert** (Pilot 0.1) |
+| **5B.11** | Zeitgesteuerte Veröffentlichung: `publish_at`, Auswertung beim Abruf über die Zugriffsregel | E6 | — | **pausiert** (Pilot 0.1) |
+| **5B.12** | Mobile Sonderfälle: Tabellen als Karten, umschaltbare Werkstattansichten, sticky Aktionsleisten | — | 5B.2d | **pausiert** (Pilot 0.1) |
 
 > **Die Blockade ist aufgehoben — am 02.10.2026.** Die Angleichung der
 > Migrationshistorie ist gelaufen und bestanden: Alle elf lokalen Versionen
@@ -320,12 +320,36 @@ eine Seite, die nicht mehr lädt.
 > **E17** verlangt den Titelbildbaustein **vor** der Werkstatt — deshalb
 > steht 5B.9 vor 5B.13.
 
+---
+
+> ### 5B.9 bis 5B.14 sind pausiert — am 02.10.2026
+>
+> Nicht gestrichen und nicht gescheitert: **zurückgestellt**, bis die Grenze
+> eines kontrollierten Pilots 0.1 mit einer Lehrkraft und einer kleinen
+> Lerngruppe feststeht. Der Grund ist einfach: Diese sechs Blöcke machen das
+> Produkt größer, und was vor einem Pilot fehlt, ist nicht Umfang, sondern
+> Betriebsfähigkeit — eine öffentliche Adresse, eine Kennzeichnung, ein
+> gelaufener Happy-Path, ein Sperrweg, ein Rückfall, Anleitungen.
+>
+> Was stattdessen zuerst gilt, steht in `docs/pilot-0.1-readiness.md`:
+> Bestandsaufnahme mit Fundstellen, Abhängigkeiten, acht rote
+> Ausgangsprüfungen (`npm run pilot:pruefen`) und die Dreiteilung „zwingend
+> vor Pilot / darf währenddessen fehlen / erst danach".
+>
+> **5B.9 bis 5B.12 und 5B.13/5B.14 stehen dort ausdrücklich unter „darf
+> während des Pilots fehlen".** Die Lehrkraft baut Pakete weiter in der
+> portablen Werkstatt und übernimmt sie ins Portal — der Weg ist vorhanden
+> und in `src/hosted/teacher/LocalImportPanel.tsx` belegt.
+>
+> **Kein Pilotcommit beginnt eine dieser sechs Arbeiten.** Wird der Pilot
+> entschieden, wird hier fortgesetzt, nicht neu geplant.
+
 ### Werkstatt und Übungsformen im Portal
 
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
-| **5B.13** | Werkstatt im Portal, erste Hälfte: Einlesen (Schritt 2), Quelltextauswahl (Schritt 4) | E5 | 5B.2d, 5B.9 | offen |
-| **5B.14** | Werkstatt im Portal, zweite Hälfte: Vorschläge und Prüfschritt (3, 5, 6), Export vervollständigen (8) | E5 | 5B.13 | offen |
+| **5B.13** | Werkstatt im Portal, erste Hälfte: Einlesen (Schritt 2), Quelltextauswahl (Schritt 4) | E5 | 5B.2d, 5B.9 | **pausiert** (Pilot 0.1) |
+| **5B.14** | Werkstatt im Portal, zweite Hälfte: Vorschläge und Prüfschritt (3, 5, 6), Export vervollständigen (8) | E5 | 5B.13 | **pausiert** (Pilot 0.1) |
 | **5B.15** | Übungsformen im Portal erreichbar: Karteikarten, Selbsttest, freies Üben, Vokabelliste | E14 | 5B.5 | **fertig** (`9e14b81`) |
 
 > **5B.13 bis 5B.15 sind der eigentliche Umfang.** Sie stehen hier unten,
