@@ -141,10 +141,17 @@
   text-align: center;
 }
 
+/*
+  Die Nebensache – Kurstitel, Schuljahr. **Nicht** `flex: none`: Gemessen bei
+  390 px schob ein Kurstitel von 395 px die Seite um 45 px auf. Sie darf
+  schrumpfen und umbrechen; was sie sagt, ist ohnehin die Zugabe, nicht die
+  Hauptsache der Zeile.
+*/
 .heute-liste__nebensache {
-  flex: none;
+  min-inline-size: 0;
   color: var(--tinte-3);
   font-size: var(--text-sm);
+  overflow-wrap: anywhere;
 }
 
 /* ------------------------------------------------------------ Diese Woche */
