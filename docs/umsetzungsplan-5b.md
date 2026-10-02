@@ -110,7 +110,7 @@ Abgenommen wurde:
 
 | Ziel | Beschriftung | schaltet frei in |
 | --- | --- | --- |
-| `#/start` | Start | 5B.3 |
+| ~~`#/start`~~ | ~~Start~~ | **frei seit `8d74160` (5B.3)** |
 | `#/heute` | Heute | 5B.4 |
 | `#/ueben` | Üben | 5B.5 |
 | `#/fortschritt` | Fortschritt | 5B.6 |
@@ -196,7 +196,7 @@ eine Seite, die nicht mehr lädt.
 
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
-| **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | offen |
+| **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
 | **5B.4** | „Heute" | E1, E2, E3, E9 | 5B.2d | offen |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14 | 5B.2d | offen |
 | **5B.6** | „Mein Fortschritt": Lernzeit, Lernserie mit Ruhetagen, freiwilliges Wochenziel | E1, E2, E3, E6 | 5B.4 | offen |
