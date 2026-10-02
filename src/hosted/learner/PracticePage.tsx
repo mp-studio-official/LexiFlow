@@ -21,6 +21,7 @@ import { isDue } from '../../domain/leitner';
 import { istSchwierig } from '../../domain/schwierigeWoerter';
 import { gingeVerloren } from '../../domain/rundenverlust';
 import { gehenWenn, useAussenschutz, useDarfVerlassen, useVerlassenWache } from '../VerlassenSchutz';
+import { Rueckfrage } from './Rueckfrage';
 import './runde.css';
 import { ExerciseView } from '../../routes/student/ExerciseView';
 import { Alert, Button, Card } from '../../ui/components';
@@ -226,16 +227,22 @@ export function PracticePage() {
     gehenWenn(darfVerlassen(), zurueckZumKurs);
   }, [darfVerlassen, zurueckZumKurs]);
 
-  /** „Hierbleiben": schließen und zurück ins Antwortfeld, nicht an den Seitenanfang. */
+  /*
+    Der Fokus geht an das Feld, in dem die Eingabe steht — nicht an den Anfang
+    der Seite. Wer „Hierbleiben" wählt, will weitertippen.
+
+    Gerufen wird das **nach** dem Schließen (`nachBleiben`): Ein modales
+    `<dialog>` gibt den Fokus beim Schließen an seinen Öffner zurück und
+    überschriebe jede frühere Entscheidung.
+  */
+  const insFeld = useCallback(() => {
+    feldRef.current?.querySelector<HTMLElement>('input, textarea, button')?.focus();
+  }, []);
+
+  /** „Hierbleiben": schließen, nichts verwerfen. */
   const hierbleiben = useCallback(() => {
     rueckfrage?.aufloesen(false);
     setRueckfrage(null);
-    /*
-      Der Fokus geht an das Feld, in dem die Eingabe steht — nicht an den
-      Anfang der Seite. Wer „Hierbleiben" wählt, will weitertippen.
-    */
-    const feld = feldRef.current?.querySelector<HTMLElement>('input, textarea, button');
-    feld?.focus();
   }, [rueckfrage]);
 
   /** „Runde beenden": verwirft **nur** die aktuelle Eingabe. */
@@ -335,37 +342,19 @@ export function PracticePage() {
   );
 
   /*
-    Die Rückfrage: ein Dialog, der den Fokus hält, und zwei Knöpfe, die genau
-    sagen, was sie tun. Sie erscheint **nur**, wenn wirklich etwas verloren
-    ginge — und sie benennt, was.
+    Die Rückfrage steht immer im Baum und ist nur dann offen, wenn wirklich
+    etwas verloren ginge. Ein `<dialog>`, das erst beim Öffnen entsteht, hätte
+    im selben Durchlauf noch keine Referenz, und `showModal()` liefe ins
+    Leere — genau einmal, und zwar beim ersten Mal.
   */
-  const nachfrage = rueckfrage ? (
-    <div
-      className="rueckfrage"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="rueckfrage-titel"
-      onKeyDown={(ereignis) => {
-        if (ereignis.key === 'Escape') hierbleiben();
-      }}
-    >
-      <Card>
-        <h2 id="rueckfrage-titel" style={{ marginTop: 0 }}>
-          Deine angefangene Antwort geht verloren
-        </h2>
-        <p>
-          Alles, was du schon beantwortet hast, ist gespeichert. Nur die Eingabe an dieser
-          Aufgabe ist noch nicht abgeschickt.
-        </p>
-        <div className="row">
-          <Button variant="primary" onClick={hierbleiben} autoFocus>
-            Hierbleiben
-          </Button>
-          <Button onClick={doch}>Runde beenden</Button>
-        </div>
-      </Card>
-    </div>
-  ) : null;
+  const nachfrage = (
+    <Rueckfrage
+      offen={rueckfrage !== null}
+      aufBleiben={hierbleiben}
+      aufBeenden={doch}
+      nachBleiben={insFeld}
+    />
+  );
 
   if (!aufgabe || isFinished(state)) {
     return (

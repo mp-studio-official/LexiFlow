@@ -116,8 +116,16 @@ function antwortfeld(): HTMLInputElement {
   return feld as HTMLInputElement;
 }
 
+/**
+ * Die Rückfrage — **nur wenn sie offen ist**.
+ *
+ * Das `<dialog>` steht immer im Baum; offen ist es über sein `open`-Attribut.
+ * Ohne diese Unterscheidung fände jede Abfrage den geschlossenen Dialog und
+ * jede Prüfung „keine Rückfrage" wäre sofort rot.
+ */
 function dialog(): HTMLElement | null {
-  return screen.queryByRole('dialog');
+  const feld = document.querySelector('dialog');
+  return feld?.hasAttribute('open') ? (feld as HTMLElement) : null;
 }
 
 describe('die Rückfrage kommt genau dann, wenn etwas verloren ginge', () => {
@@ -216,8 +224,16 @@ describe('was die beiden Knöpfe der Rückfrage tun', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Runde beenden' }));
 
     const feld = dialog() as HTMLElement;
-    expect(feld).toHaveAttribute('aria-modal', 'true');
+    expect(feld.tagName, 'kein natives dialog-Element').toBe('DIALOG');
     expect(feld.getAttribute('aria-labelledby')).toBeTruthy();
+    /*
+      `aria-modal` steht nur da, wenn `showModal()` lief — in jsdom gibt es
+      die Methode nicht (Stand 30.x), also darf das Attribut hier **fehlen**.
+      Dass es im echten Browser dasteht und dass die Modalität dort wirklich
+      gilt, misst `scripts/rueckfrage-messen.mjs`.
+    */
+    expect(typeof (feld as HTMLDialogElement).showModal).toBe('undefined');
+    expect(feld.getAttribute('aria-modal'), 'Modalität ohne Deckung behauptet').toBeNull();
     expect(within(feld).getByRole('heading')).toBeInTheDocument();
     /* Der erste Fokus liegt auf der ungefährlichen Antwort. */
     expect(document.activeElement).toBe(

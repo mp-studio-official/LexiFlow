@@ -28,7 +28,8 @@
     "stilumfang": "node scripts/stilumfang.mjs",
     "zeichen": "node scripts/zeichen-unterscheidbar.mjs",
     "huelle:messen": "node scripts/huelle-messen.mjs",
-    "start:messen": "node scripts/start-messen.mjs"
+    "start:messen": "node scripts/start-messen.mjs",
+    "rueckfrage:messen": "node scripts/rueckfrage-messen.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
