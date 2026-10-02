@@ -57,22 +57,69 @@ sind — nicht, wenn sein Code steht.
 
 ### Die Hülle
 
-| Block | Inhalt | Entscheidungen | hängt ab von | Status |
-| --- | --- | --- | --- | --- |
-| **5B.2a** | Navigationsdefinition: Darstellung in `src/ui/`, Umsetzungszustand in `src/hosted/` | E12, E13, E23 | 5B.1 | **offen** |
-| **5B.2b** | Die Zeichen der Icon-Leiste | E23 | 5B.2a | offen |
-| **5B.2c** | Die Hülle als Baustein — unbenutzt, isoliert, ohne Routing- und Rollenwissen | E12, E23 | 5B.2b | offen |
-| **5B.2c′** | **Übergangsredirect** `#/pakete` → `#/material`, mit Integrationsprüfung am Router | E13 | 5B.2c | offen |
-| **5B.7** | **Einstellungen unter `#/einstellungen`** — vorgezogen, siehe unten | E23 | 5B.2c′ | offen |
-| **5B.2d** | Das Portal schaltet um — **erste sichtbare Produktivänderung** | E12, E23 | **5B.7** | offen |
+| Block | Inhalt | Entscheidungen | hängt ab von | Status | Commit |
+| --- | --- | --- | --- | --- | --- |
+| **5B.2a** | Navigationsdefinition: Darstellung in `src/ui/`, Umsetzungszustand in `src/hosted/` | E12, E13, E23 | 5B.1 | **fertig** | `0a34eb1`, `0abf13d` |
+| **5B.2b** | Die Zeichen der Icon-Leiste | E23 | 5B.2a | **fertig** | `3f5728f`, `9a91fae` |
+| **5B.2c** | Die Hülle als Baustein — unbenutzt, isoliert, ohne Routing- und Rollenwissen | E12, E23 | 5B.2b | **fertig** | `75d232f`, `846f81a`, `e75387b` |
+| **5B.2c′** | **Übergangsredirect** `#/pakete` → `#/material`, mit Integrationsprüfung am Router | E13 | 5B.2c | **fertig** | `b880c2f` |
+| **5B.7** | **Einstellungen unter `#/einstellungen`** — vorgezogen, siehe unten | E23 | 5B.2c′ | **fertig** | `f5a3b93`, `e0b41f1` |
+| **5B.2d** | Das Portal schaltet um — **erste sichtbare Produktivänderung** | E12, E23 | **5B.7** | **fertig** | `431285e` |
+| **5B.2e** | Bereinigung nach dem Hüllenwechsel — **der nächste Block** | E18 | 5B.2d | **offen** | — |
 
 > Zusammengeführt werden ausschließlich die drei Portalhüllen (`PublicShell`,
 > `LearnerShell`, `TeacherShell`). `AppShell` und `StudentShell` bleiben in
 > 5B.2 unverändert; die portablen Bündel dürfen sich um kein Byte ändern.
 >
-> Nach 5B.2d sind sichtbar: **Kurse · Lernpakete · KI-Zugang** (Lehrkraft)
-> und **Lernen** (Lernende). Alles andere bleibt `geplant` — siehe die
+> Nach 5B.2d sind sichtbar: **Kurse · Lernpakete · KI-Zugang ·
+> Einstellungen** (Lehrkraft, Einstellungen seit dem vorgezogenen 5B.7) und
+> **Lernen** (Lernende). Alles andere bleibt `geplant` — siehe die
 > progressive Freischaltung in E23.
+
+#### Was 5B.2d abgenommen hat (`431285e`)
+
+Die drei Portalhüllen sind dünne Adapter der gemeinsamen Hülle; die
+sichtbaren Ziele kommen ausschließlich aus `src/hosted/navigationsziele.ts`.
+Abgenommen wurde:
+
+- **Erhaltene Zugangswege**, am echten Router geprüft
+  (`src/hosted/wege.test.tsx`, 29 Prüfungen): „Mit Code beitreten" innerhalb
+  von `/lernen`, Lernbereich, Datenschutz in der Fußzeile, Abmelden als
+  Handlung, „Als Lernende ansehen" im Kopf, die Ziele je Breite, der einzige
+  reguläre Einstieg zur Verwaltung über die Einstellungen, der öffentliche
+  Bereich ohne jede Bereichsnavigation, Marke und Sprungziel. Kein Test wertet
+  Wildcard oder Landungsseite als Erfolg.
+- **Route → aktives Ziel je Breite:** `/ki` am Schreibtisch „KI-Zugang", auf
+  dem Telefon „Einstellungen"; `/verwaltung` in beiden Größen
+  „Einstellungen"; `/material` und `/pakete` „Lernpakete".
+- **Browsermessung** bei 390, 768, 1024 und 1440 px über sechs Fälle:
+  genau eine sichtbare Navigation je Haltepunkt, die andere aus dem
+  Accessibility-Baum; kein waagerechter Überlauf; keine Tippziele unter
+  44 × 44 px; Tooltip bei Hover und Fokus; Leiste konstant 76 px; aktiver
+  Zustand ohne Farbe 2,9 % Flächenunterschied; die feste untere Leiste
+  verdeckt weder Kopf noch Inhalt noch Fußzeile.
+- **Portable Artefakte bytegleich** vor und nach dem Commit
+  (`9958108c…`, `826a589c…`); `AppShell` und `StudentShell` unverändert.
+- **Zehn Gegenproben**, alle rot.
+
+#### Weiterhin `geplant`: vier Ziele
+
+| Ziel | Beschriftung | schaltet frei in |
+| --- | --- | --- |
+| `#/start` | Start | 5B.3 |
+| `#/heute` | Heute | 5B.4 |
+| `#/ueben` | Üben | 5B.5 |
+| `#/fortschritt` | Fortschritt | 5B.6 |
+
+Jedes dieser Ziele wechselt seinen Zustand **in demselben Commit**, in dem
+seine Route und sein Inhalt entstehen — nicht früher.
+
+#### 5B.2e: die Bereinigung nach dem Wechsel
+
+5B.2d hat ausdrücklich nichts gelöscht. Was der Hüllenwechsel an alten
+Klassen, altem CSS und an Prüfungen auf den alten Zustand hinterlassen hat,
+wird in 5B.2e entfernt — nach **E18**: eine Regel fällt erst in dem Block,
+der ihren letzten tatsächlichen Verbraucher umstellt.
 
 #### Warum 5B.7 vor 5B.2d steht
 
@@ -206,6 +253,9 @@ jeden bestehenden Weg nachgewiesen sein, dass es ihn danach noch gibt:
 Jeder dieser Punkte bekommt in 5B.2d eine Prüfung am echten Router. „Ist noch
 da" ist keine Beobachtung, sondern eine Behauptung, solange sie niemand
 nachgesehen hat.
+
+**Erledigt mit `431285e`:** alle acht Punkte stehen als Prüfung in
+`src/hosted/wege.test.tsx`.
 
 ### Zu E18: wann Altregeln fallen
 
