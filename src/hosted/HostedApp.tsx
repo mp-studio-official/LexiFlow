@@ -108,6 +108,18 @@ export function HostedRoutes() {
           }
         />
         {/*
+          „Mein Fortschritt" (5B.6). Im Lernriegel wie „Heute" und „Üben";
+          was dort steht, ist ausschliesslich der eigene Lernstand.
+        */}
+        <Route
+          path="fortschritt"
+          element={
+            <Suspense fallback={<Laedt was="Dein Fortschritt" />}>
+              <LearnerArea section="fortschritt" />
+            </Suspense>
+          }
+        />
+        {/*
           Der Übungsbereich (5B.5). Im selben Riegel wie der Lernbereich:
           Lernende und die Lehrkraft, die sich ihre eigene Ansicht ansieht,
           kommen hinein — sonst niemand.

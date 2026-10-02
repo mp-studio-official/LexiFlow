@@ -197,6 +197,8 @@ describe('der Stand, den dieser Block festhält', () => {
       '#/lernen',
       /* `#/ueben` seit 5B.5 — Route und Inhalt im selben Commit. */
       '#/ueben',
+      /* `#/fortschritt` seit 5B.6 — ebenso. */
+      '#/fortschritt',
     ]);
   });
 

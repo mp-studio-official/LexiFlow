@@ -93,17 +93,20 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
       dafür Lade- und Fehlerzustand, aber keinen eigenen Titel.
     */
     Skeleton: [
+      'hosted/learner/FortschrittPage.tsx',
       'hosted/learner/HeutePage.tsx',
       'hosted/learner/PaketAnsicht.tsx',
       'hosted/learner/UebenPage.tsx',
       'hosted/teacher/StartPage.tsx',
     ],
     PageTitle: [
+      'hosted/learner/FortschrittPage.tsx',
       'hosted/learner/HeutePage.tsx',
       'hosted/learner/UebenPage.tsx',
       'hosted/teacher/StartPage.tsx',
     ],
     ErrorState: [
+      'hosted/learner/FortschrittPage.tsx',
       'hosted/learner/HeutePage.tsx',
       'hosted/learner/PaketAnsicht.tsx',
       'hosted/learner/UebenPage.tsx',
@@ -116,8 +119,13 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
       zwar **alle** auf dieser einen Seite, weshalb sie hier auch allein
       steht.
     */
-    Fortschritt: ['hosted/learner/HeutePage.tsx'],
-    LeererZustand: ['hosted/learner/HeutePage.tsx'],
+    /*
+      5B.6 kommt dazu: „Mein Fortschritt" trägt den Balken gleich dreimal —
+      beherrschte Vokabeln, Wochenziel und je Paket — und den leeren Zustand
+      für vier Fälle eines frischen Kontos.
+    */
+    Fortschritt: ['hosted/learner/FortschrittPage.tsx', 'hosted/learner/HeutePage.tsx'],
+    LeererZustand: ['hosted/learner/FortschrittPage.tsx', 'hosted/learner/HeutePage.tsx'],
   };
 
   for (const baustein of NEU) {

@@ -53,7 +53,7 @@ export interface Umsetzung {
 }
 
 /**
- * Der Stand vom 03.10.2026.
+ * Der Stand vom 04.10.2026.
  *
  * Jede Zeile hier ist eine Aussage über die Wirklichkeit, keine Absicht. Wer
  * einen Zustand hochsetzt, ohne die Route zu bauen, bekommt das von
@@ -84,7 +84,11 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
   */
   '#/heute': { zustand: 'vorhanden', route: '/heute' },
   '#/ueben': { zustand: 'vorhanden', route: '/ueben' },
-  '#/fortschritt': { zustand: 'geplant', block: '5B.6' },
+  /*
+    Seit 5B.6 eine echte Route — im selben Commit, in dem sie Inhalt bekam
+    (Regel 1 oben).
+  */
+  '#/fortschritt': { zustand: 'vorhanden', route: '/fortschritt' },
   /*
     Seit 5B.7 eine echte Route — im selben Commit, in dem sie Inhalt bekam.
     Zugänglich für jede Lehrkraft; der Adminteil ist ein Abschnitt der Seite
@@ -188,6 +192,7 @@ const ZUORDNUNG: ReadonlyArray<readonly [RegExp, string]> = [
   */
   [/^\/(einstellungen|verwaltung)(\/|$)/, '#/einstellungen'],
   [/^\/heute(\/|$)/, '#/heute'],
+  [/^\/fortschritt(\/|$)/, '#/fortschritt'],
   [/^\/lernen(\/|$)/, '#/lernen'],
   [/^\/ueben(\/|$)/, '#/ueben'],
 ];

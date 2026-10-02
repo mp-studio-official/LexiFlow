@@ -25,6 +25,7 @@ import type { Course, PackRevision } from '../../application/repositories';
 const PracticePage = lazy(() => import('./PracticePage'));
 import { UebenPage } from './UebenPage';
 import { HeutePage } from './HeutePage';
+import { FortschrittPage } from './FortschrittPage';
 import { PaketAnsicht } from './PaketAnsicht';
 
 /*
@@ -186,7 +187,7 @@ function Kurs() {
   );
 }
 
-export const LEARNER_SECTIONS = ['heute', 'lernen', 'ueben'] as const;
+export const LEARNER_SECTIONS = ['heute', 'fortschritt', 'lernen', 'ueben'] as const;
 export type LearnerSection = (typeof LEARNER_SECTIONS)[number];
 
 /**
@@ -220,6 +221,9 @@ export function LearnerArea({ section = 'lernen' }: { section?: LearnerSection }
     es schon gibt: `/ueben/...` und `/lernen`.
   */
   if (section === 'heute') return <HeutePage />;
+
+  // Auch „Mein Fortschritt" ist eine Seite, kein Bereich mit Unterseiten.
+  if (section === 'fortschritt') return <FortschrittPage />;
 
   if (section === 'ueben') {
     /*

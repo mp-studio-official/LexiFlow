@@ -1,0 +1,256 @@
+/* ===========================================================================
+   „Mein Fortschritt" (5B.6)
+   ===========================================================================
+
+   Bei seinem Bildschirm, nicht in `global.css` — die trägt auch die portable
+   Lerndatei, und die kennt weder Kurse noch Lernserien.
+
+   Variante B: Flächen statt Linien, großer Radius, flacher Schatten.
+   **Kein Glas** — hier steht überall Text. Keine neuen Farbwerte; alles aus
+   den Tokens.
+   =========================================================================== */
+
+.fortschritt {
+  display: grid;
+  gap: var(--stack-normal);
+}
+
+/*
+  Zweispaltig erst, wenn wirklich Platz ist. `min(…, 100%)` ist der Riegel
+  gegen waagerechtes Scrollen: Ohne ihn verlangte die Spalte ihre
+  Mindestbreite auch dann, wenn der Bildschirm sie nicht hat.
+*/
+@media (min-width: 60rem) {
+  .fortschritt {
+    grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+  }
+}
+
+.fortschritt__bereich {
+  display: grid;
+  gap: var(--stack-snug);
+  align-content: start;
+  padding: var(--space-5);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  box-shadow: var(--schatten-flach);
+  color: var(--tinte);
+  min-inline-size: 0;
+}
+
+/*
+  „Nach Kurs und Paket" und „Schwierige Wörter" sind Listen, die lang werden.
+  Sie bekommen die volle Breite, statt eine Spalte zu dehnen und die andere
+  leer stehen zu lassen.
+*/
+@media (min-width: 60rem) {
+  .fortschritt__bereich[data-bereich='kurse'],
+  .fortschritt__bereich[data-bereich='schwierig'] {
+    grid-column: 1 / -1;
+  }
+}
+
+.fortschritt__titel {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-snug);
+}
+
+.fortschritt__zahl {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.fortschritt__zahl > strong {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+}
+
+.fortschritt__text {
+  margin: 0;
+  max-inline-size: var(--width-prose);
+  color: var(--tinte-2);
+  line-height: var(--leading-normal);
+}
+
+.fortschritt__neben,
+.fortschritt__unbeziffert {
+  margin: 0;
+  max-inline-size: var(--width-prose);
+  color: var(--tinte-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.fortschritt__fehler {
+  margin: 0;
+  color: var(--fehler);
+}
+
+/*
+  Jeder Verweis, der für sich steht, ist ein Bedienelement. Die Höhe über
+  `min-block-size`, nicht über Polsterung — Polsterung schöbe auch die Zeilen
+  auseinander, die schon hoch genug sind.
+*/
+.fortschritt__ziel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--tap-target);
+  min-inline-size: var(--tap-target);
+}
+
+/* ------------------------------------------------------------ Die Woche */
+
+.fortschritt-woche {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fortschritt-woche__tag {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  border-radius: var(--rund-klein);
+}
+
+.fortschritt-woche__buchstabe {
+  color: var(--tinte-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+/*
+  Form **und** Farbe tragen die Aussage: ein Lerntag ist gefüllt und dunkler,
+  ein offener Tag ein Ring. Farbe allein wäre für rund jeden zwölften Jungen
+  keine Aussage.
+*/
+.fortschritt-woche__punkt {
+  inline-size: 0.875rem;
+  block-size: 0.875rem;
+  border: 2px solid var(--rand-stark);
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.fortschritt-woche__tag[data-lerntag='ja'] .fortschritt-woche__punkt {
+  border-color: var(--gut);
+  background: var(--gut);
+}
+
+/* Noch nicht dran ist nicht verpasst: blasser, nicht leerer. */
+.fortschritt-woche__tag[data-kuenftig='ja'] .fortschritt-woche__punkt {
+  border-style: dashed;
+  border-color: var(--rand);
+}
+
+.fortschritt-woche__tag[data-heute='ja'] {
+  background: var(--flaeche-stumpf);
+}
+
+.fortschritt-woche__tag[data-heute='ja'] .fortschritt-woche__buchstabe {
+  color: var(--tinte);
+  font-weight: var(--weight-semibold);
+}
+
+/* ---------------------------------------------------- Die Eingabefelder */
+
+.fortschritt-feld {
+  display: grid;
+  gap: var(--space-1);
+  max-inline-size: var(--width-prose);
+}
+
+.fortschritt-feld__label {
+  color: var(--tinte-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/*
+  `inline-size: 100%` mit `max-inline-size` am Elternteil: Eine Auswahlliste,
+  die ihre Breite aus dem längsten Eintrag nähme, schöbe die Seite auf —
+  „America/Argentina/ComodRivadavia" ist lang.
+*/
+.fortschritt-feld__eingabe {
+  inline-size: 100%;
+  min-block-size: var(--tap-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--rand-bedienung);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--tinte);
+  font: inherit;
+}
+
+.fortschritt-feld__knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ------------------------------------------------ Kurse und Pakete ----- */
+
+.fortschritt-kurse,
+.fortschritt-kurse__pakete,
+.fortschritt-schwierig {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fortschritt-kurse__kurs {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.fortschritt-kurse__titel {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  /* Lange Kurstitel brechen, statt die Karte aufzuschieben. */
+  overflow-wrap: anywhere;
+}
+
+.fortschritt-kurse__paket {
+  min-inline-size: 0;
+}
+
+/* ------------------------------------------------ Schwierige Wörter ---- */
+
+/*
+  Eine Zeile: Wort, Herkunft, Weg. Umbrechend statt abgeschnitten — am
+  Telefon ist der Umbruch der Normalfall und nicht der Sonderfall.
+*/
+.fortschritt-schwierig__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.fortschritt-schwierig__wort {
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.fortschritt-schwierig__herkunft {
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+  color: var(--tinte-3);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
