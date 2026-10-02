@@ -217,10 +217,50 @@ describe('anon', () => {
 });
 
 describe('authenticated', () => {
-  it('hat genau die Tabellenrechte aus den Migrationen 3, 4, 8 und 11', async () => {
+  it('darf beim Anlegen eines Profils die Rolle nicht nennen (Migration 14)', async () => {
+    /*
+      Der eigentliche Rollenriegel steht in `rollenriegel.test.mjs` und wird
+      dort am Verhalten gezeigt. Hier steht die **Rechteliste**: Sie ist das,
+      was beim Nachziehen einer Migration versehentlich wieder geweitet wird,
+      und sie taucht in keiner Tabellenübersicht auf.
+    */
+    const ergebnis = await db.query(`
+      select column_name
+        from information_schema.role_column_grants
+       where table_schema = 'public'
+         and table_name = 'profiles'
+         and grantee = 'authenticated'
+         and privilege_type = 'INSERT'
+       order by column_name`);
+    expect(ergebnis.rows.map((zeile) => zeile.column_name)).toEqual([
+      'display_name',
+      'id',
+      'short_code',
+    ]);
+  });
+
+  it('darf nur den Anzeigenamen ändern', async () => {
+    const ergebnis = await db.query(`
+      select column_name
+        from information_schema.role_column_grants
+       where table_schema = 'public'
+         and table_name = 'profiles'
+         and grantee = 'authenticated'
+         and privilege_type = 'UPDATE'
+       order by column_name`);
+    expect(ergebnis.rows.map((zeile) => zeile.column_name)).toEqual(['display_name']);
+  });
+
+  it('hat genau die Tabellenrechte aus den Migrationen 3, 4, 8, 11 und 14', async () => {
     const matrix = await tabellenrechte();
     expect(matrix.authenticated).toEqual({
-      profiles: 'INSERT,SELECT',
+      /*
+        Kein `insert` mehr auf der ganzen Tabelle – seit Migration 14. Das
+        Recht ist nicht weg, es ist auf drei Spalten verengt; diese Abfrage
+        kennt nur die Tabellenebene. Die Prüfung direkt darunter sagt, welche
+        Spalten es sind, und sie ist der eigentliche Nachweis.
+      */
+      profiles: 'SELECT',
       courses: 'DELETE,INSERT,SELECT,UPDATE',
       course_members: 'DELETE,INSERT,SELECT',
       course_invites: 'INSERT,SELECT,UPDATE',
