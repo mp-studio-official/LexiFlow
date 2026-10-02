@@ -76,15 +76,22 @@ describe('Die Serie', () => {
   it('ist null, wenn nie etwas gezählt wurde', () => {
     expect(serieAm([], MITTWOCH, MONTAG)).toEqual({
       laenge: 0,
+      laengste: 0,
       heuteGeschafft: false,
-      ruhetageVerbraucht: 2,
-      ruhetageUebrig: 0,
+      ruhetageVerbraucht: 0,
+      ruhetageUebrig: 2,
     });
     /*
-      Zwei verbrauchte Ruhetage bei leerer Vergangenheit sind richtig und
-      sehen zunächst merkwürdig aus: Montag und Dienstag sind vorbei und
-      waren keine Lerntage. Die Serie ist trotzdem 0 – es gab nie eine.
-      Die Seite zeigt daraus eine Serie von null Tagen, keine Mahnung.
+      Null verbrauchte Ruhetage, und das ist eine Verbesserung aus dem
+      Wegfall der festen Schleifengrenze: Früher lief der Gang blind 400
+      Schritte zurück und zählte dabei Montag und Dienstag als verbrauchte
+      Ruhetage — obwohl es nie eine Serie gab, die sie hätten überbrücken
+      können. Jetzt endet der Gang beim frühesten gelieferten Tag, und bei
+      leerer Historie ist das heute: Es wird kein Schritt getan und nichts
+      verbraucht.
+
+      Die Seite zeigt daraus eine Serie von null Tagen und zwei offene
+      Ruhetage — ein Anfang, keine Mahnung.
     */
   });
 
@@ -181,6 +188,175 @@ describe('Die Serie', () => {
     // Der Dienstag ist ein Ruhetag – kein Lerntag, aber überbrückbar.
     expect(serie.laenge).toBe(2);
     expect(serie.ruhetageVerbraucht).toBe(1);
+  });
+});
+
+describe('Die längste Serie (§ 4.5)', () => {
+  /**
+   * Eine durchgehende Reihe von Lerntagen, endend am angegebenen Tag.
+   *
+   * Sieben am Stück je Woche heißt: kein Ruhetag verbraucht. Das ist für
+   * diese Prüfungen wichtig, weil sonst das Wochenkontingent mitredet, wo es
+   * um die Länge geht.
+   */
+  function reihe(ende: string, tage: number): Tageszaehlung[] {
+    return Array.from({ length: tage }, (_, i) => voll(tagPlus(ende, -i)));
+  }
+
+  it('bleibt sichtbar, wenn die aktuelle Serie viel kürzer ist', () => {
+    /*
+      Der Fall aus § 4.5: zwölf Tage am Stück, dann eine Unterbrechung, dann
+      wieder zwei. Was bleibt, ist die Zwölf — nicht als Mahnung, sondern
+      als das, was jemand einmal geschafft hat.
+    */
+    const alt = reihe('2026-09-20', 12);
+    const neu = [voll(DIENSTAG), voll(MITTWOCH)];
+    const serie = serieAm([...alt, ...neu], MITTWOCH, MONTAG);
+
+    expect(serie.laenge).toBe(2);
+    expect(serie.laengste).toBe(12);
+  });
+
+  it('wird von einer neuen, längeren Serie abgelöst', () => {
+    const alt = reihe('2026-09-20', 4);
+    const neu = reihe(MITTWOCH, 9);
+    const serie = serieAm([...alt, ...neu], MITTWOCH, MONTAG);
+
+    expect(serie.laenge).toBe(9);
+    expect(serie.laengste).toBe(9);
+  });
+
+  it('ist bei einer ununterbrochenen Geschichte dieselbe wie die aktuelle', () => {
+    const serie = serieAm(reihe(MITTWOCH, 5), MITTWOCH, MONTAG);
+    expect(serie.laenge).toBe(5);
+    expect(serie.laengste).toBe(5);
+  });
+
+  it('gilt auch für die längste Serie: zwei Ruhetage je Kalenderwoche', () => {
+    /*
+      Eine alte Serie, die zweimal von einem Ruhetag derselben Woche
+      überbrückt wird — sie zählt durch. Ein dritter fehlender Tag in
+      derselben Woche trennte sie.
+    */
+    const mo = '2026-09-07';
+    const alteSerie = [
+      voll(mo),
+      // Di und Mi fehlen – die zwei Ruhetage dieser Woche.
+      voll(tagPlus(mo, 3)),
+      voll(tagPlus(mo, 4)),
+      voll(tagPlus(mo, 5)),
+      voll(tagPlus(mo, 6)),
+    ];
+    const serie = serieAm([...alteSerie, voll(MITTWOCH)], MITTWOCH, MONTAG);
+    expect(serie.laenge).toBe(1);
+    expect(serie.laengste).toBe(5);
+  });
+
+  it('gibt einer Kalenderwoche zwei Ruhetage, nicht zwei je Serie', () => {
+    /*
+      Nachgetragen, weil eine Gegenprobe grün blieb: Das Wochenkontingent
+      nach einem Serienabbruch zurückzusetzen änderte an den Längen nichts
+      — eine abgebrochene Serie beginnt ohnehin bei null, und ein
+      zusätzlicher Ruhetag kann zwei Serien nicht mehr verbinden.
+
+      Beobachtbar ist es trotzdem, und zwar an der Zahl, die auf der Seite
+      steht: „Diese Woche hast du noch X Ruhetage." Würde das Kontingent
+      zurückgesetzt, stünde dort nach einem Abbruch wieder einer frei,
+      obwohl die Woche ihre beiden längst verbraucht hat.
+
+      Die Woche: Mo und Di gelernt, Mi bis Sa nicht, So (heute) gelernt.
+    */
+    const tage = [voll(MONTAG), voll(DIENSTAG), voll('2026-10-11')];
+    const serie = serieAm(tage, '2026-10-11', MONTAG);
+
+    expect(serie.laenge).toBe(1);
+    expect(serie.laengste).toBe(2);
+    // Sa und Fr haben die beiden Ruhetage verbraucht; Do und Mi trennten.
+    expect(serie.ruhetageVerbraucht).toBe(2);
+    expect(serie.ruhetageUebrig).toBe(0);
+  });
+
+  it('trennt zwei Serien am dritten fehlenden Tag', () => {
+    const mo = '2026-09-07';
+    const tage = [
+      voll(mo),
+      // Di, Mi, Do fehlen – drei Tage in derselben Woche.
+      voll(tagPlus(mo, 4)),
+      voll(tagPlus(mo, 5)),
+      voll(tagPlus(mo, 6)),
+      voll(MITTWOCH),
+    ];
+    const serie = serieAm(tage, MITTWOCH, MONTAG);
+    expect(serie.laenge).toBe(1);
+    // Drei hinten, eins vorn – getrennt, nicht zu vier addiert.
+    expect(serie.laengste).toBe(3);
+  });
+
+  it('zerstört die aktuelle Serie nicht, solange der heutige Tag noch läuft', () => {
+    const serie = serieAm(reihe(DIENSTAG, 6), MITTWOCH, MONTAG);
+    expect(serie.heuteGeschafft).toBe(false);
+    expect(serie.laenge).toBe(6);
+    expect(serie.laengste).toBe(6);
+  });
+
+  it('rechnet über einen Jahreswechsel hinweg', () => {
+    // Der 06.01.2026 ist ein Dienstag; die Reihe läuft bis in den Dezember.
+    const serie = serieAm(reihe('2026-01-06', 20), '2026-01-06', '2026-01-05');
+    expect(serie.laenge).toBe(20);
+    expect(serie.laengste).toBe(20);
+  });
+
+  it('rechnet über einen Schalttag hinweg', () => {
+    // 2028 ist ein Schaltjahr; der 01.03. liegt hier einen Tag später.
+    const serie = serieAm(reihe('2028-03-02', 10), '2028-03-02', '2028-02-28');
+    expect(serie.laenge).toBe(10);
+    expect(serie.laengste).toBe(10);
+    expect(tagPlus('2028-02-28', 1)).toBe('2028-02-29');
+  });
+});
+
+describe('Keine feste Historiengrenze', () => {
+  function reihe(ende: string, tage: number): Tageszaehlung[] {
+    return Array.from({ length: tage }, (_, i) => voll(tagPlus(ende, -i)));
+  }
+
+  it('zählt eine Serie von über 400 Lerntagen vollständig', () => {
+    /*
+      Die Zahl, die hier einmal als Schleifengrenze stand. 500 Tage am Stück
+      sind unwahrscheinlich und nicht unmöglich — und eine Zahl, die solche
+      Fälle still kappt, ist eine falsche Auskunft, keine Vereinfachung.
+    */
+    const serie = serieAm(reihe(MITTWOCH, 500), MITTWOCH, MONTAG);
+    expect(serie.laenge).toBe(500);
+    expect(serie.laengste).toBe(500);
+  });
+
+  it('sieht auch eine Serie, die weit vor 400 Tagen lag', () => {
+    const uralt = reihe('2024-05-15', 7);
+    const serie = serieAm([...uralt, voll(MITTWOCH)], MITTWOCH, MONTAG);
+    expect(serie.laenge).toBe(1);
+    expect(serie.laengste).toBe(7);
+  });
+
+  it('terminiert bei leerer Historie sofort', () => {
+    /*
+      Ohne Daten liegt die Schranke auf heute, und die Schleife läuft gar
+      nicht erst an. Gemessen statt behauptet: Ein Durchlauf über 400 oder
+      gar unbegrenzt viele Tage wäre hier als Dauer sichtbar.
+    */
+    const begonnen = performance.now();
+    const serie = serieAm([], MITTWOCH, MONTAG);
+    expect(performance.now() - begonnen).toBeLessThan(50);
+    expect(serie.laenge).toBe(0);
+    expect(serie.laengste).toBe(0);
+  });
+
+  it('terminiert auch, wenn nur künftige Tage geliefert werden', () => {
+    // Ein Tag nach heute setzt die Schranke nicht nach hinten.
+    const begonnen = performance.now();
+    const serie = serieAm([voll(FREITAG)], MITTWOCH, MONTAG);
+    expect(performance.now() - begonnen).toBeLessThan(50);
+    expect(serie.laenge).toBe(0);
   });
 });
 

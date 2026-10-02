@@ -80,6 +80,7 @@ const TAGE = [
 ];
 
 const VOLL = {
+  /* Das zuletzt benutzte Paket (§ 4.1) – nicht das mit den meisten offenen. */
   weiterlernen: ZEILEN[0],
   faellig: [ZEILEN[0], ZEILEN[3], ZEILEN[1]],
   faelligGesamt: 22,

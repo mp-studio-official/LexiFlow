@@ -15,6 +15,8 @@
 -- A1 · Umfang des Schemas
 -- Erwartet (Ausgang nach Migration 12, gemessen am 02.10.2026):
 --   tabellen 16 · spalten 101 · regeln 28 · funktionen 36 · trigger 13
+-- Der lokale Prüfstand zählt hier 35 — genau eine weniger (`rls_auto_enable`,
+-- eine Funktion der Plattform). Maßgeblich ist der Remote-Ausgang.
 select
   (select count(*) from information_schema.tables   where table_schema   = 'public') as tabellen,
   (select count(*) from information_schema.columns  where table_schema   = 'public') as spalten,
@@ -47,7 +49,7 @@ select p.proname
 
 -- B1 · Umfang des Schemas
 -- Erwartet absolut: tabellen 16 · spalten 101 · regeln 28 · funktionen 38
---                   trigger 13
+--                   trigger 13   (lokaler Prüfstand: 37)
 -- Nur die Funktionen wachsen, und zwar um genau zwei. Alles andere steht
 -- still: Migration 13 legt nichts ab.
 select
@@ -76,6 +78,9 @@ select
 --   my_local_today   · ebenso
 -- Die leere Argumentliste ist die Zusage aus E28: keine Personenkennung,
 -- keine Zeitzone, kein Datum, keine Uhr von aussen.
+--
+-- `my_learning_days` hat ausserdem **kein Zeitfenster**: Sie liefert die
+-- ganze Lerngeschichte, aggregiert zu einer Zeile je lokalem Tag.
 select p.proname,
        p.prosecdef                                               as security_definer,
        pg_get_function_arguments(p.oid)                          as argumente,

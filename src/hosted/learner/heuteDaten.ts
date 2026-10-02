@@ -95,19 +95,34 @@ export function paketzeilen(
 }
 
 /**
- * Womit es weitergeht.
+ * Womit es weitergeht: das **zuletzt benutzte** Paket (§ 4.1).
  *
- * Die Reihenfolge der Fragen ist die Reihenfolge, in der ein Mensch sie
- * stellt: Steht etwas offen? Dann das mit den meisten offenen Wörtern. Steht
- * nichts offen? Dann das, was zuletzt in der Hand war. Gibt es auch das
- * nicht, gibt es kein „Weiterlernen" – und dann steht dort nichts, statt
- * irgendetwas.
+ * ## Die Regel, und warum sie so eng ist
+ *
+ * Maßgeblich ist einzig das jüngste `lastPracticedAt`. Nichts sonst — nicht
+ * die Zahl offener Wiederholungen, nicht die Größe des Pakets, nicht die
+ * Reihenfolge im Kurs.
+ *
+ * Bis zum 03.10.2026 stand hier etwas anderes: Pakete mit offenen
+ * Wiederholungen zuerst, darunter das mit den meisten. Das klang vernünftig
+ * und war falsch. „Weiterlernen" heißt **weiter**, also dort, wo jemand
+ * aufgehört hat; ein Paket, das er vor drei Wochen zuletzt offen hatte,
+ * verdrängte sonst das von gestern, nur weil dort mehr liegengeblieben ist.
+ * Für „da liegt viel offen" gibt es einen eigenen Bereich, und der heißt
+ * „Fällige Wiederholungen".
+ *
+ * Die Zahl fälliger Wörter steht trotzdem **in** der Karte. Sie ist die
+ * Auskunft darüber, was einen dort erwartet — sie entscheidet nur nicht,
+ * welche Karte es ist.
+ *
+ * ## Ohne jedes `lastPracticedAt` gibt es nichts
+ *
+ * Dann hat diese Person noch nie ein Paket in der Hand gehabt, und der
+ * Bereich zeigt seinen leeren Anfangszustand. Ein zugewiesenes, nie
+ * geöffnetes Paket hier anzubieten hieße „weiter" zu sagen, wo noch nichts
+ * angefangen wurde.
  */
 export function weiterlernen(zeilen: readonly Paketzeile[]): Paketzeile | undefined {
-  const offen = zeilen.filter((zeile) => zeile.dueCount > 0);
-  if (offen.length > 0) {
-    return [...offen].sort((a, b) => b.dueCount - a.dueCount)[0];
-  }
   const benutzt = zeilen.filter((zeile) => zeile.lastPracticedAt !== undefined);
   if (benutzt.length === 0) return undefined;
   return [...benutzt].sort((a, b) =>

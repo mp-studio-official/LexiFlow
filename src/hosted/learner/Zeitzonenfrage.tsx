@@ -30,10 +30,20 @@ import { zeitzonenVorschlag } from '../../domain/zeitzone';
  *
  * ## Wenn der Browser nichts weiß
  *
- * Dann fehlt der Vorschlag, und die Karte zeigt nur die Auswahl. Keine
- * Fehlermeldung, kein leerer Knopf — eine Umgebung ohne Zeitzonendaten ist
- * selten, aber sie ist kein Fehler der lernenden Person.
+ * Dann fehlt der Vorschlag, und die Karte zeigt gleich die Auswahl — mit
+ * „Zeitzone auswählen" als Anfangszustand und einem **abgeschalteten**
+ * Bestätigungsknopf. Keine Fehlermeldung, kein leerer Knopf.
+ *
+ * Was dort ausdrücklich **nicht** steht, ist `Europe/Berlin`. Eine
+ * Voreinstellung wäre für fast alle richtig und für manche falsch, und ein
+ * einziger versehentlicher Klick machte daraus eine Bestätigung, die
+ * niemand gegeben hat. Genau dagegen ist E27 gerichtet: Ein unbestätigter
+ * Wert darf nicht wie ein bestätigter aussehen — und das gilt für die
+ * Auswahlliste so wie für die Datenbank.
  */
+
+/** Der Anfangswert ohne Vorschlag: sichtbar, aber nicht bestätigbar. */
+const KEINE_WAHL = '';
 
 /**
  * Die Zeitzonen zur Auswahl.
@@ -84,12 +94,18 @@ export function Zeitzonenfrage({
   vorschlag?: string | undefined;
 }) {
   const [andere, setzeAndere] = useState(vorschlag === undefined);
-  const [wahl, setzeWahl] = useState(vorschlag ?? 'Europe/Berlin');
+  const [wahl, setzeWahl] = useState(vorschlag ?? KEINE_WAHL);
   const [laeuft, setzeLaeuft] = useState(false);
   const [fehler, setzeFehler] = useState('');
   const auswahlId = useId();
 
   async function speichere(zone: string) {
+    /*
+      Der zweite Riegel, und er steht hier, weil der erste eine Eigenschaft
+      der Oberfläche ist: Ein abgeschalteter Knopf schützt gegen den Klick,
+      nicht gegen einen Aufruf. Ohne Wahl wird nichts gespeichert.
+    */
+    if (zone === KEINE_WAHL) return;
     setzeLaeuft(true);
     setzeFehler('');
     try {
@@ -129,6 +145,13 @@ export function Zeitzonenfrage({
             value={wahl}
             onChange={(ereignis) => setzeWahl(ereignis.target.value)}
           >
+            {/*
+              Die Aufforderung als erste Option – wählbar, aber nicht
+              bestätigbar. Sie steht nur da, solange noch nichts gewählt
+              ist; wer einmal gewählt hat, soll nicht versehentlich
+              zurückfallen können.
+            */}
+            {wahl === KEINE_WAHL ? <option value={KEINE_WAHL}>Zeitzone auswählen</option> : null}
             {zeitzonenliste(vorschlag).map((zone) => (
               <option key={zone} value={zone}>
                 {zone}
@@ -146,9 +169,18 @@ export function Zeitzonenfrage({
         <Button
           variant="primary"
           onClick={() => void speichere(andere ? wahl : (vorschlag ?? wahl))}
-          disabled={laeuft}
+          /*
+            Abgeschaltet, solange nichts gewählt ist. Nicht nur verziert:
+            Ohne diese Zeile speicherte ein Klick auf einen Knopf, dessen
+            Auswahl „Zeitzone auswählen" sagt, irgendeinen Wert.
+          */
+          disabled={laeuft || (andere && wahl === KEINE_WAHL)}
         >
-          {andere ? `„${wahl}" bestätigen` : 'Stimmt, bestätigen'}
+          {!andere
+            ? 'Stimmt, bestätigen'
+            : wahl === KEINE_WAHL
+              ? 'Bestätigen'
+              : `„${wahl}" bestätigen`}
         </Button>
         {andere ? null : (
           <Button variant="quiet" onClick={() => setzeAndere(true)}>

@@ -55,6 +55,10 @@ geraten: Der lokale Prüfstand zählte vor Migration 12 **32** Routinen in
 eine Funktion der Plattform, nicht aus diesem Repository. Keine
 Migration hier erzeugt sie, und keine verlässt sich auf sie.
 
+Es ist genau **diese eine** Funktion und keine weitere: Nach Migration 12
+zählt der lokale Prüfstand **35**, das Staging **36**; nach Migration 13
+werden es **37** und **38** sein.
+
 Für künftige Abnahmen heißt das: **Maßgeblich ist der gemessene
 Remote-Ausgang**, nicht die Zahl aus `scripts/db/harness.mjs`. Der
 Prüfstand bildet von Supabase nur nach, was die Migrationen voraussetzen

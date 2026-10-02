@@ -56,8 +56,19 @@ export interface Wochentag {
 }
 
 export interface Serie {
-  /** Lerntage in Folge – Ruhetage überbrückt, aber nicht mitgezählt. */
+  /** Die **aktuelle** Serie: Lerntage in Folge bis heute. */
   readonly laenge: number;
+  /**
+   * Die **längste** bisherige Serie – einschließlich der aktuellen (§ 4.5).
+   *
+   * Sie ist nirgends gespeichert, sondern fällt aus derselben Tageshistorie
+   * mit ab. Ein gespeicherter Höchststand wäre ein zweiter Ort für dieselbe
+   * Wahrheit und der erste, der nach einem Nachtrag falsch steht.
+   *
+   * Dass sie nach einer Unterbrechung stehen bleibt, ist der ganze Punkt:
+   * Was jemand einmal geschafft hat, hat er geschafft.
+   */
+  readonly laengste: number;
   /** Ob heute die Schwelle schon erreicht ist. */
   readonly heuteGeschafft: boolean;
   /** Wie viele Ruhetage die laufende Kalenderwoche schon verbraucht hat. */
@@ -111,15 +122,28 @@ export function tageZwischen(a: string, b: string): number {
 /* ------------------------------------------------------------- Die Serie -- */
 
 /**
- * Die Serie, rückwärts vom heutigen lokalen Tag.
+ * Die Serie, rückwärts vom heutigen lokalen Tag – aktuelle und längste.
  *
  * ## Der Gang
  *
  * Vom heutigen Tag aus Schritt für Schritt rückwärts:
  *
- * - **Lerntag** → die Serie wächst um eins, weiter.
+ * - **Lerntag** → die laufende Serie wächst um eins, weiter.
  * - **Kein Lerntag** → ein Ruhetag dieser Kalenderwoche wird verbraucht. Ist
- *   das Wochenkontingent aufgebraucht, endet die Serie **vor** diesem Tag.
+ *   das Wochenkontingent aufgebraucht, **endet** die Serie vor diesem Tag –
+ *   sie wird zu den Seite gelegt, und hinter dem Tag beginnt die nächste.
+ *
+ * Am Ende steht eine Liste von Serien, jüngste zuerst. Die erste ist die
+ * aktuelle, die größte die längste. Beide kommen aus demselben Gang: Zwei
+ * getrennte Rechnungen wären zwei Regelwerke, die auseinanderlaufen können.
+ *
+ * ## Wie weit der Gang zurückreicht
+ *
+ * Bis zum **frühesten gelieferten Lerntag** und keinen Schritt weiter. Hier
+ * stand eine Weile `schritt < 400`, und die Zahl war erfunden: Sie hätte
+ * eine Serie, die länger läuft, stillschweigend gekappt. Die Grenze folgt
+ * jetzt aus den Daten — und bei leerer Historie liegt sie auf heute, sodass
+ * die Schleife gar nicht erst anläuft.
  *
  * ## Warum der heutige Tag eine Ausnahme ist
  *
@@ -165,27 +189,50 @@ export function serieAm(
     return true;
   }
 
+  /*
+    Wie weit zurück? Bis zum frühesten Tag, zu dem überhaupt etwas geliefert
+    wurde. Ohne Daten ist das **heute** – dann steht die Schleifenbedingung
+    schon beim ersten Vergleich auf falsch, und es gibt keinen Schritt.
+
+    Das ist der Ersatz für die erfundene 400: eine Schranke, die aus den
+    Daten folgt. Sie ist endlich, weil `tage` endlich ist.
+  */
+  let fruehester = heute;
+  for (const zaehlung of tage) {
+    if (tageZwischen(zaehlung.localDay, fruehester) > 0) fruehester = zaehlung.localDay;
+  }
+
   // Heute zählt nur, wenn es geschafft ist – aber es kostet nie einen Ruhetag.
-  let laenge = heuteGeschafft ? 1 : 0;
+  let laufend = heuteGeschafft ? 1 : 0;
+  const serien: number[] = [];
   let tag = tagPlus(heute, -1);
 
-  /*
-    Die Schranke ist das Fenster, das `my_learning_days` liefert. Sie steht
-    hier als Zahl und nicht als `while (true)`: Eine Schleife, die auf ihre
-    Abbruchbedingung in den Daten vertraut, läuft eines Tages nicht ab.
-  */
-  for (let schritt = 0; schritt < 400; schritt += 1) {
+  while (tageZwischen(fruehester, tag) >= 0) {
     if (istLerntag(nachTag.get(tag))) {
-      laenge += 1;
+      laufend += 1;
     } else if (!ruhetagMoeglich(tag)) {
-      break;
+      /*
+        Hier endet eine Serie. Sie wird zur Seite gelegt, nicht verworfen –
+        und der Gang läuft weiter, denn hinter diesem Tag kann eine ältere,
+        längere liegen (§ 4.5).
+
+        Das Wochenkontingent wird dabei **nicht** zurückgesetzt: Eine
+        Kalenderwoche hat zwei Ruhetage, nicht zwei je Serie. Sonst
+        überbrückte dieselbe Woche beliebig viele Lücken, solange nur oft
+        genug eine Serie dazwischen endete.
+      */
+      serien.push(laufend);
+      laufend = 0;
     }
     tag = tagPlus(tag, -1);
   }
+  serien.push(laufend);
 
   const dieseWoche = verbraucht.get(0) ?? 0;
   return {
-    laenge,
+    // Die erste ist die aktuelle – sie endet an dem Tag, an dem der Gang abbrach.
+    laenge: serien[0] ?? 0,
+    laengste: Math.max(...serien),
     heuteGeschafft,
     ruhetageVerbraucht: dieseWoche,
     ruhetageUebrig: Math.max(0, RUHETAGE_JE_WOCHE - dieseWoche),

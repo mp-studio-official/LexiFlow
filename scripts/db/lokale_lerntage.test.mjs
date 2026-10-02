@@ -237,6 +237,61 @@ describe('my_learning_days', () => {
     expect(zweimal.rows[0].task_count).toBe(10);
   });
 
+  it('schneidet die Historie nicht ab', async () => {
+    /*
+      Bis zum 03.10.2026 stand in der Funktion ein Fenster von 400 Tagen.
+      Die Zahl war erfunden, und sie hätte zweierlei still gekappt: eine
+      Serie, die länger läuft, und die längste bisherige Serie (§ 4.5).
+
+      Zwei Jahre zurück sind hier kein Grenzfall, sondern genau der Fall:
+      Wer im siebten Schuljahr anfängt, lernt im neunten noch mit demselben
+      Konto.
+    */
+    await bestaetige(LERNENDE, 'Europe/Berlin');
+    await spieleEin(LERNENDE, '2024-05-15T12:00:00Z', 12, 'a');
+    await spieleEin(LERNENDE, MITTAGS_UTC, 10, 'b');
+
+    await alsPerson(db, LERNENDE);
+    const ergebnis = await db.query(
+      'select local_day::text as tag, task_count from my_learning_days() order by 1',
+    );
+    expect(ergebnis.rows).toEqual([
+      { tag: '2024-05-15', task_count: 12 },
+      { tag: '2026-10-05', task_count: 10 },
+    ]);
+  });
+
+  it('fasst auch viele Ereignisse zu einer Zeile je Tag zusammen', async () => {
+    /*
+      Die Zusage, die das Wegfallen des Fensters trägt: Zurück kommt **je
+      lokalem Tag eine Zeile**, nicht je Ereignis. Hier stehen 120
+      Ereignisse an drei Tagen – und drei Zeilen.
+    */
+    await bestaetige(LERNENDE, 'Europe/Berlin');
+    await spieleEin(LERNENDE, '2025-01-07T12:00:00Z', 40, 'a');
+    await spieleEin(LERNENDE, '2025-06-07T12:00:00Z', 40, 'b');
+    await spieleEin(LERNENDE, MITTAGS_UTC, 40, 'c');
+
+    await alsPerson(db, LERNENDE);
+    const ergebnis = await db.query('select * from my_learning_days()');
+    expect(ergebnis.rows).toHaveLength(3);
+    expect(ergebnis.rows.map((z) => z.task_count)).toEqual([40, 40, 40]);
+  });
+
+  it('nennt in ihrem Quelltext kein festes Zeitfenster mehr', async () => {
+    /*
+      Am Katalog geprüft, nicht an einem Datum: Ein Fenster liesse sich auch
+      mit einer anderen Zahl wieder einführen, und dann stünden die beiden
+      Prüfungen oben weiterhin grün – solange nur ihre Daten hineinpassen.
+    */
+    await alsEinrichtung(db);
+    const quelle = await db.query(`
+      select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'my_learning_days'`);
+    expect(quelle.rows[0].prosrc).not.toMatch(/interval/i);
+    expect(quelle.rows[0].prosrc).toContain('at time zone s.time_zone');
+  });
+
   it('trennt zwei lokale Tage', async () => {
     await bestaetige(LERNENDE, 'Europe/Berlin');
     await spieleEin(LERNENDE, MITTAGS_UTC, 11, 'a');

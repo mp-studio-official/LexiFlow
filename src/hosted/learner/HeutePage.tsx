@@ -378,6 +378,17 @@ function Lernserie({ bild, bestaetigt }: { bild: Heutebild; bestaetigt: boolean 
                   serie.ruhetageUebrig === 1 ? 'Ruhetag' : 'Ruhetage'
                 }.`}
           </p>
+          {/*
+            Die längste bisherige Serie (§ 4.5) – als Nebensache, nicht als
+            Messlatte. Sie steht nur da, wenn sie etwas anderes sagt als die
+            aktuelle: „Am längsten: 3" neben „3 Lerntage in Folge" wäre
+            dieselbe Zahl zweimal, und die zweite läse sich wie ein Soll.
+          */}
+          {serie.laengste > serie.laenge ? (
+            <p className="heute-serie__laengste">
+              Am längsten warst du {serie.laengste} Tage in Folge dabei.
+            </p>
+          ) : null}
         </>
       ) : (
         <OhneZeitzone was="Deine Lernserie" />

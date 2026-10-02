@@ -13,7 +13,10 @@ Sie legt **zwei Lesefunktionen** an:
   Woche, in der **bestätigten** Zeitzone. Immer genau eine Zeile; ohne
   bestätigte Zeitzone beide Daten `null`.
 - `my_learning_days()` → Aufgaben je lokalem Kalendertag aus
-  `progress_events.recorded_at`. Ohne bestätigte Zeitzone leer.
+  `progress_events.recorded_at`. Ohne bestätigte Zeitzone leer. **Ohne
+  Zeitfenster**: Zurück kommt die ganze Lerngeschichte, aggregiert zu einer
+  Zeile je Tag — eine feste Grenze hätte eine lange Serie und die längste
+  bisherige (§ 4.5) still gekappt.
 
 Sie legt **keine** Tabelle an, **keine** Spalte, **keine** Zugriffsregel und
 **keinen** Trigger. Sie ändert nichts an Migration 12 — die ist seit dem
@@ -33,6 +36,20 @@ einer zurückkommt.
 Der Preis ist ehrlich benannt: Der Prüfstand kann die Uhr nicht stellen. Er
 legt stattdessen seine Ereignisse mit einem festen `recorded_at` an und
 bewegt die Daten statt der Zeit.
+
+## Warum kein Zeitfenster
+
+In der ersten Fassung stand `recorded_at >= now() - interval '400 days'`.
+Die Zahl war erfunden. Sie hätte zweierlei still abgeschnitten: eine Serie,
+die länger als gut ein Jahr läuft, und die längste bisherige Serie aus
+§ 4.5 — und zwar lautlos, denn eine gekappte Historie sieht aus wie eine
+kurze.
+
+Teuer wird der Verzicht nicht: Die Funktion gibt **je lokalem Tag eine
+Zeile** zurück, nicht je Ereignis. Die Zeilenzahl wächst mit den Tagen, an
+denen jemand gelernt hat — ein Schuljahr hat davon etwa zweihundert.
+Gelesen wird über `progress_events_user_idx` auf `(user_id)`, und die
+Zugriffsregel schneidet ohnehin auf die eigene Person zu.
 
 ## Warum jedes Kommando mit `npx` beginnt
 
@@ -81,6 +98,7 @@ npx --yes supabase@latest migration list --linked
 | --- | --- |
 | A1 Schema vorher | 16 · 101 · 28 · **36** · 13 |
 | B1 Schema nachher | 16 · 101 · 28 · **38** · 13 — **nur** die Funktionen wachsen |
+| lokaler Prüfstand | vorher **35**, nachher **37** — immer genau eine weniger |
 | A2 / B2 Nutzdaten | identisch, Ereignisse und Einstellungen eingeschlossen |
 | B3 Signaturen | beide `prosecdef false`, Argumente **leer**, nur `authenticated` |
 | B4 Regeln | unverändert, 28 Zeilen |
@@ -89,10 +107,15 @@ npx --yes supabase@latest migration list --linked
 | Schritt 5 | dreizehn identische Versionen |
 
 Die absolute Zahl 36 ist der **gemessene** Ausgang des Stagings nach
-Migration 12 (der lokale Prüfstand zählt zwei weniger, weil ihm
-`rls_auto_enable` und die übrigen Plattformroutinen fehlen). Maßgeblich ist
-wie immer der Remote-Ausgang; der Beitrag dieser Migration ist in beiden
-Umgebungen **+2 Funktionen und sonst nichts**.
+Migration 12. Der lokale Prüfstand zählt dort **35** — genau **eine**
+weniger, und zwar `rls_auto_enable`, eine Funktion der Plattform, die keine
+Migration dieses Repositorys erzeugt. Es ist nicht mehr als diese eine; die
+früher hier stehende Formulierung „zwei weniger … und die übrigen
+Plattformroutinen" war falsch.
+
+Nach Migration 13 sind es lokal **37** und im Staging erwartet **38**.
+Maßgeblich ist wie immer der Remote-Ausgang; der Beitrag dieser Migration
+ist in beiden Umgebungen **+2 Funktionen und sonst nichts**.
 
 ## Wenn später etwas nicht stimmt
 

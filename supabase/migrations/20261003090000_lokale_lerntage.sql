@@ -103,9 +103,18 @@ comment on function my_local_today() is
   Tagesgrenze, und ein Tag in UTC wäre eine erfundene Antwort, keine
   vorsichtige.
 
-  Das Fenster von 400 Tagen ist großzügig und fest. Ein Parameter dafür wäre
-  wieder ein Datum von aussen; eine Serie, die über ein Jahr reicht, braucht
-  diese Seite nicht zu beziffern.
+  **Kein Zeitfenster.** Hier stand eine Weile `recorded_at >= now() -
+  interval '400 days'`, und die Zahl war erfunden: Sie hätte eine Serie, die
+  länger als gut ein Jahr läuft, still abgeschnitten — und die längste
+  bisherige Serie (§ 4.5) gleich mit. Eine Grenze, die niemand begründen
+  kann, gehört nicht in eine Funktion, deren Ergebnis eine Aussage über die
+  ganze Lerngeschichte ist.
+
+  Teuer wird es dadurch nicht. Die Abfrage gibt **je lokalem Tag eine Zeile**
+  zurück, nicht je Ereignis; die Zahl der Zeilen wächst mit den Tagen, an
+  denen jemand gelernt hat, und ein Schuljahr hat davon etwa zweihundert.
+  Gelesen wird über `progress_events_user_idx` auf `(user_id)`, und die
+  Zugriffsregel schneidet ohnehin auf die eigene Person zu.
 */
 create or replace function my_learning_days()
 returns table (
@@ -123,7 +132,6 @@ as $$
   join learner_settings s on s.user_id = e.user_id
   where e.user_id = auth.uid()
     and s.time_zone is not null
-    and e.recorded_at >= now() - interval '400 days'
   group by 1
   order by 1;
 $$;

@@ -43,6 +43,25 @@ function zeige(cloud: FakeCloud, route = '/heute') {
   );
 }
 
+/**
+ * Etwas tun, während die Umgebung keine Zeitzone kennt.
+ *
+ * `Intl.DateTimeFormat` wirft dann — eine Umgebung ohne Zeitzonendaten ist
+ * selten, aber sie ist kein Fehler der lernenden Person. Die Attrappe wird
+ * danach **immer** zurückgenommen, auch wenn der Rumpf wirft: Sonst färbte
+ * ein Fehlschlag hier jede folgende Prüfung dieser Datei.
+ */
+async function ohneVorschlag(rumpf: () => Promise<void>): Promise<void> {
+  const spion = vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((() => {
+    throw new Error('Keine Zeitzonendaten.');
+  }) as never);
+  try {
+    await rumpf();
+  } finally {
+    spion.mockRestore();
+  }
+}
+
 /** Ein frisches Lernendenkonto: kein Kurs, keine Aktivität, keine Einstellung. */
 function frischesKonto(): FakeCloud {
   const cloud = createFakeCloud();
@@ -226,15 +245,83 @@ describe('Die Zahlen kommen aus den Verträgen', () => {
     expect(zuletzt.map((a) => a.textContent)).toEqual([titel[1]]);
   });
 
-  it('führt mit dem Paket weiter, in dem am meisten offen ist', async () => {
+  it('führt mit dem zuletzt benutzten Paket weiter (§ 4.1)', async () => {
+    /*
+      Ersetzt die frühere Regel „das mit den meisten offenen Wörtern". Die
+      klang vernünftig und war falsch: „Weiterlernen" heißt weiter, also
+      dort, wo jemand aufgehört hat.
+
+      Hier ist der Fall so gebaut, dass beide Regeln verschiedene Antworten
+      geben — sonst bewiese die Prüfung nichts.
+    */
     const { cloud, courseId, titel } = await kursMitPaketen(2);
-    setzeLernstand(cloud, { courseId, packId: 'pack-0', faellig: 2, gesamt: 9 });
-    setzeLernstand(cloud, { courseId, packId: 'pack-1', faellig: 6, gesamt: 9 });
+    setzeLernstand(cloud, {
+      courseId,
+      packId: 'pack-0',
+      faellig: 20,
+      gesamt: 30,
+      zuletzt: '2026-09-10T10:00:00.000Z',
+    });
+    setzeLernstand(cloud, {
+      courseId,
+      packId: 'pack-1',
+      faellig: 2,
+      gesamt: 9,
+      zuletzt: '2026-10-07T18:00:00.000Z',
+    });
+
+    zeige(cloud);
+    await warteAufInhalt();
+
+    const karte = bereich('weiterlernen');
+    expect(within(karte).getByText(titel[1]!)).toBeInTheDocument();
+    // Die Zahl steht in der Karte – sie entscheidet nur nicht, welche es ist.
+    expect(within(karte).getByText('2 Wörter fällig')).toBeInTheDocument();
+    expect(within(karte).queryByText(titel[0]!)).toBeNull();
+  });
+
+  it('lässt ein älteres Paket mit mehr Offenem das jüngere nicht verdrängen', async () => {
+    // Marcs Gegenprobe, als eigene Prüfung: 20 gestern-nicht schlägt 2 gestern.
+    const { cloud, courseId, titel } = await kursMitPaketen(2);
+    setzeLernstand(cloud, {
+      courseId,
+      packId: 'pack-0',
+      faellig: 20,
+      gesamt: 25,
+      zuletzt: '2026-08-01T10:00:00.000Z',
+    });
+    setzeLernstand(cloud, {
+      courseId,
+      packId: 'pack-1',
+      faellig: 2,
+      gesamt: 9,
+      zuletzt: '2026-10-07T18:00:00.000Z',
+    });
 
     zeige(cloud);
     await warteAufInhalt();
     expect(within(bereich('weiterlernen')).getByText(titel[1]!)).toBeInTheDocument();
-    expect(within(bereich('weiterlernen')).getByText('6 Wörter fällig')).toBeInTheDocument();
+
+    /*
+      Und das ältere Paket ist nicht verschwunden – es steht dort, wo es
+      hingehört: unter „Fällige Wiederholungen", mit seinen zwanzig.
+    */
+    expect(within(bereich('faellig')).getByText(titel[0]!)).toBeInTheDocument();
+  });
+
+  it('zeigt den leeren Anfangszustand, solange kein Paket benutzt wurde', async () => {
+    /*
+      Ein zugewiesenes, nie geöffnetes Paket mit offenen Wiederholungen ist
+      kein „Weiterlernen": Es gibt nichts, wo weitergemacht würde.
+    */
+    const { cloud, courseId } = await kursMitPaketen(1);
+    setzeLernstand(cloud, { courseId, packId: 'pack-0', faellig: 9, gesamt: 12 });
+
+    zeige(cloud);
+    await warteAufInhalt();
+    expect(within(bereich('weiterlernen')).getByText('Noch nichts angefangen')).toBeInTheDocument();
+    // Fällig ist es trotzdem, und das steht im eigenen Bereich.
+    expect(within(bereich('faellig')).getByText(/^9 Wörter warten/)).toBeInTheDocument();
   });
 
   it('zeigt höchstens vier zuletzt verwendete Pakete', async () => {
@@ -291,7 +378,13 @@ describe('Die Zahlen kommen aus den Verträgen', () => {
 describe('Jede sichtbare Handlung führt irgendwohin', () => {
   it('öffnet das Paket aus „Weiterlernen" wirklich', async () => {
     const { cloud, courseId, titel } = await kursMitPaketen(1);
-    setzeLernstand(cloud, { courseId, packId: 'pack-0', faellig: 4, gesamt: 9 });
+    setzeLernstand(cloud, {
+      courseId,
+      packId: 'pack-0',
+      faellig: 4,
+      gesamt: 9,
+      zuletzt: '2026-10-07T18:00:00.000Z',
+    });
 
     zeige(cloud);
     await warteAufInhalt();
@@ -369,7 +462,13 @@ describe('Die Zeitzonenbestätigung', () => {
 
   it('lässt die Seite ohne Zeitzone vollständig benutzbar', async () => {
     const { cloud, courseId, titel } = await kursMitPaketen(1);
-    setzeLernstand(cloud, { courseId, packId: 'pack-0', faellig: 5, gesamt: 9 });
+    setzeLernstand(cloud, {
+      courseId,
+      packId: 'pack-0',
+      faellig: 5,
+      gesamt: 9,
+      zuletzt: '2026-10-07T18:00:00.000Z',
+    });
 
     zeige(cloud);
     await warteAufInhalt();
@@ -463,21 +562,75 @@ describe('Die Zeitzonenbestätigung', () => {
 
   it('funktioniert auch, wenn der Browser keinen Vorschlag hat', async () => {
     const cloud = frischesKonto();
-    const spion = vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((() => {
-      throw new Error('Keine Zeitzonendaten.');
-    }) as never);
-
-    try {
+    await ohneVorschlag(async () => {
       zeige(cloud);
       await warteAufInhalt();
-    } finally {
-      spion.mockRestore();
-    }
+    });
 
     // Die Seite steht vollständig, und die Frage zeigt gleich die Auswahl.
     expect(bereich('weiterlernen')).toBeInTheDocument();
     expect(screen.getByLabelText('Zeitzone')).toBeInTheDocument();
     expect(screen.queryByText(/Dein Gerät meint/)).toBeNull();
+  });
+
+  it('wählt ohne Vorschlag nichts vor – auch nicht Berlin', async () => {
+    /*
+      Die Zeile, auf die es ankommt. Eine Voreinstellung wäre für fast alle
+      richtig und für manche falsch, und ein einziger versehentlicher Klick
+      machte daraus eine Bestätigung, die niemand gegeben hat.
+    */
+    const cloud = frischesKonto();
+    await ohneVorschlag(async () => {
+      zeige(cloud);
+      await warteAufInhalt();
+    });
+
+    const auswahl = screen.getByLabelText('Zeitzone') as HTMLSelectElement;
+    expect(auswahl.value).toBe('');
+    expect(within(auswahl).getByText('Zeitzone auswählen')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bestätigen' })).toBeDisabled();
+  });
+
+  it('speichert ohne Vorschlag auch bei Klick und Tastendruck nichts', async () => {
+    /*
+      Marcs Gegenprobe. Nicht nur „der Knopf ist abgeschaltet", sondern: Es
+      wird wirklich auf ihn eingewirkt – mit der Maus und mit der Tastatur –
+      und danach steht nichts in den Einstellungen. Insbesondere nicht
+      `Europe/Berlin`.
+    */
+    const cloud = frischesKonto();
+    const schreibt = vi.spyOn(cloud.repositories.learnerSettings!, 'confirmTimeZone');
+    await ohneVorschlag(async () => {
+      zeige(cloud);
+      await warteAufInhalt();
+    });
+
+    const user = userEvent.setup();
+    const knopf = screen.getByRole('button', { name: 'Bestätigen' });
+    await user.click(knopf);
+    knopf.focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+
+    expect(schreibt).not.toHaveBeenCalled();
+    expect(cloud.state.learnerSettings.size).toBe(0);
+    await expect(cloud.repositories.learnerSettings!.mySettings()).resolves.toEqual({});
+  });
+
+  it('speichert ohne Vorschlag genau das, was die Person selbst wählt', async () => {
+    const cloud = frischesKonto();
+    await ohneVorschlag(async () => {
+      zeige(cloud);
+      await warteAufInhalt();
+    });
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText('Zeitzone'), 'Europe/Vienna');
+    await user.click(screen.getByRole('button', { name: '„Europe/Vienna" bestätigen' }));
+
+    await waitFor(() =>
+      expect(cloud.state.learnerSettings.get('u-lernend')).toEqual({ timeZone: 'Europe/Vienna' }),
+    );
   });
 });
 
@@ -533,6 +686,41 @@ describe('Serie und Woche', () => {
       „verloren", kein Countdown, keine Herzen.
     */
     expect(within(bereich('serie')).getByText(/Ruhetag(e)?/)).toBeInTheDocument();
+  });
+
+  it('zeigt die längste Serie als Nebensache, wenn sie größer ist', async () => {
+    const cloud = createFakeCloud({ now: () => '2026-10-06T08:00:00Z' });
+    cloud.signInAs('u-lernend');
+    await cloud.repositories.learnerSettings!.confirmTimeZone('Europe/Berlin');
+    // Eine alte Reihe von fünf Tagen, dann eine Lücke, dann heute.
+    for (let i = 0; i < 5; i += 1) {
+      cloud.spieleEreignisseEin({
+        userId: 'u-lernend',
+        recordedAt: `2026-09-0${i + 1}T10:00:00Z`,
+        anzahl: 11,
+        kennung: `alt-${i}`,
+      });
+    }
+    cloud.spieleEreignisseEin({
+      userId: 'u-lernend',
+      recordedAt: '2026-10-06T07:00:00Z',
+      anzahl: 11,
+      kennung: 'heute',
+    });
+
+    zeige(cloud);
+    await warteAufInhalt();
+    const serie = bereich('serie');
+    expect(within(serie).getByText('1')).toBeInTheDocument();
+    expect(within(serie).getByText(/Am längsten warst du 5 Tage/)).toBeInTheDocument();
+    // Ruhig, nicht strafend: kein „verloren", keine Messlatte.
+    expect(serie.textContent).not.toContain('verloren');
+  });
+
+  it('zeigt die längste Serie nicht, wenn sie dieselbe Zahl wäre', async () => {
+    zeige(await mitLerntag(10));
+    await warteAufInhalt();
+    expect(within(bereich('serie')).queryByText(/Am längsten/)).toBeNull();
   });
 
   it('zeigt den Wochenfortschritt erst mit Ziel und Zeitzone', async () => {
