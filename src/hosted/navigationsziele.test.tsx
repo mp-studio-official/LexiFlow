@@ -184,6 +184,8 @@ describe('der Stand, den dieser Block festhält', () => {
   */
   it('sichtbar sind genau die Ziele, die auflösen', () => {
     expect(sichtbareZiele('lehrkraft', 'schreibtisch').map((z) => z.pfad)).toEqual([
+      /* `#/start` seit 5B.3 — Route und Inhalt im selben Commit. */
+      '#/start',
       '#/kurse',
       '#/pakete',
       '#/ki',

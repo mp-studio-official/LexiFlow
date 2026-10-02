@@ -63,7 +63,18 @@ const BAUSTEINSTILE = ['zustaende.css', 'bausteine.css']
   .map((datei) => readFileSync(resolve(wurzel, 'ui', datei), 'utf8'))
   .join('\n');
 
-describe('die neuen Zustandsbausteine stehen bereit und sonst nichts', () => {
+describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, steht hier', () => {
+  /*
+    Diese Zusicherung hat sich mit 5B.3 geändert, und zwar angekündigt: Der
+    Kopf dieser Datei sagt seit 5B.1, ein Fall hier sei "die Ankündigung, dass
+    ein Bildschirm sich ändert". Der Start der Lehrkraft ist dieser Bildschirm.
+
+    Die Wache fällt deshalb nicht weg, sie wechselt die Frage: nicht mehr
+    "benutzt sie jemand?", sondern "benutzt sie **nur**, wer sie benutzen
+    darf?". Die Liste unten ist der ganze Unterschied zwischen einem Umbau,
+    der Bildschirm für Bildschirm geschieht, und einem, der sich nebenbei
+    ausbreitet.
+  */
   const NEU = [
     'Skeleton',
     'PageTitle',
@@ -74,25 +85,47 @@ describe('die neuen Zustandsbausteine stehen bereit und sonst nichts', () => {
     'LeererZustand',
   ];
 
+  /** Wer welchen Baustein benutzen darf — und seit welchem Block. */
+  const UMGEBAUT: Readonly<Record<string, readonly string[]>> = {
+    /* 5B.3: der Start der Lehrkraft. */
+    Skeleton: ['hosted/teacher/StartPage.tsx'],
+    PageTitle: ['hosted/teacher/StartPage.tsx'],
+    ErrorState: ['hosted/teacher/StartPage.tsx'],
+  };
+
   for (const baustein of NEU) {
-    it(`${baustein} wird von keinem Bildschirm eingesetzt`, () => {
+    it(`${baustein} steht nur dort, wo ein Block ihn eingezogen hat`, () => {
       const stellen = ALLE.filter((pfad) => {
         const text = readFileSync(pfad, 'utf8');
         return new RegExp(`<${baustein}[\\s/>]`).test(text);
       }).map((pfad) => pfad.slice(wurzel.length + 1));
 
       expect(
-        stellen,
-        `${baustein} ist in Benutzung — das gehört in den Umbau des Bildschirms, nicht in 5B.1`,
-      ).toEqual([]);
+        stellen.sort(),
+        `${baustein} steht an einer Stelle, die kein Block eingezogen hat — ` +
+          'das gehört in den Umbau dieses Bildschirms, nicht nebenbei',
+      ).toEqual([...(UMGEBAUT[baustein] ?? [])].sort());
     });
   }
 
-  it('niemand importiert sie außer ihrem eigenen Test', () => {
+  it('und die Liste beschreibt wirklich etwas', () => {
+    /*
+      Ohne diese Zeile bliebe der Block grün, wenn jemand `UMGEBAUT` leerte
+      und gleichzeitig alle Verwendungen entfernte — oder, schlimmer, wenn
+      das Suchmuster eines Tages nichts mehr fände.
+    */
+    const eingetragen = Object.values(UMGEBAUT).flat();
+    expect(eingetragen.length, 'kein Baustein ist eingezogen').toBeGreaterThan(0);
+    for (const datei of new Set(eingetragen)) {
+      expect(ALLE.some((pfad) => pfad.endsWith(`/${datei}`)), `${datei} gibt es nicht`).toBe(true);
+    }
+  });
+
+  it('importiert werden sie nur von denselben Dateien', () => {
     const importe = ALLE.filter((pfad) =>
       /from '.*(zustaende|bausteine)'/.test(readFileSync(pfad, 'utf8')),
-    );
-    expect(importe.map((pfad) => pfad.slice(wurzel.length + 1))).toEqual([]);
+    ).map((pfad) => pfad.slice(wurzel.length + 1));
+    expect(importe.sort()).toEqual([...new Set(Object.values(UMGEBAUT).flat())].sort());
   });
 
   it('sie haben aber schon Stil — sonst wären sie im Entwurf nicht zu beurteilen', () => {
@@ -108,13 +141,13 @@ describe('die neuen Zustandsbausteine stehen bereit und sonst nichts', () => {
     }
   });
 
-  it('und ihr Stil erreicht trotzdem keinen Bildschirm', () => {
+  it('und ihr Stil kommt mit ihnen, nicht aus global.css', () => {
     /*
-      Die Prüfung oben zeigt nur, dass der Stil existiert. Dass er niemanden
-      trifft, hängt an zwei Dingen: Das Stylesheet wird allein vom Modul
-      geladen, und das Modul lädt niemand. Beides steht hier, weil das erste
-      stillschweigend zurückgenommen wäre, sobald jemand es in `global.css`
-      importiert.
+      Bis 5B.3 hieß dieser Fall "erreicht keinen Bildschirm". Seit der Start
+      der Lehrkraft sie benutzt, stimmt das nicht mehr — aber die Aussage
+      darunter gilt weiter und ist die wichtigere: Der Stil hängt am Modul und
+      nicht an `global.css`. Käme er dorthin, träfe er mit einer Zeile jeden
+      Bildschirm, auch die portable Lerndatei, die diese Bausteine nie lädt.
     */
     expect(GLOBAL).not.toMatch(/@import[^;]*(zustaende|bausteine)\.css/);
     expect(GLOBAL, 'die Regeln sind nach 5B.1 nicht mehr in global.css').not.toContain(

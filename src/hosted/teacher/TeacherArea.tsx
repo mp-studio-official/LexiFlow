@@ -5,6 +5,7 @@ import { CourseDetailPage } from './CourseDetailPage';
 import { CoursesPage } from './CoursesPage';
 import { MaterialPage } from './MaterialPage';
 import { SettingsPage } from './SettingsPage';
+import { StartPage } from './StartPage';
 
 /**
  * Der KI-Zugang – lazy, weil eine Lehrkraft ohne KI ihn nie braucht.
@@ -35,7 +36,7 @@ const AiPage = lazy(() => import('./AiPage'));
  * Abschnitt in seiner Phase, dann innerhalb seiner eigenen Datei.
  */
 
-export const TEACHER_SECTIONS = ['kurse', 'material', 'ki', 'einstellungen', 'verwaltung'] as const;
+export const TEACHER_SECTIONS = ['start', 'kurse', 'material', 'ki', 'einstellungen', 'verwaltung'] as const;
 export type TeacherSection = (typeof TEACHER_SECTIONS)[number];
 
 interface Platz {
@@ -45,6 +46,11 @@ interface Platz {
 }
 
 const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
+  start: {
+    titel: 'Start',
+    phase: 'Phase 5',
+    text: 'Kurse und Material auf einen Blick.',
+  },
   kurse: {
     titel: 'Kurse',
     phase: 'Phase 4',
@@ -73,6 +79,18 @@ const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
 };
 
 export function TeacherArea({ section }: { section: TeacherSection }) {
+  if (section === 'start') {
+    /*
+      Kein eigener `Routes`-Block mit Unterseiten: Der Start ist eine Seite
+      und hat keine. Einer auf Vorrat wäre eine Route ohne Ziel.
+    */
+    return (
+      <Routes>
+        <Route index element={<StartPage />} />
+      </Routes>
+    );
+  }
+
   if (section === 'kurse') {
     /*
       Der erste Abschnitt mit eigenen Unterseiten. Er bekommt deshalb einen

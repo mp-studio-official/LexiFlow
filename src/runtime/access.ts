@@ -52,7 +52,7 @@ const AREAS_PER_ROLE: Readonly<Record<Role, readonly Area[]>> = {
 /** Wohin jemand nach der Anmeldung kommt. */
 export const HOME_PER_ROLE: Readonly<Record<Role, string>> = {
   admin: '/verwaltung',
-  teacher: '/kurse',
+  teacher: '/start',
   student: '/lernen',
 };
 

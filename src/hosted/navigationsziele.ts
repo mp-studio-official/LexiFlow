@@ -76,7 +76,7 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
   */
   '#/pakete': { zustand: 'weiterleitung', route: '/pakete', leitetAuf: '/material' },
 
-  '#/start': { zustand: 'geplant', block: '5B.3' },
+  '#/start': { zustand: 'vorhanden', route: '/start' },
   '#/heute': { zustand: 'geplant', block: '5B.4' },
   '#/ueben': { zustand: 'geplant', block: '5B.5' },
   '#/fortschritt': { zustand: 'geplant', block: '5B.6' },
@@ -172,6 +172,7 @@ export function sichtbareZiele(profil: Profil, groesse: Groesse): readonly Ziel[
  * unmarkiert, und eine Navigation ohne Markierung sagt „du bist nirgends".
  */
 const ZUORDNUNG: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^\/start(\/|$)/, '#/start'],
   [/^\/kurse(\/|$)/, '#/kurse'],
   /* `/material` ist die Route, `#/pakete` das Ziel (E13, Übergangsphase). */
   [/^\/(material|pakete)(\/|$)/, '#/pakete'],

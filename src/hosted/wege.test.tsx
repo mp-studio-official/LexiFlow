@@ -229,7 +229,7 @@ describe('die Marke führt zum Rollenstart', () => {
   */
   it.each([
     ['u-lernend', '/lernen'],
-    ['u-lehrerin', '/kurse'],
+    ['u-lehrerin', '/start'],
     ['u-verwaltung', '/verwaltung'],
   ])('%s → %s', async (konto, ziel) => {
     oeffne(ziel === '/verwaltung' ? '/verwaltung' : '/lernen', konto);
@@ -260,6 +260,7 @@ describe('dieselbe Route, zwei Größen, zwei aktive Ziele', () => {
   }
 
   it.each([
+    ['/start', 'u-lehrerin', 'Start', 'Start'],
     ['/kurse', 'u-lehrerin', 'Kurse', 'Kurse'],
     ['/ki', 'u-lehrerin', 'KI-Zugang', 'Einstellungen'],
     ['/einstellungen', 'u-lehrerin', 'Einstellungen', 'Einstellungen'],

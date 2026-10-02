@@ -93,6 +93,21 @@ export function HostedRoutes() {
           </RequireArea>
         }
       >
+        {/*
+          Der Start einer Lehrkraft (5B.3). Innerhalb des Lehrkraftriegels:
+          Lernende und nicht Angemeldete kommen hier nicht herein — nicht weil
+          die Seite etwas verriete, sondern weil sie ohne eigene Kurse und
+          eigenes Material nichts zeigt, worauf jemand ein Recht hätte.
+        */}
+        <Route
+          path="start/*"
+          element={
+            <Suspense fallback={<Laedt was="Der Start" />}>
+              <TeacherArea section="start" />
+            </Suspense>
+          }
+        />
+
         <Route
           path="kurse/*"
           element={
