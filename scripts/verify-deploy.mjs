@@ -26,7 +26,7 @@
  * falschen Stelle: Er scheitert bei jedem, der nur `npm test` aufruft.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -182,7 +182,44 @@ if (!dateien.some((pfad) => relative(dist, pfad) === '.nojekyll')) {
   meckern('`dist/.nojekyll` fehlt – GitHub Pages ließe sonst Dateien mit `_` am Anfang weg.');
 }
 
-/* ------------------------------------------------------- 7. Der Zustand -- */
+/* ------------------------------------------- 7. Die Pilotkennzeichnung -- */
+
+/*
+  Eine Pilotauslieferung ohne Band geht nicht ins Netz.
+
+  Das Band hängt an `src/hosted/pilot.ts` und nicht an einer Umgebungsfahne,
+  damit es nicht vergessen werden kann. Diese Prüfung schließt die letzte
+  Lücke: Wer `IST_PILOT` auf `false` setzt, um „mal eben ohne Band zu bauen",
+  kommt hier nicht vorbei – der Text muss im gebauten Bündel vorkommen.
+
+  Gesucht wird im Portalbündel, nicht in `portal/index.html`: Der Text steht
+  im JavaScript, nicht im Gerüst.
+*/
+const pilotQuelle = resolve(wurzel, 'src', 'hosted', 'pilot.ts');
+if (existsSync(pilotQuelle)) {
+  const pilot = readFileSync(pilotQuelle, 'utf8');
+  const istPilot = /export const IST_PILOT = true/.test(pilot);
+  const bandText = pilot.match(/export const PILOT_BAND_TEXT =\s*([\s\S]*?);/)?.[1] ?? '';
+  /* Der erste zusammenhängende Satzanfang aus der Zeichenkette genügt. */
+  const probe = bandText.match(/'([^']{10,})'/)?.[1] ?? '';
+
+  if (istPilot && probe !== '') {
+    const gefunden = textdateien.some((pfad) => readFileSync(pfad, 'utf8').includes(probe));
+    if (!gefunden) {
+      meckern(
+        `Die Pilotkennzeichnung („${probe}") steht in keiner gebauten Datei. ` +
+          'Eine Pilotfassung ohne Band darf nicht ins Netz.',
+      );
+    }
+  }
+  if (!istPilot) {
+    hinweise.push(
+      'IST_PILOT ist false: Diese Auslieferung trägt kein Pilotband. Das ist nur richtig, wenn der Pilot abgenommen ist.',
+    );
+  }
+}
+
+/* ------------------------------------------------------- 8. Der Zustand -- */
 
 /*
   Kein Fehler, sondern eine Ansage: Ohne Konfiguration zeigt das Portal seine
