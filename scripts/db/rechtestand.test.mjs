@@ -246,6 +246,17 @@ describe('authenticated', () => {
         Idempotenz zu einer Behauptung machen.
       */
       progress_events: 'SELECT',
+      /*
+        Seit 5B.4a. Kein `delete`: Eine gelöschte Zeile behauptete „nie
+        bestätigt", wo einmal bestätigt wurde (E27). Wer seine Zeitzone
+        loswerden will, setzt sie auf `null`.
+
+        Dass hier `authenticated` steht und nicht „die eigene Person", ist
+        kein Widerspruch: Das Tabellenrecht sagt nur, wer die Tabelle
+        überhaupt anfassen darf. Welche Zeile das ist, entscheidet
+        `learner_settings_own` – geprüft in `lernendeneinstellungen.test.mjs`.
+      */
+      learner_settings: 'INSERT,SELECT,UPDATE',
       ai_allowed_hosts: 'DELETE,INSERT,SELECT,UPDATE',
       // Nur `delete` auf Tabellenebene – der Rest ist spaltenweise.
       ai_connections: 'DELETE',

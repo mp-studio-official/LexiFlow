@@ -207,6 +207,20 @@ describe('Lernstände sind an die aufrufende Person gebunden', () => {
     }
   });
 
+  /*
+    Und die Lesewege. Seit 5B.4a gibt es einen – vorher gab es keinen, und
+    die Liste oben war deshalb die ganze Liste.
+
+    Der Unterschied ist bedeutsam genug für eine eigene Aufstellung: Ein
+    Schreibweg kann einen Lernstand verfälschen, ein Leseweg kann ihn
+    ausplaudern. Die Prüfung darunter ist für beide dieselbe, weil die
+    Gefahr, die sie abwehrt, dieselbe ist: eine Personenkennung von außen.
+  */
+  const LESEWEGE = {
+    my_due_overview:
+      'Fällige und bearbeitete Vokabeln über alle Kurse – nur die eigenen (5B.4a).',
+  };
+
   it('nur die aufgeschriebenen Funktionen fassen Lernstände überhaupt an', async () => {
     const gefunden = await zeilen(`
       select p.proname
@@ -216,7 +230,9 @@ describe('Lernstände sind an die aufrufende Person gebunden', () => {
         and (p.prosrc like '%pack_progress%' or p.prosrc like '%entry_progress%')
       order by 1
     `);
-    expect(gefunden.map((zeile) => zeile.proname)).toEqual(Object.keys(SCHREIBWEGE).sort());
+    expect(gefunden.map((zeile) => zeile.proname)).toEqual(
+      [...Object.keys(SCHREIBWEGE), ...Object.keys(LESEWEGE)].sort(),
+    );
   });
 
   it('und keine von ihnen nimmt eine fremde Kennung entgegen', async () => {
@@ -227,7 +243,7 @@ describe('Lernstände sind an die aufrufende Person gebunden', () => {
       eines Tages `user_id = p_person`, wäre das die Zeile, mit der eine
       Lehrkraft fremde Lernstände läse, und dieser Test fiele auf.
     */
-    for (const name of Object.keys(SCHREIBWEGE)) {
+    for (const name of [...Object.keys(SCHREIBWEGE), ...Object.keys(LESEWEGE)]) {
       const [funktion] = await zeilen(
         `select prosrc, pg_get_function_arguments(oid) as argumente
            from pg_proc where proname = $1`,
@@ -242,8 +258,16 @@ describe('Lernstände sind an die aufrufende Person gebunden', () => {
       const vergleiche = [...funktion.prosrc.matchAll(/user_id\s*=\s*([\w.]+)/g)].map(
         (treffer) => treffer[1],
       );
+      /*
+        `v_me` in den Schreibwegen, `auth.uid` in `my_due_overview` – dort
+        steht die Abfrage selbst in SQL und hat keine Variable, in die sie
+        die Kennung legen könnte. Beides ist dieselbe Aussage: die
+        angemeldete Person und niemand sonst. Alles andere fällt auf.
+      */
       for (const vergleich of vergleiche) {
-        expect(vergleich, `${name} vergleicht user_id mit ${vergleich}`).toBe('v_me');
+        expect(vergleich, `${name} vergleicht user_id mit ${vergleich}`).toMatch(
+          /^(v_me|auth\.uid)$/,
+        );
       }
     }
   });

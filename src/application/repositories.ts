@@ -366,6 +366,111 @@ export interface ProgressRepository {
   resetMyProgress(courseId: string, packId: string): Promise<void>;
 }
 
+/* ------------------------------------------- Kursübergreifender Lernstand */
+
+/**
+ * Fällige und bearbeitete Vokabeln eines Pakets – über alle Kurse hinweg.
+ *
+ * Eine Zeile je Kurs und Paket, in dem die Person etwas hat. Es gibt keine
+ * Zeile für ein Paket, das ihr zwar zugewiesen ist, das sie aber noch nie
+ * geöffnet hat: Diese Übersicht beschreibt den Lernstand, nicht die Zuweisung.
+ */
+export interface DueOverview {
+  courseId: string;
+  packId: string;
+  /** Wie viele Vokabeln jetzt fällig sind. */
+  dueCount: number;
+  /** Wie viele Vokabeln überhaupt einen Lernstand haben. */
+  entryCount: number;
+  lastPracticedAt?: string;
+}
+
+/**
+ * Der eigene Lernstand über alle Kurse – in **einer** Abfrage.
+ *
+ * ## Warum das einen eigenen Vertrag bekommt
+ *
+ * `ProgressRepository` fragt je Kurs und Paket. Eine Seite, die „was ist
+ * heute dran?" beantworten will, müsste das für jedes zugewiesene Paket
+ * wiederholen: Die Zahl der Abfragen wüchse mit den Kursen, und zwar bei
+ * jedem Öffnen. Diese Schnittstelle gibt es, damit diese Kaskade gar nicht
+ * erst entsteht.
+ *
+ * ## Warum nicht als Methode auf `ProgressRepository`
+ *
+ * Weil die portablen Gestalten ihn dann erfüllen müssten. Eine Lerndatei hat
+ * genau ein Paket und keine Kurse; „über alle Kurse" ist dort keine Frage,
+ * und eine Antwort darauf wäre toter Code in einer Datei, die per E-Mail
+ * verschickt wird. Optional in `Repositories` sagt dasselbe ehrlicher.
+ *
+ * Es gibt keinen Parameter für eine andere Person – hier so wenig wie in der
+ * Datenbank.
+ */
+export interface ProgressOverviewRepository {
+  /**
+   * @param now Der Zeitpunkt, gegen den die Fälligkeit zählt. Ohne Angabe
+   *   entscheidet die **Serveruhr**. Der Parameter ist für Tests da; eine
+   *   Geräteuhr gehört nicht hinein, und aus dieser Zahl folgt nie ein Tag,
+   *   eine Serie oder ein Ruhetag (E28).
+   */
+  myDueOverview(now?: string): Promise<DueOverview[]>;
+}
+
+/* ------------------------------------------------- Lernendeneinstellungen */
+
+/**
+ * Was eine lernende Person über sich selbst festlegt.
+ *
+ * Ein fehlendes Feld heißt **nicht gesetzt**, und das ist bei beiden der
+ * Anfangszustand: keine bestätigte Zeitzone, kein Wochenziel. Ein leeres
+ * Objekt ist deshalb eine vollständige, gültige Antwort – nicht ein Fehler
+ * und nicht ein „noch nicht geladen".
+ */
+export interface LearnerSettings {
+  /**
+   * Ein IANA-Name, **von der Person bestätigt** (E27).
+   *
+   * Fehlt das Feld, ist die Zeitzone unbestätigt. Dann steht hier nicht
+   * ersatzweise, was der Browser meint: Der Vorschlag lebt in
+   * `src/domain/zeitzone.ts` und kommt nie hierher, ohne dass jemand
+   * `confirmTimeZone` aufgerufen hat.
+   */
+  timeZone?: string;
+  /** Lerntage je Woche, 1 bis 7 (E26). Fehlt das Feld, gibt es kein Ziel. */
+  weeklyGoalDays?: number;
+}
+
+/**
+ * Die eigenen Einstellungen lesen und ändern. Nur die eigenen.
+ *
+ * Es gibt keine Methode, die eine Personenkennung entgegennimmt – auch nicht
+ * für eine Lehrkraft der eigenen Kurse. Das ist dieselbe Zusage wie bei
+ * `ProgressRepository`, und sie steht hier aus demselben Grund im Zuschnitt
+ * statt in einer Prüfung: Was es nicht gibt, kann niemand falsch aufrufen.
+ *
+ * ## Warum es kein `saveSettings(alles)` gibt
+ *
+ * E27 trennt Vorschlag und Bestätigung. Eine Methode, die beide Felder
+ * hinschreibt, machte aus dieser Trennung eine Frage der Disziplin an jeder
+ * Aufrufstelle. Drei Methoden mit sprechenden Namen machen sie zu einer
+ * Eigenschaft des Vertrags.
+ */
+export interface LearnerSettingsRepository {
+  /** Die eigenen Einstellungen. Ein leeres Objekt heißt: noch nichts gesetzt. */
+  mySettings(): Promise<LearnerSettings>;
+  /**
+   * Eine Zeitzone **bestätigen**. Der einzige Weg, wie eine hineinkommt.
+   *
+   * Eine unbekannte Zeichenkette lehnt die Datenbank ab (Prüfung gegen
+   * `pg_timezone_names`); der Fehler kommt hier als Ausnahme an.
+   */
+  confirmTimeZone(timeZone: string): Promise<LearnerSettings>;
+  /** Die bestätigte Zeitzone wieder entfernen – zurück auf „unbestätigt". */
+  forgetTimeZone(): Promise<LearnerSettings>;
+  /** Das Wochenziel setzen, oder mit `undefined` abschalten (E3, E26). */
+  setWeeklyGoalDays(days: number | undefined): Promise<LearnerSettings>;
+}
+
 /* ------------------------------------------------------------------ Konto */
 
 export interface AccountRepository {
@@ -424,6 +529,12 @@ export interface Repositories {
   packs?: PackRepository;
   publication?: PublicationRepository;
   progress?: ProgressRepository;
+  /*
+    Beide nur in der Cloudfassung: Eine Lerndatei kennt weder mehrere Kurse
+    noch ein Konto, an dem eine Einstellung hinge.
+  */
+  progressOverview?: ProgressOverviewRepository;
+  learnerSettings?: LearnerSettingsRepository;
   account?: AccountRepository;
   ai?: AiGateway;
 }

@@ -11,7 +11,12 @@ import {
 import { createSqlCourseRepositories } from './courseGateway';
 import { createSqlPackRepositories } from './packGateway';
 import { createAiGateway, createAiTransport } from './aiGateway';
-import { createSqlProgressRepository } from './progressGateway';
+import {
+  createSqlProgressOverviewRepository,
+  createSqlProgressRepository,
+} from './progressGateway';
+import { createSqlLearnerSettingsRepository } from './learnerSettingsGateway';
+import { createSupabaseLearnerSettingsGateway } from './supabaseLearnerSettingsGateway';
 import { createSupabaseCourseGateway } from './supabaseCourseGateway';
 import { createSupabasePackGateway } from './supabasePackGateway';
 import { createSupabaseProgressGateway } from './supabaseProgressGateway';
@@ -114,7 +119,18 @@ export function createCloudRepositories(input: {
 
   const { packs, publication } = createSqlPackRepositories(createSupabasePackGateway(client));
 
-  const progress = createSqlProgressRepository(createSupabaseProgressGateway(client));
+  const progressGateway = createSupabaseProgressGateway(client);
+  const progress = createSqlProgressRepository(progressGateway);
+  /*
+    Derselbe Gateway, zwei Verträge. Siehe `ProgressOverviewRepository`: Die
+    portablen Gestalten erfüllen den zweiten nicht, deshalb steht er nicht
+    auf `ProgressRepository`.
+  */
+  const progressOverview = createSqlProgressOverviewRepository(progressGateway);
+
+  const learnerSettings = createSqlLearnerSettingsRepository(
+    createSupabaseLearnerSettingsGateway(client, async () => (await auth.currentSession())?.userId),
+  );
 
   /*
     Der KI-Zugang geht **ausschließlich** über die Serverfunktion (ADR-8). Der
@@ -132,5 +148,16 @@ export function createCloudRepositories(input: {
     }),
   );
 
-  return { auth, profile, courses, invitations, packs, publication, progress, ai };
+  return {
+    auth,
+    profile,
+    courses,
+    invitations,
+    packs,
+    publication,
+    progress,
+    progressOverview,
+    learnerSettings,
+    ai,
+  };
 }

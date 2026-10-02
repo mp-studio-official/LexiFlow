@@ -1,8 +1,10 @@
 import { progressKey } from '../domain/ids';
 import type { EntryProgress, PackProgress, TaskDirection } from '../domain/schema';
 import type {
+  DueOverview,
   ProgressConflict,
   ProgressEvent,
+  ProgressOverviewRepository,
   ProgressRepository,
 } from '../application/repositories';
 
@@ -58,6 +60,15 @@ export interface ConflictRow {
   current_rev: number;
 }
 
+/** Eine Zeile aus `my_due_overview()`. */
+export interface DueOverviewRow {
+  course_id: string;
+  pack_id: string;
+  due_count: number;
+  entry_count: number;
+  last_practiced_at: string | Date | null;
+}
+
 export interface ProgressGateway {
   selectPackProgress(courseId: string, packId: string): Promise<PackProgressRow | undefined>;
   selectEntryProgress(courseId: string, packId: string): Promise<EntryProgressRow[]>;
@@ -65,6 +76,13 @@ export interface ProgressGateway {
   /** Gibt zurück, was **nicht** übernommen wurde – leer heißt: alles angekommen. */
   rpcRecordEvents(events: readonly ProgressEvent[]): Promise<ConflictRow[]>;
   rpcReset(courseId: string, packId: string): Promise<void>;
+  /**
+   * Der eigene Lernstand über alle Kurse – eine Abfrage statt einer Kaskade.
+   *
+   * `now` ist der Vergleichszeitpunkt für die Fälligkeit. Ohne Angabe
+   * entscheidet die Serveruhr; der Parameter ist für Tests da.
+   */
+  rpcDueOverview(now?: string): Promise<DueOverviewRow[]>;
 }
 
 /* ------------------------------------------------------------ Umrechnung -- */
@@ -121,6 +139,23 @@ export function alsVokabelstand(zeile: EntryProgressRow): EntryProgress {
   };
 }
 
+export function alsUebersicht(zeile: DueOverviewRow): DueOverview {
+  return {
+    courseId: zeile.course_id,
+    packId: zeile.pack_id,
+    /*
+      Die Zähler kommen aus SQL und sind dort `integer` – über PostgREST
+      allerdings JSON, und ein `bigint` käme als Zeichenkette an. `Number`
+      steht hier, damit aus `"3"` nicht irgendwo `"3" + 1 === "31"` wird.
+    */
+    dueCount: Number(zeile.due_count),
+    entryCount: Number(zeile.entry_count),
+    ...(zeile.last_practiced_at === null
+      ? {}
+      : { lastPracticedAt: alsZeitpunkt(zeile.last_practiced_at) }),
+  };
+}
+
 /* ---------------------------------------------------------- Repository -- */
 
 export function createSqlProgressRepository(gateway: ProgressGateway): ProgressRepository {
@@ -150,6 +185,24 @@ export function createSqlProgressRepository(gateway: ProgressGateway): ProgressR
 
     async resetMyProgress(courseId, packId) {
       await gateway.rpcReset(courseId, packId);
+    },
+  };
+}
+
+/**
+ * Der kursübergreifende Blick – eigener Vertrag, derselbe Gateway.
+ *
+ * Eigener Vertrag, weil die portablen Gestalten ihn nicht erfüllen (siehe
+ * `ProgressOverviewRepository`). Derselbe Gateway, weil dieselbe Anbindung
+ * dieselbe Verbindung benutzt – zwei Gateways für dieselben beiden Tabellen
+ * wären zwei Orte, an denen ein Filter zu viel stehen könnte.
+ */
+export function createSqlProgressOverviewRepository(
+  gateway: ProgressGateway,
+): ProgressOverviewRepository {
+  return {
+    async myDueOverview(now) {
+      return (await gateway.rpcDueOverview(now)).map(alsUebersicht);
     },
   };
 }

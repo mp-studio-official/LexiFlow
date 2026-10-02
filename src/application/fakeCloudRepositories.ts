@@ -11,13 +11,17 @@ import {
   type CourseInvite,
   type CourseMember,
   type CourseRepository,
+  type DueOverview,
   type InvitationRepository,
+  type LearnerSettings,
+  type LearnerSettingsRepository,
   type PackRepository,
   type PackRevision,
   type PackSummary,
   type Profile,
   type ProgressConflict,
   type ProgressEvent,
+  type ProgressOverviewRepository,
   type ProgressRepository,
   type ProfileRepository,
   type PublicationRepository,
@@ -26,6 +30,7 @@ import {
   type Session,
 } from './repositories';
 import { paketeIdentisch } from '../domain/vocabpack';
+import { istWochenziel } from '../domain/zeitzone';
 
 /**
  * Das Portal, solange es kein Portal gibt.
@@ -170,6 +175,15 @@ export interface FakeCloudState {
   packProgress: Map<string, PackProgress>;
   entryProgress: Map<string, EntryProgress[]>;
   seenEvents: Set<string>;
+  /**
+   * Die Lernendeneinstellungen je Person – und **nur** für die, die etwas
+   * gesetzt haben.
+   *
+   * Kein Eintrag beim Anlegen eines Kontos, so wie es in der Datenbank keine
+   * Zeile gibt. Ein vorsorglich angelegter leerer Eintrag machte den
+   * Normalfall „noch nichts bestätigt" untestbar.
+   */
+  learnerSettings: Map<string, LearnerSettings>;
   /** KI-Verbindungen – der Schlüssel liegt hier **im Klartext**, siehe unten. */
   aiConnections: Map<string, AiConnectionSummary & { ownerId: string; secret: string }>;
   /** Von einer Verwaltung freigegebene KI-Hosts. */
@@ -198,6 +212,7 @@ function leererStand(): FakeCloudState {
     packProgress: new Map(),
     entryProgress: new Map(),
     seenEvents: new Set(),
+    learnerSettings: new Map(),
     lastEventIds: new Map(),
     aiConnections: new Map(),
     aiAllowedHosts: [],
@@ -962,6 +977,108 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     },
   };
 
+  /*
+    Die Fälschung der Zeitzonenprüfung.
+
+    `Intl.supportedValuesOf('timeZone')` gibt es seit 2022 überall, wo dieses
+    Portal läuft – aber nicht in jeder Testumgebung, und eine abgeschriebene
+    Liste veraltete still. Deshalb der Umweg über den Formatierer: Eine
+    unbekannte Zeitzone lässt ihn werfen, eine bekannte nicht. Dieselbe
+    Auskunft wie `pg_timezone_names`, aus derselben Quelle wie das
+    Betriebssystem.
+  */
+  function zeitzoneIstBekannt(zone: string): boolean {
+    try {
+      new Intl.DateTimeFormat('de-DE', { timeZone: zone });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const learnerSettings: LearnerSettingsRepository = {
+    async mySettings() {
+      const mich = ich();
+      // Kein Eintrag ist der Normalfall – und ein leeres Objekt die Antwort.
+      return { ...(state.learnerSettings.get(mich.profile.id) ?? {}) };
+    },
+
+    async confirmTimeZone(timeZone) {
+      const mich = ich();
+      if (!zeitzoneIstBekannt(timeZone)) {
+        throw new Error(`Unbekannte Zeitzone: ${timeZone}`);
+      }
+      const bisher = state.learnerSettings.get(mich.profile.id) ?? {};
+      const neu: LearnerSettings = { ...bisher, timeZone };
+      state.learnerSettings.set(mich.profile.id, neu);
+      return { ...neu };
+    },
+
+    async forgetTimeZone() {
+      const mich = ich();
+      const { timeZone: _weg, ...rest } = state.learnerSettings.get(mich.profile.id) ?? {};
+      state.learnerSettings.set(mich.profile.id, rest);
+      return { ...rest };
+    },
+
+    async setWeeklyGoalDays(days) {
+      const mich = ich();
+      if (!istWochenziel(days)) {
+        throw new Error('Das Wochenziel liegt außerhalb von 1 bis 7.');
+      }
+      const { weeklyGoalDays: _weg, ...rest } = state.learnerSettings.get(mich.profile.id) ?? {};
+      const neu: LearnerSettings = days === undefined ? rest : { ...rest, weeklyGoalDays: days };
+      state.learnerSettings.set(mich.profile.id, neu);
+      return { ...neu };
+    },
+  };
+
+  const progressOverview: ProgressOverviewRepository = {
+    async myDueOverview(now) {
+      const mich = ich();
+      const grenze = Date.parse(now ?? jetzt());
+      const zeilen = new Map<string, DueOverview>();
+
+      /*
+        Dieselbe Verbundlogik wie `my_due_overview`: Ein Paket zählt, sobald
+        es in **einer** der beiden Sammlungen vorkommt. Wer nur über
+        `entryProgress` ginge, verlöre ein Paket, das begonnen und dessen
+        Runde abgebrochen wurde; wer nur über `packProgress` ginge, verlöre
+        einen Lernstand aus einer portablen Datei, die hochgeladen wurde.
+      */
+      function zeile(schluessel: string): DueOverview {
+        /*
+          `split` mit Grenze 2: Eine Paketkennung kommt vom Client und darf
+          alles Mögliche enthalten. Ohne die Grenze verlöre ein Paket, in
+          dessen Kennung `::` vorkommt, seinen Namensrest – lautlos.
+        */
+        const trenner = schluessel.indexOf('::');
+        const courseId = schluessel.slice(0, trenner);
+        const packId = schluessel.slice(trenner + 2);
+        const vorhanden = zeilen.get(schluessel);
+        if (vorhanden) return vorhanden;
+        const frisch: DueOverview = { courseId, packId, dueCount: 0, entryCount: 0 };
+        zeilen.set(schluessel, frisch);
+        return frisch;
+      }
+
+      const meins = `${mich.profile.id}::`;
+      for (const [schluessel, staende] of state.entryProgress) {
+        if (!schluessel.startsWith(meins)) continue;
+        const eintrag = zeile(schluessel.slice(meins.length));
+        eintrag.entryCount += staende.length;
+        eintrag.dueCount += staende.filter((stand) => Date.parse(stand.dueAt) <= grenze).length;
+      }
+      for (const [schluessel, stand] of state.packProgress) {
+        if (!schluessel.startsWith(meins)) continue;
+        const eintrag = zeile(schluessel.slice(meins.length));
+        if (stand.lastPracticedAt !== undefined) eintrag.lastPracticedAt = stand.lastPracticedAt;
+      }
+
+      return [...zeilen.values()].sort((a, b) => a.packId.localeCompare(b.packId));
+    },
+  };
+
   const account: AccountRepository = {
     async exportMyData() {
       const mich = ich();
@@ -985,7 +1102,19 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
   };
 
   return {
-    repositories: { auth, profile, courses, invitations, packs, publication, progress, account, ai },
+    repositories: {
+      auth,
+      profile,
+      courses,
+      invitations,
+      packs,
+      publication,
+      progress,
+      progressOverview,
+      learnerSettings,
+      account,
+      ai,
+    },
     state,
     signInAs(userId) {
       setze(userId);
