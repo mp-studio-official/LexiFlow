@@ -25,6 +25,7 @@
     "e2e:breiten": "playwright test --config playwright.breiten.config.ts",
     "e2e:breiten:portal": "playwright test --config playwright.portal-breiten.config.ts",
     "verify:deploy": "node scripts/verify-deploy.mjs",
+    "pilot:pruefen": "node scripts/pilotreife.mjs",
     "stilumfang": "node scripts/stilumfang.mjs",
     "zeichen": "node scripts/zeichen-unterscheidbar.mjs",
     "huelle:messen": "node scripts/huelle-messen.mjs",
