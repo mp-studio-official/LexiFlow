@@ -198,7 +198,7 @@ eine Seite, die nicht mehr lädt.
 | --- | --- | --- | --- | --- |
 | **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
 | **5B.4** | „Heute" | E1, E2, E3, E9 | 5B.2d | offen |
-| **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14 | 5B.2d | **fertig** (`5ce0363`) |
+| **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14, **E24** | 5B.2d | **fertig** (`5ce0363`, `8467267`, `3365861`) |
 | **5B.6** | „Mein Fortschritt": Lernzeit, Lernserie mit Ruhetagen, freiwilliges Wochenziel | E1, E2, E3, E6 | 5B.4 | offen |
 | ~~**5B.7**~~ | ~~Einstellungen~~ — **vorgezogen vor 5B.2d**, siehe oben | E23 | 5B.2c′ | — |
 
@@ -274,6 +274,26 @@ Für Blöcke, die einen Bildschirm verändern, zusätzlich:
 5. **Breitensuite** für die betroffene Auslieferung: `npm run e2e:breiten`
    beziehungsweise `e2e:breiten:portal`, vier Breiten × zwei Maschinen.
 6. **Altregeln entfernt** — siehe unten.
+
+#### Was 5B.5 abgenommen hat
+
+| Teil | Commit |
+| --- | --- |
+| Der Bereich „Üben", die Karten, die Einengung der Runde | `5ce0363` |
+| **E24** — wann ein Wort schwierig ist, im Konzept | `8467267` |
+| **E14 vollständig** — Ausgang, Verlustregel, Rückfrage | `3365861` |
+
+**Sichtbar sind heute vier Karten**, und nur, wenn ihr Weg funktioniert:
+Fällige Wiederholungen, Schwierige Wörter, Englisch → Deutsch, Deutsch →
+Englisch. **Karteikarten und Lückentexte fehlen mit Absicht** — die
+Aufgabenformen gibt es, aber das Portal hat keinen Einstieg, der eine Form
+auswählt. Das stellt **5B.15** her.
+
+**E14 gilt jetzt ganz:** keine Bereichsnavigation in der laufenden Runde, der
+Ausgang heißt „Runde beenden", und **jeder** Ausgang — auch „Abmelden",
+Browser-Zurück, Neuladen und Schließen — fragt dieselbe Regel
+(`src/domain/rundenverlust.ts`), ob etwas verloren ginge. Die Rückfrage
+erscheint nur dann, und „Hierbleiben" setzt den Fokus zurück ins Antwortfeld.
 
 ### Vor 5B.2d: kein Weg darf verschwinden
 
