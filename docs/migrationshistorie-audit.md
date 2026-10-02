@@ -1,9 +1,37 @@
-# Die Migrationshistorie — Bestandsaufnahme und Reparaturvorlage
+# Die Migrationshistorie — Bestandsaufnahme, Reparatur, Nachweis
 
-**Nur gelesen.** Kein `migration repair`, kein `db push`, keine angewandte
-Migration, keine veränderte Remote-Metadatenzeile. Dieses Dokument ist die
-Entscheidungsvorlage für **eine** ausdrückliche Freigabe; die Befehle in
-Abschnitt 5 sind **nicht ausgeführt**.
+> ## Durchgeführt und bestanden am 02.10.2026
+>
+> Die Angleichung ist gelaufen. **Alle elf** lokalen Versionen stehen jetzt
+> identisch in `Local` und `Remote`; `supabase_migrations.schema_migrations`
+> enthält genau diese elf. Migration 11 wurde mitmarkiert, nachdem die Abfrage
+> aus 5.2 für **beide** Funktionen `true` ergeben hat.
+>
+> **Verändert wurde ausschließlich
+> `supabase_migrations.schema_migrations`.** Schema- und Nutzdatenzählwerte
+> waren vorher und nachher exakt gleich:
+>
+> | Schema | | Nutzdaten | |
+> | --- | --- | --- | --- |
+> | Tabellen | 15 | Profile | 4 |
+> | Spalten | 97 | Kurse | 2 |
+> | RLS-Regeln | 27 | Mitgliedschaften | 4 |
+> | Funktionen | 33 | Pakete | 2 |
+> | Trigger | 11 | Fassungen | 3 |
+> | | | Paketlernstände | 2 |
+> | | | Eintragslernstände | 2 |
+>
+> **Damit ist `supabase db push` wieder benutzbar**, und künftige Migrationen
+> werden wieder kontrolliert über die CLI angewandt statt Datei für Datei im
+> SQL-Editor. Der Weg über den SQL-Editor bleibt als Notweg richtig, ist aber
+> nicht mehr der reguläre.
+>
+> Der Abschnitt 5 unten steht **unverändert** da: Er ist der Ablauf, der
+> gelaufen ist, und damit der Beleg — nicht eine Anleitung für etwas, das noch
+> kommt. Wer ihn später wieder braucht (ein zweites Projekt, ein neues
+> Staging), findet ihn hier, geprüft.
+
+Die folgende Bestandsaufnahme beschreibt den Stand **vor** dem 02.10.2026.
 
 ---
 
@@ -69,11 +97,11 @@ Schritt in Abschnitt 5, und zwar durch Marc, auf seinem Rechner.
 > eingespielt und stehen deshalb nicht in
 > `supabase_migrations.schema_migrations`.
 
-| Frage | Antwort aus dem Repository |
-| --- | --- |
-| Welche Versionen fehlen remote? | **alle elf**, Stand 29.09.2026 |
-| Gibt es Remote-Einträge ohne lokale Datei? | **keine** — die Historie ist leer, nicht abweichend |
-| Sind Versionen eindeutig und in Reihenfolge? | ja (Abschnitt 2) |
+| Frage | Antwort aus dem Repository | Gemessen am 02.10.2026 |
+| --- | --- | --- |
+| Welche Versionen fehlen remote? | **alle elf**, Stand 29.09.2026 | bestätigt — und seitdem alle elf eingetragen |
+| Gibt es Remote-Einträge ohne lokale Datei? | **keine** — die Historie ist leer, nicht abweichend | bestätigt |
+| Sind Versionen eindeutig und in Reihenfolge? | ja (Abschnitt 2) | bestätigt |
 
 > Das ist ein **Dokumentationsstand, keine Messung von heute.** Abschnitt 5.1
 > misst ihn nach, bevor irgendetwas markiert wird. Weicht er ab, gilt
@@ -106,8 +134,14 @@ Dieses `403` kann **nur** aus `app_pack_is_assigned` kommen — der Funktion,
 die erst `114c033` hinzugefügt hat. Die Abnahme beschreibt also eine
 Datenbank, in der Migration 11 in ihrer **endgültigen** Fassung läuft.
 
-**Wahrscheinlich** ist damit: alle elf sind angewandt, und der Satz „die zehn
-ersten" stammt aus den Stunden davor. **Belegt** ist es nicht, und der
+**Beantwortet am 02.10.2026:** Die Abfrage aus 5.2 ergab für beide Funktionen
+`true` — Migration 11 lief vollständig. Die Vermutung unten hat sich damit
+bestätigt, und 11 wurde mitmarkiert. Der Rest dieses Abschnitts bleibt stehen,
+weil er die Frage festhält, die beantwortet werden **musste**, bevor irgendwer
+etwas markiert.
+
+**Wahrscheinlich** war damals: alle elf sind angewandt, und der Satz „die zehn
+ersten" stammt aus den Stunden davor. **Belegt** war es nicht, und der
 Unterschied ist nicht akademisch:
 
 - Ist 11 angewandt und wird **nicht** markiert, spielt ein späteres `db push`
@@ -124,7 +158,7 @@ Dokumentation, sondern eine Abfrage an der Datenbank (Abschnitt 5.2).
 
 ---
 
-## 5. Der Reparaturablauf — vorbereitet, nicht ausgeführt
+## 5. Der Reparaturablauf — ausgeführt am 02.10.2026
 
 ### 5.1 Vorprüfung (nur lesend)
 
@@ -165,7 +199,8 @@ select
 ### 5.3 Die Repair-Befehle, einzeln
 
 **Nur ausführen, wenn 5.1 und 5.2 wie erwartet ausgefallen sind.** Einer nach
-dem anderen, Ausgabe jeweils ansehen:
+dem anderen, Ausgabe jeweils ansehen. *(Alle elf sind gelaufen — die zehn
+unten plus `20260929170000`, nach `true / true` in 5.2.)*
 
 ```bash
 npx supabase migration repair --status applied 20260913120000
@@ -276,9 +311,17 @@ ist schlimmer als keine.
 
 ---
 
-## 7. Was danach möglich wird
+## 7. Was jetzt möglich ist
 
 `supabase db push` für **neue** Migrationen — und damit 5B.8 (Schemafassung 3)
-und 5B.9. Bis dahin bleiben beide blockiert, und das ist kein Rückstand,
-sondern die Folge einer bewussten Entscheidung: Lieber elf Dateien von Hand
-als ein `db push`, dessen Wirkung niemand vorhersagen kann.
+und 5B.9. Beide stehen im Umsetzungsplan seit dem 02.10.2026 auf `offen`
+statt `blockiert`.
+
+Dass es bis hierher elf Dateien von Hand waren, war kein Rückstand, sondern
+eine bewusste Entscheidung: lieber elf Einfügevorgänge als ein `db push`,
+dessen Wirkung niemand vorhersagen kann. Diese Lage ist jetzt beendet — nicht
+umgangen.
+
+**Noch nicht getan und ausdrücklich nicht Teil dieses Commits:** kein
+`db push`, keine neue Migration, keine Schemaänderung. Die Historie ist
+angeglichen; was darauf aufbaut, ist 5B.8.

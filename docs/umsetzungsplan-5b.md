@@ -213,25 +213,32 @@ eine Seite, die nicht mehr lädt.
 
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
-| **5B.8** | Schemafassung 3 und Migrationsschritt 2 → 3, ohne Oberfläche | — | — (parallel) | **blockiert** |
-| **5B.9** | Titelbilder Stufe 1: Bucket, Migration, Upload, Prüfung, Größen, Fokuspunkt, Alternativtext, Einbettung im Offline-Export | E4, E17 | 5B.1 | **blockiert** |
+| **5B.8** | Schemafassung 3 und Migrationsschritt 2 → 3, ohne Oberfläche | — | — (parallel) | offen |
+| **5B.9** | Titelbilder Stufe 1: Bucket, Migration, Upload, Prüfung, Größen, Fokuspunkt, Alternativtext, Einbettung im Offline-Export | E4, E17 | 5B.1 | offen |
 | **5B.10** | Grammatik in der Oberfläche: Eingabe im Paketeditor, Anzeige auf der Lernkarte, Übungsform „Zeitformen" | E8 | 5B.8, 5B.5 | offen |
 | **5B.11** | Zeitgesteuerte Veröffentlichung: `publish_at`, Auswertung beim Abruf über die Zugriffsregel | E6 | — | offen |
 | **5B.12** | Mobile Sonderfälle: Tabellen als Karten, umschaltbare Werkstattansichten, sticky Aktionsleisten | — | 5B.2d | offen |
 
-> **Die Blockade hat jetzt eine Vorlage.** `docs/migrationshistorie-audit.md`
-> hält den lokalen Stand, den dokumentierten Remote-Stand und einen exakten,
-> **noch nicht ausgeführten** Reparaturablauf fest — mit Vorprüfung,
-> einzelnen Repair-Befehlen, Kontrolle, Nachweis über unverändertes Schema
-> und unveränderte Nutzdaten, Abbruchbedingungen und Rückweg. Offen bleibt
-> genau eine Frage, die nur die Datenbank beantwortet: ob Migration 11 schon
-> gelaufen ist. Sie entscheidet, ob zehn oder elf Versionen markiert werden.
+> **Die Blockade ist aufgehoben — am 02.10.2026.** Die Angleichung der
+> Migrationshistorie ist gelaufen und bestanden: Alle elf lokalen Versionen
+> stehen identisch in `Local` und `Remote`, Migration 11 wurde nach einer
+> lesenden Prüfung beider Funktionen mitmarkiert, und verändert wurde
+> **ausschließlich** `supabase_migrations.schema_migrations` — Schema- und
+> Nutzdatenzählwerte waren vorher und nachher exakt gleich (15 Tabellen, 97
+> Spalten, 27 Regeln, 33 Funktionen, 11 Trigger; 4 Profile, 2 Kurse, 4
+> Mitgliedschaften, 2 Pakete, 3 Fassungen, 2 + 2 Lernstände).
+>
+> `supabase db push` ist damit wieder benutzbar; künftige Migrationen laufen
+> wieder kontrolliert über die CLI statt Datei für Datei im SQL-Editor. Der
+> Ablauf samt Nachweis steht in `docs/migrationshistorie-audit.md`.
+>
+> **Noch nicht getan:** kein `db push`, keine neue Migration, keine
+> Schemaänderung. Das ist 5B.8.
 
-> **5B.8 und 5B.9 sind blockiert, und zwar an derselben Stelle:** Beide
-> bringen eine Migration. Solange die Supabase-Migrationshistorie nicht
-> kontrolliert angeglichen ist (`migration repair`), kommt jede weitere
-> Migration nur über den SQL-Editor herein. Das ist eine Entscheidung mit
-> eigener Abnahme und gehört nicht nebenbei in einen Oberflächenblock.
+> **5B.8 und 5B.9 waren an derselben Stelle blockiert:** Beide bringen eine
+> Migration, und solange die Historie nicht angeglichen war, kam jede weitere
+> Migration nur über den SQL-Editor herein. Seit dem 02.10.2026 ist das
+> erledigt; beide stehen auf `offen`.
 >
 > **E17** verlangt den Titelbildbaustein **vor** der Werkstatt — deshalb
 > steht 5B.9 vor 5B.13.
@@ -347,11 +354,13 @@ diese Aufräumarbeit als Abnahmeschritt, nicht 5B.16.
 
 ## 5. Was offen ist und nicht hier entschieden wird
 
-- **Die Angleichung der Migrationshistorie.** Sie blockiert 5B.8 und 5B.9.
-  Ob `migration repair` mit eigener Abnahme durchgeführt wird oder weiter von
-  Hand eingespielt wird, ist eine Entscheidung mit Folgen für das Staging und
-  gehört nicht in einen Oberflächenblock.
-- **`src/data/repos.test.ts > packRepo > listet Pakete nach Änderungsdatum`**
-  ist zeitweise instabil. Ursache nicht untersucht.
+- ~~**Die Angleichung der Migrationshistorie.**~~ **Erledigt am 02.10.2026**
+  — durchgeführt, bestanden, nachgewiesen in
+  `docs/migrationshistorie-audit.md`. `db push` ist wieder benutzbar; 5B.8
+  und 5B.9 sind frei.
+- ~~**`src/data/repos.test.ts > packRepo > listet Pakete nach
+  Änderungsdatum`**~~ **Erledigt** (`aa166c5`): Der Test nahm an, zwei
+  Speicherungen fielen nie in dieselbe Millisekunde. Ursache belegt, Test
+  deterministisch gemacht, Produktivcode unverändert.
 - **Nicht Teil von 5B:** Unsplash und andere externe Bildquellen (E17),
   kleine Spiele, Dunkelmodus (E22).
