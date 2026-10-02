@@ -211,6 +211,16 @@ eine Seite, die nicht mehr lädt.
 > und WebKit bei 390, 768, 1024 und 1440 px. Sie brauchte `bc0b108` —
 > `esbuild` stand nur in Vites optionalem Peer-Vertrag und fehlte auf dem
 > Arbeitsrechner.
+>
+> **5B.6 ist ebenfalls in Chromium und WebKit abgenommen** — volles und
+> frisches Konto, 390/768/1024/1440 px, sieben Abschnitte überall, kein
+> Überlauf, kein Tippziel unter 44 × 44 px, sieben Wochentage beim
+> vollständigen Konto. Messskript: `npm run fortschritt:messen`.
+>
+> **5B.6 brauchte weder eine Migration noch ein Deployment.** Der
+> kursübergreifende Lernstandszugriff kommt mit einem einzigen
+> RLS-geschützten `select` aus; `entry_progress` trägt die Zugriffsregel
+> seit Migration 11.
 
 ### Bereiche
 
@@ -220,7 +230,7 @@ eine Seite, die nicht mehr lädt.
 | **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kursübergreifender Lernstandszugriff; **kein Bildschirm** | E1, E2, E3, **E26, E27, E28**, R11 | 5B.2d | **fertig** (`c49bdc6`, `0e5e077`); Migration 12 am 02.10.2026 **im Staging angewandt und abgenommen** — `docs/abnahme/migration-12.md` |
 | **5B.4** | „Heute" — **hier wird die Zeitzone bestätigt** (E27) | E1, E2, E3, E9, **E27, E28** | **5B.4a** | **fertig** (`34dd674`, `c3afee1`, `5186ae8`, `6f3db4a`); Migration 13 am 03.10.2026 **im Staging angewandt und abgenommen** — `docs/abnahme/migration-13.md` |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14, **E24** | 5B.2d | **fertig** (`5ce0363`, `8467267`, `3365861`) |
-| **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter; **hier werden Zeitzone und Ziel bearbeitet** | E1, E2, E3, **E25, E26, E27** | 5B.4 | offen |
+| **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter; **hier werden Zeitzone und Ziel bearbeitet** | E1, E2, E3, **E25, E26, E27** | 5B.4 | **fertig** (`c5224ef`, `70e0d75`, `284333e`) |
 | ~~**5B.7**~~ | ~~Einstellungen~~ — **vorgezogen vor 5B.2d**, siehe oben | E23 | 5B.2c′ | — |
 
 > Die Reihenfolge folgt **E16**: Lehrkräfte-Dashboard zuerst, dann der
@@ -292,12 +302,20 @@ eine Seite, die nicht mehr lädt.
 > Ablauf samt Nachweis steht in `docs/migrationshistorie-audit.md`.
 >
 > **Noch nicht getan:** kein `db push`, keine neue Migration, keine
-> Schemaänderung. Das ist 5B.8.
+> Schemaänderung.
 
-> **5B.8 und 5B.9 waren an derselben Stelle blockiert:** Beide bringen eine
-> Migration, und solange die Historie nicht angeglichen war, kam jede weitere
-> Migration nur über den SQL-Editor herein. Seit dem 02.10.2026 ist das
-> erledigt; beide stehen auf `offen`.
+> **Berichtigung vom 04.10.2026: 5B.8 war nie an der Migrationshistorie
+> blockiert.** Hier stand, 5B.8 und 5B.9 brächten beide „eine Migration" und
+> kämen deshalb nicht voran. Für 5B.9 stimmt das. Für 5B.8 nicht: Was dort
+> entsteht, ist eine **Dokumentmigration** 2 → 3 für `.vocabpack.json` — ein
+> Schritt in `src/domain/migrations.ts`, der mit Supabase nichts zu tun hat.
+>
+> Nachgesehen statt angenommen: `pack_drafts.format_version` und
+> `pack_revisions.format_version` sind `integer not null check (… > 0)` und
+> nehmen damit **jede** positive Version an; `pack` ist `jsonb` und kennt
+> keine Feldliste; `publish_pack` kopiert `d.format_version` unverändert in
+> die Fassung. Eine Datenbankänderung ist für Fassung 3 nicht nötig, und
+> `scripts/db/schemafassung3.test.mjs` zeigt das am laufenden Postgres.
 >
 > **E17** verlangt den Titelbildbaustein **vor** der Werkstatt — deshalb
 > steht 5B.9 vor 5B.13.
