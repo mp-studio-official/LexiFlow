@@ -1421,3 +1421,89 @@ wie jeder Lernstand (Abschnitt 4.4).
 `SCHWIERIG_BIS_FACH`, `istSchwierig`), zuerst benutzt von 5B.5 (`5ce0363`).
 Eine Änderung der Schwelle ist eine Änderung dieser Entscheidung, nicht eine
 Änderung einer Zahl.
+
+---
+
+## 17. Entscheidungen E25 bis E28 — die Grundlage von „Heute" und „Fortschritt"
+
+**Getroffen am 02.10.2026**, nach der Machbarkeitsprüfung in
+`docs/datenlage-heute-fortschritt.md` (`afb16f9`).
+
+### E25 — Keine Lernzeit
+
+**„Lernzeit" wird weder angezeigt noch geschätzt**, solange sie nicht
+verlässlich gemessen wird.
+
+Was stattdessen genügt: die Zahl bearbeiteter Aufgaben, Lerntage und der
+Lernstand selbst.
+
+> **Warum.** Es gibt kein Sitzungsende — weder in der Datenbank noch im
+> Quelltext. Die beiden denkbaren Ersatzgrößen messen etwas anderes: Die
+> Seitenöffnungszeit misst, wie lange ein Tab offen war; der Abstand zwischen
+> zwei Antworten misst den Abstand zwischen zwei **Uploads**. Eine Zahl, die
+> nach Messung aussieht und keine ist, ist schlechter als keine Zahl.
+
+Damit entfällt „Lernzeit" aus 4.4 und aus dem Block 5B.6.
+
+### E26 — Das Wochenziel zählt Lerntage
+
+**Einheit: Lerntage pro Woche, zulässig 1 bis 7.** Standardmäßig **aus**
+(`null`, E3). **Kein Minutenziel und kein Aufgabenziel.**
+
+> **Warum Lerntage.** Minuten scheiden mit E25 aus. Ein Aufgabenziel stellte
+> eine zweite Schwelle neben die zehn aus E1 — zwei Zahlen, die beide „genug
+> für heute" bedeuten, erklären sich gegenseitig weg. Lerntage benutzen genau
+> die Größe, die E1 und E2 ohnehin definieren: Ein Tag zählt nach zehn
+> bewerteten Aufgaben, und die Ruhetage aus E2 passen ohne eine weitere Regel
+> dazu.
+
+### E27 — Die Zeitzone wird bestätigt, nie stillschweigend gespeichert
+
+- `time_zone` ist zunächst **`null`** — es gibt **keine** feste Voreinstellung
+  in der Datenbank.
+- Der Browser **darf** über `Intl.DateTimeFormat().resolvedOptions().timeZone`
+  einen **Vorschlag** liefern.
+- Gespeichert wird **erst nach ausdrücklicher Bestätigung** durch die lernende
+  Person.
+- Ein später erkanntes anderes Gerät oder eine andere Zeitzone überschreibt
+  den gespeicherten Wert **niemals automatisch**.
+- Solange keine Zeitzone bestätigt ist, werden **Serie und lokale
+  Wochenberechnung nicht als belastbare Zahl angezeigt**. Stattdessen
+  erscheint eine ruhige, **nicht blockierende** Aufforderung zur Bestätigung.
+- Die Gerätezeit entscheidet weiterhin **nie** selbst über den Erhalt einer
+  Serie.
+
+> **Warum keine stille Übernahme.** Ein automatisch gespeicherter Wert sieht
+> aus wie eine Angabe der Person und ist keine. Wer im Zug mit einem Telefon
+> in einer anderen Zeitzone lernt, bekäme eine Tagesgrenze zugewiesen, die
+> niemand gewählt hat — und sie stünde danach als Wahrheit in der Datenbank.
+> Ein Vorschlag, der bestätigt werden muss, kostet einmal einen Klick und ist
+> danach überprüfbar.
+>
+> **Warum keine Voreinstellung in der Datenbank.** `Europe/Berlin` wäre für
+> fast alle richtig und für manche falsch — und man sähe den beiden Fällen
+> nicht an, welcher vorliegt. `null` sagt wahrheitsgemäß „nicht bestätigt".
+
+**Wo das sichtbar wird:** Die Bestätigung gehört in **5B.4** („Heute"), weil
+die Serie dort zuerst gezeigt wird. Das spätere **Bearbeiten** von Zeitzone
+und Wochenziel gehört spätestens in **5B.6** („Mein Fortschritt"). **5B.4a**
+baut nur Datenmodell, Datenzugriff und Prüfungen — keinen Bildschirm.
+
+### E28 — Der Zeitpunkt einer Lernaktivität ist der Serverzeitpunkt
+
+Für Serie und Lerntag gilt **ausschließlich** `progress_events.recorded_at` —
+der Zeitpunkt, zu dem der Server die Antwort angenommen hat.
+
+**Der Zielkonflikt, ausdrücklich:** Offline hochgeladene Aktivität zählt zum
+Tag der **Synchronisierung**, nicht rückwirkend zum Tag der Antwort. Wer
+abends offline übt und am nächsten Morgen synchronisiert, bekommt den
+nächsten Tag gutgeschrieben.
+
+> **Warum trotzdem so.** Die Alternative wäre `occurredAt` vom Gerät — und
+> damit entschiede eine Uhr, die niemand überprüfen kann, über den Erhalt
+> einer Serie. Eine Serie, die sich durch Zurückstellen der Uhr retten lässt,
+> ist keine.
+>
+> Der Preis ist benannt und wird **nicht verdeckt**: keine heimliche
+> Verwendung von Clientzeit, keine Mischform, keine „Kulanzstunde". Wenn die
+> Anzeige später erklärt, warum ein Tag fehlt, dann mit diesem Satz.

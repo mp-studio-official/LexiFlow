@@ -197,10 +197,10 @@ eine Seite, die nicht mehr lädt.
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
 | **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
-| **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kein Bildschirm | E1, E2, E3, **R11** | 5B.2d | offen |
-| **5B.4** | „Heute" | E1, E2, E3, E9 | **5B.4a** | offen |
+| **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kursübergreifender Lernstandszugriff; **kein Bildschirm** | E1, E2, E3, **E26, E27, E28**, R11 | 5B.2d | offen |
+| **5B.4** | „Heute" — **hier wird die Zeitzone bestätigt** (E27) | E1, E2, E3, E9, **E27, E28** | **5B.4a** | offen |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14, **E24** | 5B.2d | **fertig** (`5ce0363`, `8467267`, `3365861`) |
-| **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter | E1, E2, E3 | 5B.4 | offen |
+| **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter; **hier werden Zeitzone und Ziel bearbeitet** | E1, E2, E3, **E25, E26, E27** | 5B.4 | offen |
 | ~~**5B.7**~~ | ~~Einstellungen~~ — **vorgezogen vor 5B.2d**, siehe oben | E23 | 5B.2c′ | — |
 
 > Die Reihenfolge folgt **E16**: Lehrkräfte-Dashboard zuerst, dann der
@@ -222,10 +222,28 @@ eine Seite, die nicht mehr lädt.
 > und die Gerätezeit entschiede über einen Tag. Dieselbe Tabelle trägt das
 > freiwillige Wochenziel (E3).
 >
-> **Lernzeit steht nicht mehr in 5B.6.** Sie ist aus den vorhandenen Daten
-> nicht seriös berechenbar — es gibt kein Sitzungsende, und der Abstand
-> zwischen zwei Antworten misst Uploads, keine Arbeit. Die Begründung steht
-> in `docs/datenlage-heute-fortschritt.md`, Abschnitt 2.1.
+> **Lernzeit steht nicht mehr in 5B.6** — **E25**: Sie wird weder angezeigt
+> noch geschätzt, solange sie nicht verlässlich gemessen wird. Es gibt kein
+> Sitzungsende, und der Abstand zwischen zwei Antworten misst Uploads, keine
+> Arbeit.
+>
+> **Die Kette ist 5B.4a → 5B.4 → 5B.6**, und sie ist keine Reihenfolge der
+> Bequemlichkeit: Ohne die bestätigte Zeitzone aus 5B.4a gibt es keine
+> Tagesgrenze, ohne Tagesgrenze keine Serie, und ohne Serie kein „Heute" und
+> kein „Mein Fortschritt", das mehr zeigt als Kurse und Pakete.
+>
+> | Was | Wo es sichtbar wird |
+> | --- | --- |
+> | Datenmodell, Zugriff, Prüfungen | **5B.4a** — kein Bildschirm |
+> | **Bestätigung** der Zeitzone (E27) | **5B.4**, weil dort die Serie zuerst gezeigt wird |
+> | **Bearbeiten** von Zeitzone und Wochenziel | spätestens **5B.6** |
+>
+> **Der Offline-Effekt gehört dazu (E28).** Für Serie und Lerntag gilt
+> ausschließlich der serverseitige `progress_events.recorded_at`. Offline
+> hochgeladene Aktivität zählt damit zum Tag der **Synchronisierung**, nicht
+> rückwirkend zum Tag der Antwort. Das ist ein bewusster Zielkonflikt: Die
+> Alternative wäre eine Geräteuhr, die über den Erhalt einer Serie
+> entscheidet. Keine heimliche Verwendung von Clientzeit, keine Mischform.
 >
 > **E6 ist bei 5B.6 gestrichen.** E6 regelt Bildquellen und Speicherfälle und
 > ist keine Grundlage von „Mein Fortschritt".
@@ -386,10 +404,10 @@ diese Aufräumarbeit als Abnahmeschritt, nicht 5B.16.
   Änderungsdatum`**~~ **Erledigt** (`aa166c5`): Der Test nahm an, zwei
   Speicherungen fielen nie in dieselbe Millisekunde. Ursache belegt, Test
   deterministisch gemacht, Produktivcode unverändert.
-- **Drei Entscheidungen vor 5B.4a**, mit Empfehlung in
-  `docs/datenlage-heute-fortschritt.md`, Abschnitt 5: ob Lernzeit überhaupt
-  angezeigt wird (Empfehlung: nein), welche Einheit das Wochenziel hat
-  (Empfehlung: Lerntage je Woche) und woher die Zeitzone beim ersten Mal
-  kommt (Empfehlung: Standard `Europe/Berlin`, einmalige stille Korrektur).
+- ~~**Drei Entscheidungen vor 5B.4a**~~ **Entschieden am 02.10.2026** als
+  **E25** (keine Lernzeit), **E26** (Wochenziel zählt Lerntage, 1–7,
+  standardmäßig aus) und **E27** (Zeitzone wird bestätigt, nie still
+  gespeichert; keine Voreinstellung in der Datenbank). Dazu **E28**: Der
+  Zeitpunkt einer Lernaktivität ist der Serverzeitpunkt.
 - **Nicht Teil von 5B:** Unsplash und andere externe Bildquellen (E17),
   kleine Spiele, Dunkelmodus (E22).

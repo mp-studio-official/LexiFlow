@@ -289,6 +289,25 @@ Diese sind **entschieden** und nicht Teil der offenen Fragen:
 
 ---
 
+> ## Entschieden am 02.10.2026
+>
+> Die drei Fragen unten sind beantwortet — als **E25** (keine Lernzeit),
+> **E26** (Wochenziel zählt Lerntage, 1–7, standardmäßig aus) und **E27**
+> (Zeitzone wird bestätigt, nie still gespeichert) in `docs/konzept-5b.md`,
+> Abschnitt 17. Dazu **E28**: Maßgeblich ist der Serverzeitpunkt.
+>
+> **Bei E27 ist Marc meiner Empfehlung nicht gefolgt, und zu Recht:** Ich
+> hatte `Europe/Berlin` als Vorgabe und eine einmalige stille Korrektur
+> vorgeschlagen. Eine still gespeicherte Zeitzone sieht aus wie eine Angabe
+> der Person und ist keine — sie kann einen falschen Wert dauerhaft als
+> Wahrheit festschreiben. `time_zone` bleibt deshalb `null`, bis jemand
+> bestätigt, und **kein** später erkannter Wert überschreibt den
+> gespeicherten.
+>
+> Der Entwurf in Abschnitt 3 ist entsprechend überholt, wo er eine Vorgabe
+> nennt; maßgeblich ist die Migration aus 5B.4a. Er bleibt stehen, weil die
+> Begründungen daneben weiter gelten — vor allem die für die eigene Tabelle.
+
 ## 5. Was noch zu entscheiden ist — drei Fragen
 
 ### Entscheidung 1 — Lernzeit in 5B.6
