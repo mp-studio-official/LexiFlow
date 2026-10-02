@@ -249,7 +249,7 @@ eine Seite, die nicht mehr lädt.
 | --- | --- | --- | --- | --- |
 | **5B.13** | Werkstatt im Portal, erste Hälfte: Einlesen (Schritt 2), Quelltextauswahl (Schritt 4) | E5 | 5B.2d, 5B.9 | offen |
 | **5B.14** | Werkstatt im Portal, zweite Hälfte: Vorschläge und Prüfschritt (3, 5, 6), Export vervollständigen (8) | E5 | 5B.13 | offen |
-| **5B.15** | Übungsformen im Portal erreichbar: Karteikarten, Selbsttest, freies Üben, Vokabelliste | E14 | 5B.5 | offen |
+| **5B.15** | Übungsformen im Portal erreichbar: Karteikarten, Selbsttest, freies Üben, Vokabelliste | E14 | 5B.5 | **fertig** (`9e14b81`) |
 
 > **5B.13 bis 5B.15 sind der eigentliche Umfang.** Sie stehen hier unten,
 > weil sie von der Hülle abhängen — nicht, weil sie klein wären. Wer 5B plant
@@ -290,11 +290,14 @@ Für Blöcke, die einen Bildschirm verändern, zusätzlich:
 | **E24** — wann ein Wort schwierig ist, im Konzept | `8467267` |
 | **E14 vollständig** — Ausgang, Verlustregel, Rückfrage | `3365861` |
 
-**Sichtbar sind heute vier Karten**, und nur, wenn ihr Weg funktioniert:
-Fällige Wiederholungen, Schwierige Wörter, Englisch → Deutsch, Deutsch →
-Englisch. **Karteikarten und Lückentexte fehlen mit Absicht** — die
-Aufgabenformen gibt es, aber das Portal hat keinen Einstieg, der eine Form
-auswählt. Das stellt **5B.15** her.
+**Sichtbar sind acht Karten**, und nur, wenn ihr Weg funktioniert: Fällige
+Wiederholungen, Schwierige Wörter, Englisch → Deutsch, Deutsch → Englisch —
+und seit **5B.15** (`9e14b81`) Karteikarten, Selbsttest, Frei üben und
+Vokabelliste. Die vier letzten führen in die **vorhandenen** Ansichten aus
+`src/routes/student/`; sie werden wiederverwendet, nicht nachgebaut.
+
+Lückentexte stehen weiterhin nicht als eigene Karte da: Sie sind eine
+Aufgabenform und im freien Üben auswählbar, keine eigene Ansicht.
 
 **E14 gilt jetzt ganz:** keine Bereichsnavigation in der laufenden Runde, der
 Ausgang heißt „Runde beenden", und **jeder** Ausgang — auch „Abmelden",
