@@ -320,6 +320,12 @@ describe('die security-definer-Funktionen bleiben eng', () => {
     */
     const erwartet = {
       // Ja/Nein über die **aufrufende** Person – geben keine Zeile heraus.
+      /*
+        Migration 15: der Hauptschalter. Gibt wie die anderen hier nur ja
+        oder nein zurück und nennt niemanden – auch nicht die Person, nach
+        der er gerade gefragt wurde.
+      */
+      app_account_is_active: 'boolean',
       app_is_member_of: 'boolean',
       app_is_teacher_of: 'boolean',
       // Migration 11: die eine Prüfung hinter allen Lernstandswegen.
