@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
 import { NavigationsZeichen } from './navigationsZeichen';
 import type { Zeichen } from './navigation';
@@ -196,6 +196,102 @@ function Aktion({ aktion }: { aktion: Huellenaktion }) {
   );
 }
 
+/**
+ * Der Kontobereich am Telefon — ein Disclosure, kein Menü.
+ *
+ * ## Warum kein `role="menu"`
+ *
+ * Ein ARIA-Menü verspricht ein vollständiges Tastaturmuster: Pfeiltasten
+ * wandern, `Home` und `End` springen, Tab verlässt das ganze Menü auf einmal,
+ * und die Einträge sind keine Verweise mehr, sondern `menuitem`. Wer die
+ * Rolle vergibt und das Muster nicht baut, verspricht Bedienung, die es nicht
+ * gibt — das ist schlechter als gar keine Rolle.
+ *
+ * Hier stehen Verweise und Knöpfe. Ein Knopf, der sie auf- und zuklappt, und
+ * `aria-expanded`, das seinen Zustand sagt. Tab läuft hindurch, Escape
+ * schließt. Das ist weniger versprochen und mehr eingehalten.
+ *
+ * ## Warum `hidden` und nicht nur CSS
+ *
+ * Geschlossen muss der Bereich aus dem Accessibility-Baum **und** aus der
+ * Tabreihenfolge verschwinden. `opacity` oder `visibility: hidden` ließen
+ * Verweise fokussierbar, über die der Zeiger nie käme: Man tabbt ins Nichts.
+ *
+ * ## Warum er nichts eigenes enthält
+ *
+ * Dieselben `fussZiele` und `fussAktionen` wie die Icon-Leiste. Eine zweite
+ * Liste wäre genau die Dopplung, die die Navigation schon einmal
+ * auseinanderlaufen ließ — dann fiele „Abmelden" eines Tages auf einer Breite
+ * weg, und niemand merkte es.
+ */
+function Kontobereich({
+  ziele,
+  aktionen,
+}: {
+  ziele: readonly Navigationsziel[];
+  aktionen: readonly Huellenaktion[];
+}) {
+  const [offen, setzeOffen] = useState(false);
+  const knopf = useRef<HTMLButtonElement>(null);
+  const bereichId = useId();
+
+  /*
+    Escape schließt — und gibt den Fokus zurück. Ohne das Zurückgeben landet
+    der Fokus am Dokumentanfang, und wer mit der Tastatur arbeitet, muss sich
+    den ganzen Weg zurücktabben.
+  */
+  function beiTaste(ereignis: KeyboardEvent<HTMLDivElement>) {
+    if (ereignis.key !== 'Escape' || !offen) return;
+    ereignis.stopPropagation();
+    setzeOffen(false);
+    knopf.current?.focus();
+  }
+
+  return (
+    <div className="huelle__konto" onKeyDown={beiTaste}>
+      <button
+        ref={knopf}
+        type="button"
+        className="huelle__kontoknopf"
+        aria-expanded={offen}
+        aria-controls={bereichId}
+        onClick={() => setzeOffen((war) => !war)}
+      >
+        <NavigationsZeichen zeichen="konto" groesse={22} />
+        <span className="huelle__kontoname">Konto</span>
+      </button>
+
+      <div className="huelle__kontobereich" id={bereichId} hidden={!offen}>
+        {ziele.map((ziel) => (
+          <a
+            key={ziel.pfad}
+            className="huelle__kontoeintrag"
+            href={ziel.pfad}
+            onClick={() => setzeOffen(false)}
+          >
+            <NavigationsZeichen zeichen={ziel.zeichen} groesse={20} />
+            {ziel.label}
+          </a>
+        ))}
+        {aktionen.map((aktion) => (
+          <button
+            key={aktion.label}
+            type="button"
+            className="huelle__kontoeintrag"
+            onClick={() => {
+              setzeOffen(false);
+              aktion.ausloesen();
+            }}
+          >
+            <NavigationsZeichen zeichen={aktion.zeichen} groesse={20} />
+            {aktion.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Huelle({
   zieleSchreibtisch,
   zieleTelefon,
@@ -272,6 +368,15 @@ export function Huelle({
             {marke}
           </a>
           {kopfAktionen ? <div className="huelle__kopfaktionen">{kopfAktionen}</div> : null}
+          {/*
+            Am Telefon ist die Icon-Leiste verborgen, und mit ihr ihr Fuß.
+            Ohne diesen Knopf wäre „Abmelden" dort nicht erreichbar — der Weg
+            fehlte schon in der alten Hülle. Ohne Fußeinträge erscheint er
+            nicht: Vor der Anmeldung gibt es kein Konto.
+          */}
+          {fussZiele.length > 0 || fussAktionen.length > 0 ? (
+            <Kontobereich ziele={fussZiele} aktionen={fussAktionen} />
+          ) : null}
         </header>
 
         <main className="huelle__inhalt" id="inhalt" tabIndex={-1}>

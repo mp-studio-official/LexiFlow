@@ -284,6 +284,67 @@ describe('dieselbe Route, zwei Größen, zwei aktive Ziele', () => {
   });
 });
 
+describe('am Telefon führt der Kontoknopf zu Abmelden', () => {
+  /*
+    Die Icon-Leiste trägt „Abmelden" am Schreibtisch; am Telefon ist sie
+    verborgen. Der Kontoknopf im Kopf ist dort der Weg — mit denselben
+    Einträgen, nicht mit einer zweiten Liste.
+  */
+  function kontoknopf() {
+    return screen.getByRole('button', { name: 'Konto' });
+  }
+
+  it('Lernende finden ihn, und er enthält Abmelden', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    oeffne('/lernen', 'u-lernend');
+    await screen.findByRole('heading', { name: 'Deine Kurse' });
+    await userEvent.setup().click(kontoknopf());
+    const bereich = document.getElementById(
+      kontoknopf().getAttribute('aria-controls') as string,
+    ) as HTMLElement;
+    expect(within(bereich).getByRole('button', { name: 'Abmelden' }).tagName).toBe('BUTTON');
+  });
+
+  it('Lehrkräfte ebenso, und „Als Lernende ansehen" steht daneben', async () => {
+    oeffne('/kurse', 'u-lehrerin');
+    await screen.findByRole('heading', { name: 'Kurse', level: 1 });
+    expect(kontoknopf().closest('header'), 'nicht im Kopfbereich').not.toBeNull();
+    expect(screen.getByRole('link', { name: 'Als Lernende ansehen' })).toBeInTheDocument();
+  });
+
+  it('die Verwaltung erscheint auch dort nicht', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    oeffne('/verwaltung', 'u-verwaltung');
+    await screen.findByRole('heading', { name: 'Verwaltung', level: 1 });
+    await userEvent.setup().click(kontoknopf());
+    const bereich = document.getElementById(
+      kontoknopf().getAttribute('aria-controls') as string,
+    ) as HTMLElement;
+    const ziele = [...bereich.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
+    expect(ziele).not.toContain('#/verwaltung');
+    expect(ziele).not.toContain('/verwaltung');
+  });
+
+  it('der öffentliche Bereich hat keinen Kontoknopf', async () => {
+    oeffne('/');
+    await screen.findByRole('heading', { name: LANDUNG, level: 1 });
+    expect(screen.queryByRole('button', { name: 'Konto' })).toBeNull();
+  });
+
+  it('Abmelden meldet wirklich ab und führt auf die öffentliche Seite', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    oeffne('/lernen', 'u-lernend');
+    await screen.findByRole('heading', { name: 'Deine Kurse' });
+    const nutzer = userEvent.setup();
+    await nutzer.click(kontoknopf());
+    const bereich = document.getElementById(
+      kontoknopf().getAttribute('aria-controls') as string,
+    ) as HTMLElement;
+    await nutzer.click(within(bereich).getByRole('button', { name: 'Abmelden' }));
+    expect(await screen.findByRole('heading', { name: LANDUNG, level: 1 })).toBeInTheDocument();
+  });
+});
+
 describe('die Bündeltrennung bleibt', () => {
   it('der Lernendenadapter zieht keinen Lehrkraftcode herein', () => {
     /*

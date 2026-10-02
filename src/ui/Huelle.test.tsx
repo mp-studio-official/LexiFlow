@@ -364,12 +364,40 @@ describe('die Trennung hält auch im Typ und im Quelltext', () => {
     */
     const anfang = quelle.indexOf('function Aktion(');
     expect(anfang, 'die Handlung hat keine eigene Komponente mehr').toBeGreaterThanOrEqual(0);
-    const rumpf = quelle.slice(anfang, quelle.indexOf('\nexport function Huelle', anfang));
+    /*
+      Bis zur nächsten Deklaration, nicht bis zur Hülle: Zwischen beiden steht
+      seit dem Kontobereich eine weitere Komponente, und die gibt Verweise aus
+      — zu Recht, es sind Ziele. Ihre Handlungen prüft der nächste Fall.
+    */
+    const naechste = [
+      quelle.indexOf('\nfunction ', anfang + 1),
+      quelle.indexOf('\nexport function ', anfang + 1),
+    ].filter((stelle) => stelle >= 0);
+    expect(naechste.length, 'keine folgende Deklaration gefunden').toBeGreaterThan(0);
+    const rumpf = quelle.slice(anfang, Math.min(...naechste));
 
     expect(rumpf).toContain('<button');
     expect(rumpf, 'eine Handlung wird als Verweis gerendert').not.toMatch(/<a[\s>]/);
     expect(rumpf, 'eine Handlung bekommt eine Adresse').not.toContain('href');
     expect(rumpf, 'eine Handlung bekommt aria-current').not.toContain('aria-current');
+  });
+
+  it('auch im Kontobereich bleibt die Handlung ein Knopf', () => {
+    /*
+      Seit dem mobilen Kontobereich gibt es **zwei** Stellen, die Handlungen
+      ausgeben. Die Prüfung oben sah nur die eine; diese sieht die andere.
+
+      Geprüft wird der Abschnitt zwischen `aktionen.map(` und dem Ende der
+      Aufzählung: Dort darf ein Knopf stehen und kein Verweis. Dass daneben
+      `ziele.map(` Verweise ausgibt, ist richtig — Ziele sind Orte.
+    */
+    const anfang = quelle.indexOf('aktionen.map(');
+    expect(anfang, 'der Kontobereich gibt keine Handlungen mehr aus').toBeGreaterThanOrEqual(0);
+    const rumpf = quelle.slice(anfang, quelle.indexOf('))}', anfang));
+
+    expect(rumpf).toContain('<button');
+    expect(rumpf, 'eine Handlung wird als Verweis gerendert').not.toMatch(/<a[\s>]/);
+    expect(rumpf, 'eine Handlung bekommt eine Adresse').not.toContain('href');
   });
 
   it('`aria-current` steht ausschließlich an Navigationszielen', () => {
@@ -454,5 +482,145 @@ describe('die Hülle ist seit 5B.2d in Benutzung — und nur dort', () => {
       const quelle = readFileSync(resolve(wurzel, datei), 'utf8');
       expect(quelle, `${datei} benutzt die neue Hülle`).not.toMatch(/Huelle|huelle\.css/);
     }
+  });
+});
+
+
+describe('der Kontobereich am Telefon', () => {
+  /*
+    Am Schreibtisch stehen „Abmelden" und die Fußziele unten in der
+    Icon-Leiste; am Telefon ist diese Leiste verborgen. Ohne Ersatz wäre
+    „Abmelden" dort nicht erreichbar — in der alten Hülle war es das auch
+    nicht, und es ist niemandem aufgefallen, weil keine Prüfung danach fragte.
+
+    jsdom rechnet keine Breiten: Ob der Knopf am Schreibtisch wirklich
+    verschwindet, misst `scripts/huelle-messen.mjs`. Hier steht, was ohne
+    Layout entscheidbar ist — Rollen, Namen, Zustand, Tastatur, Fokus.
+  */
+  const ABMELDEN: Huellenaktion = {
+    label: 'Abmelden',
+    zeichen: 'abmelden',
+    ausloesen: () => {
+      abgemeldet += 1;
+    },
+  };
+  let abgemeldet = 0;
+  const KONTO: Navigationsziel[] = [
+    { pfad: '#/konto', label: 'Konto und Profil', zeichen: 'konto' },
+  ];
+
+  function mitKonto() {
+    abgemeldet = 0;
+    return zeige({ fussZiele: KONTO, fussAktionen: [ABMELDEN] });
+  }
+
+  function knopf() {
+    return screen.getByRole('button', { name: 'Konto' });
+  }
+
+  /*
+    jsdom kennt keinen Haltepunkt: Die Icon-Leiste steht gleichzeitig im Baum
+    und trägt dieselbe Handlung. Gefragt wird deshalb **im Kontobereich**,
+    nicht im ganzen Dokument — sonst prüfte dieser Block die Leiste.
+  */
+  function imBereich() {
+    const bereich = document.getElementById(knopf().getAttribute('aria-controls') as string);
+    expect(bereich, 'der Bereich fehlt ganz').not.toBeNull();
+    return bereich as HTMLElement;
+  }
+
+  it('der Auslöser trägt einen verständlichen Namen und seinen Zustand', () => {
+    mitKonto();
+    expect(knopf()).toHaveAttribute('aria-expanded', 'false');
+    const bereich = knopf().getAttribute('aria-controls');
+    expect(bereich, 'kein aria-controls').toBeTruthy();
+    expect(document.getElementById(bereich as string), 'aria-controls zeigt ins Leere').not.toBeNull();
+  });
+
+  it('geschlossen steht sein Inhalt weder im Baum noch in der Tabreihenfolge', () => {
+    mitKonto();
+    const bereich = imBereich();
+    expect(bereich).toHaveAttribute('hidden');
+    /*
+      `hidden` nimmt den Teilbaum aus dem Accessibility-Baum — die Rollenabfrage
+      findet dort nichts mehr. Genau das ist die Zusage; `queryAllByRole`
+      innerhalb des Bereichs beantwortet sie, ohne die Leiste mitzuzählen.
+    */
+    expect(within(bereich).queryAllByRole('button')).toEqual([]);
+    expect(within(bereich).queryAllByRole('link')).toEqual([]);
+  });
+
+  it('Enter und Leertaste öffnen ihn', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+    mitKonto();
+    knopf().focus();
+    await nutzer.keyboard('{Enter}');
+    expect(knopf()).toHaveAttribute('aria-expanded', 'true');
+    await nutzer.keyboard('{Enter}');
+    expect(knopf()).toHaveAttribute('aria-expanded', 'false');
+    await nutzer.keyboard(' ');
+    expect(knopf(), 'die Leertaste öffnet nicht').toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('geöffnet erreicht die Tabulatortaste Verweis und Handlung', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+    mitKonto();
+    await nutzer.click(knopf());
+    await nutzer.tab();
+    expect(document.activeElement).toHaveTextContent('Konto und Profil');
+    await nutzer.tab();
+    expect(document.activeElement).toHaveTextContent('Abmelden');
+  });
+
+  it('Escape schließt und gibt den Fokus zurück', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+    mitKonto();
+    await nutzer.click(knopf());
+    await nutzer.tab();
+    await nutzer.keyboard('{Escape}');
+    expect(knopf()).toHaveAttribute('aria-expanded', 'false');
+    expect(document.activeElement, 'der Fokus bleibt im geschlossenen Bereich').toBe(knopf());
+  });
+
+  it('Abmelden ist auch hier ein Knopf und löst aus', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+    mitKonto();
+    await nutzer.click(knopf());
+    const handlung = within(imBereich()).getByRole('button', { name: 'Abmelden' });
+    expect(handlung.tagName).toBe('BUTTON');
+    expect(handlung).toHaveAttribute('type', 'button');
+    expect(handlung).not.toHaveAttribute('href');
+    await nutzer.click(handlung);
+    expect(abgemeldet, 'die Handlung wurde nicht ausgelöst').toBe(1);
+  });
+
+  it('ohne Fußeinträge gibt es ihn nicht', () => {
+    zeige();
+    expect(screen.queryByRole('button', { name: 'Konto' })).toBeNull();
+  });
+
+  it('er enthält genau die übergebenen Einträge — keine eigene Liste', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+    mitKonto();
+    await nutzer.click(knopf());
+    const bereich = document.getElementById(knopf().getAttribute('aria-controls') as string);
+    const drin = within(bereich as HTMLElement);
+    expect(drin.getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['#/konto']);
+    expect(drin.getAllByRole('button').map((b) => b.textContent)).toEqual(['Abmelden']);
+  });
+
+  it('die Kopfaktionen bleiben daneben erreichbar', () => {
+    abgemeldet = 0;
+    zeige({
+      fussAktionen: [ABMELDEN],
+      kopfAktionen: <a href="#/lernen">Als Lernende ansehen</a>,
+    });
+    expect(screen.getByRole('link', { name: 'Als Lernende ansehen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Konto' })).toBeInTheDocument();
   });
 });

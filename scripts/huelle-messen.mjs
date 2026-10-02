@@ -63,6 +63,8 @@ const zieleFuer = (profil, groesse) =>
     };
   });
 
+const ABMELDEN = { label: 'Abmelden', zeichen: 'abmelden', ausloesen: () => {} };
+
 const rahmen = (profil, pfad, zusatz = {}) => {
   const schreibtisch = profil ? zieleFuer(profil, 'schreibtisch') : [];
   const telefon = profil ? zieleFuer(profil, 'telefon') : [];
@@ -79,6 +81,7 @@ const rahmen = (profil, pfad, zusatz = {}) => {
           ...(aktivT ? { aktiverPfadTelefon: aktivT } : {}),
           marke: h('span', null, 'LF'),
           markePfad: '/',
+          ...(profil ? { fussAktionen: [ABMELDEN] } : {}),
           fusszeile: h('p', null, 'Fußzeile mit Datenschutz'),
           ...zusatz,
         },
@@ -86,6 +89,7 @@ const rahmen = (profil, pfad, zusatz = {}) => {
         h('p', null, 'Ein Absatz, der bis an das untere Ende reicht.'.repeat(40)),
       ),
     ),
+    mitKonto: Boolean(profil),
     aktivS: aktivS ?? '—',
     aktivT: aktivT ?? '—',
     zieleS: schreibtisch.length,
@@ -99,7 +103,6 @@ export const faelle = [
     ausfuehrlich: true,
     ...rahmen('lehrkraft', '/ki', {
       kopfAktionen: h('a', { href: '/lernen' }, 'Als Lernende ansehen'),
-      fussAktionen: [{ label: 'Abmelden', zeichen: 'abmelden', ausloesen: () => {} }],
     }),
   },
   { name: 'Lehrkraft auf /verwaltung', ...rahmen('lehrkraft', '/verwaltung') },
@@ -319,6 +322,86 @@ for (const breite of BREITEN) {
   });
   if (verdeckt.length) {
     melde(`${fall.name} @ ${breite} px: die feste Leiste verdeckt ${verdeckt.join(', ')}`);
+  }
+
+  /*
+    Der Kontoknopf: am Telefon da, am Schreibtisch weg — dort steht derselbe
+    Inhalt im Fuß der Icon-Leiste, und zwei Wege zum selben Ort wären einer zu
+    viel.
+
+    Gemessen wird außerdem, was das Öffnen **nicht** tut. Der Bereich liegt
+    absolut über dem Inhalt; läge er im Fluss, schöbe jedes Öffnen die Seite
+    auseinander. `scrollWidth` und die Lage der unteren Leiste beantworten
+    das, der Quelltext nicht.
+
+    Der statische Aufbau rendert ihn geschlossen; geöffnet wird hier von Hand
+    über das Attribut — genau so, wie React es setzt.
+  */
+  const konto = blatt.locator('.huelle__kontoknopf');
+  const kontoDa =
+    (await konto.count()) > 0 &&
+    (await konto.evaluate((el) => getComputedStyle(el).display !== 'none' &&
+      getComputedStyle(el.parentElement).display !== 'none'));
+
+  if (!fall.ohneNavigation && fall.mitKonto) {
+    if (kontoDa === amSchreibtisch) {
+      melde(
+        `${fall.name} @ ${breite} px: der Kontoknopf ist ${kontoDa ? 'da' : 'weg'} — erwartet war das Gegenteil`,
+      );
+    }
+    if (kontoDa) {
+      const k = await konto.boundingBox();
+      if (!k || Math.ceil(k.width) < 44 || Math.ceil(k.height) < 44) {
+        melde(
+          `${fall.name} @ ${breite} px: der Kontoknopf misst ${Math.round(k?.width ?? 0)}×${Math.round(k?.height ?? 0)}`,
+        );
+      }
+
+      const vorher = await blatt.evaluate(() => ({
+        breite: document.documentElement.scrollWidth,
+        leiste: document.querySelector('.huelle-unten')?.getBoundingClientRect().top ?? null,
+      }));
+      await blatt.evaluate(() => {
+        const bereich = document.querySelector('.huelle__kontobereich');
+        bereich?.removeAttribute('hidden');
+        document.querySelector('.huelle__kontoknopf')?.setAttribute('aria-expanded', 'true');
+      });
+      const nachher = await blatt.evaluate(() => ({
+        breite: document.documentElement.scrollWidth,
+        leiste: document.querySelector('.huelle-unten')?.getBoundingClientRect().top ?? null,
+        sichtbar: getComputedStyle(document.querySelector('.huelle__kontobereich')).display !== 'none',
+      }));
+
+      if (!nachher.sichtbar) melde(`${fall.name} @ ${breite} px: der Kontobereich bleibt verborgen`);
+      if (nachher.breite !== vorher.breite) {
+        melde(
+          `${fall.name} @ ${breite} px: das Öffnen ändert die Seitenbreite ${vorher.breite} → ${nachher.breite}`,
+        );
+      }
+      if (nachher.leiste !== vorher.leiste) {
+        melde(`${fall.name} @ ${breite} px: das Öffnen verschiebt die untere Leiste`);
+      }
+
+      const zuKleinDrin = await blatt.evaluate(() => {
+        const klein = [];
+        for (const el of document.querySelectorAll('.huelle__kontoeintrag')) {
+          const k = el.getBoundingClientRect();
+          if (Math.ceil(k.height) < 44) klein.push(`${el.textContent.trim()} ${Math.round(k.height)}`);
+        }
+        return klein;
+      });
+      if (zuKleinDrin.length) {
+        melde(`${fall.name} @ ${breite} px: Kontoeintrag zu flach — ${zuKleinDrin.join(', ')}`);
+      }
+
+      console.log('  %d px  Kontoknopf da, Öffnen ohne Versatz', breite);
+      await blatt.evaluate(() => {
+        document.querySelector('.huelle__kontobereich')?.setAttribute('hidden', '');
+        document.querySelector('.huelle__kontoknopf')?.setAttribute('aria-expanded', 'false');
+      });
+    }
+  } else if (kontoDa) {
+    melde(`${fall.name} @ ${breite} px: Kontoknopf, obwohl es keine Fußeinträge gibt`);
   }
 
     if (amSchreibtisch && fall.ausfuehrlich) {
