@@ -1,7 +1,8 @@
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Abnahme Migration 12 — learner_settings und my_due_overview         ║
--- ║  Für den Supabase SQL Editor. Reihenfolge: A vor dem Anwenden,       ║
--- ║  B danach. Nichts hier verändert Daten.                              ║
+-- ║  AUSGEFÜHRT am 02.10.2026, alle Prüfungen bestanden.                 ║
+-- ║  Für den Supabase SQL Editor. A vor dem Anwenden, B danach.          ║
+-- ║  Nichts hier verändert Daten; B bleibt jederzeit wiederholbar.       ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
 --
 -- Diese Datei wird **nicht** von der CLI ausgeführt. Die installierte
@@ -42,10 +43,10 @@ select to_regclass('public.learner_settings') is not null as gibt_es_schon;
 
 -- A4 · Welche 33 Funktionen das sind
 --
--- Der lokale Prüfstand zählt vor dieser Migration **32**, das Staging
--- **33**. Diese Liste nennt die Zusätzliche beim Namen, statt sie zu
--- erraten. Sie ist nicht Teil der Abnahme — sie beantwortet nur, woher der
--- Unterschied kommt.
+-- Beantwortet am 02.10.2026: Die zusätzliche war `rls_auto_enable`, eine
+-- Funktion der Plattform. Keine Migration dieses Repositorys erzeugt sie,
+-- und keine verlässt sich auf sie. Die Abfrage bleibt stehen — bei der
+-- nächsten Migration ist dieselbe Frage wieder zu stellen.
 select routine_name, routine_type, external_language
   from information_schema.routines
  where routine_schema = 'public'

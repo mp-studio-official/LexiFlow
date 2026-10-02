@@ -192,12 +192,19 @@ Der Block, der die Seite umbenennt, entfernt im selben Zug die Weiterleitung
 dieser Phase. Zwei Weiterleitungen gleichzeitig wären kein Grenzfall, sondern
 eine Seite, die nicht mehr lädt.
 
+> **Migration 12 ist angewandt und damit unveränderlich.** Seit dem
+> 02.10.2026 steht `learner_settings` samt `my_due_overview` im Staging —
+> gemessen: 16 Tabellen, 101 Spalten, 28 Regeln, 36 Funktionen, 13 Trigger,
+> Nutzdaten unverändert. Die Migrationsdatei wird **nicht mehr bearbeitet**;
+> jede weitere Datenbankänderung ist eine **neue additive Migration**.
+> Protokoll: `docs/abnahme/migration-12.md`.
+
 ### Bereiche
 
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
 | **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
-| **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kursübergreifender Lernstandszugriff; **kein Bildschirm** | E1, E2, E3, **E26, E27, E28**, R11 | 5B.2d | **fertig** (lokal; Migration **noch nicht angewandt** — Übergabe: `docs/abnahme/migration-12.md`) |
+| **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kursübergreifender Lernstandszugriff; **kein Bildschirm** | E1, E2, E3, **E26, E27, E28**, R11 | 5B.2d | **fertig** (`c49bdc6`, `0e5e077`); Migration 12 am 02.10.2026 **im Staging angewandt und abgenommen** — `docs/abnahme/migration-12.md` |
 | **5B.4** | „Heute" — **hier wird die Zeitzone bestätigt** (E27) | E1, E2, E3, E9, **E27, E28** | **5B.4a** | offen |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14, **E24** | 5B.2d | **fertig** (`5ce0363`, `8467267`, `3365861`) |
 | **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter; **hier werden Zeitzone und Ziel bearbeitet** | E1, E2, E3, **E25, E26, E27** | 5B.4 | offen |
