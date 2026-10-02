@@ -64,8 +64,12 @@ sind — nicht, wenn sein Code steht.
 | **5B.2c** | Die Hülle als Baustein — unbenutzt, isoliert, ohne Routing- und Rollenwissen | E12, E23 | 5B.2b | **fertig** | `75d232f`, `846f81a`, `e75387b` |
 | **5B.2c′** | **Übergangsredirect** `#/pakete` → `#/material`, mit Integrationsprüfung am Router | E13 | 5B.2c | **fertig** | `b880c2f` |
 | **5B.7** | **Einstellungen unter `#/einstellungen`** — vorgezogen, siehe unten | E23 | 5B.2c′ | **fertig** | `f5a3b93`, `e0b41f1` |
-| **5B.2d** | Das Portal schaltet um — **erste sichtbare Produktivänderung** | E12, E23 | **5B.7** | **fertig** | `431285e` |
-| **5B.2e** | Bereinigung nach dem Hüllenwechsel — **der nächste Block** | E18 | 5B.2d | **offen** | — |
+| **5B.2d** | Das Portal schaltet um — **erste sichtbare Produktivänderung** | E12, E23 | **5B.7** | **fertig** | `431285e`, `d8739e7` |
+| **5B.2e** | Bereinigung nach dem Hüllenwechsel | E18 | 5B.2d | **fertig** | `59cfcd9` |
+
+> **5B.2 ist damit abgeschlossen.** Die gemeinsame Hülle trägt das Portal auf
+> beiden Größen; die alten Hüllen der Fassung ohne Konto und der portablen
+> Lerndatei stehen unverändert daneben.
 
 > Zusammengeführt werden ausschließlich die drei Portalhüllen (`PublicShell`,
 > `LearnerShell`, `TeacherShell`). `AppShell` und `StudentShell` bleiben in
@@ -114,12 +118,42 @@ Abgenommen wurde:
 Jedes dieser Ziele wechselt seinen Zustand **in demselben Commit**, in dem
 seine Route und sein Inhalt entstehen — nicht früher.
 
-#### 5B.2e: die Bereinigung nach dem Wechsel
+#### Nachtrag zu 5B.2d: der Kontobereich am Telefon (`d8739e7`)
 
-5B.2d hat ausdrücklich nichts gelöscht. Was der Hüllenwechsel an alten
-Klassen, altem CSS und an Prüfungen auf den alten Zustand hinterlassen hat,
-wird in 5B.2e entfernt — nach **E18**: eine Regel fällt erst in dem Block,
-der ihren letzten tatsächlichen Verbraucher umstellt.
+Der Fuß der Icon-Leiste trägt „Abmelden" und die Fußziele; am Telefon ist
+diese Leiste verborgen. Dort war „Abmelden" damit nicht erreichbar — **schon
+vor 5B.2d nicht**, denn in der alten Hülle lag derselbe Knopf in `.app-nav`,
+die unter 62rem ebenfalls `display: none` trug.
+
+Im Kopf steht jetzt ein Kontoknopf, der einen Disclosure-Bereich mit
+denselben `fussZiele` und `fussAktionen` öffnet. Kein `role="menu"`: ohne das
+vollständige Menü-Tastaturmuster wäre die Rolle ein Versprechen ohne Deckung.
+Geschlossen trägt der Bereich `hidden` und ist damit weder im
+Accessibility-Baum noch in der Tabreihenfolge; ab 62rem verschwindet der
+Knopf, weil der Fuß der Leiste dann wieder da ist.
+
+#### 5B.2e: die Bereinigung nach dem Wechsel (`59cfcd9`)
+
+5B.2d hat ausdrücklich nichts gelöscht. Was danach wirklich entfernbar war,
+hat 5B.2e entfernt — nach **E18**: eine Regel fällt erst in dem Block, der
+ihren letzten tatsächlichen Verbraucher umstellt.
+
+**Entfernt: 42 Zeilen** — `src/styles/portal.css` samt Import in
+`portal-main.tsx`. Ihre einzige Regel, `button.app-nav__link`, galt dem
+Abmeldeknopf der alten Portalhülle.
+
+**Aus `global.css`: null Zeilen.** Der Stilumfang bleibt bei 4740. Das ist
+der Befund, nicht ein Versäumnis: Die Klassen, die nach „alte Portalregeln"
+aussehen, haben alle noch einen Verbraucher.
+
+| Selektorfamilie | letzter Verbraucher | fällt mit |
+| --- | --- | --- |
+| `.app`, `.app-body`, `.app-main` | `AppShell`, `StudentShell`, `StudentApp`, `student-main` | dem Umbau beider Hüllen |
+| `.app-header*`, `.app-footer*`, `.brand`, `.skip-link` | `AppShell`, `StudentShell` | dem Umbau beider Hüllen |
+| `.app-nav*`, `.bottom-nav*`, `.app-work` | `AppShell` | dem Umbau der Fassung ohne Konto |
+
+`src/styles/huellenklassen.test.ts` hält diese Besitzverhältnisse als Wache
+fest: Verschwindet eine Regel, die noch jemand rendert, wird sie rot.
 
 #### Warum 5B.7 vor 5B.2d steht
 
