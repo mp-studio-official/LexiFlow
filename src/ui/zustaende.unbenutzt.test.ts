@@ -87,10 +87,10 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
 
   /** Wer welchen Baustein benutzen darf — und seit welchem Block. */
   const UMGEBAUT: Readonly<Record<string, readonly string[]>> = {
-    /* 5B.3: der Start der Lehrkraft. */
-    Skeleton: ['hosted/teacher/StartPage.tsx'],
-    PageTitle: ['hosted/teacher/StartPage.tsx'],
-    ErrorState: ['hosted/teacher/StartPage.tsx'],
+    /* 5B.3: der Start der Lehrkraft. 5B.5: der Übungsbereich. */
+    Skeleton: ['hosted/learner/UebenPage.tsx', 'hosted/teacher/StartPage.tsx'],
+    PageTitle: ['hosted/learner/UebenPage.tsx', 'hosted/teacher/StartPage.tsx'],
+    ErrorState: ['hosted/learner/UebenPage.tsx', 'hosted/teacher/StartPage.tsx'],
   };
 
   for (const baustein of NEU) {

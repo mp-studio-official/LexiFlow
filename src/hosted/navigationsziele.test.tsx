@@ -191,7 +191,11 @@ describe('der Stand, den dieser Block festhält', () => {
       '#/ki',
       '#/einstellungen',
     ]);
-    expect(sichtbareZiele('lernende', 'schreibtisch').map((z) => z.pfad)).toEqual(['#/lernen']);
+    expect(sichtbareZiele('lernende', 'schreibtisch').map((z) => z.pfad)).toEqual([
+      '#/lernen',
+      /* `#/ueben` seit 5B.5 — Route und Inhalt im selben Commit. */
+      '#/ueben',
+    ]);
   });
 
   it('`#/pakete` ist seit 5B.2c′ weitergeleitet', () => {

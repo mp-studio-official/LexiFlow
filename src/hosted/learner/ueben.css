@@ -1,0 +1,32 @@
+/* ===========================================================================
+   Der Übungsbereich (5B.5)
+   ===========================================================================
+
+   Bei seinem Bildschirm, nicht in `global.css` — die trägt auch die portable
+   Lerndatei, und die kennt diesen Bereich nicht.
+   =========================================================================== */
+
+/*
+  Ein Verweis, der für sich steht, ist ein Bedienelement und wird mit dem
+  Finger getroffen. Die Höhe kommt über `min-block-size`, nicht über
+  Polsterung: Polsterung schöbe auch die Zeilen auseinander, die schon hoch
+  genug sind.
+*/
+.ueben__ziel {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap-target);
+}
+
+/*
+  Einspaltig am Telefon — und auch sonst: Die Liste ist eine Liste, keine
+  Kachelwand. Die Zahl rutscht neben den Titel und bricht mit ihm um, statt
+  rechts hängenzubleiben.
+*/
+.ueben__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}

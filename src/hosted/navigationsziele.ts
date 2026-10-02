@@ -78,7 +78,7 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
 
   '#/start': { zustand: 'vorhanden', route: '/start' },
   '#/heute': { zustand: 'geplant', block: '5B.4' },
-  '#/ueben': { zustand: 'geplant', block: '5B.5' },
+  '#/ueben': { zustand: 'vorhanden', route: '/ueben' },
   '#/fortschritt': { zustand: 'geplant', block: '5B.6' },
   /*
     Seit 5B.7 eine echte Route — im selben Commit, in dem sie Inhalt bekam.
@@ -183,7 +183,24 @@ const ZUORDNUNG: ReadonlyArray<readonly [RegExp, string]> = [
   */
   [/^\/(einstellungen|verwaltung)(\/|$)/, '#/einstellungen'],
   [/^\/lernen(\/|$)/, '#/lernen'],
+  [/^\/ueben(\/|$)/, '#/ueben'],
 ];
+
+/**
+ * Läuft an dieser Adresse gerade eine Übungsrunde?
+ *
+ * **E14:** Während einer laufenden Runde werden Seiten- und untere Navigation
+ * ausgeblendet. Der Grund ist nicht Gestaltung: Ein Navigationsziel neben
+ * einer laufenden Runde ist ein Ausstieg, den niemand bewusst wählt — man
+ * tippt daneben und ist draußen.
+ *
+ * Die Frage gehört hierher und nicht in die Hülle: Sie ist Routerwissen. Die
+ * Hülle bekommt dann schlicht leere Ziellisten und rendert gar keine
+ * Navigation — denselben Weg wie vor der Anmeldung.
+ */
+export function laeuftUebungsrunde(pfad: string): boolean {
+  return /^\/lernen\/kurs\/[^/]+\/ueben\/[^/]+/.test(pfad);
+}
 
 export function aktivesZiel(pfad: string, groesse: Groesse): string | undefined {
   const treffer = ZUORDNUNG.find(([muster]) => muster.test(pfad))?.[1];

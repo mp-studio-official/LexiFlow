@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import {
   alsLernstand,
@@ -16,6 +16,9 @@ import {
   type SessionState,
 } from '../../domain/session';
 import { directionKey } from '../../domain/ids';
+import { effectiveDirection, parseDirectionChoice } from '../../domain/practiceDirection';
+import { isDue } from '../../domain/leitner';
+import { istSchwierig } from '../../domain/schwierigeWoerter';
 import { ExerciseView } from '../../routes/student/ExerciseView';
 import { Alert, Button, Card } from '../../ui/components';
 import type { AnswerCheckResult } from '../../domain/answerCheck';
@@ -66,8 +69,39 @@ import type { ProgressEvent } from '../../application/repositories';
 /** Die Rundengröße im Portal – dieselbe Vorgabe wie ohne Konto. */
 const RUNDENLAENGE = 10;
 
+/**
+ * Womit die Runde gefüllt wird, wenn der Übungsbereich sie geschickt hat.
+ *
+ * `auswahl=faellig` und `auswahl=schwierig` engen die geplanten Ziele auf
+ * genau das ein, was die Karte versprochen hat. Ohne diese Einengung würde
+ * „Schwierige Wörter" eine ganz normale gemischte Runde starten — die Karte
+ * wäre eine Beschriftung ohne Wirkung, und das ist schlimmer als keine Karte.
+ *
+ * Alles Unbekannte bedeutet „keine Einengung". Eine erfundene Auswahl soll
+ * keine leere Runde ergeben.
+ */
+const AUSWAHLEN = ['faellig', 'schwierig'] as const;
+type Auswahl = (typeof AUSWAHLEN)[number];
+
+function leseAuswahl(wert: string | null): Auswahl | undefined {
+  return (AUSWAHLEN as readonly string[]).includes(wert ?? '') ? (wert as Auswahl) : undefined;
+}
+
+function passtZurAuswahl(
+  auswahl: Auswahl | undefined,
+  stand: EntryProgress | undefined,
+  jetzt: Date,
+): boolean {
+  if (!auswahl) return true;
+  if (!stand) return false;
+  return auswahl === 'faellig' ? isDue(stand, jetzt) : istSchwierig(stand);
+}
+
 export function PracticePage() {
   const { courseId, packId } = useParams();
+  const [suche] = useSearchParams();
+  const richtungswahl = parseDirectionChoice(suche.get('richtung'));
+  const auswahl = leseAuswahl(suche.get('auswahl'));
   const publication = useOptionalRepository('publication');
   const progress = useOptionalRepository('progress');
 
@@ -109,11 +143,18 @@ export function PracticePage() {
         Schritt: Der Plan trägt `nextDueAt`, und ohne ihn stünde am Ende einer
         leeren Runde „0 Antworten" statt „das Nächste ist morgen fällig".
       */
-      const plan = planSession(
-        gefunden.pack.entries,
-        staende.current,
-        gefunden.pack.meta.direction,
-        RUNDENLAENGE,
+      /*
+        Die gewählte Richtung wird zur **wirksamen** Paketrichtung — nicht zu
+        einem zweiten Planungspfad. Bei einem Paket mit nur einer Richtung
+        führt `effectiveDirection` eine abweichende Wahl still zurück; eine
+        Auswahl mit einer gültigen Option wäre eine Attrappe.
+      */
+      const richtung = effectiveDirection(gefunden.pack.meta.direction, richtungswahl);
+      const jetzt = new Date();
+      const plan = planSession(gefunden.pack.entries, staende.current, richtung, RUNDENLAENGE);
+
+      const ziele = plan.targets.filter((ziel) =>
+        passtZurAuswahl(auswahl, staende.current.get(directionKey(ziel.entry.id, ziel.direction)), jetzt),
       );
 
       setErgebnis(null);
@@ -123,19 +164,13 @@ export function PracticePage() {
       setPack(gefunden.pack);
       setState(
         createSessionState(
-          buildTasksForTargets(
-            plan.targets,
-            gefunden.pack.entries,
-            staende.current,
-            [],
-            Math.random,
-          ),
+          buildTasksForTargets(ziele, gefunden.pack.entries, staende.current, [], Math.random),
         ),
       );
     } catch (error) {
       setLadefehler(error instanceof Error ? error.message : 'Die Runde ließ sich nicht laden.');
     }
-  }, [publication, progress, courseId, packId]);
+  }, [publication, progress, courseId, packId, richtungswahl, auswahl]);
 
   useEffect(() => {
     void laden();

@@ -1,5 +1,5 @@
 /*
-  Der Start der Lehrkraft, gemessen statt behauptet.
+  Die neuen Bildschirme, gemessen statt behauptet — Start (5B.3) und Üben (5B.5).
 
   ## Warum ein eigener Lauf
 
@@ -33,6 +33,7 @@ import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { StartInhalt } from ${JSON.stringify(resolve(WURZEL, 'src/hosted/teacher/StartPage.tsx'))};
+import { UebenInhalt } from ${JSON.stringify(resolve(WURZEL, 'src/hosted/learner/UebenPage.tsx'))};
 
 const kurs = (id, title, mitglieder) => ({
   kurs: { id, title, archived: false, createdAt: '2026-09-01T08:00:00.000Z' },
@@ -67,7 +68,26 @@ const seite = (inhalt) =>
     h(MemoryRouter, null, h('main', { className: 'huelle__inhalt' }, h('div', { className: 'stack' }, inhalt))),
   );
 
+const karte = (form, titel, satz, ziele) => ({ form, titel, satz, ziele, gesamt: ziele.reduce((s, z) => s + z.anzahl, 0) });
+
+const UEBUNGSKARTEN = [
+  karte('faellig', 'Fällige Wiederholungen', 'Wörter, die heute wieder dran sind. Danach ist Ruhe — nicht mehr.', [
+    { courseId: 'k-1', packId: 'p-1', titel: 'Unit 1 — At the coast', anzahl: 12 },
+    { courseId: 'k-2', packId: 'p-3', titel: 'Unerhört langer Pakettitel ohne jede Trennmöglichkeit zwischendrin', anzahl: 3 },
+  ]),
+  karte('schwierig', 'Schwierige Wörter', 'Die, bei denen es mehrmals danebenging und die noch nicht sitzen.', [
+    { courseId: 'k-1', packId: 'p-1', titel: 'Unit 1 — At the coast', anzahl: 4 },
+  ]),
+  karte('en-de', 'Englisch → Deutsch', 'Nur verstehen: Du siehst das englische Wort und nennst die deutsche Bedeutung.', [
+    { courseId: 'k-1', packId: 'p-1', titel: 'Unit 1 — At the coast', anzahl: 42 },
+  ]),
+];
+
 export const faelle = [
+  {
+    name: 'Üben, mehrere Karten',
+    markup: seite(h(UebenInhalt, { karten: UEBUNGSKARTEN })),
+  },
   {
     name: 'voll, ohne KI-Zugang',
     markup: seite(h(StartInhalt, { kurse: KURSE, pakete: PAKETE, kiEingerichtet: false })),
@@ -113,6 +133,7 @@ const HUELLE = readFileSync(resolve(WURZEL, 'src/ui/huelle.css'), 'utf8').replac
 );
 /* Der Bildschirm bringt seinen eigenen Stil mit — wie die Hülle den ihren. */
 const START = readFileSync(resolve(WURZEL, 'src/hosted/teacher/start.css'), 'utf8');
+const UEBEN = readFileSync(resolve(WURZEL, 'src/hosted/learner/ueben.css'), 'utf8');
 
 const browser = await chromium.launch(
   process.env['LEXIFLOW_CHROMIUM'] ? { executablePath: process.env['LEXIFLOW_CHROMIUM'] } : {},
@@ -120,7 +141,7 @@ const browser = await chromium.launch(
 
 const BREITEN = [390, 768, 1024, 1440];
 
-console.log('Der Start der Lehrkraft, gemessen in Chromium:\n');
+console.log('Die neuen Bildschirme, gemessen in Chromium:\n');
 
 for (const fall of faelle) {
   console.log(fall.name);
@@ -130,7 +151,7 @@ for (const fall of faelle) {
     await blatt.setContent(
       `<!doctype html><html lang="de"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>*{box-sizing:border-box}body{margin:0}${TOKEN}${GLOBAL}${ZUSTAENDE}${HUELLE}${START}</style>
+<style>*{box-sizing:border-box}body{margin:0}${TOKEN}${GLOBAL}${ZUSTAENDE}${HUELLE}${START}${UEBEN}</style>
 <body>${fall.markup}</body></html>`,
     );
 

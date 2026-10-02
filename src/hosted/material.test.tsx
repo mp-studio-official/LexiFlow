@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { RepositoryProvider } from '../application/RepositoryContext';
@@ -134,7 +134,14 @@ describe('was die Lerngruppe davon sieht', () => {
     setup(`/lernen/kurs/${kurs.id}`, 'u-lernend', cloud);
 
     expect(await screen.findByRole('heading', { name: pack.meta.title })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Üben' })).toHaveAttribute(
+    /*
+      Im Inhalt gesucht, nicht im ganzen Dokument: Seit 5B.5 heißt auch ein
+      Navigationsziel „Üben". Gemeint ist hier der Weg **aus diesem Kurs** in
+      die Runde dieses Pakets — die Navigation führt in den Übungsbereich und
+      ist eine andere Sache.
+    */
+    const inhalt = within(document.querySelector('main') as HTMLElement);
+    expect(inhalt.getByRole('link', { name: 'Üben' })).toHaveAttribute(
       'href',
       `/lernen/kurs/${kurs.id}/ueben/${pack.meta.id}`,
     );

@@ -23,6 +23,7 @@ import type { Course, PackRevision } from '../../application/repositories';
  */
 
 const PracticePage = lazy(() => import('./PracticePage'));
+import { UebenPage } from './UebenPage';
 
 function Kursliste() {
   const courses = useOptionalRepository('courses');
@@ -162,7 +163,24 @@ function Kurs() {
   );
 }
 
-export function LearnerArea() {
+export const LEARNER_SECTIONS = ['lernen', 'ueben'] as const;
+export type LearnerSection = (typeof LEARNER_SECTIONS)[number];
+
+export function LearnerArea({ section = 'lernen' }: { section?: LearnerSection }) {
+  if (section === 'ueben') {
+    /*
+      Kein eigener `Routes`-Block mit Unterseiten: Der Übungsbereich ist eine
+      Seite. Die Runden liegen weiterhin unter `/lernen/kurs/...`, wo das
+      Paket herkommt — eine zweite Adresse für dieselbe Runde wäre ein
+      zweiter Weg zum selben Ort.
+    */
+    return (
+      <Routes>
+        <Route index element={<UebenPage />} />
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
       <Route

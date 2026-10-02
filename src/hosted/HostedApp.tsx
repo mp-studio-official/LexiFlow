@@ -80,7 +80,20 @@ export function HostedRoutes() {
           path="lernen/*"
           element={
             <Suspense fallback={<Laedt was="Der Lernbereich" />}>
-              <LearnerArea />
+              <LearnerArea section="lernen" />
+            </Suspense>
+          }
+        />
+        {/*
+          Der Übungsbereich (5B.5). Im selben Riegel wie der Lernbereich:
+          Lernende und die Lehrkraft, die sich ihre eigene Ansicht ansieht,
+          kommen hinein — sonst niemand.
+        */}
+        <Route
+          path="ueben/*"
+          element={
+            <Suspense fallback={<Laedt was="Der Übungsbereich" />}>
+              <LearnerArea section="ueben" />
             </Suspense>
           }
         />

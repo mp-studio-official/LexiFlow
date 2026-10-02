@@ -6,7 +6,7 @@ import { Huelle, type Huellenaktion, type Navigationsziel } from '../ui/Huelle';
 import { HOME_PER_ROLE } from '../runtime/access';
 import { beschriftung, type Groesse, type Profil } from '../ui/navigation';
 import { soloUrlFrom } from '../runtime/entryUrls';
-import { aktivesZiel, sichtbareZiele } from './navigationsziele';
+import { aktivesZiel, laeuftUebungsrunde, sichtbareZiele } from './navigationsziele';
 import { useSession } from './SessionContext';
 
 /**
@@ -97,10 +97,20 @@ function Rahmen({
   const abmelden = useAbmelden();
   const markePfad = useMarkePfad();
 
+  /*
+    E14: Während einer laufenden Übungsrunde gibt es keine Bereichsnavigation.
+    Die Hülle bekommt leere Listen und rendert dann gar kein `<nav>` — kein
+    ausgegrautes, kein verstecktes, das eine Vorlesehilfe doch findet.
+
+    Die Fußeinträge bleiben: „Abmelden" ist kein Ausstieg aus Versehen, und
+    wer sich mitten in einer Runde abmelden will, darf das.
+  */
+  const inRunde = laeuftUebungsrunde(pathname);
+
   return (
     <Huelle
-      zieleSchreibtisch={zieleFuerHuelle(profil, 'schreibtisch')}
-      zieleTelefon={zieleFuerHuelle(profil, 'telefon')}
+      zieleSchreibtisch={inRunde ? [] : zieleFuerHuelle(profil, 'schreibtisch')}
+      zieleTelefon={inRunde ? [] : zieleFuerHuelle(profil, 'telefon')}
       {...(aktivesZiel(pathname, 'schreibtisch')
         ? { aktiverPfadSchreibtisch: aktivesZiel(pathname, 'schreibtisch') as string }
         : {})}
