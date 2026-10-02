@@ -510,7 +510,14 @@ describe('my_due_overview', () => {
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.proname = 'my_due_overview'`);
     expect(signatur.rows).toHaveLength(1);
-    expect(signatur.rows[0].argumente).toBe('p_now timestamp with time zone DEFAULT now()');
+    /*
+      Leer – und zwar vollständig leer. Bis zum 02.10.2026 stand hier ein
+      `p_now timestamptz default now()`. Er war als Erleichterung für Tests
+      gedacht und wäre über RPC, Gateway und Repository bis in den
+      Produktivaufruf durchgereicht worden; dort hätte irgendwann eine
+      Geräteuhr daringestanden (E28).
+    */
+    expect(signatur.rows[0].argumente).toBe('');
   });
 
   it('läuft mit den Rechten der aufrufenden Person, nicht des Eigentümers', async () => {
@@ -535,19 +542,41 @@ describe('my_due_overview', () => {
     );
   });
 
-  it('nimmt den Zeitpunkt entgegen, statt ihn zu raten – aber nicht aus dem Gerät', async () => {
+  it('vergleicht gegen die Uhr der Datenbank – nachgewiesen an den Daten', async () => {
     /*
-      `p_now` ist ein Vergleichszeitpunkt für `due_at`, keine Tagesgrenze.
-      Die Serie entsteht später aus `progress_events.recorded_at` (E28); was
-      hier hineingereicht wird, kann daran nichts verschieben. Geprüft wird
-      genau das: Der Parameter wirkt auf die Fälligkeit und auf sonst nichts.
+      Ohne Parameter lässt sich die Uhr nicht stellen. Bewegt wird deshalb
+      das, was im Produkt auch wirklich wandert: die Fälligkeit.
+
+      Das ist nicht der schwächere Nachweis, sondern der ehrlichere. Eine
+      Prüfung, die die Uhr verstellt, braucht einen Vertrag, in dem die Uhr
+      verstellbar ist – und genau der darf hier nicht entstehen (E28). Alle
+      Zeitpunkte unten sind relativ zu `now()`; der Test hat keine eigene Uhr
+      und kann deshalb auch nicht an einer Zeitgrenze kippen.
     */
     await alsPerson(db, LERNENDE);
-    const spaeter = await db.query('select * from my_due_overview($1) where pack_id = $2', [
-      new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
-      paket,
-    ]);
-    expect(spaeter.rows[0].due_count).toBe(2);
-    expect(spaeter.rows[0].entry_count).toBe(2);
+
+    const vorher = await db.query('select * from my_due_overview() where pack_id = $1', [paket]);
+    expect(vorher.rows[0].due_count).toBe(1);
+    expect(vorher.rows[0].entry_count).toBe(2);
+
+    await alsEinrichtung(db);
+    await db.query(
+      `update entry_progress set due_at = now() - interval '1 minute'
+        where user_id = $1 and pack_id = $2 and entry_id = 'v-2'`,
+      [LERNENDE, paket],
+    );
+
+    await alsPerson(db, LERNENDE);
+    const nachher = await db.query('select * from my_due_overview() where pack_id = $1', [paket]);
+    expect(nachher.rows[0].due_count).toBe(2);
+    expect(nachher.rows[0].entry_count).toBe(2);
+  });
+
+  it('hat überhaupt keine Parameter – auch keinen für einen Zeitpunkt', async () => {
+    // Die Gegenprobe zur Zeile oben: Der Aufruf mit einem Argument scheitert.
+    await alsPerson(db, LERNENDE);
+    expect(await fehlerVon(db.query('select * from my_due_overview(now())'))).toMatch(
+      /does not exist|function my_due_overview/i,
+    );
   });
 });

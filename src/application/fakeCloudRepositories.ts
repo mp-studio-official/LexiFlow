@@ -1034,9 +1034,15 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
   };
 
   const progressOverview: ProgressOverviewRepository = {
-    async myDueOverview(now) {
+    async myDueOverview() {
       const mich = ich();
-      const grenze = Date.parse(now ?? jetzt());
+      /*
+        Die Uhr der Fälschung steht für die Uhr der Datenbank – und sie ist
+        von aussen genauso wenig zu stellen. Wer einen bestimmten Zeitpunkt
+        braucht, gibt `createFakeCloud({ now })` eine Uhr mit; das ist der
+        Aufbau des Prüfstands, nicht ein Parameter des Vertrags (E28).
+      */
+      const grenze = Date.parse(jetzt());
       const zeilen = new Map<string, DueOverview>();
 
       /*

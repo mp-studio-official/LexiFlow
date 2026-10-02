@@ -79,10 +79,11 @@ export interface ProgressGateway {
   /**
    * Der eigene Lernstand über alle Kurse – eine Abfrage statt einer Kaskade.
    *
-   * `now` ist der Vergleichszeitpunkt für die Fälligkeit. Ohne Angabe
-   * entscheidet die Serveruhr; der Parameter ist für Tests da.
+   * Ohne Parameter. Die Fälligkeit vergleicht die Datenbank gegen ihre
+   * eigene Uhr; ein Zeitpunkt von hier wäre ein Weg, auf dem eine Geräteuhr
+   * in die Fälligkeit geriete (E28).
    */
-  rpcDueOverview(now?: string): Promise<DueOverviewRow[]>;
+  rpcDueOverview(): Promise<DueOverviewRow[]>;
 }
 
 /* ------------------------------------------------------------ Umrechnung -- */
@@ -201,8 +202,8 @@ export function createSqlProgressOverviewRepository(
   gateway: ProgressGateway,
 ): ProgressOverviewRepository {
   return {
-    async myDueOverview(now) {
-      return (await gateway.rpcDueOverview(now)).map(alsUebersicht);
+    async myDueOverview() {
+      return (await gateway.rpcDueOverview()).map(alsUebersicht);
     },
   };
 }

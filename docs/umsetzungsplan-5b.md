@@ -197,7 +197,7 @@ eine Seite, die nicht mehr lädt.
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
 | **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
-| **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kursübergreifender Lernstandszugriff; **kein Bildschirm** | E1, E2, E3, **E26, E27, E28**, R11 | 5B.2d | **fertig** (lokal; Migration **noch nicht angewandt**) |
+| **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kursübergreifender Lernstandszugriff; **kein Bildschirm** | E1, E2, E3, **E26, E27, E28**, R11 | 5B.2d | **fertig** (lokal; Migration **noch nicht angewandt** — Übergabe: `docs/abnahme/migration-12.md`) |
 | **5B.4** | „Heute" — **hier wird die Zeitzone bestätigt** (E27) | E1, E2, E3, E9, **E27, E28** | **5B.4a** | offen |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14, **E24** | 5B.2d | **fertig** (`5ce0363`, `8467267`, `3365861`) |
 | **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter; **hier werden Zeitzone und Ziel bearbeitet** | E1, E2, E3, **E25, E26, E27** | 5B.4 | offen |

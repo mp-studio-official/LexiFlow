@@ -68,15 +68,8 @@ function pgliteProgressGateway(db: TestDatenbank): ProgressGateway {
       ).rows;
     },
 
-    async rpcDueOverview(now) {
-      return (
-        await db.query(
-          now === undefined
-            ? 'select * from my_due_overview() order by pack_id'
-            : 'select * from my_due_overview($1) order by pack_id',
-          now === undefined ? [] : [now],
-        )
-      ).rows as never;
+    async rpcDueOverview() {
+      return (await db.query('select * from my_due_overview() order by pack_id')).rows as never;
     },
 
     async rpcReset(courseId, packId) {

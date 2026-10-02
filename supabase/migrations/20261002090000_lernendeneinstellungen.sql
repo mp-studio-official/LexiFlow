@@ -210,9 +210,23 @@ create policy learner_settings_own on learner_settings
   sie sieht, sieht diese Person ohnehin – `entry_progress` und `pack_progress`
   tragen seit Migration 11 die Mitgliedschaftsprüfung.
 
-  Es gibt **keinen Parameter für eine andere Person.** `auth.uid()` steht in
-  der Abfrage; eine Kennung von außen entgegenzunehmen wäre genau die
-  Hintertür, die ADR-1 ausschließt.
+  ## Diese Funktion nimmt überhaupt nichts entgegen
+
+  **Keine Personenkennung.** `auth.uid()` steht in der Abfrage; eine Kennung
+  von außen entgegenzunehmen wäre genau die Hintertür, die ADR-1 ausschließt.
+
+  **Und kein Zeitpunkt.** Bis zum 02.10.2026 stand hier ein
+  `p_now timestamptz default now()` – gedacht als Erleichterung für Tests.
+  Das war ein Fehler, und zwar ein folgenreicher: Der Parameter wäre über
+  RPC, Gateway und Repository bis in den Produktivaufruf durchgereicht
+  worden, und dort hätte irgendwann eine Geräteuhr daringestanden. Genau das
+  schließt E28 aus. Ein Prüfstand, der eine Uhr braucht, macht die Testdaten
+  relativ zu `now()` – er verändert nicht den Vertrag, an dem später das
+  Produkt hängt.
+
+  Die Fälligkeit vergleicht deshalb gegen `now()`, also gegen die **Uhr der
+  Datenbank**. Die ist dieselbe Uhr, die `progress_events.recorded_at`
+  stempelt.
 
   ## Offen gesagt: `where user_id = auth.uid()` ist hier redundant
 
@@ -227,7 +241,7 @@ create policy learner_settings_own on learner_settings
   falls jemand diese Funktion eines Tages doch auf `security definer`
   umstellt. Was er nicht ist: der Riegel. Der Riegel sind die Zugriffsregeln.
 */
-create or replace function my_due_overview(p_now timestamptz default now())
+create or replace function my_due_overview()
 returns table (
   course_id uuid,
   pack_id text,
@@ -249,7 +263,7 @@ as $$
     select
       course_id,
       pack_id,
-      count(*) filter (where due_at <= p_now)::integer as due_count,
+      count(*) filter (where due_at <= now())::integer as due_count,
       count(*)::integer                                as entry_count
     from entry_progress
     where user_id = auth.uid()
@@ -262,13 +276,14 @@ as $$
   ) p on p.course_id = e.course_id and p.pack_id = e.pack_id;
 $$;
 
-comment on function my_due_overview(timestamptz) is
+comment on function my_due_overview() is
   'Fällige und bearbeitete Vokabeln je Kurs und Paket – nur die eigenen. '
-  'Eine Abfrage statt einer Kaskade; kein Parameter für fremde Personen.';
+  'Eine Abfrage statt einer Kaskade; keine Parameter, weder für eine fremde '
+  'Person noch für einen Zeitpunkt.';
 
-revoke all on function my_due_overview(timestamptz) from public;
-revoke all on function my_due_overview(timestamptz) from anon;
-grant execute on function my_due_overview(timestamptz) to authenticated;
+revoke all on function my_due_overview() from public;
+revoke all on function my_due_overview() from anon;
+grant execute on function my_due_overview() to authenticated;
 
 /*
   Die beiden Triggerfunktionen bekommen ausdrücklich kein Ausführungsrecht.
@@ -291,4 +306,4 @@ revoke all on function app_touch_learner_settings() from public, anon, authentic
   nichts zurück. Nutzlos und nicht vergeben sind aber zwei verschiedene
   Dinge, und nur das zweite bleibt richtig, wenn die Funktion sich ändert.
 */
-revoke all on function my_due_overview(timestamptz) from service_role;
+revoke all on function my_due_overview() from service_role;

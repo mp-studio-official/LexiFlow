@@ -70,17 +70,13 @@ export function createSupabaseProgressGateway(client: SupabaseClient): ProgressG
       return Array.isArray(data) ? (data as ConflictRow[]) : [];
     },
 
-    async rpcDueOverview(now) {
+    async rpcDueOverview() {
       /*
-        Ohne `now` wird der Parameter **nicht** mitgeschickt, statt eine
-        Geräteuhr einzusetzen: Dann greift der Vorgabewert `now()` der
-        Funktion, also die Serveruhr (E28). Ein `new Date().toISOString()`
-        hier wäre genau die heimliche Clientzeit, die ausgeschlossen ist.
+        Keine Argumente. `my_due_overview()` hat keine Parameter, und dieser
+        Aufruf hat deshalb keine Stelle, an der eine Geräteuhr hineingeriete
+        (E28). Die Fälligkeit entscheidet `now()` in der Datenbank.
       */
-      const { data, error } = await client.rpc(
-        'my_due_overview',
-        now === undefined ? {} : { p_now: now },
-      );
+      const { data, error } = await client.rpc('my_due_overview');
       if (error) throw new Error('Dein Lernstand konnte nicht geladen werden.');
       return Array.isArray(data) ? (data as DueOverviewRow[]) : [];
     },

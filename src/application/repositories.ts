@@ -408,12 +408,19 @@ export interface DueOverview {
  */
 export interface ProgressOverviewRepository {
   /**
-   * @param now Der Zeitpunkt, gegen den die Fälligkeit zählt. Ohne Angabe
-   *   entscheidet die **Serveruhr**. Der Parameter ist für Tests da; eine
-   *   Geräteuhr gehört nicht hinein, und aus dieser Zahl folgt nie ein Tag,
-   *   eine Serie oder ein Ruhetag (E28).
+   * Keine Parameter – weder eine Person noch ein Zeitpunkt.
+   *
+   * Der Vergleichszeitpunkt für die Fälligkeit ist die **Uhr der Datenbank**,
+   * und er ist von außen nicht beeinflussbar (E28). Ein optionaler Zeitpunkt
+   * „nur für Tests" stünde hier im öffentlichen Vertrag, reichte durch
+   * Gateway und RPC durch, und irgendwann schriebe jemand an einer
+   * Aufrufstelle `new Date().toISOString()` hinein – eine Geräteuhr, die
+   * niemand nachprüfen kann. Ein Prüfstand legt seine Daten stattdessen
+   * relativ zu `now()` an.
+   *
+   * `src/application/keineTestuhr.test.ts` hält das fest.
    */
-  myDueOverview(now?: string): Promise<DueOverview[]>;
+  myDueOverview(): Promise<DueOverview[]>;
 }
 
 /* ------------------------------------------------- Lernendeneinstellungen */

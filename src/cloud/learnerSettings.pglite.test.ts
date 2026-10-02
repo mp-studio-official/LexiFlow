@@ -126,15 +126,8 @@ function pgliteUebersichtGateway(db: TestDatenbank): ProgressGateway {
     rpcBeginSession: nichtHier,
     rpcRecordEvents: nichtHier,
     rpcReset: nichtHier,
-    async rpcDueOverview(now) {
-      return (
-        await db.query(
-          now === undefined
-            ? 'select * from my_due_overview() order by pack_id'
-            : 'select * from my_due_overview($1) order by pack_id',
-          now === undefined ? [] : [now],
-        )
-      ).rows as never;
+    async rpcDueOverview() {
+      return (await db.query('select * from my_due_overview() order by pack_id')).rows as never;
     },
   };
 }
@@ -251,17 +244,30 @@ describe('my_due_overview über den Vertrag', () => {
     }
   });
 
-  it('nimmt einen Vergleichszeitpunkt entgegen, der nur die Fälligkeit bewegt', async () => {
+  it('folgt der Uhr der Datenbank, nicht einem übergebenen Zeitpunkt', async () => {
+    /*
+      `myDueOverview()` nimmt nichts entgegen. Bewegt wird deshalb die
+      Fälligkeit selbst – relativ zu `now()`, damit der Test keine eigene Uhr
+      hat und an keiner Zeitgrenze kippen kann (E28).
+    */
     const { db, uebersicht } = await szenario();
     try {
       await alsPerson(db, LERNENDE);
-      const spaeter = await uebersicht.myDueOverview(
-        new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+      expect((await uebersicht.myDueOverview()).map((zeile) => zeile.dueCount)).toEqual([1, 1]);
+
+      await alsEinrichtung(db);
+      await db.query(
+        `update entry_progress set due_at = now() - interval '1 minute'
+          where user_id = $1 and entry_id = 'v-2'`,
+        [LERNENDE],
       );
-      expect(spaeter.map((zeile) => zeile.dueCount)).toEqual([2, 1]);
-      // Und sonst bewegt er nichts: dieselben Pakete, dieselben Gesamtzahlen.
-      expect(spaeter.map((zeile) => zeile.entryCount)).toEqual([2, 1]);
-      expect(spaeter[0]!.lastPracticedAt).toBe('2026-10-01T07:30:00.000Z');
+
+      await alsPerson(db, LERNENDE);
+      const nachher = await uebersicht.myDueOverview();
+      expect(nachher.map((zeile) => zeile.dueCount)).toEqual([2, 1]);
+      // Und sonst bewegt sich nichts: dieselben Pakete, dieselben Gesamtzahlen.
+      expect(nachher.map((zeile) => zeile.entryCount)).toEqual([2, 1]);
+      expect(nachher[0]!.lastPracticedAt).toBe('2026-10-01T07:30:00.000Z');
     } finally {
       await db.close();
     }
