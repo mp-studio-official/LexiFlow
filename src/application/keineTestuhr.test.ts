@@ -255,6 +255,111 @@ describe('Eingecheckte Anleitungen rufen die CLI über npx auf', () => {
     expect(CLI_AUFRUF.test('supabase/migrations/20261002090000_x.sql')).toBe(false);
   });
 
+  /*
+    Die zweite Wache an denselben Anleitungen, und sie hat einen konkreten
+    Anlass: `db push` kennt **keine Zielfassung**. Die Hilfe der CLI 2.119.0
+    nennt `--dry-run`, `--include-all`, `--linked`, `--db-url`, `--password`
+    – mehr nicht. Ein Aufruf wendet also jede ausstehende Fassung an.
+
+    Als 14 und 15 beide ausstanden, hätte ein schlichtes `db push` beide
+    angewandt, und Abschnitt B von Migration 14 wäre nie prüfbar gewesen: Er
+    erwartet 101 Spalten und 39 Funktionen, mit 15 stünden dort 102 und 40.
+    Marc hat das gesehen, bevor jemand den Befehl getippt hat.
+
+    Geprüft werden nur **Aufrufe** – Zeilen mit `supabase@latest db push`.
+    Der Fliesstext spricht an vielen Stellen über `db push`, und zwar
+    gerade, um zu erklären, warum er so nicht benutzt wird.
+  */
+  const PUSH_AUFRUF = /supabase@latest\s+db\s+push/;
+
+  function anleitungen(): string[] {
+    return [...dokumente('docs/abnahme'), 'docs/pilot-abnahme.md'];
+  }
+
+  /** Die Zeilen, die jemand ausführt: Codeblöcke in `.md`, alles in `.sql`. */
+  function ausfuehrbareZeilen(datei: string): string[] {
+    const zeilen = lies(datei).split('\n');
+    const gefunden: string[] = [];
+    let imBlock = datei.endsWith('.sql');
+    for (const zeile of zeilen) {
+      if (datei.endsWith('.md') && zeile.trimStart().startsWith('```')) {
+        imBlock = !imBlock;
+        continue;
+      }
+      if (imBlock) gefunden.push(zeile);
+    }
+    return gefunden;
+  }
+
+  it('nennt `--include-all` in keinem einzigen Aufruf', () => {
+    /*
+      Diese Option nimmt ausdrücklich alles mit, was in der Historie fehlt –
+      das genaue Gegenteil dessen, was hier gebraucht wird.
+    */
+    const verstoesse: string[] = [];
+    for (const datei of anleitungen()) {
+      for (const zeile of ausfuehrbareZeilen(datei)) {
+        if (PUSH_AUFRUF.test(zeile) && zeile.includes('--include-all')) {
+          verstoesse.push(`${datei}: ${zeile.trim()}`);
+        }
+      }
+    }
+    expect(verstoesse).toEqual([]);
+  });
+
+  it('nennt bei jedem Aufruf ausdrücklich das Ziel', () => {
+    /*
+      `--linked` oder `--db-url`. Ohne beides entscheidet die CLI selbst,
+      wohin – und „wohin" ist bei einem Schreibbefehl keine Kleinigkeit.
+    */
+    const verstoesse: string[] = [];
+    for (const datei of anleitungen()) {
+      for (const zeile of ausfuehrbareZeilen(datei)) {
+        if (!PUSH_AUFRUF.test(zeile)) continue;
+        if (!zeile.includes('--linked') && !zeile.includes('--db-url')) {
+          verstoesse.push(`${datei}: ${zeile.trim()}`);
+        }
+      }
+    }
+    expect(verstoesse).toEqual([]);
+  });
+
+  it('lässt keinen anwendenden Aufruf ohne vorherigen Trockenlauf stehen', () => {
+    /*
+      Was angewandt wird, sieht man vorher an. Geprüft wird die Reihenfolge
+      **innerhalb einer Datei**: Vor jedem `db push` ohne `--dry-run` muss
+      weiter oben einer mit `--dry-run` stehen.
+    */
+    const verstoesse: string[] = [];
+    for (const datei of anleitungen()) {
+      let trockenlaufGesehen = false;
+      for (const zeile of ausfuehrbareZeilen(datei)) {
+        if (!PUSH_AUFRUF.test(zeile)) continue;
+        if (zeile.includes('--dry-run')) {
+          trockenlaufGesehen = true;
+          continue;
+        }
+        if (!trockenlaufGesehen) verstoesse.push(`${datei}: ${zeile.trim()}`);
+      }
+    }
+    expect(verstoesse).toEqual([]);
+  });
+
+  it('erkennt einen Aufruf überhaupt – und eine Erwähnung nicht', () => {
+    expect(PUSH_AUFRUF.test('npx --yes supabase@latest db push --linked --dry-run')).toBe(true);
+    // Fliesstext über den Befehl, kein Befehl:
+    expect(PUSH_AUFRUF.test('`db push` kennt keine Zielfassung.')).toBe(false);
+    expect(PUSH_AUFRUF.test('Ein `supabase db push` wendet alles an.')).toBe(false);
+  });
+
+  it('findet in den Anleitungen überhaupt Aufrufe – sonst prüfte das nichts', () => {
+    const alle = anleitungen().flatMap((datei) => ausfuehrbareZeilen(datei));
+    const aufrufe = alle.filter((zeile) => PUSH_AUFRUF.test(zeile));
+    expect(aufrufe.length).toBeGreaterThan(2);
+    expect(aufrufe.some((zeile) => zeile.includes('--dry-run'))).toBe(true);
+    expect(aufrufe.some((zeile) => !zeile.includes('--dry-run'))).toBe(true);
+  });
+
   it('findet überhaupt Dokumente – sonst prüfte die Schleife nichts', () => {
     const gefunden = dokumente('docs/abnahme');
     expect(gefunden.length).toBeGreaterThan(1);

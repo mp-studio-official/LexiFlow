@@ -5,6 +5,18 @@
 -- ║  A vor dem Anwenden, B danach. Nichts hier verändert Daten.          ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
 --
+-- ## Diese Migration wird NICHT mit `db push` angewandt
+--
+-- 14 und 15 stehen beide aus. `db push` kennt keine Zielfassung — das ist
+-- keine Vermutung, es steht in der Hilfe der CLI 2.119.0: `--dry-run`,
+-- `--include-all`, `--linked`, sonst nichts. Ein Aufruf wendet also **beide**
+-- an, und danach ist Abschnitt B hier nicht mehr prüfbar: Er erwartet 101
+-- Spalten und 39 Funktionen, und mit 15 stünden dort 102 und 40.
+--
+-- Der Weg ist deshalb: **SQL Editor, dann die Historie nachtragen.** Er
+-- steht Zeile für Zeile in `docs/pilot-abnahme.md`, Teil A2. Dort steht auch
+-- der Rückfall für den Fall, dass der Nachtrag schiefgeht.
+--
 -- Migration 14 legt **keine** Tabelle und **keine** Spalte an. Sie verengt
 -- ein Recht, tauscht eine Regel aus und fügt einen Auslöser hinzu.
 --
@@ -67,6 +79,13 @@ select privilege_type, count(*) as spalten
  where table_schema = 'public' and table_name = 'profiles' and grantee = 'authenticated'
  group by 1 order by 1;
 
+
+-- A6 · Der Beleg, dass `db push` beide anwenden würde
+-- Auf dem Arbeitsrechner, nicht im Editor:
+--   npx --yes supabase@latest db push --linked --dry-run
+-- Erwartet: **beide** Dateien in der Liste — 20261004090000_rollenriegel
+-- und 20261005090000_konto_stilllegen. Genau deshalb wird hier nicht
+-- gepusht. Die Ausgabe gehört ins Protokoll; sie ist der Beleg.
 
 -- ══════════════════════════ B · NACHHER ═══════════════════════════════
 
@@ -133,10 +152,23 @@ select t.tgname, t.tgenabled, p.proname, p.prosecdef
   join pg_proc p on p.oid = t.tgfoid
  where t.tgrelid = 'public.profiles'::regclass and not t.tgisinternal;
 
--- B9 · Die Migrationshistorie
+-- B9 · Die Migrationshistorie — VOR dem Nachtrag
+-- Erwartet: **13** Versionen, zuletzt 20261003090000.
+-- Das ist kein Fehler: Der SQL Editor führt Anweisungen aus, er schreibt
+-- keine Historie. Der Nachtrag ist Schritt A2.5 in docs/pilot-abnahme.md.
+select count(*) as versionen, max(version) as zuletzt
+  from supabase_migrations.schema_migrations;
+
+-- B9b · Die Migrationshistorie — NACH dem Nachtrag
 -- Erwartet: 14 Versionen, zuletzt 20261004090000
 select count(*) as versionen, max(version) as zuletzt
   from supabase_migrations.schema_migrations;
+
+-- B9c · Der zweite Beleg: Jetzt steht nur noch 15 aus
+-- Auf dem Arbeitsrechner:
+--   npx --yes supabase@latest db push --linked --dry-run
+-- Erwartet: **nur** 20261005090000_konto_stilllegen. Steht 14 noch dabei,
+-- ist der Nachtrag nicht angekommen — dann nicht weiter, sondern nachsehen.
 
 -- B10 · Der eigentliche Nachweis, gegen echte Zugriffsregeln
 -- NICHT im SQL Editor ausführbar: Der Editor spricht als Besitzer, und für

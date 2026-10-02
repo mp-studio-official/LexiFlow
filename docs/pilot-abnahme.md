@@ -21,41 +21,213 @@ weitermachen, eintragen, melden.
   Rollenbefund aus `docs/abnahme/migration-14.md` scharf – dann erst
   ausschalten, dann weiter.
 
-### A2 Migration 14 anwenden
+### A2 Warum `db push` hier nicht einfach laufen darf
 
-- [ ] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitt A, im SQL Editor.
-      Werte notieren.
+Beide Migrationen stehen aus. `db push` kennt **keine Zielfassung** – die
+Hilfe der CLI 2.119.0 nennt `--dry-run`, `--include-all`, `--linked`,
+`--db-url`, `--password`, sonst nichts. Ein Aufruf wendet deshalb **alles**
+an, was in der Historie fehlt: 14 **und** 15.
+
+Damit wäre Abschnitt B von Migration 14 nicht mehr prüfbar. Er erwartet 101
+Spalten und 39 Funktionen; mit 15 stünden dort 102 und 40 – und niemand
+könnte danach noch sagen, ob 14 für sich richtig gelaufen ist.
+
+**Verhindert wird es durch die Reihenfolge, nicht durch eine Option:**
+
+1. Migration 14 läuft im **SQL Editor**. Der schreibt keine Historie – für
+   `db push` bleibt sie damit „ausstehend", obwohl sie angewandt ist.
+2. Der Nachtrag (`migration repair --status applied`) setzt sie in die
+   Historie. Erst danach weiß `db push`, dass sie erledigt ist.
+3. Ab da ist 15 die **einzige** ausstehende Fassung. `db push` kann sie gar
+   nicht mehr mit 14 zusammen anwenden, weil 14 nicht mehr aussteht.
+
+> **`--include-all` kommt in keinem Schritt vor.** Diese Option nimmt
+> ausdrücklich alles mit, was in der Historie fehlt – sie ist genau das
+> Gegenteil dessen, was hier gebraucht wird.
+
+> **Keine Migrationsdatei wird verschoben, umbenannt oder gelöscht**, um die
+> Reihenfolge zu erzwingen. Das wäre der bequeme Weg und der schlechteste:
+> `db push` vergleicht Fassungen, nicht Inhalte, und eine Datei, die einmal
+> weg war, kommt als „nie angewandt" zurück.
+
+---
+
+### A3 · Folge A – Migration 14 anwenden und abnehmen
+
+**A3.1 Der Beleg, dass beide anstünden**
+
+- [ ] **Tun:**
+
+```
+npx --yes supabase@latest db push --linked --dry-run
+```
+
+- **Erwartet:** Beide Dateien in der Liste – `20261004090000_rollenriegel`
+  **und** `20261005090000_konto_stilllegen`.
+- **Danach:** Nichts. Ein Trockenlauf ändert nichts. Die Ausgabe gehört ins
+  Protokoll: Sie ist der Grund für alles, was jetzt folgt.
+- **Wenn nur eine Datei dasteht:** Dann ist eine der beiden schon angewandt.
+  Nicht weitermachen – erst `npx --yes supabase@latest migration list
+  --linked` ansehen und klären, welche.
+
+**A3.2 Die Lage vorher messen**
+
+- [ ] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitte A1 bis A5, im SQL
+      Editor. Werte notieren.
 - **Erwartet:** `tabellen 16 · spalten 101 · regeln 28 · funktionen 38 ·
-  trigger 13`. Bei A4: `with_check = (id = auth.uid())`.
-- [ ] **Tun:** Migration anwenden.
+  trigger 13`; A4 zeigt `with_check = (id = auth.uid())`.
+- **Danach:** Nichts. Alles in A ist lesend.
+
+**A3.3 Die Migration ausführen – in einer Transaktion**
+
+- [ ] **Tun:** Im SQL Editor ein neues Query öffnen und dort eintragen:
 
 ```
-npx --yes supabase@latest db push
+begin;
+-- hier den vollständigen Inhalt von
+-- supabase/migrations/20261004090000_rollenriegel.sql einfügen
+commit;
 ```
 
-- **Erwartet:** `20261004090000_rollenriegel` wird angewandt.
-- [ ] **Tun:** Abschnitt B.
-- **Erwartet:** `funktionen 39 · trigger 14`, Regeln und Nutzdaten
-  unverändert; B4 nennt jetzt `role = 'student'`; B5 genau drei Spalten;
-  B8 `prosecdef = false`.
-- **Danach:** Kein Browser kann sich mehr als Lehrkraft oder Verwaltung
-  anlegen. `20261004090000_rollenriegel.sql` ist ab jetzt **unveränderlich**.
+- **Erwartet:** „Success. No rows returned."
+- **Danach:** Riegel 1 bis 3 stehen. Die Historie **noch nicht**.
+- **Warum die Klammer:** Die Migration ist reines DDL, und DDL ist in
+  Postgres transaktional. Scheitert eine Zeile, wird nichts davon wirksam –
+  statt eines halb angewandten Schemas, das in keinem Protokoll steht.
+- **Wenn ein Fehler kommt:** `rollback;` ausführen, A1 wiederholen (die
+  Werte müssen unverändert sein), Fehlermeldung notieren, hier anhalten.
 
-### A3 Migration 15 anwenden
+**A3.4 Nachher messen – bevor irgendetwas nachgetragen wird**
 
-- [ ] **Tun:** `docs/abnahme/migration-15.sql`, Abschnitt A.
-- [ ] **Tun:** anwenden (`db push`), dann Abschnitt B.
-- **Erwartet:** `spalten 102 · funktionen 40`; B3 zeigt **0** stillgelegte
-  Konten; B6 zeigt `service_role · disabled_at` und `authenticated ·
-  display_name` – **nicht** `authenticated · disabled_at`.
-- **Danach:** Ein Konto lässt sich stilllegen. Niemand ist es.
+- [ ] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitte B1 bis B8.
+- **Erwartet:** `funktionen 39 · trigger 14`; Regeln (28), Tabellen (16),
+  Spalten (101) und **alle** Nutzdaten unverändert gegenüber A2; B4 nennt
+  `role = 'student'`; B5 genau drei Spalten; B8 `prosecdef = false`.
+- [ ] **Tun:** B9 ausführen.
+- **Erwartet:** **13** Versionen, zuletzt `20261003090000`. Das ist richtig
+  so: Der Editor schreibt keine Historie.
 
-### A4 Die Protokolle umschreiben
+> **Diese Reihenfolge ist der Sinn der Sache.** Der Nachtrag unten markiert
+> eine Fassung als angewandt, **ohne sie auszuführen**. Würde er vor der
+> Messung stehen und die Migration wäre in Wahrheit gescheitert, trüge die
+> Historie eine Lüge – und `db push` liefe nie wieder darüber. Deshalb erst
+> messen, dann nachtragen.
 
-- [ ] **Tun:** In `migration-14.sql` und `-15.sql` den Kopf von „NOCH NICHT
+**A3.5 Die Historie nachtragen**
+
+- [ ] **Tun:**
+
+```
+npx --yes supabase@latest migration repair --linked --status applied 20261004090000
+```
+
+- **Erwartet:** Bestätigung, dass die Fassung als angewandt eingetragen ist.
+- **Danach:** `db push` hält 14 für erledigt.
+- **Rückfall:** Falsch eingetragen? Der Eintrag lässt sich zurücknehmen:
+
+```
+npx --yes supabase@latest migration repair --linked --status reverted 20261004090000
+```
+
+  Das ändert **nur** die Historie, nicht das Schema. Was im Editor gelaufen
+  ist, bleibt gelaufen – ein tatsächliches Zurücknehmen der Migration wäre
+  eine **neue additive Migration 16**, niemals eine Änderung an 14.
+
+**A3.6 Nachsehen, dass es gewirkt hat**
+
+- [ ] **Tun:**
+
+```
+npx --yes supabase@latest migration list --linked
+```
+
+- **Erwartet:** `20261004090000` steht in **beiden** Spalten (Local und
+  Remote). `20261005090000` nur links.
+- [ ] **Tun:** `docs/abnahme/migration-14.sql`, B9b im SQL Editor.
+- **Erwartet:** 14 Versionen, zuletzt `20261004090000`.
+- [ ] **Tun:**
+
+```
+npx --yes supabase@latest db push --linked --dry-run
+```
+
+- **Erwartet:** **Nur** `20261005090000_konto_stilllegen`.
+- **Danach:** Das ist der Beweis, dass Folge B genau eine Migration anwendet.
+  Steht 14 hier noch dabei, ist A3.5 nicht angekommen – dann nicht weiter.
+
+**A3.7 Das Protokoll umschreiben**
+
+- [ ] **Tun:** In `docs/abnahme/migration-14.sql` den Kopf von „NOCH NICHT
       AUSGEFÜHRT" auf „ausgeführt am …" ändern und die gemessenen Werte
       eintragen.
-- **Danach:** `npm run pilot:pruefen` Prüfung 4 wird grün.
+- **Danach:** `20261004090000_rollenriegel.sql` ist **unveränderlich**.
+  Prüfung 4 in `npm run pilot:pruefen` zählt 14 als angewandt.
+
+---
+
+### A4 · Folge B – Migration 15 anwenden und abnehmen
+
+**A4.1 Der Trockenlauf**
+
+- [ ] **Tun:**
+
+```
+npx --yes supabase@latest db push --linked --dry-run
+```
+
+- **Erwartet:** **Genau eine** Datei: `20261005090000_konto_stilllegen`.
+- **Wenn zwei dastehen:** Folge A ist nicht abgeschlossen. Zurück zu A3.5.
+
+**A4.2 Die Lage vorher messen**
+
+- [ ] **Tun:** `docs/abnahme/migration-15.sql`, Abschnitte A1 bis A3.
+- **Erwartet:** `spalten 101 · funktionen 39 · trigger 14` – also genau der
+  Stand, den Folge A hinterlassen hat.
+
+**A4.3 Anwenden**
+
+- [ ] **Tun:**
+
+```
+npx --yes supabase@latest db push --linked --skip-vault
+```
+
+- **Erwartet:** Genau eine angewandte Fassung: `20261005090000`.
+- **Danach:** Der Sperrschalter steht. Die Historie schreibt `db push`
+  selbst – **kein** Nachtrag, und auch keiner „zur Sicherheit".
+- **Warum `--skip-vault`:** `db push` gleicht sonst vorher Vault-Geheimnisse
+  aus `config.toml` ab. Dort steht keines – die Option sagt das ausdrücklich,
+  statt sich darauf zu verlassen, dass eine Datei leer bleibt.
+- **Wenn der Lauf abbricht:** `npx --yes supabase@latest migration list
+  --linked` zeigt, ob 15 angekommen ist. Steht sie remote, aber das Schema
+  passt nicht zu B1, ist das der Fall für eine neue additive Migration – nicht
+  für eine Änderung an 15.
+
+**A4.4 Nachher messen**
+
+- [ ] **Tun:** `docs/abnahme/migration-15.sql`, Abschnitte B1 bis B8.
+- **Erwartet:** `spalten 102 · funktionen 40`; Regeln 28, Trigger 14 und alle
+  Nutzdaten unverändert; B3 zeigt **0** stillgelegte Konten; B6 zeigt
+  `service_role · disabled_at` und `authenticated · display_name`, **nicht**
+  `authenticated · disabled_at`; B7 zeigt 15 Versionen; B8 nichts
+  Ausstehendes mehr.
+
+**A4.5 Das Protokoll umschreiben**
+
+- [ ] **Tun:** Kopf und Werte in `docs/abnahme/migration-15.sql` eintragen.
+- **Danach:** Prüfung 4 wird grün.
+
+---
+
+### A5 Was in keinem Schritt vorkommt
+
+| | Warum |
+| --- | --- |
+| `db push` ohne vorherigen `--dry-run` | Was angewandt wird, sieht man vorher an, nicht danach |
+| `--include-all` | nimmt ausdrücklich alles mit, was in der Historie fehlt |
+| Eine Migrationsdatei verschieben, umbenennen oder löschen | `db push` vergleicht Fassungen, nicht Inhalte; die Datei käme als „nie angewandt" zurück |
+| Eine angewandte Migration nachträglich ändern | gilt als angewandt und läuft nie wieder – Korrekturen sind neue additive Migrationen |
+| `migration repair` vor der Messung | er trägt „angewandt" ein, ohne auszuführen; vor der Messung trüge die Historie womöglich eine Lüge |
 
 ---
 

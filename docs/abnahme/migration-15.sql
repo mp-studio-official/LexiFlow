@@ -1,14 +1,28 @@
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Abnahme Migration 15 — ein Konto stilllegen                         ║
 -- ║  NOCH NICHT AUSGEFÜHRT. Vorbereitet am 02.10.2026.                   ║
--- ║  Nach Migration 14 anwenden, nicht davor.                            ║
--- ║  A vorher, B danach. Nichts hier verändert Daten.                    ║
+-- ║  Erst wenn 14 in der Historie steht. A vorher, B danach.             ║
+-- ║  Nichts hier verändert Daten.                                        ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
+--
+-- ## Diese Migration wird mit `db push` angewandt — als einzige
+--
+-- Anders als 14: Sobald 14 in `supabase_migrations.schema_migrations`
+-- steht, ist 15 die einzige ausstehende Fassung, und `db push` wendet genau
+-- sie an. Der Beleg dafür ist der Trockenlauf in A0 — er muss **eine**
+-- Datei nennen. Nennt er zwei, steht 14 noch nicht in der Historie, und
+-- dann gehört der Nachtrag aus `docs/pilot-abnahme.md` A2.5 nachgeholt,
+-- bevor hier irgendetwas läuft.
 --
 -- Erwartete Veränderung: Spalten +1, Funktionen +1. Regeln bleiben gleich
 -- (sechs abgelegt, sechs angelegt). Tabellen, Trigger und Nutzdaten unberührt.
 
 -- ══════════════════════════ A · VORHER ════════════════════════════════
+
+-- A0 · Der Trockenlauf — auf dem Arbeitsrechner, nicht im Editor
+--   npx --yes supabase@latest db push --linked --dry-run
+-- Erwartet: **genau eine** Datei, 20261005090000_konto_stilllegen.
+-- Zwei Dateien heissen: 14 fehlt in der Historie. Dann hier nicht weiter.
 
 -- A1 · Umfang des Schemas
 -- Erwartet (Ausgang nach Migration 14):
@@ -93,6 +107,12 @@ select grantee, column_name
 -- diesem Produkt.
 
 -- B7 · Historie
--- Erwartet: 15 Versionen, zuletzt 20261005090000
+-- Erwartet: 15 Versionen, zuletzt 20261005090000.
+-- Hier steht die Zahl **ohne** Nachtrag richtig: `db push` schreibt die
+-- Historie selbst. Das ist der ganze Unterschied zu Migration 14.
 select count(*) as versionen, max(version) as zuletzt
   from supabase_migrations.schema_migrations;
+
+-- B8 · Nichts steht mehr aus
+--   npx --yes supabase@latest db push --linked --dry-run
+-- Erwartet: keine ausstehende Migration.

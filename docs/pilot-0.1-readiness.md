@@ -309,13 +309,20 @@ ist unverändert.
 
 ### 5.1 Zwingend vor dem Pilot
 
+> **Die beiden Migrationen werden einzeln angewandt, nicht zusammen.**
+> `db push` kennt keine Zielfassung und würde 14 und 15 gemeinsam anwenden —
+> danach wäre Abschnitt B von Migration 14 nicht mehr prüfbar (er erwartet
+> 101 Spalten und 39 Funktionen; mit 15 stünden dort 102 und 40). Der Weg
+> steht als zwei getrennte Befehlsfolgen in `docs/pilot-abnahme.md`, Teil A.
+
+
 | Punkt | Stand |
 | --- | --- |
 | Pilotkennzeichnung auf jeder Seite | **gebaut** |
 | KI bestimmt abgeschaltet | **gebaut** |
 | Ehrliche Verbindungs- und Leerzustände | **gebaut** |
-| Rollenriegel (Migration 14) | **liegt bereit**, Teil A2 des Protokolls |
-| Ein Weg, ein Konto stillzulegen (Migration 15) | **liegt bereit**, Teil A3 |
+| Rollenriegel (Migration 14) | **liegt bereit**, Folge A des Protokolls (A3) |
+| Ein Weg, ein Konto stillzulegen (Migration 15) | **liegt bereit**, Folge B des Protokolls (A4) |
 | Offene Registrierung aus | Teil A1 |
 | Happy-Path 6.7–6.10 am echten Staging | Teil B |
 | Datenschutzhinweis und Löschweg für Minderjährige | Teil E1, E2 |

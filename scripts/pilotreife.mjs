@@ -141,26 +141,38 @@ pruefung(
 
 pruefung(
   4,
-  'Die Migrationen 14 und 15 sind im Staging angewandt',
+  'Die Migrationen 14 und 15 sind einzeln und in dieser Reihenfolge angewandt',
   () => {
     /*
       Die Protokolle sagen es selbst. Sie tragen, solange nichts gelaufen
       ist, „NOCH NICHT AUSGEFÜHRT" im Kopf – und das wird beim Eintragen der
       gemessenen Werte geändert, nicht nebenbei.
+
+      Die **Reihenfolge** steht hier mit drin, und das ist kein Formalismus:
+      `db push` kennt keine Zielfassung und wendet jede ausstehende Fassung
+      an. Steht 15 als angewandt da und 14 nicht, kann nur eines von beiden
+      passiert sein – entweder wurde 14 nie abgenommen, oder beide liefen
+      zusammen und Abschnitt B von 14 hat nie jemand geprüft. In beiden
+      Fällen fehlt der Nachweis, und grün wäre hier eine Behauptung.
     */
-    const offen = [];
-    for (const [nummer, datei] of [
-      [14, 'migration-14.sql'],
-      [15, 'migration-15.sql'],
-    ]) {
+    const stand = (datei) => {
       const inhalt = lies('docs', 'abnahme', datei);
-      if (inhalt === null) offen.push(`${nummer}: Protokoll fehlt`);
-      else if (/NOCH NICHT AUSGEF/i.test(inhalt)) offen.push(`${nummer}: nicht angewandt`);
+      if (inhalt === null) return 'fehlt';
+      return /NOCH NICHT AUSGEF/i.test(inhalt) ? 'offen' : 'angewandt';
+    };
+    const vierzehn = stand('migration-14.sql');
+    const fuenfzehn = stand('migration-15.sql');
+
+    if (fuenfzehn === 'angewandt' && vierzehn !== 'angewandt') {
+      return '15 gilt als angewandt, 14 nicht – die Reihenfolge stimmt nicht';
     }
+    const offen = [];
+    if (vierzehn !== 'angewandt') offen.push(`14: ${vierzehn === 'fehlt' ? 'Protokoll fehlt' : 'nicht angewandt'}`);
+    if (fuenfzehn !== 'angewandt') offen.push(`15: ${fuenfzehn === 'fehlt' ? 'Protokoll fehlt' : 'nicht angewandt'}`);
     if (offen.length > 0) return offen.join(' · ');
     return true;
   },
-  'Beide Migrationen anwenden, A und B vergleichen, die Protokolle umschreiben.',
+  'Erst Folge A (Migration 14, SQL Editor + Historie nachtragen), dann Folge B (Migration 15, `db push`) – docs/pilot-abnahme.md Teil A.',
 );
 
 /* ------------------------------------------------------------------ 5 */
