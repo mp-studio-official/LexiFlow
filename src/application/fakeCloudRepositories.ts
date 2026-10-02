@@ -13,8 +13,10 @@ import {
   type CourseRepository,
   type DueOverview,
   type InvitationRepository,
+  type Kalenderstand,
   type LearnerSettings,
   type LearnerSettingsRepository,
+  type LearningDaysRepository,
   type PackRepository,
   type PackRevision,
   type PackSummary,
@@ -31,6 +33,7 @@ import {
 } from './repositories';
 import { paketeIdentisch } from '../domain/vocabpack';
 import { istWochenziel } from '../domain/zeitzone';
+import { tagPlus, tageZwischen, type Tageszaehlung } from '../domain/lernserie';
 
 /**
  * Das Portal, solange es kein Portal gibt.
@@ -176,6 +179,16 @@ export interface FakeCloudState {
   entryProgress: Map<string, EntryProgress[]>;
   seenEvents: Set<string>;
   /**
+   * Wann welches Ereignis **angekommen** ist – das Gegenstück zu
+   * `progress_events.recorded_at`. Schlüssel: `<Person>::<Ereignis>`, so wie
+   * die Tabelle eine `user_id` neben der Kennung führt.
+   *
+   * Gestempelt von der Uhr der Fälschung, nicht von `occurredAt` aus dem
+   * Ereignis. Das ist derselbe Unterschied wie in SQL (E28): Der eine
+   * Zeitpunkt gehört der Datenbank, der andere einem Gerät.
+   */
+  eventTimes: Map<string, string>;
+  /**
    * Die Lernendeneinstellungen je Person – und **nur** für die, die etwas
    * gesetzt haben.
    *
@@ -212,6 +225,7 @@ function leererStand(): FakeCloudState {
     packProgress: new Map(),
     entryProgress: new Map(),
     seenEvents: new Set(),
+    eventTimes: new Map(),
     learnerSettings: new Map(),
     lastEventIds: new Map(),
     aiConnections: new Map(),
@@ -237,6 +251,25 @@ export interface FakeCloud {
    * Kurs hergibt, soll trotzdem schon geprüft sein.
    */
   addTeacher(courseId: string, userId: string): void;
+  /**
+   * Bewertete Aufgaben mit einem bestimmten **Ankunftszeitpunkt** einspielen
+   * – am Vertrag vorbei.
+   *
+   * Derselbe Weg wie im Prüfstand gegen PostgreSQL, wo die Zeilen als
+   * Einrichtung in `progress_events` stehen. Über `recordEvents` ginge es
+   * nicht: Der stempelt die Uhr der Fälschung, und geprüft werden soll, was
+   * aus einem **gegebenen** Zeitpunkt wird – derselbe Zeitstempel in zwei
+   * Zeitzonen, zwei Kalendertage.
+   *
+   * `kennung` macht den Aufruf wiederholbar: zweimal mit derselben Kennung
+   * ist zweimal **dasselbe** Ereignis, und das zählt einmal (E1).
+   */
+  spieleEreignisseEin(input: {
+    userId: string;
+    recordedAt: string;
+    anzahl: number;
+    kennung: string;
+  }): void;
 }
 
 export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud {
@@ -843,6 +876,14 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
         */
         if (!state.seenEvents.has(event.eventId)) {
           state.seenEvents.add(event.eventId);
+          /*
+            Genau hier und nur hier: Ein zweites Mal gesendetes Ereignis
+            kommt nicht in diesen Zweig und bekommt deshalb auch keinen
+            zweiten Zeitstempel. Dieselbe Mechanik wie der Primärschlüssel
+            auf `progress_events` – doppelt eingespielt heißt einmal gezählt
+            (E1).
+          */
+          state.eventTimes.set(`${mich.profile.id}::${event.eventId}`, jetzt());
           const bisher = state.packProgress.get(schluessel) ?? {
             packId: event.packId,
             sessionCount: 0,
@@ -996,6 +1037,70 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
     }
   }
 
+  /*
+    Der Kalender der Fälschung – die Rolle, die in der Cloud `my_local_today`
+    und `my_learning_days` spielen.
+
+    Gerechnet wird mit der Uhr der Fälschung (`jetzt`), umgerechnet in die
+    **gespeicherte** Zeitzone. Eine Geräteuhr kommt hier so wenig vor wie in
+    SQL: `jetzt` steht für die Serveruhr und ist von aussen nur beim Aufbau
+    des Prüfstands zu setzen, nicht über einen Vertrag.
+  */
+  function lokalerTag(zeitpunkt: string, zone: string): string {
+    /*
+      `en-CA` liefert `YYYY-MM-DD` – dieselbe Form, die ein `date` aus
+      PostgreSQL hat. Von Hand aus den Teilen zusammenzusetzen wäre eine
+      zweite Datumsformatierung, und die erste ist schon eine zu viel.
+    */
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(zeitpunkt));
+  }
+
+  /** Der Montag der Woche, in der dieser Kalendertag liegt. */
+  function montagVon(tag: string): string {
+    // `Date.UTC` auf einem reinen Kalendertag: 0 = Sonntag, also 1 = Montag.
+    const wochentag = new Date(`${tag}T00:00:00Z`).getUTCDay();
+    return tagPlus(tag, wochentag === 0 ? -6 : 1 - wochentag);
+  }
+
+  const learningDays: LearningDaysRepository = {
+    async myCalendar(): Promise<Kalenderstand> {
+      const mich = ich();
+      const zone = state.learnerSettings.get(mich.profile.id)?.timeZone;
+      // Ohne bestätigte Zeitzone gibt es keinen lokalen Tag. Kein Ersatz.
+      if (zone === undefined) return { bestaetigt: false };
+      const heute = lokalerTag(jetzt(), zone);
+      return { bestaetigt: true, timeZone: zone, heute, wochenbeginn: montagVon(heute) };
+    },
+
+    async myLearningDays(): Promise<Tageszaehlung[]> {
+      const mich = ich();
+      const zone = state.learnerSettings.get(mich.profile.id)?.timeZone;
+      if (zone === undefined) return [];
+
+      /*
+        Die Schlüssel tragen die Person vorweg – so wie die Tabelle eine
+        `user_id` hat. Über `seenEvents` zu gehen ginge nicht: Diese Menge
+        kennt nur Kennungen, nicht, wem sie gehören.
+      */
+      const meine = `${mich.profile.id}::`;
+      const proTag = new Map<string, number>();
+      for (const [schluessel, zeitpunkt] of state.eventTimes) {
+        if (!schluessel.startsWith(meine)) continue;
+        const tag = lokalerTag(zeitpunkt, zone);
+        proTag.set(tag, (proTag.get(tag) ?? 0) + 1);
+      }
+
+      return [...proTag.entries()]
+        .map(([localDay, taskCount]) => ({ localDay, taskCount }))
+        .sort((a, b) => tageZwischen(b.localDay, a.localDay));
+    },
+  };
+
   const learnerSettings: LearnerSettingsRepository = {
     async mySettings() {
       const mich = ich();
@@ -1118,12 +1223,22 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
       progress,
       progressOverview,
       learnerSettings,
+      learningDays,
       account,
       ai,
     },
     state,
     signInAs(userId) {
       setze(userId);
+    },
+    spieleEreignisseEin({ userId, recordedAt, anzahl, kennung }) {
+      for (let i = 0; i < anzahl; i += 1) {
+        const eventId = `${kennung}-${i}`;
+        // Derselbe Riegel wie der Primärschlüssel: schon gesehen, nichts tun.
+        if (state.seenEvents.has(eventId)) continue;
+        state.seenEvents.add(eventId);
+        state.eventTimes.set(`${userId}::${eventId}`, recordedAt);
+      }
     },
     addTeacher(courseId, userId) {
       const profil = konto(userId).profile;

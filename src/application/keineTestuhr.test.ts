@@ -87,6 +87,58 @@ describe('Kein Vergleichszeitpunkt im öffentlichen Vertrag', () => {
     }
   });
 
+  it('die Lerntagsfunktionen haben ebenfalls keine Parameterliste', () => {
+    /*
+      Migration 13. Hier wäre die Versuchung am größten gewesen: Ein
+      `p_zone` oder `p_heute` spart beim Prüfen eine Zeile – und reicht die
+      Tagesgrenze an die aufrufende Seite durch. Dann entschiede am Ende die
+      Geräteuhr, welcher Tag ein Lerntag ist (E28).
+    */
+    const migration = lies('supabase/migrations/20261003090000_lokale_lerntage.sql');
+    expect(migration).toContain('create or replace function my_local_today()');
+    expect(migration).toContain('create or replace function my_learning_days()');
+    for (const anweisung of ohneKommentare(migration).split(';')) {
+      expect(anweisung, 'ein Parameter steht wieder in einer Anweisung').not.toMatch(
+        /\bp_(now|zone|time_zone|day|date|today|user|person)\b/,
+      );
+    }
+    // Und die Tagesgrenze kommt aus der gespeicherten Zeitzone, nicht aus UTC.
+    expect(migration).toContain('at time zone s.time_zone');
+  });
+
+  it('`LearningDaysRepository` nimmt nichts entgegen', () => {
+    const vertrag = schnittstelle(lies('src/application/repositories.ts'), 'LearningDaysRepository');
+    expect(vertrag).toContain('myCalendar(): Promise<Kalenderstand>;');
+    expect(vertrag).toContain('myLearningDays(): Promise<Tageszaehlung[]>;');
+    for (const kopf of vertrag.matchAll(/^\s{2}(\w+)\(([^)]*)\)/gm)) {
+      expect(kopf[2], `${kopf[1]} nimmt \`${kopf[2]}\` entgegen`).not.toMatch(UHRWOERTER);
+    }
+  });
+
+  it('die Serienlogik ruft überhaupt keine Uhr', () => {
+    /*
+      Das Modul bekommt den heutigen Tag vom Server. Ein `new Date()` darin
+      wäre kein Schönheitsfehler, sondern die Stelle, an der eine verstellte
+      Geräteuhr eine Serie verlängert.
+
+      `new Date(nummer * 86_400_000)` und `Date.UTC(…)` sind erlaubt und
+      stehen ausdrücklich hier: Beide rechnen mit einem **übergebenen**
+      Kalendertag und fragen keine Uhr. Gesucht wird deshalb nach den
+      Formen, die eine Uhr lesen.
+    */
+    const quelle = ohneKommentare(lies('src/domain/lernserie.ts'));
+    expect(quelle).not.toMatch(/Date\.now\(\)/);
+    expect(quelle).not.toMatch(/new Date\(\)/);
+    expect(quelle).not.toMatch(/Intl\.DateTimeFormat/);
+  });
+
+  it('die Anbindung der Lerntage schickt keine Argumente mit', () => {
+    const anbindung = lies('src/cloud/supabaseLearningDaysGateway.ts');
+    expect(anbindung).toContain("client.rpc('my_local_today')");
+    expect(anbindung).toContain("client.rpc('my_learning_days')");
+    expect(anbindung).not.toMatch(/new Date|Date\.now/);
+  });
+
   it('die Anbindung setzt keine eigene Uhr ein', () => {
     /*
       Der Weg, auf dem eine Geräteuhr trotz parameterlosem Vertrag
@@ -109,9 +161,20 @@ describe('Kein Vergleichszeitpunkt im öffentlichen Vertrag', () => {
   });
 });
 
-/** Entfernt `/* … *\/`-Blöcke und `--`-Zeilen aus SQL. */
-function ohneKommentare(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '');
+/**
+ * Entfernt Kommentare – `/* … *\/`-Blöcke, `--`-Zeilen (SQL) und
+ * `//`-Zeilen (TypeScript).
+ *
+ * Nötig, weil die Wachen nach Zeichenfolgen suchen, die in den Kommentaren
+ * **vorkommen sollen**: Dort steht, warum `Date.now()` hier nichts zu suchen
+ * hat. Eine Wache, die ihre eigene Begründung anstreicht, zwänge dazu, die
+ * Begründung zu entfernen.
+ */
+function ohneKommentare(quelltext: string): string {
+  return quelltext
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/--[^\n]*/g, '')
+    .replace(/\/\/[^\n]*/g, '');
 }
 
 /* ------------------------------------------------------- Die Anleitungen */

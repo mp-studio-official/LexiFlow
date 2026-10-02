@@ -1,5 +1,6 @@
 import type { AnswerVerdict } from '../domain/answerCheck';
 import type { EntryProgress, PackProgress, TaskDirection, VocabPack } from '../domain/schema';
+import type { Tageszaehlung } from '../domain/lernserie';
 
 /**
  * Die Verträge zwischen Oberfläche und Speicher.
@@ -423,6 +424,47 @@ export interface ProgressOverviewRepository {
   myDueOverview(): Promise<DueOverview[]>;
 }
 
+/* ------------------------------------------------ Lokale Lerntage (E1, E2) */
+
+/**
+ * Was der **Server** über den Kalender der lernenden Person sagt.
+ *
+ * Zwei Zustände, und der Unterschied ist der Kern von E27: Entweder die
+ * Zeitzone ist bestätigt, dann gibt es einen heutigen Tag und einen
+ * Wochenbeginn — oder sie ist es nicht, dann gibt es sie nicht. Es gibt
+ * keinen dritten Fall, in dem ersatzweise UTC oder die Geräteuhr einspringt.
+ */
+export type Kalenderstand =
+  | { readonly bestaetigt: false }
+  | {
+      readonly bestaetigt: true;
+      readonly timeZone: string;
+      /** Der heutige lokale Kalendertag, `YYYY-MM-DD`, vom Server gebildet. */
+      readonly heute: string;
+      /** Der Montag der laufenden Kalenderwoche, ebenfalls vom Server. */
+      readonly wochenbeginn: string;
+    };
+
+/**
+ * Die lokalen Lerntage der eigenen Person.
+ *
+ * Keine Methode nimmt etwas entgegen — keine Kennung, keine Zeitzone, kein
+ * Datum, keine Uhr (E28). Der Server liest die bestätigte Zeitzone selbst und
+ * rechnet `progress_events.recorded_at` darauf um; was von hier käme, wäre
+ * eine Geräteangabe, die niemand nachprüfen kann.
+ *
+ * `src/application/keineTestuhr.test.ts` hält das fest.
+ */
+export interface LearningDaysRepository {
+  /** Immer eine Antwort — auch ohne Einstellungen und ohne Ereignisse. */
+  myCalendar(): Promise<Kalenderstand>;
+  /**
+   * Aufgaben je lokalem Kalendertag. Ohne bestätigte Zeitzone **leer**: Dann
+   * gibt es keine Tagesgrenze, und ein Tag in UTC wäre erfunden.
+   */
+  myLearningDays(): Promise<Tageszaehlung[]>;
+}
+
 /* ------------------------------------------------- Lernendeneinstellungen */
 
 /**
@@ -542,6 +584,7 @@ export interface Repositories {
   */
   progressOverview?: ProgressOverviewRepository;
   learnerSettings?: LearnerSettingsRepository;
+  learningDays?: LearningDaysRepository;
   account?: AccountRepository;
   ai?: AiGateway;
 }

@@ -16,6 +16,8 @@ import {
   createSqlProgressRepository,
 } from './progressGateway';
 import { createSqlLearnerSettingsRepository } from './learnerSettingsGateway';
+import { createSqlLearningDaysRepository } from './learningDaysGateway';
+import { createSupabaseLearningDaysGateway } from './supabaseLearningDaysGateway';
 import { createSupabaseLearnerSettingsGateway } from './supabaseLearnerSettingsGateway';
 import { createSupabaseCourseGateway } from './supabaseCourseGateway';
 import { createSupabasePackGateway } from './supabasePackGateway';
@@ -128,6 +130,10 @@ export function createCloudRepositories(input: {
   */
   const progressOverview = createSqlProgressOverviewRepository(progressGateway);
 
+  const learningDays = createSqlLearningDaysRepository(
+    createSupabaseLearningDaysGateway(client),
+  );
+
   const learnerSettings = createSqlLearnerSettingsRepository(
     createSupabaseLearnerSettingsGateway(client, async () => (await auth.currentSession())?.userId),
   );
@@ -158,6 +164,7 @@ export function createCloudRepositories(input: {
     progress,
     progressOverview,
     learnerSettings,
+    learningDays,
     ai,
   };
 }
