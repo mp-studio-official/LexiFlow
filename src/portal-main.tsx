@@ -2,7 +2,6 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HostedApp } from './hosted/HostedApp';
 import './styles/global.css';
-import './styles/portal.css';
 
 /**
  * Einstiegspunkt des Portals – die zweite Web-Auslieferung.

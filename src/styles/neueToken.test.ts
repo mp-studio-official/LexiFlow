@@ -44,7 +44,6 @@ const FONTS = lies('src/styles/fonts.css');
 const STILDATEIEN = [
   'fonts.css',
   'global.css',
-  'portal.css',
   'tokens.css',
 ];
 
@@ -288,16 +287,28 @@ describe('E19 steht in Produktion und Entwurf gleich', () => {
   });
 });
 
-describe('die E19-Token erreichen in 5B.1 noch keinen Bildschirm', () => {
+describe('die E19-Token bleiben aus dem alten Stylesheet heraus', () => {
   /*
-    Dieselbe Zusicherung wie bei P1a, für die neue Palette: Sie ist angelegt
-    und wirkt nirgends. Geprüft gegen die Stylesheets, die heute ausgeliefert
-    werden — `global.css` und `portal.css` hängen an den Einstiegspunkten.
-    Die Bausteine von 5B.1 bringen ihre eigenen Stylesheets mit und stehen
-    deshalb hier nicht; dass **sie** keinen Bildschirm erreichen, prüft
-    `src/ui/zustaende.unbenutzt.test.ts`.
+    Diese Zusicherung hat sich mit `431285e` geändert, und zwar in ihrer
+    Aussage, nicht nur in ihrer Dateiliste.
+
+    In 5B.1 hieß sie: die Palette wirkt **nirgends**. Seit dem Hüllenwechsel
+    stimmt das nicht mehr — die gemeinsame Hülle benutzt sie, und das ist ihr
+    Zweck. Eine Wache, die weiter „nirgends" behauptet und dabei nur in
+    Dateien schaut, in denen die Palette nie stand, wäre grün, ohne etwas zu
+    prüfen.
+
+    Was weiterhin gilt und hier geprüft wird: `global.css` bleibt frei von
+    ihr. Diese Datei hängt an **allen drei** Einstiegspunkten — auch an
+    `student-main.tsx` und damit an den portablen Dateien. Käme die Palette
+    dort an, änderte sich mit einer Zeile jede Ansicht des Produkts und
+    zugleich eine Auslieferung, die nach Weitergabe niemand mehr
+    aktualisiert.
+
+    `portal.css` stand bis 5B.2e in dieser Liste. Die Datei ist gelöscht: Ihre
+    einzige Regel galt dem Abmeldeknopf der alten Portalhülle.
   */
-  const AUSGELIEFERT = ['global.css', 'portal.css']
+  const AUSGELIEFERT = ['global.css']
     .map((datei) => ohneKommentare(lies(`src/styles/${datei}`)))
     .join('\n');
 
@@ -311,11 +322,12 @@ describe('die E19-Token erreichen in 5B.1 noch keinen Bildschirm', () => {
     '--glas-unschaerfe',
   ]);
 
-  it.each(E19_TOKEN)('%s wirkt auf keinen heutigen Bildschirm', (token) => {
+  it.each(E19_TOKEN)('%s steht in keiner Regel von global.css', (token) => {
     const benutzungen = [...AUSGELIEFERT.matchAll(new RegExp(`var\\(${token}[,)]`, 'g'))];
-    expect(benutzungen.length, `${token} gehört in den Umbau des Bildschirms, nicht nach 5B.1`).toBe(
-      0,
-    );
+    expect(
+      benutzungen.length,
+      `${token} gehört in die Stylesheets der Hülle, nicht in global.css`,
+    ).toBe(0);
   });
 
   it('die alte Palette steht unverändert da', () => {

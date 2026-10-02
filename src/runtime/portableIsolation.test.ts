@@ -285,6 +285,27 @@ describe('die gemeinsame Hülle bleibt reine Oberfläche', () => {
     expect(LERNDATEI.dateien).not.toContain('src/ui/Huelle.tsx');
   });
 
+  it('das Portal erreicht `AppShell` nicht — der Beleg für 5B.2e', () => {
+    /*
+      `AppShell` ist die Hülle der Fassung ohne Konto und hängt an
+      `src/App.tsx`. Sie ist der einzige verbliebene Verbraucher der Klasse
+      `app-nav__link` — als `NavLink`, also als `<a>`.
+
+      Daran hing eine Regel: `button.app-nav__link` in `portal.css`, die den
+      Abmeldeknopf der alten Portalhülle von den Browservorgaben befreite. Mit
+      `431285e` ist dieser Knopf verschwunden; die Regel traf danach nichts
+      mehr, und 5B.2e hat sie samt Datei gelöscht.
+
+      Diese Zeile ist der Beleg dafür, dass das so bleibt: Zieht `AppShell`
+      doch einmal ins Portalbündel, steht dort wieder Markup, für das es keine
+      Portalregel mehr gibt — und dann soll es auffallen, nicht aussehen wie
+      ein Zufall.
+    */
+    expect(PORTAL.dateien).not.toContain('src/ui/AppShell.tsx');
+    expect(PORTAL.dateien).not.toContain('src/App.tsx');
+    expect(existsSync(resolve(root, 'src/styles/portal.css'))).toBe(false);
+  });
+
   it('das Portal dagegen erreicht sie — seit 5B.2d', () => {
     /*
       Bis 5B.2c war die Hülle unbenutzt; dieselbe Prüfung verlangte damals
