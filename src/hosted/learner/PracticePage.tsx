@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import {
   alsLernstand,
@@ -19,6 +19,9 @@ import { directionKey } from '../../domain/ids';
 import { effectiveDirection, parseDirectionChoice } from '../../domain/practiceDirection';
 import { isDue } from '../../domain/leitner';
 import { istSchwierig } from '../../domain/schwierigeWoerter';
+import { gingeVerloren } from '../../domain/rundenverlust';
+import { gehenWenn, useAussenschutz, useDarfVerlassen, useVerlassenWache } from '../VerlassenSchutz';
+import './runde.css';
 import { ExerciseView } from '../../routes/student/ExerciseView';
 import { Alert, Button, Card } from '../../ui/components';
 import type { AnswerCheckResult } from '../../domain/answerCheck';
@@ -99,6 +102,7 @@ function passtZurAuswahl(
 
 export function PracticePage() {
   const { courseId, packId } = useParams();
+  const navigate = useNavigate();
   const [suche] = useSearchParams();
   const richtungswahl = parseDirectionChoice(suche.get('richtung'));
   const auswahl = leseAuswahl(suche.get('auswahl'));
@@ -112,6 +116,13 @@ export function PracticePage() {
   const [ladefehler, setLadefehler] = useState('');
   const [gezaehlt, setGezaehlt] = useState(0);
   const [naechste, setNaechste] = useState<string | undefined>(undefined);
+  /*
+    E14: Was gerade im Antwortfeld steht und noch nicht abgeschickt ist. Die
+    Aufgabe meldet es; hier liegt es, weil der Ausgang es braucht.
+  */
+  const [entwurf, setEntwurf] = useState('');
+  const [rueckfrage, setRueckfrage] = useState<{ aufloesen: (darf: boolean) => void } | null>(null);
+  const feldRef = useRef<HTMLDivElement>(null);
 
   /*
     Der Lernstand als Verweis und nicht als Zustand: Er wird zwischen zwei
@@ -175,6 +186,64 @@ export function PracticePage() {
   useEffect(() => {
     void laden();
   }, [laden]);
+
+  /*
+    ------------------------------------------------------------------ E14
+    Die Frage „ginge etwas verloren?" wird **einmal** beantwortet
+    (`domain/rundenverlust.ts`) und von jedem Ausgang benutzt: „Runde
+    beenden", „Abmelden", Browser-Zurück, Neuladen, Schließen.
+
+    Die Haken stehen vor den frühen Rückgaben weiter unten — React verlangt
+    dieselbe Reihenfolge in jedem Durchlauf, und ein Ladezustand darf den
+    Schutz nicht abmelden.
+  */
+  const aufgabeOffen = Boolean(state && currentItem(state) && !isFinished(state));
+  const verlust = gingeVerloren({ aufgabeOffen, ergebnisSteht: ergebnis !== null, entwurf });
+
+  const fragen = useCallback(
+    () =>
+      new Promise<boolean>((aufloesen) => {
+        setRueckfrage({ aufloesen });
+      }),
+    [],
+  );
+
+  const zurueckZumKurs = useCallback(() => {
+    navigate(`/lernen/kurs/${courseId ?? ''}`);
+  }, [navigate, courseId]);
+
+  useVerlassenWache(verlust, fragen);
+  useAussenschutz(verlust, fragen, zurueckZumKurs);
+
+  /*
+    Der Ausgang, den die Runde selbst anbietet — über **denselben** Durchgang
+    wie „Abmelden". Nicht `fragen()` direkt: Dann stünde hier eine zweite
+    Entscheidung darüber, wann gefragt wird, und sie liefe irgendwann
+    auseinander mit der aus der Hülle.
+  */
+  const darfVerlassen = useDarfVerlassen();
+  const beenden = useCallback(() => {
+    gehenWenn(darfVerlassen(), zurueckZumKurs);
+  }, [darfVerlassen, zurueckZumKurs]);
+
+  /** „Hierbleiben": schließen und zurück ins Antwortfeld, nicht an den Seitenanfang. */
+  const hierbleiben = useCallback(() => {
+    rueckfrage?.aufloesen(false);
+    setRueckfrage(null);
+    /*
+      Der Fokus geht an das Feld, in dem die Eingabe steht — nicht an den
+      Anfang der Seite. Wer „Hierbleiben" wählt, will weitertippen.
+    */
+    const feld = feldRef.current?.querySelector<HTMLElement>('input, textarea, button');
+    feld?.focus();
+  }, [rueckfrage]);
+
+  /** „Runde beenden": verwirft **nur** die aktuelle Eingabe. */
+  const doch = useCallback(() => {
+    rueckfrage?.aufloesen(true);
+    setRueckfrage(null);
+    setEntwurf('');
+  }, [rueckfrage]);
 
   if (!publication || !progress) {
     return <Alert tone="info">In dieser Fassung gibt es das Üben im Konto nicht.</Alert>;
@@ -251,16 +320,57 @@ export function PracticePage() {
     setErgebnis(null);
   }
 
-  const zurueck = (
-    <p className="small muted" style={{ margin: 0 }}>
-      <Link to={`/lernen/kurs/${courseId ?? ''}`}>Zurück zum Kurs</Link>
-    </p>
+  /*
+    Der sichtbare Ausgang heißt „Runde beenden" (E14) und ist ein Knopf, kein
+    Verweis: Er entscheidet erst, ob gefragt werden muss. Ein `<a href>` wäre
+    mit der mittleren Maustaste oder „in neuem Tab öffnen" an jeder Rückfrage
+    vorbei.
+  */
+  const ausgang = (
+    <div className="row" style={{ margin: 0 }}>
+      <Button variant="quiet" className="runde__ausgang" onClick={beenden}>
+        Runde beenden
+      </Button>
+    </div>
   );
+
+  /*
+    Die Rückfrage: ein Dialog, der den Fokus hält, und zwei Knöpfe, die genau
+    sagen, was sie tun. Sie erscheint **nur**, wenn wirklich etwas verloren
+    ginge — und sie benennt, was.
+  */
+  const nachfrage = rueckfrage ? (
+    <div
+      className="rueckfrage"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rueckfrage-titel"
+      onKeyDown={(ereignis) => {
+        if (ereignis.key === 'Escape') hierbleiben();
+      }}
+    >
+      <Card>
+        <h2 id="rueckfrage-titel" style={{ marginTop: 0 }}>
+          Deine angefangene Antwort geht verloren
+        </h2>
+        <p>
+          Alles, was du schon beantwortet hast, ist gespeichert. Nur die Eingabe an dieser
+          Aufgabe ist noch nicht abgeschickt.
+        </p>
+        <div className="row">
+          <Button variant="primary" onClick={hierbleiben} autoFocus>
+            Hierbleiben
+          </Button>
+          <Button onClick={doch}>Runde beenden</Button>
+        </div>
+      </Card>
+    </div>
+  ) : null;
 
   if (!aufgabe || isFinished(state)) {
     return (
       <div className="stack">
-        {zurueck}
+        {ausgang}
         <h1>{gezaehlt === 0 ? 'Gerade nichts fällig' : 'Runde beendet'}</h1>
         <Card>
           <p style={{ marginTop: 0 }}>
@@ -295,7 +405,8 @@ export function PracticePage() {
 
   return (
     <div className="stack">
-      {zurueck}
+      {nachfrage}
+      {ausgang}
       <h1>{pack.meta.title}</h1>
       <p className="small muted" style={{ margin: 0 }}>
         Noch {remainingCount(state)} in dieser Runde
@@ -304,14 +415,17 @@ export function PracticePage() {
       {fehler ? <Alert tone="error">{fehler}</Alert> : null}
 
       <Card>
-        <ExerciseView
-          key={aufgabe.id}
-          task={aufgabe.task}
-          result={ergebnis}
-          onSubmit={(gepruefte) => {
-            void beantworten(gepruefte);
-          }}
-        />
+        <div ref={feldRef}>
+          <ExerciseView
+            key={aufgabe.id}
+            task={aufgabe.task}
+            result={ergebnis}
+            onDraftChange={setEntwurf}
+            onSubmit={(gepruefte) => {
+              void beantworten(gepruefte);
+            }}
+          />
+        </div>
 
         {ergebnis ? (
           <div className="stack" style={{ marginTop: '1rem' }}>

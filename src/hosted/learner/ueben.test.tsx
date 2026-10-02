@@ -247,7 +247,8 @@ describe('E14: die laufende Runde hat keine Bereichsnavigation', () => {
       und „Abmelden" ist kein Ausstieg aus Versehen, es fragt nicht die Runde,
       sondern beendet die Sitzung.
     */
-    expect(screen.getByRole('link', { name: 'Zurück zum Kurs' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Runde beenden' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Zurück zum Kurs' }), 'der alte Verweis lebt noch').toBeNull();
     expect(screen.getAllByRole('button', { name: 'Abmelden' }).length).toBeGreaterThan(0);
   });
 

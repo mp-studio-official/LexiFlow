@@ -5,6 +5,7 @@ import { createCloudRepositories } from '../cloud/createCloudRepositories';
 import { readHostedConfig, type HostedConfigResult } from '../runtime/hostedConfig';
 import { LearnerShell, PublicShell, TeacherShell } from './PortalShell';
 import { RequireArea } from './RequireArea';
+import { VerlassenSchutzProvider } from './VerlassenSchutz';
 import { SessionProvider } from './SessionContext';
 import { JoinPage } from './pages/JoinPage';
 import { LandingPage } from './pages/LandingPage';
@@ -53,6 +54,13 @@ function Laedt({ was }: { was: string }) {
  */
 export function HostedRoutes() {
   return (
+    /*
+      E14: Die laufende Runde meldet hier ihre Wache an, und jeder Ausgang —
+      auch „Abmelden" in der Hülle — fragt sie, bevor er geht. Der Provider
+      steht über beidem, weil beide ihn brauchen: die Runde als Route, die
+      Hülle als deren Rahmen.
+    */
+    <VerlassenSchutzProvider>
     <Routes>
       {/* Öffentlich: Ohne diese käme niemand herein. */}
       <Route element={<PublicShell />}>
@@ -204,6 +212,7 @@ export function HostedRoutes() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </VerlassenSchutzProvider>
   );
 }
 

@@ -1,0 +1,43 @@
+/* ===========================================================================
+   Die Übungsrunde (E14)
+   ===========================================================================
+
+   Bei ihrem Bildschirm, nicht in `global.css` — die trägt auch die portable
+   Lerndatei, und die hat keine Rückfrage dieser Art.
+   =========================================================================== */
+
+/*
+  Die Rückfrage liegt über dem Inhalt und nicht in ihm: Im Fluss schöbe sie
+  die Aufgabe nach unten, und wer „Hierbleiben" wählt, fände sein Antwortfeld
+  an einer anderen Stelle wieder.
+
+  `position: fixed` statt `absolute`, damit sie auch dann im Bild steht, wenn
+  die Seite gescrollt ist — eine Rückfrage, die man suchen muss, ist keine.
+*/
+.rueckfrage {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  /* Dunkel genug, dass der Hintergrund als unerreichbar lesbar ist. */
+  background: rgb(18 19 24 / 0.45);
+}
+
+.rueckfrage > * {
+  inline-size: min(32rem, 100%);
+  max-block-size: 100%;
+  overflow: auto;
+}
+
+/*
+  Der Ausgang ist der einzige Weg aus der Runde, solange die Navigation weg
+  ist (E14). Gemessen stand er als kleiner Knopf bei 36 px — groß genug für
+  die Maus, zu klein für die Hand. Die Höhe steht hier und nicht an
+  `.btn--small`: Dort gälte sie für jeden kleinen Knopf im Produkt, und das
+  ist eine andere Entscheidung.
+*/
+.runde__ausgang {
+  min-block-size: var(--tap-target);
+}

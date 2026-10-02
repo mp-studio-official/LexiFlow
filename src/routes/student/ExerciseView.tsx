@@ -15,6 +15,17 @@ export interface ExerciseViewProps {
    * tatsächlich dastand.
    */
   onSubmit: (result: AnswerCheckResult, given: string) => void;
+  /**
+   * Was gerade im Antwortfeld steht und noch nicht abgeschickt ist.
+   *
+   * Nur die Runde im Portal braucht das: Sie muss wissen, ob beim Verlassen
+   * etwas verloren ginge (E14). Alle anderen Aufrufer lassen es weg, und dann
+   * passiert nichts — der Entwurf bleibt, wo er entsteht.
+   *
+   * Auswahlaufgaben melden nichts: Dort ist das Antippen zugleich das
+   * Abschicken, es gibt keinen Zwischenzustand.
+   */
+  onDraftChange?: (draft: string) => void;
 }
 
 const DIRECTION_HINT: Record<'en-de' | 'de-en', string> = {
@@ -140,13 +151,28 @@ function MultipleChoice({
 
 // ---------------------------------------------------------- Offene Übersetzung
 
-function OpenTranslation({ task, result, onSubmit }: ExerciseViewProps) {
+function OpenTranslation({ task, result, onSubmit, onDraftChange }: ExerciseViewProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, [task.id]);
+
+  /*
+    Der Entwurf wird gemeldet, nicht abgefragt: Wer ihn braucht, bekommt ihn
+    bei jeder Änderung. Beim Aufgabenwechsel meldet die neue Aufgabe sofort
+    ihren leeren Stand — `ExerciseView` hängt am Aufgabenschlüssel, also
+    entsteht sie neu.
+
+    Gemeldet wird **das Getippte**, auch nach dem Abschicken. Dass danach
+    nichts mehr verloren gehen kann, liegt nicht daran, dass das Feld leer
+    wäre — es steht ja noch da —, sondern daran, dass die Antwort gespeichert
+    ist. Diese Unterscheidung trifft `gingeVerloren`, nicht diese Zeile.
+  */
+  useEffect(() => {
+    onDraftChange?.(value);
+  }, [value, onDraftChange]);
 
   return (
     <form
@@ -185,7 +211,7 @@ function OpenTranslation({ task, result, onSubmit }: ExerciseViewProps) {
 
 // ------------------------------------------------------------------ Lückensatz
 
-function Cloze({ task, result, onSubmit }: ExerciseViewProps & { task: ClozeTask }) {
+function Cloze({ task, result, onSubmit, onDraftChange }: ExerciseViewProps & { task: ClozeTask }) {
   const [value, setValue] = useState('');
   const [chosen, setChosen] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -194,6 +220,11 @@ function Cloze({ task, result, onSubmit }: ExerciseViewProps & { task: ClozeTask
   useEffect(() => {
     if (!withBank) inputRef.current?.focus();
   }, [task.id, withBank]);
+
+  /* Nur die freie Lücke hat einen Entwurf; die Wortbank schickt beim Tippen ab. */
+  useEffect(() => {
+    onDraftChange?.(withBank ? '' : value);
+  }, [value, withBank, onDraftChange]);
 
   const gapText = result ? (result.matched ?? task.expected[0] ?? '') : '_____';
 

@@ -7,6 +7,7 @@ import { HOME_PER_ROLE } from '../runtime/access';
 import { beschriftung, type Groesse, type Profil } from '../ui/navigation';
 import { soloUrlFrom } from '../runtime/entryUrls';
 import { aktivesZiel, laeuftUebungsrunde, sichtbareZiele } from './navigationsziele';
+import { gehenWenn, useDarfVerlassen } from './VerlassenSchutz';
 import { useSession } from './SessionContext';
 
 /**
@@ -68,12 +69,24 @@ function useAbmelden(): Huellenaktion | undefined {
   const auth = useOptionalRepository('auth');
   const { status } = useSession();
   const navigate = useNavigate();
+  /*
+    E14: Abmelden ist ein Ausgang wie jeder andere und benutzt denselben
+    Verlustschutz. Ohne diese Zeile gäbe es einen Weg aus der Runde heraus,
+    der die angefangene Antwort stillschweigend wegwirft — und zwar den, den
+    niemand mit „ich verlasse gerade die Runde" verbindet.
+
+    Die Frage wird **nicht** hier beantwortet: Was verloren ginge, weiß die
+    Runde, und sie hat es als Wache angemeldet.
+  */
+  const darfVerlassen = useDarfVerlassen();
   if (status !== 'angemeldet' || !auth) return undefined;
   return {
     label: 'Abmelden',
     zeichen: 'abmelden',
     ausloesen: () => {
-      void auth.signOut().then(() => navigate('/', { replace: true }));
+      gehenWenn(darfVerlassen(), () => {
+        void auth.signOut().then(() => navigate('/', { replace: true }));
+      });
     },
   };
 }
