@@ -112,8 +112,8 @@ Abgenommen wurde:
 | --- | --- | --- |
 | ~~`#/start`~~ | ~~Start~~ | **frei seit `8d74160` (5B.3)** |
 | ~~`#/ueben`~~ | ~~Üben~~ | **frei seit `5ce0363` (5B.5)** |
-| `#/heute` | Heute | 5B.4 |
-| `#/fortschritt` | Fortschritt | 5B.6 |
+| `#/heute` | Heute | 5B.4 — **setzt 5B.4a voraus** |
+| `#/fortschritt` | Fortschritt | 5B.6 — **setzt 5B.4a voraus** |
 
 Jedes dieser Ziele wechselt seinen Zustand **in demselben Commit**, in dem
 seine Route und sein Inhalt entstehen — nicht früher.
@@ -197,9 +197,10 @@ eine Seite, die nicht mehr lädt.
 | Block | Inhalt | Entscheidungen | hängt ab von | Status |
 | --- | --- | --- | --- | --- |
 | **5B.3** | Lehrkräfte-Dashboard unter `#/start` | E12, E18 | 5B.2d | **fertig** (`8d74160`) |
-| **5B.4** | „Heute" | E1, E2, E3, E9 | 5B.2d | offen |
+| **5B.4a** | **Lernendeneinstellungen: Zeitzone und Wochenziel** — eigene Tabelle, eigene Regel, kein Bildschirm | E1, E2, E3, **R11** | 5B.2d | offen |
+| **5B.4** | „Heute" | E1, E2, E3, E9 | **5B.4a** | offen |
 | **5B.5** | „Üben" als Bereich; Karte „Schwierige Wörter"; fällige Wiederholungen als Einstieg | E14, **E24** | 5B.2d | **fertig** (`5ce0363`, `8467267`, `3365861`) |
-| **5B.6** | „Mein Fortschritt": Lernzeit, Lernserie mit Ruhetagen, freiwilliges Wochenziel | E1, E2, E3, E6 | 5B.4 | offen |
+| **5B.6** | „Mein Fortschritt": Lernserie mit Ruhetagen, freiwilliges Wochenziel, beherrschte und offene Wörter | E1, E2, E3 | 5B.4 | offen |
 | ~~**5B.7**~~ | ~~Einstellungen~~ — **vorgezogen vor 5B.2d**, siehe oben | E23 | 5B.2c′ | — |
 
 > Die Reihenfolge folgt **E16**: Lehrkräfte-Dashboard zuerst, dann der
@@ -208,6 +209,26 @@ eine Seite, die nicht mehr lädt.
 > Voraussetzungen der Hülle. Jeder dieser Blöcke
 > schaltet sein Ziel von `geplant` auf `vorhanden` — **in demselben Commit**,
 > in dem die Route und ihr Inhalt entstehen.
+
+> **Was 5B.8 entsperrt — und was nicht.** 5B.8 bringt das **grammatische**
+> Datenmodell (Schemafassung 3) und entsperrt damit **5B.10 „Zeitformen"**. Es
+> speichert **keine** Zeitzone, **kein** Wochenziel, und es rechnet weder
+> Lernserie noch Lernzeit. Mit 5B.4 und 5B.6 hat es nichts zu tun; eine
+> frühere Fassung dieses Plans hat das verwechselt.
+>
+> **Was 5B.4 und 5B.6 wirklich brauchen, ist 5B.4a** — der kleine Datenblock
+> aus **R11**: die Zeitzone der lernenden Person, gespeichert und
+> serverseitig verwendet. Ohne sie sind Serie und Ruhetage nicht berechenbar,
+> und die Gerätezeit entschiede über einen Tag. Dieselbe Tabelle trägt das
+> freiwillige Wochenziel (E3).
+>
+> **Lernzeit steht nicht mehr in 5B.6.** Sie ist aus den vorhandenen Daten
+> nicht seriös berechenbar — es gibt kein Sitzungsende, und der Abstand
+> zwischen zwei Antworten misst Uploads, keine Arbeit. Die Begründung steht
+> in `docs/datenlage-heute-fortschritt.md`, Abschnitt 2.1.
+>
+> **E6 ist bei 5B.6 gestrichen.** E6 regelt Bildquellen und Speicherfälle und
+> ist keine Grundlage von „Mein Fortschritt".
 
 ### Daten, Bilder, Werkstatt
 
@@ -365,5 +386,10 @@ diese Aufräumarbeit als Abnahmeschritt, nicht 5B.16.
   Änderungsdatum`**~~ **Erledigt** (`aa166c5`): Der Test nahm an, zwei
   Speicherungen fielen nie in dieselbe Millisekunde. Ursache belegt, Test
   deterministisch gemacht, Produktivcode unverändert.
+- **Drei Entscheidungen vor 5B.4a**, mit Empfehlung in
+  `docs/datenlage-heute-fortschritt.md`, Abschnitt 5: ob Lernzeit überhaupt
+  angezeigt wird (Empfehlung: nein), welche Einheit das Wochenziel hat
+  (Empfehlung: Lerntage je Woche) und woher die Zeitzone beim ersten Mal
+  kommt (Empfehlung: Standard `Europe/Berlin`, einmalige stille Korrektur).
 - **Nicht Teil von 5B:** Unsplash und andere externe Bildquellen (E17),
   kleine Spiele, Dunkelmodus (E22).
