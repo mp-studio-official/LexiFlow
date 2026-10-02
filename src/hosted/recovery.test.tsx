@@ -54,7 +54,7 @@ describe('Wiederherstellung für Lernende', () => {
     );
   });
 
-  it('führt danach in den Lernbereich', async () => {
+  it('führt danach auf „Heute"', async () => {
     const cloud = createFakeCloud();
     const user = setup('/wiederherstellen', cloud.repositories);
 
@@ -63,7 +63,12 @@ describe('Wiederherstellung für Lernende', () => {
     await user.type(screen.getByLabelText('Neues Kennwort'), 'neues-testkennwort');
     await user.click(screen.getByRole('button', { name: 'Neues Kennwort setzen' }));
 
-    expect(await screen.findByRole('heading', { name: 'Deine Kurse' })).toBeInTheDocument();
+    /*
+      Seit 5B.4 ist das der Rollenstart der Lernenden. Vorher stand hier
+      „Deine Kurse" — die Seite gibt es weiterhin unter `/lernen`, sie ist
+      nur nicht mehr das Erste, was jemand nach der Anmeldung sieht.
+    */
+    expect(await screen.findByRole('heading', { name: 'Heute', level: 1 })).toBeInTheDocument();
   });
 
   it('lehnt ein zu kurzes Kennwort ab, ohne den Code zu verbrauchen', async () => {

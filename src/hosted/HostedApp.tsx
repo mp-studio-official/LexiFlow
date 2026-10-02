@@ -93,6 +93,21 @@ export function HostedRoutes() {
           }
         />
         {/*
+          „Heute" (5B.4) — der Rollenstart der lernenden Person. Im
+          Lernriegel: Lernende und die Lehrkraft, die sich ihre eigene
+          Ansicht ansieht, kommen hinein — sonst niemand. Eine Lehrkraft
+          erreicht den Bereich weiterhin nur über „Als Lernende ansehen";
+          ihr eigener Start bleibt `/start`.
+        */}
+        <Route
+          path="heute"
+          element={
+            <Suspense fallback={<Laedt was="Heute" />}>
+              <LearnerArea section="heute" />
+            </Suspense>
+          }
+        />
+        {/*
           Der Übungsbereich (5B.5). Im selben Riegel wie der Lernbereich:
           Lernende und die Lehrkraft, die sich ihre eigene Ansicht ansieht,
           kommen hinein — sonst niemand.

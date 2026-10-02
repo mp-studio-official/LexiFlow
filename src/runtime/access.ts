@@ -49,11 +49,21 @@ const AREAS_PER_ROLE: Readonly<Record<Role, readonly Area[]>> = {
   student: ['public', 'learner'],
 };
 
-/** Wohin jemand nach der Anmeldung kommt. */
+/**
+ * Wohin jemand nach der Anmeldung kommt.
+ *
+ * `student` zeigt seit 5B.4 auf `/heute` und nicht mehr auf `/lernen` — im
+ * selben Commit, in dem diese Route entsteht. Umgekehrt wäre es ein stiller
+ * Umweg: Die Wildcard in `HostedApp.tsx` leitet alles Unbekannte auf `/`,
+ * und ein Rollenstart, der dorthin fällt, sähe nicht kaputt aus, sondern wie
+ * ein Sprung zur Startseite.
+ *
+ * Die Kursliste bleibt unter `/lernen` erreichbar; „Heute" verweist darauf.
+ */
 export const HOME_PER_ROLE: Readonly<Record<Role, string>> = {
   admin: '/verwaltung',
   teacher: '/start',
-  student: '/lernen',
+  student: '/heute',
 };
 
 /**

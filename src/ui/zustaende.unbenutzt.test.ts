@@ -93,16 +93,31 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
       dafür Lade- und Fehlerzustand, aber keinen eigenen Titel.
     */
     Skeleton: [
+      'hosted/learner/HeutePage.tsx',
       'hosted/learner/PaketAnsicht.tsx',
       'hosted/learner/UebenPage.tsx',
       'hosted/teacher/StartPage.tsx',
     ],
-    PageTitle: ['hosted/learner/UebenPage.tsx', 'hosted/teacher/StartPage.tsx'],
+    PageTitle: [
+      'hosted/learner/HeutePage.tsx',
+      'hosted/learner/UebenPage.tsx',
+      'hosted/teacher/StartPage.tsx',
+    ],
     ErrorState: [
+      'hosted/learner/HeutePage.tsx',
       'hosted/learner/PaketAnsicht.tsx',
       'hosted/learner/UebenPage.tsx',
       'hosted/teacher/StartPage.tsx',
     ],
+    /*
+      5B.4: „Heute" ist der erste Bildschirm, der die beiden Bausteine aus
+      der Variante B wirklich einsetzt. `Fortschritt` trägt das Wochenziel,
+      `LeererZustand` die sechs leeren Fälle eines frischen Kontos — und
+      zwar **alle** auf dieser einen Seite, weshalb sie hier auch allein
+      steht.
+    */
+    Fortschritt: ['hosted/learner/HeutePage.tsx'],
+    LeererZustand: ['hosted/learner/HeutePage.tsx'],
   };
 
   for (const baustein of NEU) {

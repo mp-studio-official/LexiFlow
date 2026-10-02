@@ -24,6 +24,7 @@ import type { Course, PackRevision } from '../../application/repositories';
 
 const PracticePage = lazy(() => import('./PracticePage'));
 import { UebenPage } from './UebenPage';
+import { HeutePage } from './HeutePage';
 import { PaketAnsicht } from './PaketAnsicht';
 
 /*
@@ -185,7 +186,7 @@ function Kurs() {
   );
 }
 
-export const LEARNER_SECTIONS = ['lernen', 'ueben'] as const;
+export const LEARNER_SECTIONS = ['heute', 'lernen', 'ueben'] as const;
 export type LearnerSection = (typeof LEARNER_SECTIONS)[number];
 
 /**
@@ -213,6 +214,13 @@ function FreiesUeben() {
 }
 
 export function LearnerArea({ section = 'lernen' }: { section?: LearnerSection }) {
+  /*
+    „Heute" ist **eine** Seite, kein Bereich mit Unterseiten — deshalb kein
+    eigener `Routes`-Block. Was von hier aus weitergeht, sind Adressen, die
+    es schon gibt: `/ueben/...` und `/lernen`.
+  */
+  if (section === 'heute') return <HeutePage />;
+
   if (section === 'ueben') {
     /*
       Kein eigener `Routes`-Block mit Unterseiten: Der Übungsbereich ist eine

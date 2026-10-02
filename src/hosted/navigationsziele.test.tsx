@@ -192,6 +192,8 @@ describe('der Stand, den dieser Block festhält', () => {
       '#/einstellungen',
     ]);
     expect(sichtbareZiele('lernende', 'schreibtisch').map((z) => z.pfad)).toEqual([
+      /* `#/heute` seit 5B.4 — Route und Inhalt im selben Commit. */
+      '#/heute',
       '#/lernen',
       /* `#/ueben` seit 5B.5 — Route und Inhalt im selben Commit. */
       '#/ueben',

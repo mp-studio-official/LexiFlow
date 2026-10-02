@@ -1,0 +1,309 @@
+/* ===========================================================================
+   „Heute" — die Startseite der lernenden Person (5B.4)
+   ===========================================================================
+
+   Bei seinem Bildschirm, nicht in `global.css`: Die trägt auch die portable
+   Lerndatei, und die kennt weder Kurse noch Lernserien.
+
+   Variante B: Flächen statt Linien, großer Radius, flacher Schatten, kühler
+   Grund. **Kein Glas** — Glas trägt schwebende Navigation und kleine
+   Statusflächen; ein Bereich, in dem Text steht, ist weder das eine noch das
+   andere.
+
+   Keine neuen Farbwerte. Alles hier kommt aus den Tokens.
+   =========================================================================== */
+
+.heute {
+  display: grid;
+  gap: var(--stack-normal);
+}
+
+/*
+  Zweispaltig erst, wenn wirklich Platz ist. `min(..., 100%)` ist der Riegel
+  gegen waagerechtes Scrollen: Ohne ihn verlangte die Spalte ihre Mindestbreite
+  auch dann, wenn der Bildschirm sie nicht hat, und schöbe die Seite auf.
+*/
+@media (min-width: 60rem) {
+  .heute {
+    grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+  }
+}
+
+.heute__bereich {
+  display: grid;
+  gap: var(--stack-snug);
+  align-content: start;
+  padding: var(--space-5);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  box-shadow: var(--schatten-flach);
+  color: var(--tinte);
+  /* Ein Bereich darf nie breiter werden als seine Spalte. */
+  min-inline-size: 0;
+}
+
+.heute__titel {
+  margin: 0;
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-snug);
+  font-weight: var(--weight-semibold);
+}
+
+/*
+  Jeder Verweis, der für sich steht, ist ein Bedienelement und wird mit dem
+  Finger getroffen. Die Höhe kommt über `min-block-size` statt über Polsterung:
+  Polsterung schöbe auch die Zeilen auseinander, die schon hoch genug sind.
+*/
+.heute__ziel {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap-target);
+}
+
+.heute__unbeziffert {
+  margin: 0;
+  color: var(--tinte-3);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+/* ------------------------------------------------------------ Weiterlernen */
+
+.heute-weiter {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.heute-weiter__kurs {
+  margin: 0;
+  color: var(--tinte-3);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+.heute-weiter__paket {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-snug);
+  /* Lange Pakettitel brechen, statt die Karte aufzuschieben. */
+  overflow-wrap: anywhere;
+}
+
+.heute-weiter__zahl {
+  margin: 0 0 var(--space-2);
+  color: var(--tinte-2);
+}
+
+/* ------------------------------------------------------------- Die Listen */
+
+.heute-faellig__summe {
+  margin: 0;
+  color: var(--tinte-2);
+}
+
+.heute-liste {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+  Umbrechend, nicht abgeschnitten. Ein Titel, der rechts verschwindet, ist auf
+  dem Telefon der Normalfall und nicht der Sonderfall — er bricht hier um und
+  nimmt die Zahl mit.
+*/
+.heute-liste__zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.heute-liste__zeile > .heute__ziel {
+  overflow-wrap: anywhere;
+}
+
+.heute-liste__zahl {
+  flex: none;
+  min-inline-size: 2.25rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--rund-klein);
+  background: var(--akzent-weich);
+  color: var(--akzent);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.heute-liste__nebensache {
+  flex: none;
+  color: var(--tinte-3);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------ Diese Woche */
+
+/*
+  Sieben gleiche Spalten. `minmax(0, 1fr)` statt `1fr`, damit ein Kästchen den
+  Raster nicht über die Karte hinausdrückt.
+*/
+.heute-woche {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.heute-woche__tag {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  border-radius: var(--rund-klein);
+}
+
+.heute-woche__buchstabe {
+  color: var(--tinte-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+/*
+  Der Punkt. Form und Farbe tragen die Aussage gemeinsam — ein Lerntag ist
+  gefüllt **und** dunkler, ein offener Tag ist ein Ring. Farbe allein wäre für
+  rund jeden zwölften Jungen keine Aussage.
+*/
+.heute-woche__punkt {
+  inline-size: 0.875rem;
+  block-size: 0.875rem;
+  border: 2px solid var(--rand-stark);
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.heute-woche__tag[data-lerntag='ja'] .heute-woche__punkt {
+  border-color: var(--gut);
+  background: var(--gut);
+}
+
+/* Noch nicht dran ist nicht verpasst: blasser, nicht leerer. */
+.heute-woche__tag[data-kuenftig='ja'] .heute-woche__punkt {
+  border-style: dashed;
+  border-color: var(--rand);
+}
+
+.heute-woche__tag[data-heute='ja'] {
+  background: var(--flaeche-stumpf);
+}
+
+.heute-woche__tag[data-heute='ja'] .heute-woche__buchstabe {
+  color: var(--tinte);
+  font-weight: var(--weight-semibold);
+}
+
+/* -------------------------------------------------------------- Lernserie */
+
+.heute-serie__zahl {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.heute-serie__zahl > strong {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+}
+
+.heute-serie__text {
+  margin: 0;
+  color: var(--tinte-2);
+}
+
+.heute-serie__ruhe {
+  margin: 0;
+  color: var(--tinte-3);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------- Die Zeitzonenfrage */
+
+/*
+  Sie steht über den sieben Bereichen und sieht aus wie einer von ihnen – ein
+  Kasten, kein Dialog. Was sie unterscheidet, ist der Rand: Sie will gesehen
+  werden, aber sie hält niemanden auf.
+*/
+.heute-zeitzone {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--rand-stark);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  color: var(--tinte);
+}
+
+.heute-zeitzone__titel {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-snug);
+}
+
+.heute-zeitzone__text {
+  margin: 0;
+  max-inline-size: var(--width-prose);
+  color: var(--tinte-2);
+  line-height: var(--leading-normal);
+}
+
+.heute-zeitzone__vorschlag {
+  margin: 0;
+}
+
+.heute-zeitzone__wahl {
+  display: grid;
+  gap: var(--space-1);
+  max-inline-size: var(--width-prose);
+}
+
+.heute-zeitzone__label {
+  color: var(--tinte-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/*
+  Volle Höhe für den Finger, und `inline-size: 100%` mit `max-inline-size` am
+  Elternteil: Eine Auswahlliste, die ihre Breite aus dem längsten Eintrag
+  nimmt, schöbe die Seite auf – „America/Argentina/ComodRivadavia" ist lang.
+*/
+.heute-zeitzone__feld {
+  inline-size: 100%;
+  min-block-size: var(--tap-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--rand-bedienung);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--tinte);
+  font: inherit;
+}
+
+.heute-zeitzone__knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.heute-zeitzone__fehler {
+  margin: 0;
+  color: var(--fehler);
+}

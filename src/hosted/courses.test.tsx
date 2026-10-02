@@ -267,7 +267,7 @@ describe('Konto anlegen mit Code', () => {
     expect(await screen.findByText(/nicht derselbe Code/)).toBeInTheDocument();
   });
 
-  it('führt nach richtiger Abschrift in den Lernbereich', async () => {
+  it('führt nach richtiger Abschrift auf „Heute"', async () => {
     const cloud = createFakeCloud();
     cloud.signInAs('u-lehrerin');
     const kurs = await cloud.repositories.courses!.createCourse({ title: 'Englisch 7b' });
@@ -300,6 +300,7 @@ describe('Konto anlegen mit Code', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Weiter zum Lernen' }));
 
-    expect(await screen.findByRole('heading', { name: 'Deine Kurse' })).toBeInTheDocument();
+    // Seit 5B.4 der Rollenstart der Lernenden; die Kursliste bleibt unter `/lernen`.
+    expect(await screen.findByRole('heading', { name: 'Heute', level: 1 })).toBeInTheDocument();
   });
 });

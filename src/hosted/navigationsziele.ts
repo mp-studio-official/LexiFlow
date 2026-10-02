@@ -53,7 +53,7 @@ export interface Umsetzung {
 }
 
 /**
- * Der Stand vom 01.10.2026.
+ * Der Stand vom 03.10.2026.
  *
  * Jede Zeile hier ist eine Aussage über die Wirklichkeit, keine Absicht. Wer
  * einen Zustand hochsetzt, ohne die Route zu bauen, bekommt das von
@@ -77,7 +77,12 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
   '#/pakete': { zustand: 'weiterleitung', route: '/pakete', leitetAuf: '/material' },
 
   '#/start': { zustand: 'vorhanden', route: '/start' },
-  '#/heute': { zustand: 'geplant', block: '5B.4' },
+  /*
+    Seit 5B.4 eine echte Route — im selben Commit, in dem sie Inhalt bekam
+    (Regel 1 oben). Vorher stand hier `geplant`, weil ein Zustand eine
+    Aussage über die Wirklichkeit ist und keine Absicht.
+  */
+  '#/heute': { zustand: 'vorhanden', route: '/heute' },
   '#/ueben': { zustand: 'vorhanden', route: '/ueben' },
   '#/fortschritt': { zustand: 'geplant', block: '5B.6' },
   /*
@@ -182,6 +187,7 @@ const ZUORDNUNG: ReadonlyArray<readonly [RegExp, string]> = [
     hinkommt — die Einstellungen.
   */
   [/^\/(einstellungen|verwaltung)(\/|$)/, '#/einstellungen'],
+  [/^\/heute(\/|$)/, '#/heute'],
   [/^\/lernen(\/|$)/, '#/lernen'],
   [/^\/ueben(\/|$)/, '#/ueben'],
 ];

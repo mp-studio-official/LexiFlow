@@ -228,7 +228,8 @@ describe('die Marke führt zum Rollenstart', () => {
     Quelle, die auch die Anmeldung benutzt.
   */
   it.each([
-    ['u-lernend', '/lernen'],
+    // Seit 5B.4: der Rollenstart der Lernenden ist „Heute", nicht die Kursliste.
+    ['u-lernend', '/heute'],
     ['u-lehrerin', '/start'],
     ['u-verwaltung', '/verwaltung'],
   ])('%s → %s', async (konto, ziel) => {
