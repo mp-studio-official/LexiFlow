@@ -4,11 +4,14 @@ import type { EntryProgress } from './schema';
 /**
  * Wann ein Wort als schwierig gilt — die Ableitung, nicht die Anzeige.
  *
- * ## Was das Konzept vorgibt und was es offenlässt
+ * ## Woher die Regel kommt
  *
- * Abschnitt 4.3 sagt: „Schwierige Wörter — **neu**, Ableitung aus
- * `wrongCount` und Fach." Beide Größen also, nicht eine. Welche Schwelle,
- * sagt es nicht; das steht hier, an einer Stelle, mit Begründung und Namen.
+ * **E24** (`docs/konzept-5b.md`, Abschnitt 16), getroffen bei der Abnahme von
+ * 5B.5. Abschnitt 4.3 nannte nur „Ableitung aus `wrongCount` und Fach"; die
+ * Schwelle stand zuerst allein hier und ist seitdem eine ausdrückliche
+ * Entscheidung. Eine Änderung der Zahlen ist eine Änderung von E24.
+ *
+ * Gerechnet wird je Richtung und ausschließlich auf dem eigenen Lernstand.
  *
  * ## Die Regel
  *

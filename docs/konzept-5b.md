@@ -1372,3 +1372,52 @@ der Schlussblock räumt nur den Rest auf.
 > dieselben Regeln noch braucht; sonst im Block, der die letzte von ihnen
 > umstellt.
 
+---
+
+## 16. Entscheidung E24 — wann ein Wort schwierig ist
+
+**Getroffen am 02.10.2026, bei der Abnahme von 5B.5.**
+
+Abschnitt 4.3 nennt „Schwierige Wörter" als Ableitung aus `wrongCount` und
+Fach, legt die Schwelle aber nicht fest. Hier steht sie.
+
+### E24 — Zwei Fehler und ein niedriges Fach
+
+Ein Wort steht in „Schwierige Wörter", wenn **beides** gilt:
+
+- **mindestens zwei falsche Antworten** (`wrongCount >= 2`), und
+- **aktuelles Leitner-Fach 1 oder 2** (`box <= 2`).
+
+Gerechnet wird **je Richtung** und ausschließlich auf dem **eigenen**
+Lernstand. Ein Wort kann also in Englisch → Deutsch schwierig sein und in
+Deutsch → Englisch nicht; das ist kein Sonderfall, sondern der Normalfall beim
+produktiven Üben.
+
+**Ab Fach 3 verschwindet das Wort aus der Liste** — auch dann, wenn es früher
+oft danebenging.
+
+> **Warum beide Bedingungen und nicht eine.**
+>
+> Nur `wrongCount`: Ein Wort, das vor Wochen zweimal danebenging und
+> inzwischen in Fach 5 sitzt, ist gelernt. Es weiter als schwierig zu führen,
+> hielte eine Niederlage fest, die vorbei ist — und eine Liste, die nur
+> wächst, liest irgendwann niemand mehr.
+>
+> Nur das Fach: Jedes frisch begonnene Wort steht in Fach 1. „Neu" ist nicht
+> „schwierig"; diese Liste wäre am ersten Tag am längsten und am Ende leer.
+>
+> **Warum zwei Fehler und nicht einer.** Ein einzelner Fehler ist oft ein
+> Vertipper oder eine Unachtsamkeit. Zwei sind ein Muster.
+>
+> **Warum das Fach und nicht ein eigener Zähler.** Das Fach ist die Größe, die
+> ohnehin entscheidet, wann ein Wort wieder drankommt. Ein zweiter Begriff von
+> „sitzt" wäre ein zweiter Ort, an dem dieselbe Frage anders beantwortet wird.
+
+**Keine Rangliste, kein Vergleich, keine Strafe.** Die Liste ist ein
+Übungseinstieg, keine Bewertung — und sie ist für Lehrkräfte nicht einsehbar,
+wie jeder Lernstand (Abschnitt 4.4).
+
+**Umgesetzt** in `src/domain/schwierigeWoerter.ts` (`SCHWIERIG_AB_FEHLERN`,
+`SCHWIERIG_BIS_FACH`, `istSchwierig`), zuerst benutzt von 5B.5 (`5ce0363`).
+Eine Änderung der Schwelle ist eine Änderung dieser Entscheidung, nicht eine
+Änderung einer Zahl.

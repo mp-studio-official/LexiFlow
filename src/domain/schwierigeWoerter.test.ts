@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   SCHWIERIG_AB_FEHLERN,
@@ -65,5 +67,32 @@ describe('schwierig heißt: oft daneben **und** noch nicht sitzend', () => {
     const nurFach = stand({ wrongCount: 0, box: 1 });
     expect(istSchwierig(nurFehler)).toBe(false);
     expect(istSchwierig(nurFach)).toBe(false);
+  });
+});
+
+describe('die Regel steht im Konzept, nicht nur im Quelltext', () => {
+  /*
+    Eine Schwelle, die nur als Konstante existiert, ist eine Festlegung ohne
+    Entscheidung: Sie lässt sich ändern, ohne dass jemand merkt, dass etwas
+    entschieden wurde. E24 hält sie fest — und diese Prüfung hält fest, dass
+    beide dasselbe sagen.
+  */
+  const konzept = readFileSync(
+    resolve(import.meta.dirname, '../../docs/konzept-5b.md'),
+    'utf8',
+  );
+
+  it('E24 gibt es, und sie nennt beide Zahlen', () => {
+    const abschnitt = konzept.slice(konzept.indexOf('### E24'));
+    expect(abschnitt, 'E24 fehlt im Konzept').not.toBe('');
+    expect(abschnitt).toMatch(new RegExp(`wrongCount >= ${SCHWIERIG_AB_FEHLERN}`));
+    expect(abschnitt).toMatch(new RegExp(`box <= ${SCHWIERIG_BIS_FACH}`));
+  });
+
+  it('und sie nennt, was ab Fach 3 passiert', () => {
+    const abschnitt = konzept.slice(konzept.indexOf('### E24'));
+    expect(abschnitt).toMatch(/Ab Fach 3 verschwindet/);
+    /* Die Aussage muss zur Konstante passen, nicht nur dastehen. */
+    expect(SCHWIERIG_BIS_FACH + 1).toBe(3);
   });
 });
