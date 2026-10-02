@@ -387,6 +387,19 @@ export interface DueOverview {
 }
 
 /**
+ * Ein Vokabellernstand mitsamt dem Kurs, in dem er entstanden ist.
+ *
+ * `EntryProgress` trägt Paket, Vokabel und Richtung, aber keinen Kurs — in
+ * einer portablen Lerndatei gibt es keinen. Im Konto gibt es ihn, und „Mein
+ * Fortschritt" gliedert danach. Die Kennung kommt deshalb hier dazu, statt
+ * `EntryProgress` um ein Feld zu erweitern, das in der Hälfte der Fassungen
+ * leer bliebe.
+ */
+export interface CourseEntryProgress extends EntryProgress {
+  readonly courseId: string;
+}
+
+/**
  * Der eigene Lernstand über alle Kurse – in **einer** Abfrage.
  *
  * ## Warum das einen eigenen Vertrag bekommt
@@ -422,6 +435,29 @@ export interface ProgressOverviewRepository {
    * `src/application/keineTestuhr.test.ts` hält das fest.
    */
   myDueOverview(): Promise<DueOverview[]>;
+  /**
+   * **Alle** eigenen Vokabelstände, über alle Kurse und Pakete – ohne jeden
+   * Parameter.
+   *
+   * ## Warum eine Methode und nicht viele
+   *
+   * „Mein Fortschritt" zählt beherrschte und offene Vokabeln je Paket und in
+   * der Summe und sucht die schwierigen Wörter heraus. Über
+   * `myEntryProgress(courseId, packId)` wäre das eine Abfrage je Paket, und
+   * ihre Zahl wüchse mit dem Material — bei jedem Öffnen der Seite.
+   *
+   * ## Warum ohne Parameter
+   *
+   * Es gibt nichts zu übergeben. Welche Zeilen zurückkommen, entscheidet die
+   * Zugriffsregel auf `entry_progress`: `user_id = auth.uid()` und die
+   * Mitgliedschaftsprüfung. Ein Filter in der Anbindung sähe wie zusätzliche
+   * Sicherheit aus und wäre das Gegenteil — er verdeckte im Test, ob die
+   * Regel überhaupt greift, und die Regel ist der einzige Riegel, der auch
+   * dann noch hält, wenn jemand die Anfrage selbst stellt.
+   *
+   * Eine Personenkennung gibt es hier so wenig wie überall sonst (ADR-1).
+   */
+  allMyEntryProgress(): Promise<CourseEntryProgress[]>;
 }
 
 /* ------------------------------------------------ Lokale Lerntage (E1, E2) */

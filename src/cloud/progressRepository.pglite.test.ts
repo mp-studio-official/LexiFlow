@@ -68,6 +68,12 @@ function pgliteProgressGateway(db: TestDatenbank): ProgressGateway {
       ).rows;
     },
 
+    async selectAllEntryProgress() {
+      // Kein Filter: Die Zugriffsregel entscheidet, was sichtbar ist.
+      return (await db.query('select * from entry_progress order by pack_id, entry_id, direction'))
+        .rows as never;
+    },
+
     async rpcDueOverview() {
       return (await db.query('select * from my_due_overview() order by pack_id')).rows as never;
     },

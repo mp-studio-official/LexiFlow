@@ -10,6 +10,7 @@ import {
   type Course,
   type CourseInvite,
   type CourseMember,
+  type CourseEntryProgress,
   type CourseRepository,
   type DueOverview,
   type InvitationRepository,
@@ -1187,6 +1188,25 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
       }
 
       return [...zeilen.values()].sort((a, b) => a.packId.localeCompare(b.packId));
+    },
+
+    async allMyEntryProgress(): Promise<CourseEntryProgress[]> {
+      const mich = ich();
+      const meins = `${mich.profile.id}::`;
+      const alle: CourseEntryProgress[] = [];
+      for (const [schluessel, staende] of state.entryProgress) {
+        /*
+          Der Präfixvergleich steht für die Zugriffsregel: In der Datenbank
+          trennt `user_id = auth.uid()` die Zeilen, hier der Schlüssel. Eine
+          Fälschung, die alles zurückgäbe und sich auf einen Filter in der
+          Seite verliesse, prüfte am Ende diesen Filter.
+        */
+        if (!schluessel.startsWith(meins)) continue;
+        const rest = schluessel.slice(meins.length);
+        const courseId = rest.slice(0, rest.indexOf('::'));
+        for (const stand of staende) alle.push({ ...stand, courseId });
+      }
+      return alle;
     },
   };
 

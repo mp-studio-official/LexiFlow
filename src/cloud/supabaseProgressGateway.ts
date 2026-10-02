@@ -70,6 +70,18 @@ export function createSupabaseProgressGateway(client: SupabaseClient): ProgressG
       return Array.isArray(data) ? (data as ConflictRow[]) : [];
     },
 
+    async selectAllEntryProgress() {
+      /*
+        Kein `.eq('user_id', …)`, kein Kurs- und kein Paketfilter. Diese
+        Abfrage holt bewusst alles, was die Zugriffsregel durchlässt — und
+        das ist genau der eigene Lernstand. Ein Filter hier prüfte am Ende
+        den Filter statt der Regel.
+      */
+      const { data, error } = await client.from('entry_progress').select('*');
+      if (error) throw new Error('Dein Lernstand konnte nicht geladen werden.');
+      return (data ?? []) as EntryProgressRow[];
+    },
+
     async rpcDueOverview() {
       /*
         Keine Argumente. `my_due_overview()` hat keine Parameter, und dieser

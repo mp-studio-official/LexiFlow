@@ -1,6 +1,7 @@
 import { progressKey } from '../domain/ids';
 import type { EntryProgress, PackProgress, TaskDirection } from '../domain/schema';
 import type {
+  CourseEntryProgress,
   DueOverview,
   ProgressConflict,
   ProgressEvent,
@@ -84,6 +85,13 @@ export interface ProgressGateway {
    * in die Fälligkeit geriete (E28).
    */
   rpcDueOverview(): Promise<DueOverviewRow[]>;
+  /**
+   * Alle eigenen Vokabelstände, ohne Kurs- und Paketfilter.
+   *
+   * Ohne Parameter, und ohne `where user_id = …` in der Anbindung: Was
+   * sichtbar ist, entscheidet die Zugriffsregel.
+   */
+  selectAllEntryProgress(): Promise<EntryProgressRow[]>;
 }
 
 /* ------------------------------------------------------------ Umrechnung -- */
@@ -157,6 +165,17 @@ export function alsUebersicht(zeile: DueOverviewRow): DueOverview {
   };
 }
 
+/**
+ * Eine Lernstandszeile mitsamt ihrem Kurs.
+ *
+ * `alsVokabelstand` lässt die Kurskennung weg – für die vorhandenen
+ * Aufrufwege ist sie bekannt, weil sie im Aufruf stand. Hier stand sie nicht,
+ * also kommt sie aus der Zeile.
+ */
+export function alsKursVokabelstand(zeile: EntryProgressRow): CourseEntryProgress {
+  return { ...alsVokabelstand(zeile), courseId: zeile.course_id };
+}
+
 /* ---------------------------------------------------------- Repository -- */
 
 export function createSqlProgressRepository(gateway: ProgressGateway): ProgressRepository {
@@ -204,6 +223,10 @@ export function createSqlProgressOverviewRepository(
   return {
     async myDueOverview() {
       return (await gateway.rpcDueOverview()).map(alsUebersicht);
+    },
+
+    async allMyEntryProgress() {
+      return (await gateway.selectAllEntryProgress()).map(alsKursVokabelstand);
     },
   };
 }

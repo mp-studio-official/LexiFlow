@@ -126,6 +126,11 @@ function pgliteUebersichtGateway(db: TestDatenbank): ProgressGateway {
     rpcBeginSession: nichtHier,
     rpcRecordEvents: nichtHier,
     rpcReset: nichtHier,
+    async selectAllEntryProgress() {
+      // Kein Filter: Die Zugriffsregel entscheidet, was sichtbar ist.
+      return (await db.query('select * from entry_progress order by pack_id, entry_id, direction'))
+        .rows as never;
+    },
     async rpcDueOverview() {
       return (await db.query('select * from my_due_overview() order by pack_id')).rows as never;
     },
@@ -239,6 +244,67 @@ describe('my_due_overview über den Vertrag', () => {
 
       await alsPerson(db, LEHRERIN);
       await expect(uebersicht.myDueOverview()).resolves.toEqual([]);
+    } finally {
+      await db.close();
+    }
+  });
+
+  it('gibt über `allMyEntryProgress` nur die eigenen Zeilen heraus', async () => {
+    /*
+      Der Weg, den „Mein Fortschritt" nimmt: **eine** Abfrage über alle
+      eigenen Vokabelstände, ohne Kurs- und Paketparameter und ohne Filter in
+      der Anbindung.
+
+      Im Aufbau liegt eine fremde Zeile im selben Kurs und Paket. Käme sie
+      mit, stünde sie hier — und zwar ohne dass irgendeine Oberfläche sie
+      hätte abfangen können, denn eine Oberfläche, die filtert, ist kein
+      Riegel.
+    */
+    const { db, kurs, uebersicht } = await szenario();
+    try {
+      await alsPerson(db, LERNENDE);
+      const meins = await uebersicht.allMyEntryProgress();
+      expect(meins).toHaveLength(3);
+      expect(meins.map((zeile) => `${zeile.packId}/${zeile.entryId}`).sort()).toEqual([
+        'pack-a/v-1',
+        'pack-a/v-2',
+        'pack-b/v-9',
+      ]);
+      // Die Kurskennung kommt mit – „Mein Fortschritt" gliedert danach.
+      expect(new Set(meins.map((zeile) => zeile.courseId))).toEqual(new Set([kurs]));
+
+      await alsPerson(db, ZWEITE_LERNENDE);
+      const andere = await uebersicht.allMyEntryProgress();
+      expect(andere).toHaveLength(1);
+      expect(andere[0]!.entryId).toBe('v-1');
+
+      // Und eine Lehrkraft bekommt über denselben Weg nichts.
+      await alsPerson(db, LEHRERIN);
+      await expect(uebersicht.allMyEntryProgress()).resolves.toEqual([]);
+    } finally {
+      await db.close();
+    }
+  });
+
+  it('rechnet die Zeilen von `allMyEntryProgress` in den Vertrag um', async () => {
+    const { db, uebersicht } = await szenario();
+    try {
+      await alsPerson(db, LERNENDE);
+      const [erste] = (await uebersicht.allMyEntryProgress()).sort((a, b) =>
+        a.entryId.localeCompare(b.entryId),
+      );
+      expect(erste).toMatchObject({
+        packId: 'pack-a',
+        entryId: 'v-1',
+        direction: 'en-de',
+        box: 1,
+        correctCount: 0,
+        wrongCount: 0,
+        rev: 0,
+      });
+      // `dueAt` kommt als ISO-Zeichenkette zurück, nicht als `Date`.
+      expect(typeof erste!.dueAt).toBe('string');
+      expect(erste!.key).toBe('pack-a::v-1::en-de');
     } finally {
       await db.close();
     }
