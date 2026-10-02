@@ -34,7 +34,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -71,76 +71,35 @@ function pruefung(nummer, titel, pruefen, gruenBei) {
 
 pruefung(
   1,
-  'Der Auslieferungszweig trägt das Portal',
+  'Der Auslieferungsweg für den Pilotzweig ist bereit',
   () => {
     /*
-      `deploy.yml` läuft auf `main`. Liegt `src/hosted` dort nicht, liefert
-      ein Lauf die kontofreie Anwendung aus – und niemand bemerkt es am
-      grünen Haken.
+      Nicht mehr „`src/hosted` liegt auf `main`". Marc hat entschieden:
+      eigener Pilotzweig, getrennte Adresse, `main` unangetastet. Die alte
+      Prüfung wäre damit eine geworden, die grün werden soll, indem man genau
+      das tut, was untersagt ist.
+
+      Geprüft wird, was sich ohne Deployment prüfen lässt: dass es den Ablauf
+      gibt, dass er **nicht** von selbst startet, und dass der Weg
+      beschrieben ist. Ob wirklich etwas im Netz steht, steht im
+      Abnahmeprotokoll – siehe Prüfung 10.
     */
-    const ausgabe = execFileSync('git', ['ls-tree', '-r', '--name-only', 'main', '--', 'src/hosted'], {
-      cwd: wurzel,
-      encoding: 'utf8',
-    });
-    return ausgabe.trim().length > 0;
+    const ablauf = lies('.github', 'workflows', 'pilot.yml');
+    if (ablauf === null) return '`.github/workflows/pilot.yml` fehlt';
+    if (!/workflow_dispatch/.test(ablauf)) return 'kein Zuruf-Auslöser';
+    if (/^on:[\s\S]*?^\s{2}push:/m.test(ablauf)) return 'startet bei `push` – das soll er nicht';
+    if (lies('docs', 'pilot-auslieferung.md') === null) return '`docs/pilot-auslieferung.md` fehlt';
+    return true;
   },
-  'Entscheidung 6.1: der beschlossene Weg ins Netz, danach `src/hosted` auf dem Auslieferungszweig.',
+  '`.github/workflows/pilot.yml` (nur `workflow_dispatch`) und `docs/pilot-auslieferung.md`.',
 );
 
 /* ------------------------------------------------------------------ 2 */
 
 pruefung(
   2,
-  '„Verwaltung" ist kein Platzhalter mehr',
+  'Der Rollenriegel liegt bereit (Migration 14)',
   () => {
-    const quelle = lies('src', 'hosted', 'teacher', 'TeacherArea.tsx');
-    if (quelle === null) return 'TeacherArea.tsx fehlt';
-    /*
-      Der Platzhalter ist kein Text, sondern ein Eintrag: `verwaltung` mit
-      einer `phase`. Solange er dort steht, zeigt `/verwaltung` eine Meldung
-      „Kommt in …" und keinen Bildschirm. Nach dem Text zu suchen ginge
-      daneben – er steht nirgends wörtlich, sondern wird zusammengesetzt.
-    */
-    const eintrag = /verwaltung:\s*\{[^}]*\bphase:/m.test(quelle);
-    return !eintrag;
-  },
-  'Ein echter Bildschirm unter `/verwaltung` in `src/hosted/teacher/TeacherArea.tsx`.',
-);
-
-/* ------------------------------------------------------------------ 3 */
-
-pruefung(
-  3,
-  'Es gibt einen Weg, ein Konto stillzulegen',
-  () => {
-    /*
-      Gesucht wird in den Migrationen, nicht im Browser: Ein Sperren, das nur
-      eine Schaltfläche ist, sperrt nichts. Ein Zustand in der Datenbank plus
-      eine Zugriffsregel darauf sperrt.
-    */
-    const ordner = join(wurzel, 'supabase', 'migrations');
-    if (!existsSync(ordner)) return 'Migrationsordner fehlt';
-    const begriffe = ['disabled_at', 'blocked_at', 'suspended_at', 'gesperrt_seit'];
-    for (const datei of readdirSync(ordner)) {
-      const inhalt = readFileSync(join(ordner, datei), 'utf8');
-      if (begriffe.some((begriff) => inhalt.includes(begriff))) return true;
-    }
-    return false;
-  },
-  'Eine neue additive Migration mit einem Sperrzustand und einer Regel, die ihn auswertet.',
-);
-
-/* ------------------------------------------------------------------ 4 */
-
-pruefung(
-  4,
-  '`profiles_insert_self` schränkt die Rolle ein',
-  () => {
-    /*
-      Die **letzte** Fassung der Regel zählt: Eine spätere Migration darf sie
-      ablegen und neu anlegen, und dann ist die frühere ohne Belang. Deshalb
-      über alle Migrationen in Namensreihenfolge und das letzte Vorkommen.
-    */
     const ordner = join(wurzel, 'supabase', 'migrations');
     if (!existsSync(ordner)) return 'Migrationsordner fehlt';
     let letzte = null;
@@ -152,7 +111,56 @@ pruefung(
     if (letzte === null) return 'Regel `profiles_insert_self` nicht gefunden';
     return /with check[\s\S]*\brole\b/.test(letzte);
   },
-  'Migration 14 (additiv) – **nur**, wenn Entscheidung 6.2 ergibt, dass die Registrierung offen ist.',
+  'Eine additive Migration, die `profiles_insert_self` auf die Lernendenrolle festlegt.',
+);
+
+/* ------------------------------------------------------------------ 3 */
+
+pruefung(
+  3,
+  'Der Sperrweg liegt bereit (Migration 15)',
+  () => {
+    const ordner = join(wurzel, 'supabase', 'migrations');
+    if (!existsSync(ordner)) return 'Migrationsordner fehlt';
+    const dateien = readdirSync(ordner).map((datei) => readFileSync(join(ordner, datei), 'utf8'));
+    const spalte = dateien.some((inhalt) => /add column disabled_at/.test(inhalt));
+    if (!spalte) return 'kein Sperrzustand auf dem Profil';
+    /*
+      Eine Spalte allein sperrt nichts. Gefragt ist, ob sie auch ausgewertet
+      wird – sonst stünde hier eine Zahl in einer Tabelle, und alle hielten
+      das Konto für gesperrt.
+    */
+    const schalter = dateien.some((inhalt) => /app_account_is_active/.test(inhalt));
+    if (!schalter) return 'der Sperrzustand wird nirgends ausgewertet';
+    return true;
+  },
+  'Eine additive Migration mit `disabled_at` und einer Regel, die ihn auswertet.',
+);
+
+/* ------------------------------------------------------------------ 4 */
+
+pruefung(
+  4,
+  'Die Migrationen 14 und 15 sind im Staging angewandt',
+  () => {
+    /*
+      Die Protokolle sagen es selbst. Sie tragen, solange nichts gelaufen
+      ist, „NOCH NICHT AUSGEFÜHRT" im Kopf – und das wird beim Eintragen der
+      gemessenen Werte geändert, nicht nebenbei.
+    */
+    const offen = [];
+    for (const [nummer, datei] of [
+      [14, 'migration-14.sql'],
+      [15, 'migration-15.sql'],
+    ]) {
+      const inhalt = lies('docs', 'abnahme', datei);
+      if (inhalt === null) offen.push(`${nummer}: Protokoll fehlt`);
+      else if (/NOCH NICHT AUSGEF/i.test(inhalt)) offen.push(`${nummer}: nicht angewandt`);
+    }
+    if (offen.length > 0) return offen.join(' · ');
+    return true;
+  },
+  'Beide Migrationen anwenden, A und B vergleichen, die Protokolle umschreiben.',
 );
 
 /* ------------------------------------------------------------------ 5 */
@@ -163,12 +171,6 @@ pruefung(
   () => {
     const doku = lies('docs', 'inbetriebnahme-staging.md');
     if (doku === null) return 'inbetriebnahme-staging.md fehlt';
-    /*
-      Gelesen wird die Standtabelle in §0.5. Eine Zeile zählt als belegt,
-      wenn sie einen der vier Abschnitte nennt und **nicht** „offen" sagt.
-      Keine Zeile zu finden ist rot, nicht grün – eine verschwundene Tabelle
-      ist kein Nachweis.
-    */
     const zeilen = doku.split('\n').filter((zeile) => zeile.startsWith('|'));
     const gesucht = ['6.7', '6.8', '6.9', '6.10'];
     const offen = [];
@@ -187,28 +189,115 @@ pruefung(
     if (offen.length > 0) return `offen: ${offen.join(', ')}`;
     return true;
   },
-  'Ein Abnahmeprotokoll mit gemessenen Zahlen und die berichtigte Standtabelle in §0.5.',
+  'Den Durchlauf am echten Staging gehen und §0.5 berichtigen.',
 );
 
 /* ------------------------------------------------------------------ 6 */
 
 pruefung(
   6,
-  'Die Hülle trägt eine Pilotkennzeichnung',
+  'Die Anwendung trägt eine Pilotkennzeichnung',
   () => {
     const pilot = lies('src', 'hosted', 'pilot.ts');
     if (pilot === null) return '`src/hosted/pilot.ts` fehlt';
-    const huelle = lies('src', 'hosted', 'PortalShell.tsx');
-    if (huelle === null) return 'PortalShell.tsx fehlt';
-    return huelle.includes("from './pilot'") || huelle.includes('from "./pilot"');
+    if (!/IST_PILOT = true/.test(pilot)) return '`IST_PILOT` steht nicht auf true';
+    /*
+      Das Band sitzt über dem Router, dort, wo auch das Testband sitzt – in
+      `HostedApp`, nicht in `PortalShell`. Die erste Fassung dieser Prüfung
+      verlangte `PortalShell`; sie beschrieb damit eine Stelle, an der es
+      nicht hingehört, und wäre nur grün geworden, wenn jemand es dorthin
+      verschoben hätte.
+    */
+    const anwendung = lies('src', 'hosted', 'HostedApp.tsx');
+    if (anwendung === null) return 'HostedApp.tsx fehlt';
+    /*
+      Ohne das Schlüsselwort davor: Die Abhängigkeitswache liest jede
+      Importzeile dieser Datei und hielt den Ausdruck hier für einen Import
+      eines unbekannten Pakets. Sie hatte recht, so wie sie gebaut ist – und
+      zweimal hintereinander, weil auch diese Erklärung ihn erst wörtlich
+      enthielt. Deshalb steht hier jetzt weder im Code noch im Kommentar
+      eine Zeile, die wie ein Import aussieht.
+    */
+    return anwendung.includes("'./pilot'") && /Pilotband/.test(anwendung);
   },
-  '`src/hosted/pilot.ts` mit der Kennzeichnung, benutzt in `PortalShell.tsx`.',
+  '`src/hosted/pilot.ts` mit `IST_PILOT`, benutzt als Band in `HostedApp.tsx`.',
 );
 
 /* ------------------------------------------------------------------ 7 */
 
 pruefung(
   7,
+  'KI ist bestimmt gesperrt, nicht zufällig aus',
+  () => {
+    const pilot = lies('src', 'hosted', 'pilot.ts');
+    if (pilot === null) return '`src/hosted/pilot.ts` fehlt';
+    if (!/KI_IM_PILOT.*'gesperrt'/.test(pilot)) return '`KI_IM_PILOT` steht nicht auf gesperrt';
+    /*
+      Zwei Stellen, und beide sind nötig: Die Anwendung nimmt den Zugang aus
+      dem Speicherverbund (das ist die Sperre), die Seite erklärt es (das ist
+      der Unterschied zwischen „gesperrt" und „kaputt").
+    */
+    const anwendung = lies('src', 'hosted', 'HostedApp.tsx');
+    const seite = lies('src', 'hosted', 'teacher', 'AiPage.tsx');
+    if (anwendung === null || seite === null) return 'Dateien fehlen';
+    if (!/ohneGesperrteKi/.test(anwendung)) return 'der Zugang wird nicht entfernt';
+    return /KI_IM_PILOT/.test(seite);
+  },
+  '`KI_IM_PILOT` auf `gesperrt`, `ohneGesperrteKi` in `HostedApp.tsx`, Erklärung in `AiPage.tsx`.',
+);
+
+/* ------------------------------------------------------------------ 8 */
+
+pruefung(
+  8,
+  'Jede Ansicht, die Daten holt, kennt den Verbindungsfehler',
+  () => {
+    /*
+      Eine Wache und keine Verhaltensprüfung – die steht in
+      `src/hosted/verbindung.test.tsx`. Hier geht es um die **nächste**
+      Ansicht: Wer eine baut, die lädt, soll an dieser Stelle gestoppt
+      werden, bevor sie in den Pilot kommt.
+
+      Die Ausnahmen stehen namentlich da. Eine Ausnahmeliste, die man lesen
+      kann, ist ehrlicher als eine Heuristik, die stillschweigend Dateien
+      überspringt.
+    */
+    const AUSNAHMEN = {
+      'SessionContext.tsx': 'keine Ansicht – die Sitzung, ohne eigene Darstellung',
+      'LocalImportPanel.tsx': 'nimmt eine Datei entgegen, holt nichts',
+      'NewPasswordPage.tsx': 'ein Formular; der Fehler steht am Absenden',
+      'AiPage.tsx': 'im Pilot gesperrt, lädt nichts',
+    };
+    const ordner = join(wurzel, 'src', 'hosted');
+    if (!existsSync(ordner)) return 'src/hosted fehlt';
+
+    const fehlend = [];
+    const suche = (pfad) => {
+      for (const eintrag of readdirSync(pfad)) {
+        const voll = join(pfad, eintrag);
+        if (statSync(voll).isDirectory()) {
+          suche(voll);
+          continue;
+        }
+        if (!eintrag.endsWith('.tsx') || eintrag.endsWith('.test.tsx')) continue;
+        if (eintrag in AUSNAHMEN) continue;
+        const inhalt = readFileSync(voll, 'utf8');
+        const holt = /useOptionalRepository|useRepository/.test(inhalt) && /useEffect/.test(inhalt);
+        if (!holt) continue;
+        if (!/Verbindungsfehler|ErrorState/.test(inhalt)) fehlend.push(eintrag);
+      }
+    };
+    suche(ordner);
+    if (fehlend.length > 0) return `ohne Fehlerzustand: ${fehlend.join(', ')}`;
+    return true;
+  },
+  'In der betroffenen Ansicht `Verbindungsfehler` benutzen – oder sie begründet in die Ausnahmeliste eintragen.',
+);
+
+/* ------------------------------------------------------------------ 9 */
+
+pruefung(
+  9,
   'Es gibt Anleitungen für das Portal – für beide Seiten',
   () => {
     /*
@@ -225,20 +314,23 @@ pruefung(
   '`docs/anleitung-portal-lehrkraft.md` und `docs/anleitung-portal-lernende.md`.',
 );
 
-/* ------------------------------------------------------------------ 8 */
+/* ----------------------------------------------------------------- 10 */
 
 pruefung(
-  8,
-  'Der KI-Zustand im Pilot ist im Produkt verankert',
+  10,
+  'Das Pilot-Abnahmeprotokoll ist abgearbeitet',
   () => {
-    const pilot = lies('src', 'hosted', 'pilot.ts');
-    if (pilot === null) return '`src/hosted/pilot.ts` fehlt';
-    if (!/KI_IM_PILOT/.test(pilot)) return '`KI_IM_PILOT` nicht gesetzt';
-    const seite = lies('src', 'hosted', 'teacher', 'AiPage.tsx');
-    if (seite === null) return 'AiPage.tsx fehlt';
-    return /KI_IM_PILOT/.test(seite);
+    const doku = lies('docs', 'pilot-abnahme.md');
+    if (doku === null) return '`docs/pilot-abnahme.md` fehlt';
+    /*
+      Offene Kästchen zählen. Ein Protokoll, dessen Punkte alle noch offen
+      sind, ist eine Anleitung – und eine Anleitung ist kein Nachweis.
+    */
+    const offen = (doku.match(/^\s*- \[ \]/gm) ?? []).length;
+    if (offen > 0) return `${offen} Punkte noch offen`;
+    return true;
   },
-  'Entscheidung 6.3, danach `KI_IM_PILOT` in `src/hosted/pilot.ts` und ausgewertet in `AiPage.tsx`.',
+  'Das Protokoll am echten System abarbeiten und die gemessenen Werte eintragen.',
 );
 
 /* --------------------------------------------------------------- Bericht */

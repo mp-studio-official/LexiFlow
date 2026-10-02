@@ -27,6 +27,7 @@ import { UebenPage } from './UebenPage';
 import { HeutePage } from './HeutePage';
 import { FortschrittPage } from './FortschrittPage';
 import { PaketAnsicht } from './PaketAnsicht';
+import { Verbindungsfehler } from '../verbindung';
 
 /*
   Die vier vorhandenen Ansichten (5B.15) — lazy, weil sie nur erreicht, wer
@@ -52,28 +53,38 @@ const FreePracticeSetupPage = lazy(() =>
 function Kursliste() {
   const courses = useOptionalRepository('courses');
   const [kurse, setKurse] = useState<Course[] | undefined>(undefined);
-  const [fehler, setFehler] = useState('');
+  const [fehler, setFehler] = useState(false);
+  /*
+    `versuch` zählt die Anläufe und ist die ganze Mechanik hinter „Erneut
+    versuchen": Er steht in den Abhängigkeiten des Effekts, also läuft der
+    Effekt noch einmal. Ein `laden()` daneben wäre eine zweite Stelle, an
+    der dasselbe passiert.
+  */
+  const [versuch, setVersuch] = useState(0);
 
   useEffect(() => {
     if (!courses) return;
     let aktiv = true;
+    setFehler(false);
     void courses
       .myCourses()
       .then((gefunden) => {
         if (aktiv) setKurse(gefunden);
       })
-      .catch((error: unknown) => {
-        if (aktiv) setFehler(error instanceof Error ? error.message : 'Kurse nicht abrufbar.');
+      .catch(() => {
+        if (aktiv) setFehler(true);
       });
     return () => {
       aktiv = false;
     };
-  }, [courses]);
+  }, [courses, versuch]);
 
   if (!courses) {
     return <Alert tone="info">In dieser Fassung gibt es keine Kurse.</Alert>;
   }
-  if (fehler) return <Alert tone="error">{fehler}</Alert>;
+  if (fehler) {
+    return <Verbindungsfehler was="Deine Kurse" erneut={() => setVersuch((bisher) => bisher + 1)} />;
+  }
   if (!kurse) return <p className="muted">Kurse werden geladen …</p>;
 
   if (kurse.length === 0) {

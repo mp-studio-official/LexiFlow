@@ -23,6 +23,24 @@ Drei Dinge sind gesetzt und werden in keinem Schritt angetastet:
 
 ---
 
+## 0a. Die vier Entscheidungen – gefallen am 02.10.2026
+
+| | Entscheidung | Folge |
+| --- | --- | --- |
+| **1** | Eigener **Pilotzweig**, **getrennte Adresse**. `main` bleibt unangetastet, bis der Pilot abgenommen ist. | `.github/workflows/pilot.yml`, nur auf Zuruf; `docs/pilot-auslieferung.md` |
+| **2** | **Migration 14 ist zwingend**, unabhängig von der Dashboard-Einstellung. Ein Client wird durch kein selbst angelegtes oder verändertes Profil `teacher` oder `admin`. Die offene Registrierung muss **zusätzlich** aus sein. | Migration 14, drei Riegel; `scripts/db/rollenriegel.test.mjs` |
+| **3** | KI im Pilot **sichtbar und bestimmt abgeschaltet**. Kein Ausfall durch einen fehlenden Schlüssel. Schlüssel bleiben, Infrastruktur bleibt. | `src/hosted/pilot.ts`, `ohneGesperrteKi`; Freigabe ist ein eigener Abnahmeschritt |
+| **4** | Das Portal ist **internetabhängig**. Jede betroffene Ansicht: eindeutiger Verbindungsfehler, „Erneut versuchen", keine endlose Ladeanzeige, keine falsche Speicherzusage. Offline bleibt die portable Lerndatei. | `src/hosted/verbindung.tsx`; keine allgemeine Offline-Synchronisierung |
+
+> **Was sich dadurch an dieser Bestandsaufnahme ändert.** Abschnitt 1 bleibt
+> stehen, wie er war – er beschreibt den Stand vom 02.10.2026 **vor** diesen
+> vier Blöcken. Was seither gebaut wurde, steht in Abschnitt 3 und 4. Den
+> Befund in 1.1 („es gibt heute keinen Weg ins Netz") hat Entscheidung 1
+> beantwortet, nicht aufgehoben: Der Weg existiert jetzt, gelaufen ist er
+> nicht.
+
+---
+
 ## 1. Bestandsaufnahme
 
 ### 1.1 Frontend-Hosting und reproduzierbares Deployment
@@ -217,50 +235,73 @@ Drei Abhängigkeiten sind echt und nicht verhandelbar:
 
 ---
 
-## 3. Rote Ausgangsprüfungen
+## 3. Die Prüfungen – Stand nach A bis G
 
-`npm run pilot:pruefen` (→ `scripts/pilotreife.mjs`) prüft acht Punkte und
-**ist heute rot**. Sie ist bewusst **kein** Vitest und **nicht** Teil von
-`npm run verify`: Sie misst nicht den Quelltext, sondern den Abstand zum
-Pilot, und sie soll rot bleiben dürfen, ohne CI zu brechen.
+`npm run pilot:pruefen` prüft zehn Punkte. Sieben stehen; die drei offenen
+sind genau die Handlungen, die ein Mensch am echten System tun muss.
 
-| # | Prüfung | heute |
+| # | Prüfung | Stand |
 | --- | --- | --- |
-| 1 | Der Auslieferungszweig trägt das Portal (`src/hosted` in `main`) | **rot** |
-| 2 | `/verwaltung` ist kein Platzhalter mehr | **rot** |
-| 3 | Es gibt einen Weg, ein Konto zu sperren | **rot** |
-| 4 | `profiles_insert_self` schränkt die Rolle ein | **rot** |
-| 5 | §0.5 belegt 6.7 bis 6.10 | **rot** |
-| 6 | Es gibt eine Pilotkennzeichnung in der Hülle | **rot** |
-| 7 | Es gibt eine Portalanleitung für Lehrkraft und für Lernende | **rot** |
-| 8 | Die KI-Entscheidung ist im Produkt verankert, nicht nur im Dokument | **rot** |
+| 1 | Der Auslieferungsweg für den Pilotzweig ist bereit | **grün** |
+| 2 | Der Rollenriegel liegt bereit (Migration 14) | **grün** |
+| 3 | Der Sperrweg liegt bereit (Migration 15) | **grün** |
+| 4 | Die Migrationen 14 und 15 sind im Staging angewandt | **rot** |
+| 5 | Der Happy-Path 6.7 bis 6.10 ist im Staging belegt | **rot** |
+| 6 | Die Anwendung trägt eine Pilotkennzeichnung | **grün** |
+| 7 | KI ist bestimmt gesperrt, nicht zufällig aus | **grün** |
+| 8 | Jede Ansicht, die Daten holt, kennt den Verbindungsfehler | **grün** |
+| 9 | Es gibt Anleitungen für das Portal – für beide Seiten | **grün** |
+| 10 | Das Pilot-Abnahmeprotokoll ist abgearbeitet | **rot** |
 
-Jede dieser acht Prüfungen hat eine Gegenprobe: Sie wird grün, wenn – und nur
-wenn – das Fehlende wirklich da ist. Das Skript nennt bei jedem roten Punkt
-die Fundstelle, an der er grün würde.
+> **Zwei Prüfungen aus der ersten Fassung sind weggefallen, und warum.**
+>
+> „`src/hosted` liegt auf `main`" wäre mit Entscheidung 1 eine Prüfung
+> geworden, die man grün macht, indem man genau das tut, was untersagt ist.
+> An ihre Stelle tritt der Pilotzweig.
+>
+> „`/verwaltung` ist kein Platzhalter mehr" gehört nicht in die Pflichtliste:
+> Das **Anlegen** einer Lehrkraft ist nach §14 der Inbetriebnahme für genau
+> eine Lehrkraft als Handarbeit freigegeben. Was fehlte, war das **Sperren**
+> – und das ist jetzt Prüfung 3.
+
+Die Prüfung bleibt bewusst außerhalb von `npm run verify`: Sie misst den
+Abstand zu einem Ziel, nicht die Richtigkeit des Quelltextes.
 
 ---
 
-## 4. Commitfolge
+## 4. Was gebaut wurde
 
-So kompakt, wie es geht, und **keiner dieser Commits beginnt eine neue
-Produktfunktion**:
+| Commit | Inhalt |
+| --- | --- |
+| `bba32b6` | Bestandsaufnahme, Dreiteilung; 5B.9–5B.14 pausiert |
+| `94f33dd` | `npm run pilot:pruefen`, erste Fassung – acht rote Prüfungen |
+| `f0eddc7` | **Migration 14**, Rollenriegel; roter Ausgangstest zuerst |
+| `1da6edd` | Pilotband, bestimmte KI-Sperre, ehrliche Verbindungszustände |
+| `12cb401` | **Migration 15**, ein Konto stilllegen |
+| `745123d` | Auslieferungsweg für den Pilotzweig; Bandriegel in `verify:deploy` |
+| `18ba48d` | Anleitungen für Lehrkraft und Lernende |
+| *dieser* | Prüfungen auf den neuen Schnitt, Abnahmeprotokoll, dieses Kapitel |
 
-| # | Commit | Inhalt |
-| --- | --- | --- |
-| **P0** | *dieser* | Bestandsaufnahme, Abhängigkeiten, Dreiteilung; 5B.9–5B.14 pausiert |
-| **P1** | *dieser* | `scripts/pilotreife.mjs`, `npm run pilot:pruefen`; acht rote Prüfungen mit Gegenproben |
-| — | **Halt** | **Entscheidungen 6.1 bis 6.4.** Ohne sie steht die Pilotgrenze nicht fest. |
-| P2 | Pilotband | Kennzeichnung in der Hülle, auf Anmeldung und Beitritt; Prüfung 6 wird grün |
-| P3 | Rollenriegel | **nur falls Entscheidung 6.2 es verlangt**: Migration 14, additiv, lokal am Harness geprüft, **nicht** deployt; Prüfung 4 |
-| P4 | KI-Grenze | der in 6.3 entschiedene Zustand, sichtbar statt zufällig; Prüfung 8 |
-| P5 | Sperren | der kleinste tragfähige Weg, ein Konto stillzulegen; Prüfung 3 |
-| P6 | Anleitungen | Portalanleitung Lehrkraft, Anleitung Lernende; Prüfung 7 |
-| P7 | Abnahmeprotokoll | 6.7–6.10 am echten Staging, mit gemessenen Zahlen; Prüfung 5 |
-| P8 | Auslieferung | der in 6.1 entschiedene Weg; Prüfung 1 |
+Keine der beiden Migrationen ist angewandt. Nichts ist ausgeliefert. `main`
+ist unverändert.
 
-P2 bis P8 sind **Vorschlag**, nicht Zusage: Nach den Entscheidungen kann die
-Reihenfolge anders richtig sein, und P3 entfällt womöglich ganz.
+### Drei Befunde aus der Arbeit, die nicht geplant waren
+
+1. **Der Auslöser aus Migration 14 war zweimal falsch.** Erst rief er
+   `auth.uid()` – die wirft, wenn die Ansprüche leer sind, also genau beim
+   Besitzer, und damit hätte niemand mehr eine Lehrkraft anlegen können.
+   Dann war er `security definer` – dort ist `current_user` der Besitzer, der
+   Vergleich traf nie zu, und der Riegel war eine Zeile, die nur so aussah.
+2. **Der Sperrschalter in Migration 15 griff zuerst nicht beim Besitz.** Die
+   Regeln auf `courses`, `packs` und `ai_connections` fragen die
+   Hilfsfunktionen gar nicht. Der naheliegende Schluss – sie eben durch die
+   Funktionen zu schicken – war schlimmer: `insert … returning` prüft die
+   Leseregel auf der neu entstehenden Zeile, und eine `stable` Funktion sieht
+   sie dort nicht. 27 Prüfungen wurden rot, zu Recht.
+3. **Der Offlinebefund war schlimmer als gedacht.** Nicht „keine
+   Offlinemeldung", sondern drei falsche Auskünfte: eine Ladeanzeige ohne
+   Ende, „Noch kein Kurs", „Kurs nicht gefunden" – jede davon sieht aus wie
+   eine Auskunft.
 
 ---
 
@@ -268,77 +309,67 @@ Reihenfolge anders richtig sein, und P3 entfällt womöglich ganz.
 
 ### 5.1 Zwingend vor dem Pilot
 
-| Punkt | Warum nicht später |
+| Punkt | Stand |
 | --- | --- |
-| Öffentliche Adresse mit dem **echten** Stand | ohne sie gibt es keinen Pilot |
-| **Pilotkennzeichnung** sichtbar auf jeder Seite | niemand darf das für ein fertiges Produkt halten |
-| Happy-Path **6.7 bis 6.10** am echten Staging gelaufen | sonst ist der erste Schultag die erste Prüfung |
-| **Registrierung geklärt**, ggf. Rollenriegel (Migration 14) | eine offene Rollenvergabe im Netz nimmt man nicht zurück |
-| **KI-Zustand entschieden und sichtbar** | bei Minderjährigen kein Zufallszustand |
-| Ein Weg, ein Konto **zu sperren** | ohne ihn gibt es keine Reaktion auf einen Vorfall |
-| **Datenschutzhinweis für Minderjährige**, Löschweg benannt | rechtliche Voraussetzung, nicht Komfort |
-| **Rückfall**: portable Lerndatei in der Hand der Lehrkraft | sonst steht der Unterricht bei jeder Störung |
-| **Anleitungen** für Lehrkraft und Lernende | eine Lehrkraft ohne Dashboard braucht sie |
-| Ein **benannter Supportweg** | sonst endet jedes Problem in Stille |
+| Pilotkennzeichnung auf jeder Seite | **gebaut** |
+| KI bestimmt abgeschaltet | **gebaut** |
+| Ehrliche Verbindungs- und Leerzustände | **gebaut** |
+| Rollenriegel (Migration 14) | **liegt bereit**, Teil A2 des Protokolls |
+| Ein Weg, ein Konto stillzulegen (Migration 15) | **liegt bereit**, Teil A3 |
+| Offene Registrierung aus | Teil A1 |
+| Happy-Path 6.7–6.10 am echten Staging | Teil B |
+| Datenschutzhinweis und Löschweg für Minderjährige | Teil E1, E2 |
+| Benannte Ansprechperson | Teil E3 |
+| Rückfall: portable Lerndatei in der Hand der Lehrkraft | Teil E5 |
+| Anleitungen für beide Seiten | **gebaut** |
+| Öffentliche Adresse mit dem echten Stand | Teil F |
 
 ### 5.2 Darf während des Pilots fehlen
 
 | Punkt | Umgang im Pilot |
 | --- | --- |
-| Verwaltungsoberfläche zum **Anlegen** von Lehrkräften | §14: Handarbeit für **genau eine** Lehrkraft ist freigegeben und dokumentiert |
-| Offlinefähigkeit des Portals | ein ehrlicher Hinweis „ohne Netz geht hier nichts" genügt |
+| Verwaltungsoberfläche zum **Anlegen** von Lehrkräften | §14: Handarbeit für genau eine Lehrkraft, dokumentiert |
+| Eine Lehrkraftbefugnis zum Stilllegen fremder Konten | serverseitig; die Lehrkraft entfernt die Mitgliedschaft, das wirkt sofort |
+| Anmeldesperre für stillgelegte Konten | sie sehen nichts; die Anmeldung führt Supabase Auth |
+| Offlinefähigkeit des Portals | ehrlicher Hinweis, portable Lerndatei als Offlineweg |
 | E-Mail-Wiederherstellung mit SMTP (§7.9) | bei einer Lehrkraft genügt der Weg über die Administration |
-| Titelbilder (5B.9), Zeitformen (5B.10), zeitgesteuerte Veröffentlichung (5B.11) | pausiert, siehe `docs/umsetzungsplan-5b.md` |
-| Werkstatt im Portal (5B.13, 5B.14) | die Lehrkraft baut Pakete weiter in der portablen Werkstatt und übernimmt sie |
-| Mobile Sonderfälle (5B.12) | die Breitensuite deckt 390 px ab; Feinschliff kann warten |
-| Geprüfter Wiederherstellungsversuch der Sicherung | bei kleiner Datenmenge vertretbar, **wenn** der Rückfall steht |
+| Titelbilder (5B.9), Zeitformen (5B.10), geplante Veröffentlichung (5B.11) | pausiert |
+| Werkstatt im Portal (5B.13, 5B.14) | portable Werkstatt, dann übernehmen |
+| Mobile Sonderfälle (5B.12) | die Breitensuite deckt 390 px ab |
+| Geprüfter Wiederherstellungsversuch der Sicherung | vertretbar, **wenn** der Rückfall steht (E4, E5) |
 
 ### 5.3 Erst nach dem Pilot
 
 | Punkt | Warum erst dann |
 | --- | --- |
-| Mehrere Lehrkräfte und damit die volle Verwaltung nach §14 (1–5) | genau dafür ist der Pilot der Erkenntnisgewinn |
-| Fachlicher Vermerk „wer gab wem wann welche Rolle" | braucht die Verwaltung darüber |
-| Rollenwechsel und -entzug in der Oberfläche | dito |
-| Echter Betrieb statt Staging, getrennte Projekte | eine Entscheidung mit Kosten, die der Pilot begründen soll |
+| Mehrere Lehrkräfte, volle Verwaltung nach §14 | dafür ist der Pilot der Erkenntnisgewinn |
+| Vermerk „wer gab wem wann welche Rolle" | braucht die Verwaltung darüber |
+| KI-Freigabe | eigener Abnahmeschritt: Anbieter, Datenfluss, Datenschutzhinweis, echter Durchlauf |
+| Echter Betrieb statt Staging, getrennte Projekte | Entscheidung mit Kosten, die der Pilot begründen soll |
+| Merge nach `main` und Etikett | nach der Abnahme, nicht davor |
 | 5B.16 Endabnahme | setzt die pausierten Blöcke voraus |
 
 ---
 
-## 6. Offene fachliche Entscheidungen
+## 6. Was offen bleibt – und bei wem
 
-Keine davon treffe ich still. Jede ändert den Plan erheblich.
+Keine Produktentscheidung mehr offen. Was bleibt, sind Handlungen am echten
+System (`docs/pilot-abnahme.md`) und **eine** Frage, die beim Abarbeiten
+auftauchen wird:
 
-### 6.1 Wie kommt der echte Stand ins Netz?
-
-147 Commits liegen zwischen `main` und diesem Zweig, und `deploy.yml` läuft
-nur auf `main`. Denkbar sind unter anderem: ein Merge nach `main` (heute
-untersagt), eine Auslieferung aus einem Pilotzweig (verlangt eine Änderung an
-`deploy.yml`), oder eine getrennte Pilotadresse. **Ohne diese Entscheidung
-steht alles still.**
-
-### 6.2 Ist die Registrierung per E-Mail im Stagingprojekt eingeschaltet?
-
-Das entscheidet, ob der Befund aus 1.2 ein Blocker oder folgenlos ist. Es ist
-**eine Einstellung im Supabase-Dashboard**, die ich von hier nicht lesen kann.
-Ist sie an, braucht es vor dem Pilot Migration 14.
-
-### 6.3 KI im Pilot: vollständig frei oder sichtbar abgeschaltet?
-
-Heute: keine Entscheidung, nur ein Nebeneffekt. „Sichtbar abgeschaltet" ist
-die Variante mit weniger Arbeit **und** weniger Risiko; „frei" verlangt
-zusätzlich eine Aussage über den Anbieter im Datenschutzhinweis.
-
-### 6.4 Was tut das Portal ohne Netz?
-
-Ein ehrlicher Hinweis genügt für den Pilot – aber es muss einer sein und kein
-ewiger Ladezustand.
+> **Darf eine Lehrkraft ein Konto über ihren eigenen Kurs hinaus
+> stilllegen?** Heute nicht: `authenticated` hat auf `disabled_at` kein
+> Schreibrecht, der Schalter ist serverseitig. Das ist bewusst so – es wäre
+> die erste Befugnis dieser Art im Produkt. Für einen Pilot mit **einer**
+> Lehrkraft reicht das Entfernen aus dem Kurs. Für eine Schule wird die
+> Frage neu gestellt.
 
 ---
 
 ## 7. Was dieses Dokument nicht kann
 
-Es kann nicht sagen, ob der Pilot gelingt. Es kann sagen, was heute fehlt, und
-das tut es ohne Rundung. Der erste Mensch, der Abschnitt 5.1 abarbeitet, wird
-Dinge finden, die hier nicht stehen – aus demselben Grund, aus dem
+Es kann nicht sagen, ob der Pilot gelingt. Es kann sagen, was gebaut ist,
+was belegt ist und was noch niemand getan hat – und es trennt die drei. Der
+erste Mensch, der `docs/pilot-abnahme.md` abarbeitet, wird Dinge finden, die
+hier nicht stehen, aus demselben Grund, aus dem
 `docs/inbetriebnahme-staging.md` §15 dasselbe sagt.

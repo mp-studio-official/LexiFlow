@@ -35,6 +35,7 @@ import { Alert, Button, Card } from '../../ui/components';
 import type { AnswerCheckResult } from '../../domain/answerCheck';
 import type { EntryProgress, VocabPack } from '../../domain/schema';
 import type { ProgressEvent } from '../../application/repositories';
+import { Verbindungsfehler } from '../verbindung';
 
 /**
  * Üben im Portal – mit einem Lernstand, der am Gerät nicht endet.
@@ -137,6 +138,17 @@ export function PracticePage() {
   const [ergebnis, setErgebnis] = useState<AnswerCheckResult | null>(null);
   const [fehler, setFehler] = useState('');
   const [ladefehler, setLadefehler] = useState('');
+  /*
+    Zwei Fehler, zwei Antworten. „Das Paket liegt nicht mehr in diesem Kurs"
+    ist eine **Auskunft** – erneut versuchen hilft dort nichts, die Lehrkraft
+    hat es zurückgezogen. „Die Runde ließ sich nicht laden" ist ein
+    Verbindungsfehler, und dort hilft genau das.
+
+    Der erste Entwurf hat beides zu einem Verbindungsfehler gemacht und damit
+    eine richtige Auskunft durch eine falsche ersetzt. `practice.test.tsx`
+    hat es gemeldet.
+  */
+  const [verbindungWeg, setVerbindungWeg] = useState(false);
   const [gezaehlt, setGezaehlt] = useState(0);
   const [naechste, setNaechste] = useState<string | undefined>(undefined);
   /*
@@ -158,6 +170,7 @@ export function PracticePage() {
   const laden = useCallback(async () => {
     if (!publication || !progress || !courseId || !packId) return;
     try {
+      setVerbindungWeg(false);
       const zugewiesen = await publication.publishedForCourse(courseId);
       const gefunden = zugewiesen.find((eintrag) => eintrag.packId === packId);
       if (!gefunden) {
@@ -229,7 +242,7 @@ export function PracticePage() {
         ),
       );
     } catch (error) {
-      setLadefehler(error instanceof Error ? error.message : 'Die Runde ließ sich nicht laden.');
+      setVerbindungWeg(true);
     }
   }, [publication, progress, courseId, packId, richtungswahl, auswahl, frei, laenge, seed, gewuenschteFormen.join(',')]);
 
@@ -304,6 +317,12 @@ export function PracticePage() {
   if (!publication || !progress) {
     return <Alert tone="info">In dieser Fassung gibt es das Üben im Konto nicht.</Alert>;
   }
+  /*
+    Vorher stand hier der Text der Ausnahme, ohne Ausweg. Eine Runde, die
+    nicht lädt, ist der Fall, in dem „erneut versuchen" am ehesten hilft –
+    und der, in dem jemand mitten im Unterricht davorsitzt.
+  */
+  if (verbindungWeg) return <Verbindungsfehler was="Die Übungsrunde" erneut={() => void laden()} />;
   if (ladefehler) return <Alert tone="error">{ladefehler}</Alert>;
   if (!pack || !state) return <p className="muted">Die Runde wird vorbereitet …</p>;
 
