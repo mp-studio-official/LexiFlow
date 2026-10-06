@@ -565,7 +565,7 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 
 ## Teil F – Ausliefern
 
-> **Teil F liegt bei Codex.** GitHub-Anbindung, Pilotprojekt, Ablauf, Pages
+> **Teil F liegt bei Codex.** GitHub-Anbindung, Pilotzweig, Ablauf, Pages
 > und das Deployment selbst werden dort bearbeitet, ebenso die technische
 > Browserabnahme. Dieses Protokoll führt die Punkte weiter mit, damit der
 > Stand an **einer** Stelle steht – es arbeitet sie nicht parallel ab.
@@ -578,26 +578,27 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 ### F1 Werte hinterlegen
 
 - [ ] **Tun:** Den Sprintzweig nach `github.com/mp-studio-official/LexiFlow`
-      hochladen. `git remote -v` ist hier leer – ohne Remote gibt es keinen
-      Ablauf, der laufen könnte.
-- [ ] **Tun:** Standardzweig auf den Pilotzweig umstellen (*Settings →
-      General → Default branch*). `workflow_dispatch` verlangt den
-      Standardzweig; `main` bleibt dabei Commit für Commit unberührt.
-- [ ] **Tun:** Pilotprojekt `LexiFlow-Pilot` anlegen (öffentlich, leer).
-- [ ] **Tun:** Vier Variablen und **ein** Secret im Arbeitsprojekt
-      hinterlegen – alles nach `docs/pilot-auslieferung.md`.
-      **Nichts davon in den Chat.**
-- [ ] **Tun:** Pages erst **nach** dem ersten Lauf auf `gh-pages` stellen –
-      vorher gibt es den Zweig nicht.
-- **Erwartet:** Vier Variablen (alle vier dürfen öffentlich sein), ein
-  Fine-grained Token mit `Contents: write` auf genau ein Projekt.
+      hochladen. Das Remote ist inzwischen eingetragen; `main` wird nicht
+      hochgeladen.
+- [ ] **Prüfen:** Der Pilotzweig ist der Standardzweig. Beim bislang leeren
+      Projekt sollte der erste hochgeladene Zweig diese Rolle automatisch
+      erhalten. Nur falls nicht: *Settings → General → Default branch*.
+- [ ] **Tun:** Zwei Variablen im bestehenden Projekt hinterlegen –
+      `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY`, nach
+      `docs/pilot-auslieferung.md`.
+- [ ] **Tun:** *Settings → Pages → Build and deployment → Source: GitHub
+      Actions*.
+- **Erwartet:** Zwei öffentliche Buildvariablen, **kein** persönlicher
+  Deployment-Token, kein zweites Projekt und kein `gh-pages`-Zweig.
 
 ### F2 Redirect-URL
 
 - [x] **Tun:** Die Pilotadresse in Supabase als Redirect-URL eintragen.
-- **Erledigt am 06.10.2026.** Eingetragen ist
-  `https://mp-studio-official.github.io/LexiFlow-Pilot/portal/**`; nach dem
-  Neuladen steht der Eintrag in der Liste.
+- **Erledigt.** Die operative Adresse
+  `https://mp-studio-official.github.io/LexiFlow/portal/**` war bereits
+  vorhanden. Der am 06.10.2026 zusätzlich eingetragene Weg unter
+  `LexiFlow-Pilot` ist für die geänderte Auslieferung nicht nötig, aber
+  unschädlich.
 - **Danach:** Die Kennwortwiederherstellung einer Lehrkraft findet von der
   Pilotadresse aus zurück. `LEXIFLOW_ALLOWED_ORIGINS` blieb unberührt – ein
   Ursprung ist Schema plus Host ohne Pfad, und der Host ist derselbe.

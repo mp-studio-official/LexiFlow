@@ -33,6 +33,7 @@ function lies(pfad) {
 
 const ci = lies('.github/workflows/ci.yml');
 const deploy = lies('.github/workflows/deploy.yml');
+const pilot = lies('.github/workflows/pilot.yml');
 const paket = JSON.parse(lies('package.json'));
 
 /**
@@ -55,6 +56,7 @@ describe('die Prüfkette ruft auf, was es zu prüfen gibt', () => {
   const ketten = [
     ['ci.yml', `${ci}`],
     ['deploy.yml', `${deploy}`],
+    ['pilot.yml', `${pilot}`],
   ];
 
   for (const [name, inhalt] of ketten) {
@@ -74,7 +76,7 @@ describe('jeder aufgerufene Befehl existiert auch', () => {
       Werkstatt, nicht hier.
     */
     const aufgerufen = new Set();
-    for (const inhalt of [ci, deploy]) {
+    for (const inhalt of [ci, deploy, pilot]) {
       for (const treffer of inhalt.matchAll(/npm run ([a-z0-9:]+)/g)) {
         aufgerufen.add(treffer[1]);
       }
@@ -123,13 +125,14 @@ describe('im CI wird kein echtes Modell geholt und kein Anbieter angerufen', () 
     for (const [name, inhalt] of [
       ['ci.yml', ci],
       ['deploy.yml', deploy],
+      ['pilot.yml', pilot],
     ]) {
       expect(inhalt, name).toMatch(/LEXIFLOW_CI:\s*'1'/);
     }
   });
 
   it('und keiner lädt ein Browsermodell herunter', () => {
-    for (const inhalt of [ci, deploy]) {
+    for (const inhalt of [ci, deploy, pilot]) {
       expect(inhalt).not.toMatch(/gemma|llama|onnx|transformers|model.*download/i);
     }
   });
@@ -140,7 +143,7 @@ describe('im CI wird kein echtes Modell geholt und kein Anbieter angerufen', () 
       Secrets oder Variables – also in `${{ secrets.… }}` oder `${{ vars.… }}`
       und nirgendwo sonst.
     */
-    for (const inhalt of [ci, deploy]) {
+    for (const inhalt of [ci, deploy, pilot]) {
       expect(inhalt).not.toMatch(/sb_secret_[A-Za-z0-9_-]{12,}/);
       expect(inhalt).not.toMatch(/eyJ[A-Za-z0-9_-]{20,}\./);
       expect(inhalt).not.toMatch(/LEXIFLOW_AI_MASTER_KEY_V\d+:\s*[^$\s]/);

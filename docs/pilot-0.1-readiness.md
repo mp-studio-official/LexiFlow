@@ -27,7 +27,7 @@ Drei Dinge sind gesetzt und werden in keinem Schritt angetastet:
 
 | | Entscheidung | Folge |
 | --- | --- | --- |
-| **1** | Eigener **Pilotzweig**, **getrennte Adresse**. `main` bleibt unangetastet, bis der Pilot abgenommen ist. | `.github/workflows/pilot.yml`, nur auf Zuruf; `docs/pilot-auslieferung.md` |
+| **1** | Eigener **Pilotzweig** im bestehenden GitHub-Projekt. Die vorhandene Pages-Adresse wird für den Pilot verwendet; `main` bleibt unangetastet, bis der Pilot abgenommen ist. | `.github/workflows/pilot.yml`, nur auf Zuruf; offizieller Pages-Ablauf ohne persönlichen Deployment-Token; `docs/pilot-auslieferung.md` |
 | **2** | **Migration 14 ist zwingend**, unabhängig von der Dashboard-Einstellung. Ein Client wird durch kein selbst angelegtes oder verändertes Profil `teacher` oder `admin`. Die offene Registrierung muss **zusätzlich** aus sein. | Migration 14, drei Riegel; `scripts/db/rollenriegel.test.mjs` |
 | **3** | KI im Pilot **sichtbar und bestimmt abgeschaltet**. Kein Ausfall durch einen fehlenden Schlüssel. Schlüssel bleiben, Infrastruktur bleibt. | `src/hosted/pilot.ts`, `ohneGesperrteKi`; Freigabe ist ein eigener Abnahmeschritt |
 | **4** | Das Portal ist **internetabhängig**. Jede betroffene Ansicht: eindeutiger Verbindungsfehler, „Erneut versuchen", keine endlose Ladeanzeige, keine falsche Speicherzusage. Offline bleibt die portable Lerndatei. | `src/hosted/verbindung.tsx`; keine allgemeine Offline-Synchronisierung |
@@ -394,7 +394,7 @@ die man eine Schulklasse bringt.
 
 | | |
 | --- | --- |
-| **Codex** | GitHub-Anbindung, Pilotprojekt, Ablauf, Pages, Deployment, technische Browserabnahme |
+| **Codex** | GitHub-Anbindung, Pilotzweig, Ablauf, Pages, Deployment, technische Browserabnahme |
 | **Hier** | Protokolle, Elternblatt, Löschprobe, Prüfungen, Datenbank |
 
 Teil F wird in diesem Protokoll mitgeführt, aber nicht parallel abgearbeitet.

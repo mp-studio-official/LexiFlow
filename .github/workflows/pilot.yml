@@ -15,12 +15,13 @@
 # Solange Marc nicht deployen will, läuft diese Datei nie – sie liegt bereit
 # und tut nichts.
 #
-# ## Warum ein zweites Projekt und nicht ein zweiter Pfad
+# ## Warum dasselbe Projekt
 #
-# GitHub Pages liefert je Projekt **eine** Seite aus. Eine wirklich getrennte
-# Adresse braucht deshalb ein zweites Projekt (oder eine eigene Domain).
-# Dieser Ablauf baut hier und schiebt das Ergebnis dorthin; welche Werte dafür
-# zu hinterlegen sind, steht in `docs/pilot-auslieferung.md`.
+# Der Pilot darf die vorhandene Pages-Adresse dieses Projekts benutzen. Damit
+# braucht der Ablauf weder ein zweites Projekt noch einen persönlichen Token.
+# GitHubs kurzlebiger `GITHUB_TOKEN` und der offizielle Pages-OIDC-Weg reichen.
+# `main` bleibt trotzdem unangetastet: gebaut wird der ausdrücklich gewählte
+# Pilotzweig, und der Ablauf startet weiterhin nur auf Zuruf.
 #
 # ## Was er nicht tut
 #
@@ -85,6 +86,13 @@ jobs:
     needs: pruefen
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       # Frisch ausgecheckt. Kein Artefakt aus dem Prüfauftrag – dort ist eine
       # Testfassung gebaut worden.
@@ -95,11 +103,14 @@ jobs:
           cache: npm
       - run: npm ci
 
+      - name: GitHub Pages vorbereiten
+        uses: actions/configure-pages@v5
+
       - name: Beide Auslieferungen bauen
         run: npm run build
         env:
-          # Der Grundpfad der **Pilotadresse**, nicht der von `main`.
-          LEXIFLOW_BASE: /${{ vars.LEXIFLOW_PILOT_REPO }}/
+          # Der Grundpfad dieser Projektseite.
+          LEXIFLOW_BASE: /${{ github.event.repository.name }}/
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           # Ausdrücklich **nicht** gesetzt: VITE_LEXIFLOW_FAKE_CLOUD.
@@ -109,28 +120,18 @@ jobs:
         # und seit Pilot 0.1 auch das Pilotband.
         run: npm run verify:deploy
         env:
-          LEXIFLOW_BASE: /${{ vars.LEXIFLOW_PILOT_REPO }}/
+          LEXIFLOW_BASE: /${{ github.event.repository.name }}/
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
 
-      - name: In das Pilotprojekt schieben
-        env:
-          TOKEN: ${{ secrets.LEXIFLOW_PILOT_TOKEN }}
-          ZIEL: ${{ vars.LEXIFLOW_PILOT_REPO }}
-          BESITZER: ${{ vars.LEXIFLOW_PILOT_OWNER }}
+      - name: Pages-Artefakt bereitstellen
         run: |
           set -euo pipefail
-          test -n "$TOKEN"
-          test -n "$ZIEL"
-          test -n "$BESITZER"
-          cd dist
-          touch .nojekyll
-          git init -q .
-          git config user.name "LexiFlow Pilot"
-          git config user.email "pilot@example.invalid"
-          git add -A
-          git commit -q -m "Pilot 0.1 aus ${GITHUB_SHA}"
-          # `--force`: Der Zielzweig trägt nur die Auslieferung und keine
-          # Geschichte, die jemand bräuchte. Was dort stand, war der
-          # vorherige Stand derselben Auslieferung.
-          git push -q --force "https://x-access-token:${TOKEN}@github.com/${BESITZER}/${ZIEL}.git" HEAD:gh-pages
-          echo "Geschoben nach ${BESITZER}/${ZIEL} (gh-pages)."
+          touch dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+      - name: Pilot auf GitHub Pages veröffentlichen
+        id: deployment
+        uses: actions/deploy-pages@v4
