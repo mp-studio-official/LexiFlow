@@ -1,21 +1,64 @@
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Abnahme Migration 14 — Rollenriegel bei der Selbstanlage            ║
--- ║  NOCH NICHT AUSGEFÜHRT. Vorbereitet am 02.10.2026.                   ║
--- ║  Für den Supabase SQL Editor; B bleibt jederzeit wiederholbar.       ║
--- ║  A vor dem Anwenden, B danach. Nichts hier verändert Daten.          ║
+-- ║  ANGEWANDT UND ABGENOMMEN am 06.10.2026. Alle Werte wie erwartet.    ║
+-- ║  Diese Datei war die Anleitung dorthin und ist jetzt das Protokoll.  ║
+-- ║  B bleibt wiederholbar. Nichts hier verändert Daten.                 ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
 --
--- ## Diese Migration wird NICHT mit `db push` angewandt
+-- ## `20261004090000_rollenriegel.sql` ist ab jetzt unveränderlich
 --
--- 14 und 15 stehen beide aus. `db push` kennt keine Zielfassung — das ist
+-- Sie steht im Staging. Kein Tippfehler, kein Kommentar, keine „kleine"
+-- Ergänzung: `db push` vergleicht Fassungen, nicht Inhalte, und eine
+-- nachträglich geänderte Datei gilt als angewandt und läuft nie wieder.
+-- Jede Korrektur an dem, was sie angelegt hat, ist eine neue additive
+-- Migration.
+--
+-- ## Warum sie nicht mit `db push` angewandt wurde
+--
+-- 14 und 15 standen beide aus. `db push` kennt keine Zielfassung — das ist
 -- keine Vermutung, es steht in der Hilfe der CLI 2.119.0: `--dry-run`,
--- `--include-all`, `--linked`, sonst nichts. Ein Aufruf wendet also **beide**
--- an, und danach ist Abschnitt B hier nicht mehr prüfbar: Er erwartet 101
--- Spalten und 39 Funktionen, und mit 15 stünden dort 102 und 40.
+-- `--include-all`, `--linked`, sonst nichts. Der Trockenlauf vom 06.10.2026
+-- hat es bestätigt: Er nannte **beide** Dateien. Ein Aufruf hätte also
+-- beide angewandt, und Abschnitt B unten wäre nie prüfbar gewesen — er
+-- erwartet 101 Spalten und 39 Funktionen, mit 15 stünden dort 102 und 40.
 --
--- Der Weg ist deshalb: **SQL Editor, dann die Historie nachtragen.** Er
--- steht Zeile für Zeile in `docs/pilot-abnahme.md`, Teil A2. Dort steht auch
--- der Rückfall für den Fall, dass der Nachtrag schiefgeht.
+-- Der Weg war deshalb: **SQL Editor, dann die Historie nachtragen.** Er
+-- steht Zeile für Zeile in `docs/pilot-abnahme.md`, Teil A3.
+--
+-- ## Die gemessenen Werte
+--
+-- |            | vorher | nachher |
+-- | ---------- | ------ | ------- |
+-- | Tabellen   |     16 |      16 |
+-- | Spalten    |    101 |     101 |
+-- | Regeln     |     28 |      28 |
+-- | Funktionen |     38 |      39 |
+-- | Trigger    |     13 |      14 |
+--
+-- Nutzdaten unverändert: 4 Profile · 2 Kurse · 4 Mitgliedschaften ·
+-- 2 Pakete · 3 Fassungen · 2 + 2 Lernstände · 4 Ereignisse ·
+-- 0 Einstellungen. Rollen unverändert: admin 1 · teacher 1 · student 2.
+--
+-- Die Regelzahl bleibt bei 28, obwohl eine abgelegt und eine angelegt wird.
+-- Das ist die Probe darauf, dass beides lief.
+--
+-- Einzelnachweise, alle bestanden:
+--
+--   • A4 vorher `with_check = (id = auth.uid())` — der Befund, am echten
+--     Projekt bestätigt;
+--   • B4 nachher `id = auth.uid()` und `role = 'student'` (Riegel 2);
+--   • B5 `insert` auf genau `display_name`, `id`, `short_code` (Riegel 1);
+--   • B7 auf Tabellenebene nur noch `select`;
+--   • B8 `profiles_block_self_role_change`, aktiv, `prosecdef = false`
+--     (Riegel 3 — mit Besitzerrechten wäre `current_user` der Besitzer und
+--     der Riegel wirkungslos);
+--   • B9 vor dem Nachtrag 13 Versionen, nach dem Nachtrag 14, zuletzt
+--     `20261004090000`;
+--   • Trockenlauf danach: nur noch `20261005090000_konto_stilllegen.sql`.
+--
+-- Der Nachtrag selbst:
+--   npx --yes supabase@latest migration repair --linked --status applied 20261004090000
+--   → Repaired migration history: [20261004090000] => applied
 --
 -- Migration 14 legt **keine** Tabelle und **keine** Spalte an. Sie verengt
 -- ein Recht, tauscht eine Regel aus und fügt einen Auslöser hinzu.
@@ -73,7 +116,17 @@ select polname, pg_get_expr(polwithcheck, polrelid) as with_check
    and polname = 'profiles_insert_self';
 
 -- A5 · Die Rechte auf `profiles`, vorher
--- Erwartet VORHER: Tabellenebene INSERT,SELECT · Spaltenebene nur display_name (UPDATE)
+-- Gemessen VORHER am 06.10.2026: INSERT 5 · SELECT 5 · UPDATE 1
+--
+-- Diese Zahlen sind leicht misszuverstehen, und eine frühere Fassung dieser
+-- Zeile hat genau das getan. `role_column_grants` listet **auch**
+-- Tabellenrechte, und zwar je Spalte aufgefächert: `grant insert on
+-- profiles` erscheint dort als fünf Zeilen, weil die Tabelle fünf Spalten
+-- hat. „5" heisst hier also nicht „fünf einzeln vergebene Spalten", sondern
+-- „die ganze Tabelle". Nur `UPDATE 1` war ein echtes Spaltenrecht
+-- (`display_name`, Migration 3).
+--
+-- Nachher steht dort INSERT 3 — und *das* ist ein echtes Spaltenrecht.
 select privilege_type, count(*) as spalten
   from information_schema.role_column_grants
  where table_schema = 'public' and table_name = 'profiles' and grantee = 'authenticated'

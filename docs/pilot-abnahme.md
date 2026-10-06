@@ -171,13 +171,15 @@ printf 'begin;\n'; cat supabase/migrations/20261004090000_rollenriegel.sql; prin
 
 **A3.5 Die Historie nachtragen**
 
-- [ ] **Tun:**
+- [x] **Tun:**
 
 ```
 npx --yes supabase@latest migration repair --linked --status applied 20261004090000
 ```
 
 - **Erwartet:** Bestätigung, dass die Fassung als angewandt eingetragen ist.
+- **Gelaufen am 06.10.2026:**
+  `Repaired migration history: [20261004090000] => applied`
 - **Danach:** `db push` hält 14 für erledigt.
 - **Rückfall:** Falsch eingetragen? Der Eintrag lässt sich zurücknehmen:
 
@@ -191,31 +193,31 @@ npx --yes supabase@latest migration repair --linked --status reverted 2026100409
 
 **A3.6 Nachsehen, dass es gewirkt hat**
 
-- [ ] **Tun:**
+- [x] **Tun:**
 
 ```
 npx --yes supabase@latest migration list --linked
 ```
 
-- **Erwartet:** `20261004090000` steht in **beiden** Spalten (Local und
-  Remote). `20261005090000` nur links.
-- [ ] **Tun:** `docs/abnahme/migration-14.sql`, B9b im SQL Editor.
-- **Erwartet:** 14 Versionen, zuletzt `20261004090000`.
-- [ ] **Tun:**
+- **Gelaufen am 06.10.2026:** Fassungen 1 bis 14 in **beiden** Spalten,
+  `20261004090000` darunter; `20261005090000` ausschliesslich links.
+- [x] **Tun:**
 
 ```
 npx --yes supabase@latest db push --linked --dry-run
 ```
 
-- **Erwartet:** **Nur** `20261005090000_konto_stilllegen`.
-- **Danach:** Das ist der Beweis, dass Folge B genau eine Migration anwendet.
-  Steht 14 hier noch dabei, ist A3.5 nicht angekommen – dann nicht weiter.
+- **Gelaufen am 06.10.2026:** `Would push these migrations:` –
+  `20261005090000_konto_stilllegen.sql`, und sonst nichts.
+- **Danach:** Damit ist belegt, dass Migration 14 **nicht erneut** laufen
+  würde und Folge B genau eine Migration anwendet.
 
 **A3.7 Das Protokoll umschreiben**
 
-- [ ] **Tun:** In `docs/abnahme/migration-14.sql` den Kopf von „NOCH NICHT
+- [x] **Tun:** In `docs/abnahme/migration-14.sql` den Kopf von „NOCH NICHT
       AUSGEFÜHRT" auf „ausgeführt am …" ändern und die gemessenen Werte
       eintragen.
+- **Erledigt am 06.10.2026.** Die Datei ist jetzt das Protokoll.
 - **Danach:** `20261004090000_rollenriegel.sql` ist **unveränderlich**.
   Prüfung 4 in `npm run pilot:pruefen` zählt 14 als angewandt.
 
