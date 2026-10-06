@@ -60,7 +60,7 @@ jobs:
         # Ein Tippfehler ist hier billiger als ein Deployment.
         run: |
           if [ "${{ github.event.inputs.bestaetigung }}" != "pilot" ]; then
-            echo "Ohne die Bestätigung „pilot" wird nicht ausgeliefert."
+            echo 'Ohne die Bestätigung „pilot“ wird nicht ausgeliefert.'
             exit 1
           fi
 

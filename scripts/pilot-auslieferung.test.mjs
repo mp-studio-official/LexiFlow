@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +18,20 @@ describe('der Pilot bleibt eine ausdrückliche Handlung', () => {
   it('verlangt vor der Prüfkette genau die Bestätigung pilot', () => {
     expect(ablauf).toContain('github.event.inputs.bestaetigung');
     expect(ablauf).toContain('!= "pilot"');
+  });
+
+  it('enthält im Bestätigungsschritt gültige Shell-Syntax', () => {
+    const schritt = ablauf.match(
+      /      - name: Die Bestätigung[\s\S]*?        run: \|\n([\s\S]*?)(?=\n      - uses:)/,
+    )?.[1];
+
+    expect(schritt).toBeDefined();
+    const shell = schritt
+      .split('\n')
+      .map((zeile) => zeile.replace(/^          /, ''))
+      .join('\n');
+
+    expect(() => execFileSync('bash', ['-n'], { input: shell })).not.toThrow();
   });
 });
 
