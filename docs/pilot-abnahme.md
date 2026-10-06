@@ -255,13 +255,14 @@ npx --yes supabase@latest db push --linked --dry-run
 
 **A4.3 Anwenden**
 
-- [ ] **Tun:**
+- [x] **Tun:**
 
 ```
 npx --yes supabase@latest db push --linked --skip-vault
 ```
 
 - **Erwartet:** Genau eine angewandte Fassung: `20261005090000`.
+- **Gelaufen am 06.10.2026: genau diese eine.**
 - **Danach:** Der Sperrschalter steht. Die Historie schreibt `db push`
   selbst – **kein** Nachtrag, und auch keiner „zur Sicherheit".
 - **Warum `--skip-vault`:** `db push` gleicht sonst vorher Vault-Geheimnisse
@@ -274,17 +275,35 @@ npx --yes supabase@latest db push --linked --skip-vault
 
 **A4.4 Nachher messen**
 
-- [ ] **Tun:** `docs/abnahme/migration-15.sql`, Abschnitte B1 bis B8.
-- **Erwartet:** `spalten 102 · funktionen 40`; Regeln 28, Trigger 14 und alle
-  Nutzdaten unverändert; B3 zeigt **0** stillgelegte Konten; B6 zeigt
-  `service_role · disabled_at` und `authenticated · display_name`, **nicht**
-  `authenticated · disabled_at`; B7 zeigt 15 Versionen; B8 nichts
-  Ausstehendes mehr.
+- [x] **Tun:** `docs/abnahme/migration-15.sql`, Abschnitte B1 bis B8.
+- **Gelaufen am 06.10.2026. Alle neun wie erwartet:**
+
+| | gemessen | Vergleich |
+| --- | --- | --- |
+| B1 Schema | `16 · **102** · 28 · **40** · 14` | Spalten +1, Funktionen +1; Regeln und Trigger unverändert |
+| B2 Nutzdaten | identisch mit A2 | keine Zeile angefasst |
+| B3 Stillgelegte | **0** | die Migration legt niemanden still |
+| B4 Schalter | vier Funktionen nennen `app_account_is_active` | Mitgliedschaft, Lehrkraftrolle, Kursbesitz, Paketbesitz |
+| B5 Regeln | **alle sechs** nennen ihn | fehlte er in einer, hätte der Besitz ein Loch |
+| B6 Schreibrechte | `authenticated · display_name`, `service_role · disabled_at` | **kein** `authenticated · disabled_at` |
+| B6b Rechte gesamt | `INSERT 3 · SELECT 6 · UPDATE 1` | SELECT wächst um `disabled_at`, wie vorhergesagt |
+| B7 Historie | `15` Versionen, zuletzt `20261005090000` | `db push` hat sie selbst geschrieben – kein Nachtrag |
+| B8 Trockenlauf | nichts Ausstehendes | beide Migrationen sind durch |
+
+- **Zu B5:** Das ist der Punkt, an dem mein erster Entwurf fiel. Er legte den
+  Schalter nur in die vier Hilfsfunktionen; die Regeln auf `courses`, `packs`
+  und `ai_connections` fragen die aber gar nicht. „Alle sechs" ist der
+  Nachweis, dass der Besitz jetzt mitgeht.
+- **Zu B6:** Der Riegel gegen eine Befugnis, die es in diesem Produkt nicht
+  gibt. Stünde dort `authenticated · disabled_at`, könnte eine Lehrkraft ein
+  fremdes Konto stilllegen.
 
 **A4.5 Das Protokoll umschreiben**
 
-- [ ] **Tun:** Kopf und Werte in `docs/abnahme/migration-15.sql` eintragen.
-- **Danach:** Prüfung 4 wird grün.
+- [x] **Tun:** Kopf und Werte in `docs/abnahme/migration-15.sql` eintragen.
+- **Erledigt am 06.10.2026.** Die Datei ist jetzt das Protokoll, und
+  `20261005090000_konto_stilllegen.sql` ist unveränderlich.
+- **Danach:** Prüfung 4 ist grün. Teil A ist abgeschlossen.
 
 ---
 
