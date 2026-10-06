@@ -91,30 +91,42 @@ Migration 14 wäre nie prüfbar gewesen.
 
 **A3.2 Die Lage vorher messen**
 
-- [ ] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitte A1 bis A5, im SQL
+- [x] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitte A1 bis A5, im SQL
       Editor. Werte notieren.
-- **Erwartet:** `tabellen 16 · spalten 101 · regeln 28 · funktionen 38 ·
-  trigger 13`; A4 zeigt `with_check = (id = auth.uid())`; A5 zeigt
-  `INSERT 5 · SELECT 5 · UPDATE 1`.
-- **A5 gelaufen am 06.10.2026: 5 · 5 · 1 — wie erwartet.** Die Ansicht
-  fächert Tabellenrechte je Spalte auf: `grant insert on profiles` steht
-  dort als fünf Zeilen, weil die Tabelle fünf Spalten hat. Nach Migration 14
-  steht dort **3**, und dann ist es ein echtes Spaltenrecht.
-- **Noch offen:** A1 bis A4. Ohne die Ausgangszahlen lässt sich nachher
-  nicht zeigen, dass Regeln, Tabellen, Spalten und Nutzdaten unverändert
-  geblieben sind.
+- **Gelaufen am 06.10.2026. Alle fünf wie erwartet:**
+
+| | gemessen | erwartet |
+| --- | --- | --- |
+| A1 Schema | `16 · 101 · 28 · 38 · 13` | ✔ |
+| A2 Nutzdaten | 4 Profile · 2 Kurse · 4 Mitgliedschaften · 2 Pakete · 3 Fassungen · 2 + 2 Lernstände · 4 Ereignisse · 0 Einstellungen | ✔ |
+| A3 Rollen | `admin 1 · teacher 1 · student 2` | ✔ (= 4 Profile) |
+| A4 Regel | `with_check = (id = auth.uid())` | ✔ — **der Befund, am echten Projekt bestätigt** |
+| A5 Rechte | `INSERT 5 · SELECT 5 · UPDATE 1` | ✔ |
+
+- **Zu A4:** Das ist der ganze Grund für Migration 14. Die Regel nennt die
+  Rolle nicht; was sie zulässt, entscheidet allein die Rechtevergabe – und
+  die steht laut A5 auf der ganzen Tabelle.
+- **Zu A5:** Die Ansicht fächert Tabellenrechte je Spalte auf: `grant insert
+  on profiles` steht dort als fünf Zeilen, weil die Tabelle fünf Spalten
+  hat. Nach Migration 14 steht dort **3** – dann ist es ein echtes
+  Spaltenrecht.
+- **Zu A2 und A3:** Diese beiden sind die Vergleichswerte für B2 und B3.
+  Migration 14 fasst keine Zeile an; weicht dort nachher etwas ab, ist etwas
+  anderes passiert als das, was in der Datei steht.
 - **Danach:** Nichts. Alles in A ist lesend.
 
 **A3.3 Die Migration ausführen – in einer Transaktion**
 
-- [ ] **Tun:** Im SQL Editor ein neues Query öffnen und dort eintragen:
+Der einzufügende Text entsteht aus der Migrationsdatei selbst – nicht aus
+einer zweiten Fassung davon, die irgendwann abweicht:
 
 ```
-begin;
--- hier den vollständigen Inhalt von
--- supabase/migrations/20261004090000_rollenriegel.sql einfügen
-commit;
+printf 'begin;\n'; cat supabase/migrations/20261004090000_rollenriegel.sql; printf '\ncommit;\n'
 ```
+
+- [ ] **Tun:** Diese Ausgabe vollständig in ein neues Query im SQL Editor
+      einfügen und ausführen. Es sind 129 Zeilen; die erste ist `begin;`,
+      die letzte `commit;`.
 
 - **Erwartet:** „Success. No rows returned."
 - **Danach:** Riegel 1 bis 3 stehen. Die Historie **noch nicht**.

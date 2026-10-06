@@ -1,6 +1,7 @@
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Abnahme Migration 14 — Rollenriegel bei der Selbstanlage            ║
 -- ║  NOCH NICHT AUSGEFÜHRT. Vorbereitet am 02.10.2026.                   ║
+-- ║  Abschnitt A gelaufen am 06.10.2026, alle fünf Werte wie erwartet.   ║
 -- ║  Für den Supabase SQL Editor; B bleibt jederzeit wiederholbar.       ║
 -- ║  A vor dem Anwenden, B danach. Nichts hier verändert Daten.          ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
