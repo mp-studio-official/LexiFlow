@@ -14,9 +14,12 @@ weitermachen, eintragen, melden.
 
 ### A1 Die offene Registrierung ist aus
 
-- [ ] **Tun:** Dashboard → Authentication → Sign In / Providers → Email →
+- [x] **Tun:** Dashboard → Authentication → Sign In / Providers → Email →
       „Allow new users to sign up".
 - **Erwartet:** **aus**.
+- **Gemessen am 06.10.2026: aus.** Migration 14 kommt trotzdem – der
+  Schalter wird irgendwann umgelegt, und dabei liest niemand die
+  Migrationsdatei.
 - **Danach:** Niemand legt sich selbst ein Konto an. Ist sie an, ist der
   Rollenbefund aus `docs/abnahme/migration-14.md` scharf – dann erst
   ausschalten, dann weiter.
@@ -56,7 +59,7 @@ könnte danach noch sagen, ob 14 für sich richtig gelaufen ist.
 
 **A3.1 Der Beleg, dass beide anstünden**
 
-- [ ] **Tun:**
+- [x] **Tun:**
 
 ```
 npx --yes supabase@latest db push --linked --dry-run
@@ -66,6 +69,22 @@ npx --yes supabase@latest db push --linked --dry-run
   **und** `20261005090000_konto_stilllegen`.
 - **Danach:** Nichts. Ein Trockenlauf ändert nichts. Die Ausgabe gehört ins
   Protokoll: Sie ist der Grund für alles, was jetzt folgt.
+
+**Gelaufen am 06.10.2026. Die Ausgabe:**
+
+```
+Initialising login role...
+DRY RUN: migrations will *not* be pushed to the database.
+Connecting to remote database...
+Would push these migrations:
+ • 20261004090000_rollenriegel.sql
+ • 20261005090000_konto_stilllegen.sql
+Finished supabase db push.
+```
+
+Damit ist belegt, was vorher nur aus der Hilfe der CLI abgeleitet war: Ein
+Aufruf ohne Trockenlauf hätte **beide** angewandt, und Abschnitt B von
+Migration 14 wäre nie prüfbar gewesen.
 - **Wenn nur eine Datei dasteht:** Dann ist eine der beiden schon angewandt.
   Nicht weitermachen – erst `npx --yes supabase@latest migration list
   --linked` ansehen und klären, welche.
@@ -75,7 +94,15 @@ npx --yes supabase@latest db push --linked --dry-run
 - [ ] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitte A1 bis A5, im SQL
       Editor. Werte notieren.
 - **Erwartet:** `tabellen 16 · spalten 101 · regeln 28 · funktionen 38 ·
-  trigger 13`; A4 zeigt `with_check = (id = auth.uid())`.
+  trigger 13`; A4 zeigt `with_check = (id = auth.uid())`; A5 zeigt
+  `INSERT 5 · SELECT 5 · UPDATE 1`.
+- **A5 gelaufen am 06.10.2026: 5 · 5 · 1 — wie erwartet.** Die Ansicht
+  fächert Tabellenrechte je Spalte auf: `grant insert on profiles` steht
+  dort als fünf Zeilen, weil die Tabelle fünf Spalten hat. Nach Migration 14
+  steht dort **3**, und dann ist es ein echtes Spaltenrecht.
+- **Noch offen:** A1 bis A4. Ohne die Ausgangszahlen lässt sich nachher
+  nicht zeigen, dass Regeln, Tabellen, Spalten und Nutzdaten unverändert
+  geblieben sind.
 - **Danach:** Nichts. Alles in A ist lesend.
 
 **A3.3 Die Migration ausführen – in einer Transaktion**

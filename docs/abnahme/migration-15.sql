@@ -106,6 +106,21 @@ select grantee, column_name
 -- fremdes Konto stilllegen, und das ist ausdrücklich keine Befugnis in
 -- diesem Produkt.
 
+-- B6b · Was beim **Lesen** dazukommt, und warum das in Ordnung ist
+-- Erwartet: INSERT 3 · SELECT 6 · UPDATE 1 (vorher SELECT 5).
+-- `grant select on profiles` gilt für die ganze Tabelle, also auch für die
+-- neue Spalte. Zwei Folgen, beide bedacht:
+--   • Eine stillgelegte Person kann ihr eigenes `disabled_at` lesen. Gut so:
+--     Es ist ihr Zustand.
+--   • Eine Lehrkraft sieht es bei den Profilen, die sie ohnehin sieht
+--     (`app_sees_profile`, also ihre Kursmitglieder). Das ist keine Aussage
+--     über das Lernen und bleibt deshalb offen — eine Spaltenverengung
+--     dafür wäre eine neue Entscheidung, keine Nebensache dieser Migration.
+select privilege_type, count(*) as spalten
+  from information_schema.role_column_grants
+ where table_schema = 'public' and table_name = 'profiles' and grantee = 'authenticated'
+ group by 1 order by 1;
+
 -- B7 · Historie
 -- Erwartet: 15 Versionen, zuletzt 20261005090000.
 -- Hier steht die Zahl **ohne** Nachtrag richtig: `db push` schreibt die
