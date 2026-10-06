@@ -76,11 +76,16 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+
+      - name: Portable Dateien bauen
+        run: npm run build:portable
+
       - run: npm run e2e:portable
+
       - run: npm run e2e:portal
 
       - name: Portable Dateien und Größenwacht
-        run: npm run build:portable && npm run verify:portable
+        run: npm run verify:portable
 
   ausliefern:
     name: Auf die Pilotadresse

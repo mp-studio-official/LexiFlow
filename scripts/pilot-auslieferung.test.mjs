@@ -85,6 +85,14 @@ describe('GitHub Pages bekommt nur das frisch geprüfte Artefakt', () => {
     expect(ablauf).toMatch(/actions\/upload-pages-artifact@v4[\s\S]*?path:\s*dist/);
   });
 
+  it('baut die portablen Dateien, bevor ihre Browserprüfung beginnt', () => {
+    const bauen = ablauf.indexOf('npm run build:portable');
+    const pruefen = ablauf.indexOf('npm run e2e:portable');
+
+    expect(bauen).toBeGreaterThan(-1);
+    expect(pruefen).toBeGreaterThan(bauen);
+  });
+
   it('baut nach der Prüfkette in einem frischen Auftrag', () => {
     expect(ablauf).toMatch(/ausliefern:[\s\S]*?needs:\s*pruefen/);
     const ausliefern = ablauf.slice(ablauf.indexOf('  ausliefern:'));
