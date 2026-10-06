@@ -319,89 +319,73 @@ npx --yes supabase@latest db push --linked --skip-vault
 
 ---
 
-## Teil B – Der Live-Happy-Path
+## Teil B – Der Live-Happy-Path, in einem Durchgang
 
-Dieser Teil holt nach, was `inbetriebnahme-staging.md` §0.5 als offen
-führt. Er läuft auf der **Pilotadresse**, nicht lokal.
+Dieser Teil holt nach, was `inbetriebnahme-staging.md` §0.5 als offen führt:
+Veröffentlichen, beide Lernrichtungen, Synchronisieren, Archivieren. Er
+läuft auf der **Pilotadresse**, nicht lokal.
 
-### B1 Lehrkraft anmelden
+**Er ist ein Durchgang, keine Liste.** Die zwölf Schritte hängen aneinander
+– ohne veröffentlichte Fassung gibt es nichts zuzuweisen, ohne Zuweisung
+nichts zu üben. Wer mittendrin abbricht, fängt bei B2 wieder an.
 
-- [ ] **Tun:** Pilotadresse öffnen, anmelden.
-- **Erwartet:** Oben steht das Band „Pilotfassung 0.1 …". Danach der Start
-  der Lehrkraft.
-- **Danach:** Eine Sitzung besteht.
+### Vorher bereitlegen
 
-### B2 Kurs anlegen
+- Zwei Geräte oder zwei Browser (für B9/B10 zwingend: zwei **Sitzungen**
+  derselben lernenden Person).
+- Ein drittes Fenster oder ein privates Fenster für die Lehrkraft.
+- Eine fertige Paketdatei mit **mindestens zwölf** Einträgen – zehn ist die
+  Lerntagsschwelle, und darunter zeigt „Heute" nichts Belastbares.
+- Testnamen, die als Test erkennbar sind: `Probe Fuchs`, `Probe Dachs`.
+  **Keine echten Namen, keine echten Lernenden** – Teil E ist nicht fertig.
 
-- [ ] **Tun:** Kurse → Neuer Kurs.
-- **Erwartet:** Der Kurs steht in der Liste.
+### Der Durchgang
 
-### B3 Paket übernehmen
+| # | Schritt | Erwartet | §0.5 |
+| --- | --- | --- | --- |
+| 1 | Pilotadresse öffnen, als Lehrkraft anmelden | **Sichtprüfung:** das Pilotband steht oben, auf dieser und jeder weiteren Seite | belegt |
+| 2 | Kurse → Neuer Kurs | Der Kurs steht in der Liste | belegt |
+| 3 | Material → Übernehmen, Paketdatei wählen | Das Paket steht als Entwurf im Konto | — |
+| 4 | Dieselbe Datei **noch einmal** übernehmen | **Dasselbe** Paket, kein zweites (ADR-4) | — |
+| 5 | Material → Veröffentlichen | Eine Fassung entsteht, Nummer 1 | **§6.7** |
+| 6 | Material → Zuweisen | Das Paket erscheint im Kurs | belegt |
+| 7 | Kurs → Einladungscode, Gültigkeit und Plätze setzen | Acht Zeichen | belegt |
+| 8 | Im zweiten Browser beitreten: `Probe Fuchs` | **Sichtprüfung:** Lern-ID und Wiederherstellungscode erscheinen, **je einmal**. Beide abschreiben – sie sind danach weg | belegt |
+| 9 | Im dritten Fenster beitreten: `Probe Dachs` | dito | belegt |
+| 10 | Als `Probe Fuchs` je eine Runde in **beiden** Richtungen, über **alle vier** Übungsformen: Karteikarten, Selbsttest, freies Üben, Vokabelliste. Mindestens zwölf Aufgaben insgesamt | Jede Form startet und zählt; „Heute" zeigt danach einen Lerntag | **§6.7** |
+| 11 | Dieselbe Person auf dem **zweiten** Gerät anmelden | **Sichtprüfung:** derselbe Lernstand, dieselbe Serie | **§6.8** |
+| 12 | Auf **beiden** Geräten üben, ohne dazwischen neu zu laden | **Sichtprüfung:** kein stiller Verlust – das zweite Gerät meldet den Konflikt, statt den Stand des ersten zu überschreiben | **§6.9** |
+| 13 | Als Lehrkraft den Kurs archivieren, dann als `Probe Fuchs` weiterüben | Die Gruppe übt weiter, der Lernstand läuft mit; niemand kommt neu hinzu, alte Codes führen nicht mehr hinein (ADR-12) | **§6.10** |
 
-- [ ] **Tun:** Material → Übernehmen, eine bestehende Paketdatei wählen.
-- **Erwartet:** Das Paket steht als Entwurf im Konto.
-- [ ] **Tun:** Dieselbe Datei ein zweites Mal übernehmen.
-- **Erwartet:** **Dasselbe** Paket, kein zweites (ADR-4).
+### Die vier Stellen, an denen wirklich jemand hinsehen muss
 
-### B4 Veröffentlichen — §6.7
+Alles andere ist „klappt oder klappt nicht" und meldet sich von selbst.
+Diese vier melden sich **nicht**, wenn sie falsch laufen:
 
-- [ ] **Tun:** Material → Veröffentlichen.
-- **Erwartet:** Eine Fassung entsteht, Nummer 1.
-- **Danach:** Es gibt eine unveränderliche Fassung. Der Entwurf lässt sich
-  weiter bearbeiten, ohne dass die Lerngruppe etwas davon sieht.
+1. **Schritt 1 – das Pilotband.** Eine Auslieferung ohne Band sieht aus wie
+   ein fertiges Produkt. `verify:deploy` prüft, dass der Text im Bündel
+   steht; dass er auch **sichtbar** ist, sieht nur ein Mensch.
+2. **Schritt 8/9 – Lern-ID und Wiederherstellungscode.** Sie erscheinen
+   genau einmal. Wer hier nicht mitschreibt, merkt es erst, wenn jemand sein
+   Kennwort vergisst – und dann ist es zu spät.
+3. **Schritt 11 – derselbe Stand.** Ein leerer Stand auf dem zweiten Gerät
+   sieht aus wie „noch nichts geübt" und nicht wie ein Fehler.
+4. **Schritt 12 – der Revisionskonflikt.** Der gefährlichste Fall im ganzen
+   Protokoll: Wenn das zweite Gerät den Stand des ersten **stillschweigend**
+   überschreibt, sieht man nichts. Man sieht nur später, dass etwas fehlt.
+   Deshalb vorher notieren, in welchem Fach ein bestimmtes Wort steht, und
+   nachher nachsehen.
 
-### B5 Kurs zuweisen
+### Danach
 
-- [ ] **Tun:** Zuweisen.
-- **Erwartet:** Das Paket erscheint im Kurs.
-
-### B6 Einladungscode
-
-- [ ] **Tun:** Kurs → Einladungscode, Gültigkeit und Plätze setzen.
-- **Erwartet:** Acht Zeichen.
-- **Danach:** Der Code steht **nirgends** gespeichert – nur sein
-  Fingerabdruck.
-
-### B7 Zwei Lernende treten bei
-
-- [ ] **Tun:** In einem **anderen** Browser (oder privaten Fenster) beitreten,
-      zweimal.
-- **Erwartet:** Je eine Lern-ID und ein Wiederherstellungscode, je **einmal**
-  sichtbar. Beide notieren.
-- **Danach:** Zwei Konten, beide `student`.
-
-### B8 Beide Lernrichtungen und die Übungsformen — §6.7
-
-- [ ] **Tun:** Als Lernende üben: Englisch → Deutsch **und** Deutsch →
-      Englisch; Karteikarten, Selbsttest, freies Üben, Vokabelliste.
-- **Erwartet:** Jede Form startet und zählt.
-- **Danach:** Es gibt Lernstand und Ereignisse.
-
-### B9 Fortschritt synchronisieren — §6.8
-
-- [ ] **Tun:** Dieselbe Person auf einem **zweiten** Gerät anmelden.
-- **Erwartet:** Derselbe Stand.
-- **Danach:** Der Lernstand hängt am Konto, nicht am Gerät.
-
-### B10 Revisionskonflikt — §6.9
-
-- [ ] **Tun:** Auf beiden Geräten üben, ohne dazwischen neu zu laden.
-- **Erwartet:** Kein stiller Verlust: Das zweite Gerät merkt den Konflikt.
-- **Danach:** Der beschriebene Konfliktweg ist einmal wirklich gelaufen.
-
-### B11 Archivieren und weiterlernen — §6.10
-
-- [ ] **Tun:** Kurs archivieren, dann als Lernende weiterüben.
-- **Erwartet:** Die Gruppe übt weiter, der Lernstand läuft weiter; niemand
-  kommt neu hinzu, alte Codes führen nicht mehr hinein (ADR-12).
-
-### B12 §0.5 berichtigen
-
+- [ ] **Tun:** Schritte 1 bis 13 durchlaufen und die vier Sichtprüfungen
+      festhalten.
 - [ ] **Tun:** Die Zeilen 6.7 bis 6.10 in `inbetriebnahme-staging.md` §0.5
       auf **belegt** setzen.
 - **Danach:** Prüfung 5 wird grün.
+- [ ] **Tun:** Die Testkonten stehen lassen – Teil C und D arbeiten damit
+      weiter, und `Probe Loeschen` aus der Löschprobe kommt noch dazu.
 
----
 
 ## Teil C – Rollen, Rechte, Wiederherstellung
 
@@ -490,47 +474,106 @@ führt. Er läuft auf der **Pilotadresse**, nicht lokal.
 
 ## Teil E – Datenschutz, Support, Sicherung, Rückfall
 
-### E1 Einwilligung und Hinweis
+**Dieser Teil steht vor der Auslieferung an Menschen, nicht danach.**
+Solange er offen ist, arbeitet der Pilot ausschließlich mit künstlichen
+Testkonten; die Adresse geht an keine Lehrkraft, keine Lernenden und keine
+Erziehungsberechtigten.
 
-- [ ] **Tun:** Die Erziehungsberechtigten der Lerngruppe informieren; den
-      Datenschutzhinweis im Portal gegenlesen.
-- **Erwartet:** Es steht dort, **was** gespeichert wird (Pseudonym,
-  Kurzkennung, Lernstand), **was nicht** (kein Klarname, keine E-Mail für
-  Lernende, keine Lernzeit) und **wer es sieht**.
+### E1 Information für Erziehungsberechtigte und Lernende
+
+- [ ] **Tun:** `docs/pilot-information-eltern.md` durchgehen, die eckigen
+      Klammern ausfüllen (Schule, Ansprechperson, Enddatum) und verteilen.
+- **Erwartet:** Das Blatt sagt, **was** gespeichert wird (Pseudonym,
+  Kurzkennung, Lern-ID, Lernstand), **was nicht** (kein Klarname, keine
+  E-Mail, keine Lernzeit), **wer es sieht** (die Lehrkraft nur die
+  Mitgliedschaft) und **wie es wieder weggeht**.
 - **Danach:** Der Pilot hat eine Grundlage. Ohne diesen Punkt beginnt er
   nicht.
 
-### E2 Löschen auf Zuruf
+> **Vorbereitet am 06.10.2026, noch nicht verteilt.** Ein Blatt mit `[…]`
+> darin ist keine Information.
 
-- [ ] **Tun:** Den Weg aufschreiben, wie ein Konto samt Lernstand gelöscht
-      wird, wenn jemand es verlangt. Einmal durchspielen.
-- **Erwartet:** Es gibt einen Weg, und jemand hat ihn gemacht.
-- **Danach:** „Wir löschen das dann" ist keine Behauptung mehr.
+### E2 Löschen auf Zuruf – praktisch belegt
+
+- [ ] **Tun:** `docs/pilot-loeschprobe.md` abarbeiten, L0 bis L7.
+- **Erwartet:** Acht Zählwerte auf **0** für das Probekonto, **unverändert**
+  für ein zweites Testkonto, Kurs und Paket stehen noch.
+- **Danach:** Der Satz „ein Wort genügt" im Elternblatt ist belegt.
+
+> **Vorbereitet am 06.10.2026, noch nichts gelöscht.** Die Probe läuft mit
+> einem Konto namens `Probe Loeschen`, das eigens dafür angelegt wird – nie
+> mit dem Konto einer echten Person. Sie setzt Teil B voraus, weil es vorher
+> nichts zu löschen gibt.
 
 ### E3 Ansprechperson
 
-- [ ] **Tun:** In `docs/anleitung-portal-lehrkraft.md` die drei Zeilen
-      ausfüllen: Name, Weg, Reaktionszeit.
+- [ ] **Tun:** In `docs/anleitung-portal-lehrkraft.md` **und** im
+      Elternblatt dieselbe Person eintragen: Name, Weg, Reaktionszeit.
+- **Erwartet:** Zwei Dokumente, eine Person. Stehen dort zwei verschiedene,
+  meldet am Ende niemand etwas.
 
-### E4 Sicherung
+### E4 Sicherung — **offen, und ein Pilotblocker**
 
-- [ ] **Tun:** Im Dashboard nachsehen, **wie oft** gesichert wird und wie
-      lange die Sicherungen bleiben. Eintragen.
-- **Erwartet:** Zwei Zahlen, keine Vermutung.
+> **Befund vom 06.10.2026, im Dashboard abgelesen.** Das Stagingprojekt
+> läuft im **kostenfreien Tarif**. Die tägliche Sicherung um Mitternacht
+> gilt dort **nicht**: Projektsicherungen sind nicht enthalten, planmäßige
+> Sicherungen über sieben Tage gibt es erst im Pro-Tarif.
+>
+> **Es gibt derzeit kein Sicherungsintervall und keine Aufbewahrungsdauer.**
+> Dieser Punkt wird **nicht** abgehakt, und er wird auch nicht durch einen
+> Satz ersetzt.
 
-### E5 Rückfall
+Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 
-- [ ] **Tun:** Die portable Lerndatei aller Pakete bauen und der Lehrkraft
-      **vor** dem Pilot übergeben.
-- [ ] **Tun:** Sie einmal öffnen, ohne Netz.
-- **Erwartet:** Sie läuft.
-- **Danach:** Der Unterricht hängt nicht an der Adresse. Was dabei verloren
-  ginge – der gemeinsame Lernstand – ist bekannt und in Kauf genommen
-  (`docs/pilot-auslieferung.md`).
+| | Weg | Was dann gilt |
+| --- | --- | --- |
+| **a** | **Pro-Tarif vor echten Schülerdaten** | tägliche Sicherung, sieben Tage Aufbewahrung – die Zahlen hier eintragen |
+| **b** | **Ein eigenes Verfahren**, ausdrücklich beschrieben und **praktisch getestet** | Intervall, Ablageort, Aufbewahrungsdauer und ein gelaufener Wiederherstellungsversuch – alles vier, sonst ist es kein Verfahren |
 
----
+- [ ] **Tun:** Entscheidung treffen und eintragen.
+- [ ] **Tun:** Bei (b) zusätzlich: einen Wiederherstellungsversuch
+      durchführen und das Ergebnis festhalten.
+- **Bis dahin:** **nur künstliche Testdaten.** Das ist keine Vorsicht,
+  sondern die einzige Haltung, die zu „es gibt keine Sicherung" passt – ein
+  verlorener Lernstand einer echten Lerngruppe wäre nicht
+  wiederherstellbar.
+
+### E5 Rückfall: die portable Lerndatei
+
+**Technisch belegt am 06.10.2026.** Die portablen Dateien sind neu gebaut:
+
+| Datei | SHA-256 |
+| --- | --- |
+| `LexiFlow-Lehrkraft.html` | `816ebfcd06599811456ed6fb691bbb14dd37febf0f23bcc2384bf875d91dadc7` |
+| `LexiFlow-Lernlaufzeit.html` | `ae26b455ca32c72b5e69ea03f3cd55f13d3b26e025808b7d22b4e4cc10ca9903` |
+
+- `npm run verify:portable`: **32** Prüfungen grün.
+- `npm run e2e:portable`, außerhalb der macOS-Sandbox: **29 von 29** grün,
+  einschließlich `file://` und der Offlinefälle.
+
+- [x] **Technisch:** Die Dateien existieren, sind geprüft und laufen ohne
+      Netz und ohne Konto.
+- [ ] **Offen – die eigentliche Zusage:** Die Dateien liegen **auf dem
+      Rechner der Lehrkraft**, sie hat sie **einmal selbst geöffnet**, und
+      sie weiss, dass das der Rückfall ist.
+
+> **Warum das zwei Punkte sind.** Eine Datei, die geprüft im Projektordner
+> liegt, hilft am Mittwoch niemandem. „Der Unterricht hängt nicht an dieser
+> Adresse" ist erst wahr, wenn die Datei dort ist, wo unterrichtet wird.
+> Diese Zeile bleibt offen, bis die Übergabe stattgefunden hat.
+
 
 ## Teil F – Ausliefern
+
+> **Teil F liegt bei Codex.** GitHub-Anbindung, Pilotprojekt, Ablauf, Pages
+> und das Deployment selbst werden dort bearbeitet, ebenso die technische
+> Browserabnahme. Dieses Protokoll führt die Punkte weiter mit, damit der
+> Stand an **einer** Stelle steht – es arbeitet sie nicht parallel ab.
+>
+> **Teil F wird nicht ausgelöst, solange E4 offen ist.** Eine erreichbare
+> Adresse ohne Sicherungsverfahren ist für künstliche Testdaten in Ordnung
+> und für echte Konten nicht. Das ist die Reihenfolge, auf die es hier
+> ankommt.
 
 ### F1 Werte hinterlegen
 
@@ -551,8 +594,13 @@ führt. Er läuft auf der **Pilotadresse**, nicht lokal.
 
 ### F2 Redirect-URL
 
-- [ ] **Tun:** Die Pilotadresse in Supabase als Redirect-URL eintragen.
-- **Erwartet:** Sonst führt die Kennwortwiederherstellung ins Leere.
+- [x] **Tun:** Die Pilotadresse in Supabase als Redirect-URL eintragen.
+- **Erledigt am 06.10.2026.** Eingetragen ist
+  `https://mp-studio-official.github.io/LexiFlow-Pilot/portal/**`; nach dem
+  Neuladen steht der Eintrag in der Liste.
+- **Danach:** Die Kennwortwiederherstellung einer Lehrkraft findet von der
+  Pilotadresse aus zurück. `LEXIFLOW_ALLOWED_ORIGINS` blieb unberührt – ein
+  Ursprung ist Schema plus Host ohne Pfad, und der Host ist derselbe.
 
 ### F3 Der Lauf
 

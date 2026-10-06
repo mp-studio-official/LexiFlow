@@ -345,6 +345,37 @@ pruefung(
   'Das Protokoll am echten System abarbeiten und die gemessenen Werte eintragen.',
 );
 
+/* ----------------------------------------------------------------- 11 */
+
+pruefung(
+  11,
+  'Für das Stagingprojekt ist ein Sicherungsverfahren belegt',
+  () => {
+    /*
+      Am 06.10.2026 im Dashboard abgelesen: Das Projekt läuft im
+      kostenfreien Tarif, und der enthält **keine** Projektsicherungen.
+      Planmäßige Sicherungen über sieben Tage gibt es erst im Pro-Tarif.
+      Es gibt damit weder ein Intervall noch eine Aufbewahrungsdauer.
+
+      Warum das eine eigene Prüfung bekommt und nicht nur ein offenes
+      Kästchen in Teil E: Weil es der einzige Punkt ist, der nicht den
+      Pilot aufhält, sondern die **echten Daten** darin. Ein Kästchen unter
+      dreiunddreißig anderen wird mitgehakt; eine rote Zeile in dieser
+      Liste nicht.
+
+      Grün wird sie nicht durch einen Satz, sondern durch eine Zeile mit
+      gemessenen Werten – deshalb die wörtliche Marke.
+    */
+    const doku = lies('docs', 'pilot-abnahme.md');
+    if (doku === null) return '`docs/pilot-abnahme.md` fehlt';
+    const marke = doku.match(/SICHERUNG BELEGT:\s*(.+)/);
+    if (marke === null) return 'kein Intervall, keine Aufbewahrungsdauer – nur künstliche Testdaten';
+    if (marke[1].trim().length < 10) return 'die Marke steht da, aber ohne Werte';
+    return true;
+  },
+  'Entweder Pro-Tarif (dann Intervall und Aufbewahrung eintragen) oder ein beschriebenes und getestetes eigenes Verfahren – in Teil E4 als Zeile „SICHERUNG BELEGT: …".',
+);
+
 /* --------------------------------------------------------------- Bericht */
 
 const breite = Math.max(...ergebnisse.map((e) => e.titel.length));

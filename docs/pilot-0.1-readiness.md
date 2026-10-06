@@ -237,21 +237,27 @@ Drei Abhängigkeiten sind echt und nicht verhandelbar:
 
 ## 3. Die Prüfungen – Stand nach A bis G
 
-`npm run pilot:pruefen` prüft zehn Punkte. Sieben stehen; die drei offenen
+`npm run pilot:pruefen` prüft elf Punkte. Acht stehen; die drei offenen
 sind genau die Handlungen, die ein Mensch am echten System tun muss.
+
+> **Stand 06.10.2026.** Prüfung 4 ist grün: Migration 14 wurde im SQL Editor
+> angewandt und die Historie nachgetragen, Migration 15 danach einzeln per
+> `db push` – beide gemessen, beide Protokolle umgeschrieben. Prüfung 11 ist
+> neu und von Anfang an rot (siehe unten).
 
 | # | Prüfung | Stand |
 | --- | --- | --- |
 | 1 | Der Auslieferungsweg für den Pilotzweig ist bereit | **grün** |
 | 2 | Der Rollenriegel liegt bereit (Migration 14) | **grün** |
 | 3 | Der Sperrweg liegt bereit (Migration 15) | **grün** |
-| 4 | Die Migrationen 14 und 15 sind im Staging angewandt | **rot** |
+| 4 | Die Migrationen 14 und 15 sind im Staging angewandt | **grün** (06.10.2026) |
 | 5 | Der Happy-Path 6.7 bis 6.10 ist im Staging belegt | **rot** |
 | 6 | Die Anwendung trägt eine Pilotkennzeichnung | **grün** |
 | 7 | KI ist bestimmt gesperrt, nicht zufällig aus | **grün** |
 | 8 | Jede Ansicht, die Daten holt, kennt den Verbindungsfehler | **grün** |
 | 9 | Es gibt Anleitungen für das Portal – für beide Seiten | **grün** |
 | 10 | Das Pilot-Abnahmeprotokoll ist abgearbeitet | **rot** |
+| 11 | Für das Stagingprojekt ist ein Sicherungsverfahren belegt | **rot** |
 
 > **Zwei Prüfungen aus der ersten Fassung sind weggefallen, und warum.**
 >
@@ -325,9 +331,11 @@ ist unverändert.
 | Ein Weg, ein Konto stillzulegen (Migration 15) | **liegt bereit**, Folge B des Protokolls (A4) |
 | Offene Registrierung aus | Teil A1 |
 | Happy-Path 6.7–6.10 am echten Staging | Teil B |
-| Datenschutzhinweis und Löschweg für Minderjährige | Teil E1, E2 |
+| Datenschutzhinweis und Löschweg für Minderjährige | **vorbereitet** – `docs/pilot-information-eltern.md`, `docs/pilot-loeschprobe.md`; beide noch nicht ausgeführt |
 | Benannte Ansprechperson | Teil E3 |
-| Rückfall: portable Lerndatei in der Hand der Lehrkraft | Teil E5 |
+| **Ein Sicherungsverfahren** | **offen und blockierend** – siehe 6.1 |
+| Rückfall: portable Lerndatei – technisch | **belegt** (06.10.2026): 32 + 29 Prüfungen grün, Prüfsummen in Teil E5 |
+| Rückfall: portable Lerndatei – **übergeben** | **offen.** Eine geprüfte Datei im Projektordner hilft am Mittwoch niemandem |
 | Anleitungen für beide Seiten | **gebaut** |
 | Öffentliche Adresse mit dem echten Stand | Teil F |
 
@@ -360,9 +368,38 @@ ist unverändert.
 
 ## 6. Was offen bleibt – und bei wem
 
-Keine Produktentscheidung mehr offen. Was bleibt, sind Handlungen am echten
-System (`docs/pilot-abnahme.md`) und **eine** Frage, die beim Abarbeiten
-auftauchen wird:
+### 6.1 Die Sicherung – eine Entscheidung, und sie blockiert
+
+> **Befund vom 06.10.2026.** Das Stagingprojekt läuft im kostenfreien Tarif
+> von Supabase. Der enthält **keine** Projektsicherungen; planmäßige
+> Sicherungen über sieben Tage gibt es erst im Pro-Tarif. Es gibt damit
+> derzeit **kein Sicherungsintervall und keine Aufbewahrungsdauer**.
+>
+> Die frühere Zeile in diesem Dokument („Supabase-eigene Sicherungen") war
+> damit falsch. Sie stand da, weil ich angenommen habe, was im Dashboard
+> allgemein über tägliche Sicherungen steht, gelte auch für dieses Projekt.
+
+Vor dem ersten echten Konto ist zu entscheiden:
+
+| | Weg | Was dann gilt |
+| --- | --- | --- |
+| **a** | Pro-Tarif vor echten Schülerdaten | tägliche Sicherung, sieben Tage Aufbewahrung |
+| **b** | Ein eigenes Verfahren, beschrieben **und** praktisch getestet | Intervall, Ablageort, Aufbewahrungsdauer und ein gelaufener Wiederherstellungsversuch – alle vier |
+
+**Bis dahin: nur künstliche Testdaten.** Ein verlorener Lernstand einer
+echten Lerngruppe wäre nicht wiederherstellbar, und das ist keine Lage, in
+die man eine Schulklasse bringt.
+
+### 6.2 Wer gerade was macht
+
+| | |
+| --- | --- |
+| **Codex** | GitHub-Anbindung, Pilotprojekt, Ablauf, Pages, Deployment, technische Browserabnahme |
+| **Hier** | Protokolle, Elternblatt, Löschprobe, Prüfungen, Datenbank |
+
+Teil F wird in diesem Protokoll mitgeführt, aber nicht parallel abgearbeitet.
+
+### 6.3 Eine Frage, die beim Abarbeiten auftauchen wird
 
 > **Darf eine Lehrkraft ein Konto über ihren eigenen Kurs hinaus
 > stilllegen?** Heute nicht: `authenticated` hat auf `disabled_at` kein
