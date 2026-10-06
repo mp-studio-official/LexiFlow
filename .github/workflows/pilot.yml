@@ -37,6 +37,7 @@ on:
       bestaetigung:
         description: 'Zum Ausliefern genau „pilot" eintippen.'
         required: true
+        type: string
         default: ''
 
 permissions:

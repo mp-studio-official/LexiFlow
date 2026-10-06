@@ -1221,6 +1221,26 @@ a {
 }
 
 /*
+  Auf dem Telefon stehen die Werkzeuge in einer eigenen Zeile.
+
+  Drei Bedienflächen plus „Entfernen“ passen bei 390 px auf dem Mac noch
+  gerade neben Motiv und Titel. Auf dem Linux-Browser der Prüfkette ist die
+  Schrift minimal breiter; dort ragte die Zeile zwei Pixel über das Fenster.
+  Eine eigene Werkzeugzeile ist unabhängig von Schriftmetriken und lässt dem
+  Pakettitel zugleich den Platz, den er zum Umbruch braucht.
+*/
+@media (max-width: 32rem) {
+  .area-item {
+    flex-wrap: wrap;
+  }
+  .area-item__tools {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    min-inline-size: 0;
+  }
+}
+
+/*
   Die Nummer vor einem gewählten Paket.
 
   Sie steht nur in der linken Liste, weil nur dort eine Reihenfolge gilt. Der
