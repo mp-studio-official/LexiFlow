@@ -227,20 +227,31 @@ npx --yes supabase@latest db push --linked --dry-run
 
 **A4.1 Der Trockenlauf**
 
-- [ ] **Tun:**
+- [x] **Tun:**
 
 ```
 npx --yes supabase@latest db push --linked --dry-run
 ```
 
 - **Erwartet:** **Genau eine** Datei: `20261005090000_konto_stilllegen`.
+- **Gelaufen am 06.10.2026: genau diese eine.**
 - **Wenn zwei dastehen:** Folge A ist nicht abgeschlossen. Zurück zu A3.5.
 
 **A4.2 Die Lage vorher messen**
 
-- [ ] **Tun:** `docs/abnahme/migration-15.sql`, Abschnitte A1 bis A3.
-- **Erwartet:** `spalten 101 · funktionen 39 · trigger 14` – also genau der
-  Stand, den Folge A hinterlassen hat.
+- [x] **Tun:** `docs/abnahme/migration-15.sql`, Abschnitte A1 bis A3.
+- **Gelaufen am 06.10.2026. Alle drei wie erwartet:**
+
+| | gemessen |
+| --- | --- |
+| A1 Schema | `16 · 101 · 28 · 39 · 14` – genau der Stand, den Folge A hinterlassen hat |
+| A2 Nutzdaten | 4 Profile · 2 Kurse · 4 Mitgliedschaften · 2 Pakete · 3 Fassungen · 2 Eintragsstände · 4 Ereignisse |
+| A3 Regeln | genau sechs; **keine** nennt `app_account_is_active` |
+
+- **Zu A3:** Das ist der Ausgangspunkt, gegen den B5 vergleicht. Migration 15
+  legt diese sechs ab und legt sie neu an – nachher muss der Schalter in
+  jeder stehen. Stünde er jetzt schon irgendwo, wäre die Migration teilweise
+  gelaufen, und das wäre der Fall zum Anhalten.
 
 **A4.3 Anwenden**
 

@@ -1,7 +1,9 @@
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Abnahme Migration 15 — ein Konto stilllegen                         ║
 -- ║  NOCH NICHT AUSGEFÜHRT. Vorbereitet am 02.10.2026.                   ║
--- ║  Erst wenn 14 in der Historie steht. A vorher, B danach.             ║
+-- ║  Abschnitt A gelaufen am 06.10.2026: 16 · 101 · 28 · 39 · 14;        ║
+-- ║  Nutzdaten 4/2/4/2/3/2/4; sechs Regeln ohne den Schalter.            ║
+-- ║  Migration 14 steht seit 06.10.2026 in der Historie.                 ║
 -- ║  Nichts hier verändert Daten.                                        ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
 --
