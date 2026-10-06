@@ -1,7 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Abnahme Migration 14 — Rollenriegel bei der Selbstanlage            ║
 -- ║  NOCH NICHT AUSGEFÜHRT. Vorbereitet am 02.10.2026.                   ║
--- ║  Abschnitt A gelaufen am 06.10.2026, alle fünf Werte wie erwartet.   ║
 -- ║  Für den Supabase SQL Editor; B bleibt jederzeit wiederholbar.       ║
 -- ║  A vor dem Anwenden, B danach. Nichts hier verändert Daten.          ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
@@ -74,21 +73,7 @@ select polname, pg_get_expr(polwithcheck, polrelid) as with_check
    and polname = 'profiles_insert_self';
 
 -- A5 · Die Rechte auf `profiles`, vorher
--- Erwartet VORHER, gemessen am Prüfstand: INSERT 5 · SELECT 5 · UPDATE 1
---
--- Achtung, diese Zahlen sind leicht misszuverstehen. `role_column_grants`
--- listet **auch Tabellenrechte**, und zwar je Spalte aufgefächert:
--- `grant insert on profiles` erscheint dort als fünf Zeilen, weil die
--- Tabelle fünf Spalten hat. „5" heisst hier also nicht „fünf einzeln
--- vergebene Spalten", sondern „die ganze Tabelle".
---
--- Nur `UPDATE 1` ist ein echtes Spaltenrecht (`display_name`, Migration 3).
---
--- Nach Migration 14 steht dort INSERT **3** – dann ist es ein echtes
--- Spaltenrecht, und das ist der sichtbare Unterschied. SELECT bleibt 5.
--- (Eine frühere Fassung dieser Zeile behauptete „Spaltenebene nur
--- display_name". Das war falsch und hätte beim Lesen der Ausgabe für
--- Verwirrung gesorgt.)
+-- Erwartet VORHER: Tabellenebene INSERT,SELECT · Spaltenebene nur display_name (UPDATE)
 select privilege_type, count(*) as spalten
   from information_schema.role_column_grants
  where table_schema = 'public' and table_name = 'profiles' and grantee = 'authenticated'
@@ -137,7 +122,6 @@ select polname, pg_get_expr(polwithcheck, polrelid) as with_check
 
 -- B5 · Riegel 1: INSERT nur noch auf drei Spalten
 -- Erwartet drei Zeilen: display_name · id · short_code
--- Die Zählung aus A5 steht dann auf INSERT 3 · SELECT 5 · UPDATE 1.
 select column_name
   from information_schema.role_column_grants
  where table_schema = 'public' and table_name = 'profiles'

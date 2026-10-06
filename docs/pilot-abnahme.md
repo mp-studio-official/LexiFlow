@@ -124,9 +124,10 @@ einer zweiten Fassung davon, die irgendwann abweicht:
 printf 'begin;\n'; cat supabase/migrations/20261004090000_rollenriegel.sql; printf '\ncommit;\n'
 ```
 
-- [ ] **Tun:** Diese Ausgabe vollständig in ein neues Query im SQL Editor
+- [x] **Tun:** Diese Ausgabe vollständig in ein neues Query im SQL Editor
       einfügen und ausführen. Es sind 129 Zeilen; die erste ist `begin;`,
       die letzte `commit;`.
+- **Gelaufen am 06.10.2026: „Success. No rows returned."**
 
 - **Erwartet:** „Success. No rows returned."
 - **Danach:** Riegel 1 bis 3 stehen. Die Historie **noch nicht**.
@@ -138,13 +139,29 @@ printf 'begin;\n'; cat supabase/migrations/20261004090000_rollenriegel.sql; prin
 
 **A3.4 Nachher messen – bevor irgendetwas nachgetragen wird**
 
-- [ ] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitte B1 bis B8.
-- **Erwartet:** `funktionen 39 · trigger 14`; Regeln (28), Tabellen (16),
-  Spalten (101) und **alle** Nutzdaten unverändert gegenüber A2; B4 nennt
-  `role = 'student'`; B5 genau drei Spalten; B8 `prosecdef = false`.
-- [ ] **Tun:** B9 ausführen.
-- **Erwartet:** **13** Versionen, zuletzt `20261003090000`. Das ist richtig
-  so: Der Editor schreibt keine Historie.
+- [x] **Tun:** `docs/abnahme/migration-14.sql`, Abschnitte B1 bis B8.
+- [x] **Tun:** B9 ausführen.
+- **Gelaufen am 06.10.2026. Alle neun wie erwartet:**
+
+| | gemessen | Vergleich |
+| --- | --- | --- |
+| B1 Schema | `16 · 101 · 28 · **39** · **14**` | Funktionen +1, Trigger +1; Tabellen, Spalten und Regeln unverändert |
+| B2 Nutzdaten | identisch mit A2 | keine Zeile angefasst |
+| B3 Rollen | identisch mit A3 | niemand hat eine andere Rolle bekommen |
+| B4 Regel | `id = auth.uid()` **und** `role = 'student'` | Riegel 2 steht |
+| B5 INSERT | `display_name · id · short_code` | Riegel 1 steht – `role` ist nicht dabei |
+| B6 UPDATE | `display_name` | unverändert |
+| B7 Tabellenebene | nur `SELECT` | das Tabellenrecht auf INSERT ist weg |
+| B8 Auslöser | `profiles_block_self_role_change · O · app_block_self_role_change · false` | Riegel 3 steht, und **mit Aufruferrechten** |
+| B9 Historie | `13` Versionen, zuletzt `20261003090000` | richtig: Der Editor schreibt keine Historie |
+
+- **Zu B8:** `prosecdef = false` ist der Wert, an dem es hängt. Mit
+  Besitzerrechten wäre `current_user` der Besitzer, der Vergleich träfe nie
+  zu, und Riegel 3 wäre eine Zeile, die nur so aussieht, als täte sie etwas.
+  Genau das war mein erster Entwurf.
+- **Zu B1:** Die Regeln stehen auf 28, obwohl Migration 14 eine ablegt und
+  eine anlegt. Das ist die Probe darauf, dass beides passiert ist – eine
+  Regel mehr oder weniger hiesse, dass `drop` oder `create` nicht lief.
 
 > **Diese Reihenfolge ist der Sinn der Sache.** Der Nachtrag unten markiert
 > eine Fassung als angewandt, **ohne sie auszuführen**. Würde er vor der
