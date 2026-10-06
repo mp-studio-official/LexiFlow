@@ -534,9 +534,20 @@ führt. Er läuft auf der **Pilotadresse**, nicht lokal.
 
 ### F1 Werte hinterlegen
 
-- [ ] **Tun:** Pilotprojekt anlegen, Pages einschalten, Variablen und das
-      eine Geheimnis hinterlegen – alles nach `docs/pilot-auslieferung.md`.
+- [ ] **Tun:** Den Sprintzweig nach `github.com/mp-studio-official/LexiFlow`
+      hochladen. `git remote -v` ist hier leer – ohne Remote gibt es keinen
+      Ablauf, der laufen könnte.
+- [ ] **Tun:** Standardzweig auf den Pilotzweig umstellen (*Settings →
+      General → Default branch*). `workflow_dispatch` verlangt den
+      Standardzweig; `main` bleibt dabei Commit für Commit unberührt.
+- [ ] **Tun:** Pilotprojekt `LexiFlow-Pilot` anlegen (öffentlich, leer).
+- [ ] **Tun:** Vier Variablen und **ein** Secret im Arbeitsprojekt
+      hinterlegen – alles nach `docs/pilot-auslieferung.md`.
       **Nichts davon in den Chat.**
+- [ ] **Tun:** Pages erst **nach** dem ersten Lauf auf `gh-pages` stellen –
+      vorher gibt es den Zweig nicht.
+- **Erwartet:** Vier Variablen (alle vier dürfen öffentlich sein), ein
+  Fine-grained Token mit `Contents: write` auf genau ein Projekt.
 
 ### F2 Redirect-URL
 

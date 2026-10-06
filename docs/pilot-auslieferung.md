@@ -28,6 +28,54 @@ Der Vollständigkeit halber die Alternativen, und warum sie es nicht sind:
 | `gh-pages`-Zweig im selben Projekt | dieselbe Adresse wie `main`, nur aus einem anderen Zweig |
 | Eigene Domain | möglich und sauber, aber eine Entscheidung mit Kosten und DNS – nicht für 0.1 |
 
+## Zwei Dinge, die vorher zu klären sind
+
+### 0.1 Dieser Zweig liegt noch auf keinem Server
+
+`git remote -v` in diesem Projektordner ist **leer**. Die 147 Commits des
+Sprintzweigs stehen ausschliesslich auf dem Arbeitsrechner. Ohne ein Remote
+gibt es keinen Ablauf, der laufen könnte – Actions laufen bei GitHub, nicht
+hier.
+
+`docs/inbetriebnahme-staging.md` nennt als Ziel
+`github.com/mp-studio-official/LexiFlow` (§1.2.2, §9.1) und verlangt dort
+ausdrücklich: Hat es Inhalt, **nicht** überschreiben, erst klären.
+
+Der Zweig gehört also hochgeladen, und zwar **als Zweig** – `main` bleibt
+dabei unberührt:
+
+```
+git remote add origin https://github.com/mp-studio-official/LexiFlow.git
+git push -u origin sprint/5a-cloud-portal-foundation
+```
+
+### 0.2 `workflow_dispatch` verlangt den Standardzweig
+
+Das ist keine Vermutung, es steht in der GitHub-Dokumentation:
+
+> „To trigger the `workflow_dispatch` event, your workflow must be in the
+> default branch."
+
+`pilot.yml` liegt auf dem Sprintzweig. Standardzweig ist `main`. Damit
+erscheint die Schaltfläche „Run workflow" **nicht**, und auch der Weg über
+die API findet den Ablauf nicht.
+
+Drei Wege, und nur zwei kommen in Frage:
+
+| Weg | Urteil |
+| --- | --- |
+| **Standardzweig auf den Pilotzweig umstellen** (Settings → General → Default branch) | **empfohlen.** Das ist eine Projekteinstellung und ändert an `main` keinen einzigen Commit. Mit einem Klick zurückzustellen. |
+| `pilot.yml` nach `main` committen | **nein** – das ändert `main`, und genau das ist untersagt |
+| Statt `workflow_dispatch` ein `push` auf einen eigenen Auslieferungszweig | möglich, denn `push` kennt die Standardzweig-Regel nicht – aber es heisst wieder „ausgeliefert wird, weil jemand committet hat". Der Rückfall, falls der Standardzweig nicht bewegt werden soll. |
+
+> **Was „Standardzweig umstellen" bedeutet und was nicht.** Die Commits auf
+> `main` bleiben Zeichen für Zeichen stehen; `deploy.yml` läuft weiterhin nur
+> auf `main` und damit gar nicht. Was sich ändert: welchen Zweig GitHub beim
+> Öffnen des Projekts zeigt, und wohin ein `git clone` zeigt. Nach der
+> Pilotabnahme wird zurückgestellt.
+
+---
+
 ## Was Marc einmalig anlegt
 
 **Nichts davon gehört in den Chat.** Alle Werte werden direkt bei GitHub
@@ -35,20 +83,44 @@ hinterlegt.
 
 ### 1. Das Pilotprojekt
 
-Ein leeres Projekt, etwa `LexiFlow-Pilot`. Pages darauf einschalten:
-*Settings → Pages → Source: Deploy from a branch → `gh-pages` / `(root)`.*
-Der Zweig entsteht beim ersten Lauf; bis dahin zeigt Pages nichts an.
+Ein leeres Projekt: **`mp-studio-official/LexiFlow-Pilot`**, privat oder
+öffentlich – für GitHub Pages auf einem kostenlosen Konto muss es
+**öffentlich** sein.
+
+> **Reihenfolge beachten.** Pages lässt sich nur auf einen Zweig stellen,
+> den es **gibt**. `gh-pages` entsteht erst beim ersten Lauf des Ablaufs.
+> Also: Projekt anlegen → Werte hinterlegen (unten) → Ablauf einmal laufen
+> lassen → **dann** *Settings → Pages → Source: Deploy from a branch →
+> `gh-pages` / `(root)`*. Eine frühere Fassung dieses Absatzes hat das
+> andersherum beschrieben; so geht es nicht.
+
+Die Pilotadresse lautet damit:
+`https://mp-studio-official.github.io/LexiFlow-Pilot/portal/`
 
 ### 2. Variablen im Arbeitsprojekt
 
-*Settings → Secrets and variables → Actions → Variables*
+Im **Arbeitsprojekt** (`LexiFlow`), nicht im Pilotprojekt:
+*Settings → Secrets and variables → Actions → Variables → New repository
+variable*
 
-| Name | Wert | Wofür |
+| Name | Wert | Öffentlich? |
 | --- | --- | --- |
-| `LEXIFLOW_PILOT_OWNER` | der Kontoname | wohin geschoben wird |
-| `LEXIFLOW_PILOT_REPO` | `LexiFlow-Pilot` | Zielprojekt **und** Grundpfad |
-| `VITE_SUPABASE_URL` | die Staging-URL | darf öffentlich sein |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | der veröffentlichbare Schlüssel | darf öffentlich sein |
+| `LEXIFLOW_PILOT_OWNER` | `mp-studio-official` | ja – steht ohnehin in jeder Adresse |
+| `LEXIFLOW_PILOT_REPO` | `LexiFlow-Pilot` | ja – Zielprojekt **und** Grundpfad |
+| `VITE_SUPABASE_URL` | `https://<project-ref>.supabase.co` | **ja** – steht in jedem Browserbündel |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | der Publishable Key (`sb_publishable_…`) | **ja** – dafür ist er gemacht |
+
+> **Diese vier dürfen öffentlich sein, und zwar alle vier.** Die beiden
+> Supabase-Werte stehen nach jedem Build im ausgelieferten JavaScript; sie
+> geheim halten zu wollen wäre eine Täuschung über das, was ein
+> Browserbündel ist. Was sie schützt, sind die Zugriffsregeln, nicht ihre
+> Verborgenheit.
+
+> **Niemals hier und niemals im Chat:** der **Secret Key** / die Service
+> Role, das **Datenbankkennwort**, `LEXIFLOW_AI_MASTER_KEY_V1`, ein
+> Anbieterschlüssel. Nichts davon gehört in eine Actions-Variable, in ein
+> Secret dieses Projekts oder in eine Nachricht. Sie leben in den **Supabase
+> Function Secrets** und verlassen Supabase nicht.
 
 `LEXIFLOW_PILOT_REPO` ist beides: Das Zielprojekt heißt so, und die
 Pilotadresse liegt deshalb unter `/LexiFlow-Pilot/`. Ein getrennter Wert
@@ -56,14 +128,28 @@ wäre eine Gelegenheit, zwei Dinge auseinanderlaufen zu lassen.
 
 ### 3. Ein Geheimnis im Arbeitsprojekt
 
-*Settings → Secrets and variables → Actions → Secrets*
+*Settings → Developer settings → Personal access tokens → Fine-grained
+tokens → Generate new token*
 
-| Name | Was |
+| Feld | Wert |
 | --- | --- |
-| `LEXIFLOW_PILOT_TOKEN` | ein Fine-grained Token mit **Contents: write** ausschließlich auf `LexiFlow-Pilot` |
+| Resource owner | `mp-studio-official` |
+| Repository access | **Only select repositories** → ausschliesslich `LexiFlow-Pilot` |
+| Repository permissions | **Contents: Read and write** – und sonst **nichts** |
+| Expiration | so kurz, wie der Pilot dauert |
 
-Nicht mehr Rechte, nicht mehr Projekte. Der Token schreibt eine
-Auslieferung; er soll nichts anderes können.
+Dann im **Arbeitsprojekt**: *Settings → Secrets and variables → Actions →
+Secrets → New repository secret*, Name **`LEXIFLOW_PILOT_TOKEN`**, Wert der
+Token.
+
+> **Der Token geht aus dem Browser direkt in das Secret-Feld und in nichts
+> sonst** – nicht in den Chat, nicht in eine Datei, nicht in die Zwischenablage
+> länger als nötig. GitHub zeigt ihn genau einmal.
+
+Nicht mehr Rechte, nicht mehr Projekte: Der Token schreibt eine
+Auslieferung; er soll nichts anderes können. Mit `Contents: write` auf einem
+leeren Projekt ist der Schaden bei einem Verlust ein überschriebener
+`gh-pages`-Zweig.
 
 > **Was hier ausdrücklich nicht steht:** der Secret Key von Supabase, der
 > Hauptschlüssel und jeder Anbieterschlüssel. Die bleiben serverseitig, in
@@ -72,10 +158,27 @@ Auslieferung; er soll nichts anderes können.
 
 ### 4. Supabase
 
-*Authentication → URL Configuration*: Die Pilotadresse als zusätzliche
-Redirect-URL eintragen, sonst führt die Kennwortwiederherstellung ins Leere.
-Und, unabhängig vom Pilot: **„Allow new users to sign up" muss aus sein**
-(siehe `docs/abnahme/migration-14.md`).
+*Authentication → URL Configuration → Redirect URLs → Add URL*
+
+```
+https://mp-studio-official.github.io/LexiFlow-Pilot/portal/**
+```
+
+Die bestehenden Einträge bleiben stehen. Ohne diesen führt die
+Kennwortwiederherstellung einer Lehrkraft ins Leere: Die Rückkehradresse
+entsteht im Code aus `location.origin` plus Grundpfad plus
+`#/kennwort-neu` und steht nirgends fest geschrieben, deshalb muss die
+Allowlist den Pfad mit `**` abdecken (Inbetriebnahme §3.3.2).
+
+> **`LEXIFLOW_ALLOWED_ORIGINS` braucht *keine* Änderung.** Dort steht
+> `http://localhost:4173,https://mp-studio-official.github.io`. Ein Ursprung
+> ist Schema plus Host – ohne Pfad. Die Pilotadresse liegt auf demselben
+> Host wie die spätere Hauptadresse, also ist sie bereits abgedeckt. Diesen
+> Wert „vorsichtshalber" zu ergänzen hiesse, einen zweiten Eintrag für
+> denselben Ursprung zu pflegen.
+
+Unabhängig vom Pilot und schon belegt: **„Allow new users to sign up" ist
+aus** (06.10.2026, `docs/pilot-abnahme.md` A1).
 
 ## Der Lauf
 
