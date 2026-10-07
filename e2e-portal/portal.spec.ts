@@ -82,7 +82,7 @@ test.describe('der Service Worker verschluckt das Portal nicht', () => {
 });
 
 test.describe('Anmeldung unter dem Unterpfad', () => {
-  test('@smoke eine lernende Person kommt herein und landet im Lernbereich', async ({ page }) => {
+  test('@smoke eine lernende Person kommt herein und landet auf Heute', async ({ page }) => {
     await page.goto('./portal/#/anmelden');
 
     await page.getByRole('button', { name: 'Ich lerne' }).click();
@@ -90,10 +90,10 @@ test.describe('Anmeldung unter dem Unterpfad', () => {
     await page.getByLabel('Kennwort').fill('testkennwort');
     await page.getByRole('button', { name: 'Anmelden' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Deine Kurse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Heute', level: 1 })).toBeVisible();
     // Der Weg dorthin bleibt innerhalb des Unterpfads.
     expect(new URL(page.url()).pathname).toBe('/LexiFlow/portal/');
-    expect(page.url()).toContain('#/lernen');
+    expect(page.url()).toContain('#/heute');
   });
 
   test('@smoke ihre Navigation führt nirgends in den Lehrkraftbereich', async ({ page }) => {
@@ -102,7 +102,7 @@ test.describe('Anmeldung unter dem Unterpfad', () => {
     await page.getByLabel('Lern-ID').fill('fuchs-7390');
     await page.getByLabel('Kennwort').fill('testkennwort');
     await page.getByRole('button', { name: 'Anmelden' }).click();
-    await page.getByRole('heading', { name: 'Deine Kurse' }).waitFor();
+    await page.getByRole('heading', { name: 'Heute', level: 1 }).waitFor();
 
     const ziele = await page
       .getByRole('navigation', { name: 'Hauptnavigation' })
@@ -121,7 +121,8 @@ test.describe('Anmeldung unter dem Unterpfad', () => {
     await page.getByLabel('Kennwort').fill('testkennwort');
     await page.getByRole('button', { name: 'Anmelden' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Kurse' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Start', level: 1 })).toBeVisible();
+    expect(page.url()).toContain('#/start');
   });
 
   test('@smoke ein falsches Kennwort verrät nicht, ob es das Konto gibt', async ({ page }) => {
@@ -187,6 +188,8 @@ async function alsLehrkraft(page: import('@playwright/test').Page) {
   await page.getByLabel('E-Mail-Adresse').fill('lehrerin@beispiel.invalid');
   await page.getByLabel('Kennwort').fill('testkennwort');
   await page.getByRole('button', { name: 'Anmelden' }).click();
+  await page.getByRole('heading', { name: 'Start', level: 1 }).waitFor();
+  await page.getByRole('link', { name: 'Kurse', exact: true }).click();
   await page.getByRole('heading', { name: 'Kurse', level: 1 }).waitFor();
 }
 
@@ -359,12 +362,7 @@ test.describe('Barrierefreiheit', () => {
   });
 
   test('@a11y der Lernbereich ohne schwerwiegende Befunde', async ({ page }) => {
-    await page.goto('./portal/#/anmelden');
-    await page.getByRole('button', { name: 'Ich lerne' }).click();
-    await page.getByLabel('Lern-ID').fill('fuchs-7390');
-    await page.getByLabel('Kennwort').fill('testkennwort');
-    await page.getByRole('button', { name: 'Anmelden' }).click();
-    await page.getByRole('heading', { name: 'Deine Kurse' }).waitFor();
+    await alsLernende(page);
 
     expect(await pruefe(page)).toEqual([]);
   });
@@ -472,6 +470,8 @@ async function alsLernende(page: import('@playwright/test').Page) {
   await page.getByLabel('Lern-ID').fill('fuchs-7390');
   await page.getByLabel('Kennwort').fill('testkennwort');
   await page.getByRole('button', { name: 'Anmelden' }).click();
+  await page.getByRole('heading', { name: 'Heute', level: 1 }).waitFor();
+  await page.getByRole('link', { name: 'Lernen', exact: true }).click();
   await page.getByRole('heading', { name: 'Deine Kurse' }).waitFor();
 }
 
@@ -527,7 +527,7 @@ test.describe('Üben im Portal', () => {
     // Der Satz, der den Unterschied zum kontofreien LexiFlow erklärt.
     await expect(page.getByText(/auf jedem Gerät, auf dem du dich anmeldest/)).toBeVisible();
 
-    await page.getByRole('link', { name: 'Üben' }).click();
+    await page.locator('#inhalt').getByRole('link', { name: 'Üben' }).click();
     await expect(page.getByRole('heading', { name: 'Unit 3 – City life', level: 1 })).toBeVisible();
     await expect(page.getByText('Noch 4 in dieser Runde')).toBeVisible();
 
@@ -558,7 +558,7 @@ test.describe('Üben im Portal', () => {
     await page.goto('./portal/#/beitreten');
     await page.getByLabel('Einladungscode').fill(code);
     await page.getByRole('button', { name: 'Beitreten' }).click();
-    await page.getByRole('link', { name: 'Üben' }).click();
+    await page.locator('#inhalt').getByRole('link', { name: 'Üben' }).click();
     await eineAntwort(page);
 
     await page.getByRole('button', { name: 'Abmelden' }).click();
@@ -585,7 +585,7 @@ test.describe('Üben im Portal', () => {
     await page.goto('./portal/#/beitreten');
     await page.getByLabel('Einladungscode').fill(code);
     await page.getByRole('button', { name: 'Beitreten' }).click();
-    await page.getByRole('link', { name: 'Üben' }).click();
+    await page.locator('#inhalt').getByRole('link', { name: 'Üben' }).click();
     await page.getByRole('heading', { name: 'Unit 3 – City life', level: 1 }).waitFor();
 
     const ergebnis = await new AxeBuilder({ page })
@@ -614,7 +614,7 @@ test.describe('Üben auf dem Telefon', () => {
     await page.goto('./portal/#/beitreten');
     await page.getByLabel('Einladungscode').fill(code);
     await page.getByRole('button', { name: 'Beitreten' }).click();
-    await page.getByRole('link', { name: 'Üben' }).click();
+    await page.locator('#inhalt').getByRole('link', { name: 'Üben' }).click();
     await page.getByRole('heading', { name: 'Unit 3 – City life', level: 1 }).waitFor();
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -630,41 +630,30 @@ test.describe('Üben auf dem Telefon', () => {
 /**
  * Der KI-Zugang im Browser.
  *
- * Was der Server tut, ist in `supabase/functions/ai-gateway/` mit 123
- * Prüfungen abgenommen – ohne einen einzigen Netzaufruf und ohne einen
- * einzigen echten Schlüssel. Hier geht es um das, was nur ein Browser zeigen
- * kann: dass der Satz über den Schlüssel dasteht, bevor jemand ihn eintippt,
- * dass die Seite auf einem Telefon hält und dass eine Vorlesehilfe durchkommt.
- *
- * Eingetragen wird dabei ein offensichtlicher Testwert. Es gibt in diesem
- * Sprint keinen echten Anbieterschlüssel, und diese Auslieferung ruft ohnehin
- * keinen Anbieter an – sie läuft gegen die kontrollierte Fälschung.
+ * Der Pilot hält KI bewusst geschlossen. Hier geht es um das, was nur ein
+ * Browser zeigen kann: Die Sperre ist sichtbar und erklärt, und es gibt weder
+ * ein Schlüsselfeld noch einen Speichern-Weg. Daneben bleiben Rollenriegel,
+ * Telefonlayout und Vorlesehilfe geprüft.
  */
 
-const TEST_SCHLUESSEL = 'sk-test-nur-zum-probieren-1234';
-
 test.describe('KI-Zugang', () => {
-  test('@smoke sagt vor dem Eintragen, wohin der Schlüssel geht', async ({ page }) => {
+  test('@smoke sagt eindeutig, dass KI im Pilot nicht freigegeben ist', async ({ page }) => {
     await alsLehrkraft(page);
     await page.goto('./portal/#/ki');
     await page.getByRole('heading', { name: 'KI-Zugang', level: 1 }).waitFor();
 
-    await expect(page.getByText(/kommt nie wieder heraus/)).toBeVisible();
-    await expect(page.getByText(/generativelanguage\.googleapis\.com/)).toBeVisible();
-    // Kein Feld für eine freie Adresse beim offiziellen Anbieter.
-    await expect(page.getByLabel(/Eigene Adresse/)).toHaveCount(0);
+    await expect(page.getByText('Im Pilot nicht freigegeben')).toBeVisible();
+    await expect(page.getByText(/Bis dahin stellt das Portal keine Anfrage/)).toBeVisible();
   });
 
-  test('@smoke nach dem Speichern steht nur noch die Maske da', async ({ page }) => {
+  test('@smoke bietet im Pilot keinen Weg für einen Schlüssel an', async ({ page }) => {
     await alsLehrkraft(page);
     await page.goto('./portal/#/ki');
-    await page.getByLabel('Name für dich').fill('Schulzugang Englisch');
-    await page.getByLabel('API-Schlüssel').fill(TEST_SCHLUESSEL);
-    await page.getByRole('button', { name: 'Speichern' }).click();
+    await page.getByRole('heading', { name: 'KI-Zugang', level: 1 }).waitFor();
 
-    await expect(page.getByText(/nicht mehr lesbar/)).toBeVisible();
-    await expect(page.getByText(/Schlüssel ••••••••1234/)).toBeVisible();
-    await expect(page.locator('body')).not.toContainText('sk-test-nur-zum-probieren');
+    await expect(page.getByLabel('API-Schlüssel')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText('generativelanguage.googleapis.com');
   });
 
   test('@smoke eine lernende Person kommt nicht hinein', async ({ page }) => {
