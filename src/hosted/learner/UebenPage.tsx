@@ -56,7 +56,7 @@ export function UebenPage() {
       return;
     }
     try {
-      const kurse = (await courses.myCourses()).filter((kurs) => !kurs.archived);
+      const kurse = await courses.myCourses();
       const pakete: Paketstand[] = [];
 
       for (const kurs of kurse) {

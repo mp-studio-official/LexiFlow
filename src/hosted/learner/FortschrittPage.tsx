@@ -54,7 +54,7 @@ export function FortschrittPage() {
       return;
     }
     try {
-      const kurse = (await courses.myCourses()).filter((kurs) => !kurs.archived);
+      const kurse = await courses.myCourses();
       const material: Kursmaterial[] = [];
       for (const kurs of kurse) {
         material.push({ kurs, fassungen: await publication.publishedForCourse(kurs.id) });

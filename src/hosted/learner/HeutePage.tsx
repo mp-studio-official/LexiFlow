@@ -65,7 +65,7 @@ export function HeutePage() {
       return;
     }
     try {
-      const kurse = (await courses.myCourses()).filter((kurs) => !kurs.archived);
+      const kurse = await courses.myCourses();
       const titel = new Map<string, string>();
       for (const kurs of kurse) {
         for (const revision of await publication.publishedForCourse(kurs.id)) {
