@@ -408,7 +408,7 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 - [x] **Getan:** Die Zeilen 6.7 bis 6.10 in
       `inbetriebnahme-staging.md` §0.5 auf **belegt** gesetzt.
 - **Ergebnis:** Prüfung 5 ist grün.
-- [ ] **Tun:** Die Testkonten stehen lassen – Teil C und D arbeiten damit
+- [x] **Getan:** Die Testkonten stehen – Teil C und D arbeiten damit
       weiter, und `Probe Loeschen` aus der Löschprobe kommt noch dazu.
 
 
@@ -602,19 +602,23 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 
 ### F1 Werte hinterlegen
 
-- [ ] **Tun:** Den Sprintzweig nach `github.com/mp-studio-official/LexiFlow`
+- [x] **Getan:** Den Sprintzweig nach `github.com/mp-studio-official/LexiFlow`
       hochladen. Das Remote ist inzwischen eingetragen; `main` wird nicht
       hochgeladen.
-- [ ] **Prüfen:** Der Pilotzweig ist der Standardzweig. Beim bislang leeren
+- [x] **Geprüft:** Der Pilotzweig ist der Standardzweig. Beim bislang leeren
       Projekt sollte der erste hochgeladene Zweig diese Rolle automatisch
       erhalten. Nur falls nicht: *Settings → General → Default branch*.
-- [ ] **Tun:** Zwei Variablen im bestehenden Projekt hinterlegen –
+- [x] **Getan:** Zwei Variablen im bestehenden Projekt hinterlegen –
       `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY`, nach
       `docs/pilot-auslieferung.md`.
-- [ ] **Tun:** *Settings → Pages → Build and deployment → Source: GitHub
+- [x] **Getan:** *Settings → Pages → Build and deployment → Source: GitHub
       Actions*.
 - **Erwartet:** Zwei öffentliche Buildvariablen, **kein** persönlicher
   Deployment-Token, kein zweites Projekt und kein `gh-pages`-Zweig.
+- **Belegt am 08./09.10.2026:** Die öffentliche Repository-API nennt
+  `sprint/5a-cloud-portal-foundation` als `default_branch` und
+  `has_pages: true`; der erfolgreiche Build konnte beide Vite-Variablen
+  lesen und die echte Pilotadresse laden.
 
 ### F2 Redirect-URL
 
@@ -630,10 +634,15 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 
 ### F3 Der Lauf
 
-- [ ] **Tun:** Actions → „Pilot 0.1 ausliefern" → `pilot` eintippen.
+- [x] **Getan:** Actions → „Pilot 0.1 ausliefern" → `pilot` eintippen.
 - **Erwartet:** Prüfkette grün; `verify:deploy` meldet die geprüften Dateien
   und **keinen** Abbruch; der Schiebeschritt meldet das Ziel.
 - **Danach:** Die Pilotadresse zeigt das Portal, mit Band.
+- **Belegt:** Lauf
+  `https://github.com/mp-studio-official/LexiFlow/actions/runs/37788413394`
+  endete erfolgreich; 4.018 Prüfungen grün, anschließend Deployment nach
+  `github-pages`. Die Live-Adresse zeigte das Pilotband und Commit
+  `8c8f5d4`.
 
 ### F4 Nachsehen
 
