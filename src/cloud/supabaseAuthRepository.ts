@@ -77,6 +77,15 @@ export function createSupabaseAuthRepository(deps: {
   /** Wohin der Verweis aus der Wiederherstellungs-E-Mail führt. */
   recoveryRedirect: string;
 }): AuthRepository {
+  /*
+    Supabase darf mehrere Sitzungsereignisse kurz hintereinander liefern.
+    Das Übersetzen in unsere Sitzung lädt bei angemeldeten Konten zusätzlich
+    die Rolle und ist deshalb asynchron; `SIGNED_OUT` ist dagegen sofort
+    fertig. Ohne Reihenfolge-Wache konnte eine ältere Rollenabfrage nach dem
+    Abmelden zurückkommen und die bereits entfernte Sitzung wieder einsetzen.
+  */
+  let sitzungsereignis = 0;
+
   async function alsSitzung(roh: RohSitzung | null | undefined): Promise<Session | undefined> {
     if (!roh) return undefined;
     let rolle: Role | undefined;
@@ -150,7 +159,10 @@ export function createSupabaseAuthRepository(deps: {
           Bibliothek und darf nicht auf eine Abfrage warten. Die Rolle wird
           nachgereicht, und bis dahin meldet niemand etwas.
         */
-        void alsSitzung(roh).then(listener);
+        const eigenesEreignis = ++sitzungsereignis;
+        void alsSitzung(roh).then((sitzung) => {
+          if (eigenesEreignis === sitzungsereignis) listener(sitzung);
+        });
       });
       return () => data.subscription.unsubscribe();
     },

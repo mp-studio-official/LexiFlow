@@ -261,4 +261,29 @@ describe('Änderungen der Sitzung', () => {
     ab();
     expect(abbestellt).toHaveBeenCalled();
   });
+
+  it('eine alte Rollenabfrage setzt die Sitzung nach dem Abmelden nicht wieder ein', async () => {
+    let rolleFreigeben!: (rolle: Role | undefined) => void;
+    const rolleKommtSpaeter = new Promise<Role | undefined>((resolve) => {
+      rolleFreigeben = resolve;
+    });
+    const { auth, melde } = fakeAuth();
+    const gesehen: (string | undefined)[] = [];
+    baue({ auth, ladeRolle: () => rolleKommtSpaeter }).onSessionChange((s) =>
+      gesehen.push(s?.userId),
+    );
+
+    /*
+      Genau die Live-Reihenfolge: Ein angemeldetes Ereignis wartet noch auf
+      das Profil, danach kommt SIGNED_OUT. Das Abmelden muss gewinnen, auch
+      wenn die ältere Abfrage erst anschließend fertig wird.
+    */
+    melde(sitzung());
+    melde(null);
+    await vi.waitFor(() => expect(gesehen).toEqual([undefined]));
+    rolleFreigeben('student');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(gesehen).toEqual([undefined]);
+  });
 });
