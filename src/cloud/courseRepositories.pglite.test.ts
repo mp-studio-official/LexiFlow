@@ -138,6 +138,30 @@ describe('was nur an der Datenbank zu prüfen ist', () => {
     expect(einladung!.used_count).toBe(1);
   });
 
+  it('gibt für einen archivierten Kurs keinen Platz an die anonyme Kontoanlage', async () => {
+    /*
+      `redeem_invite` prüft archivierte Kurse selbst. Die anonyme
+      Kontoanlage läuft aber absichtlich über die schmalere Dienstfunktion
+      `consume_invite_by_hash`. Deshalb muss schon diese Funktion den Kurs
+      schließen; sonst entstünde erst das Konto und danach die Mitgliedschaft.
+    */
+    const { code } = await gateway.rpcCreateInvite(kurs, null, 1);
+    await gateway.updateCourse(kurs, { archived: true });
+
+    await alsEinrichtung(db);
+    const ergebnis = await db.query<{ course_id: string | null }>(
+      'select consume_invite_by_hash(invite_code_hash($1)) as course_id',
+      [code],
+    );
+    expect(ergebnis.rows[0]!.course_id).toBeNull();
+
+    const einladung = await db.query<{ used_count: number }>(
+      'select used_count from course_invites where course_id = $1',
+      [kurs],
+    );
+    expect(einladung.rows[0]!.used_count).toBe(0);
+  });
+
   it('prüft und zählt in derselben Anweisung', async () => {
     // Der strukturelle Teil der Prüfung oben: `used_count < max_uses` steht im
     // `where` desselben `update`, das hochzählt – nicht in einem `select`

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Der Abstand zum Pilot 0.1 – acht Prüfungen, heute alle rot.
+ * Der Abstand zum Pilot 0.1 – zwölf benennbare Prüfungen.
  *
  * ## Warum es sie gibt
  *
@@ -196,7 +196,7 @@ pruefung(
       */
       const nummer = new RegExp(`(?<![\\d.])${abschnitt.replace('.', '\\.')}(?![\\d])`);
       const zeile = zeilen.find((kandidat) => nummer.test(kandidat));
-      if (zeile === undefined || zeile.includes('offen')) offen.push(abschnitt);
+      if (zeile === undefined || !/\|\s*\*\*belegt\*\*/.test(zeile)) offen.push(abschnitt);
     }
     if (offen.length > 0) return `offen: ${offen.join(', ')}`;
     return true;
@@ -374,6 +374,24 @@ pruefung(
     return true;
   },
   'Entweder Pro-Tarif (dann Intervall und Aufbewahrung eintragen) oder ein beschriebenes und getestetes eigenes Verfahren – in Teil E4 als Zeile „SICHERUNG BELEGT: …".',
+);
+
+/* ----------------------------------------------------------------- 12 */
+
+pruefung(
+  12,
+  'Der anonyme Beitritt in archivierte Kurse ist geschlossen',
+  () => {
+    const migration = lies('supabase', 'migrations', '20261006090000_archivierte_kurse_schliessen.sql');
+    if (migration === null) return 'Migration 16 fehlt';
+    if (!/not courses\.archived/i.test(migration)) return 'Migration 16 prüft den Kurszustand nicht';
+
+    const protokoll = lies('docs', 'abnahme', 'migration-16.sql');
+    if (protokoll === null) return 'Abnahmeprotokoll für Migration 16 fehlt';
+    if (/NOCH NICHT AUSGEF/i.test(protokoll)) return 'Migration 16 ist im Staging noch nicht angewandt';
+    return true;
+  },
+  'Migration 16 anwenden, nachmessen und `docs/abnahme/migration-16.sql` zum Protokoll umschreiben.',
 );
 
 /* --------------------------------------------------------------- Bericht */

@@ -305,6 +305,16 @@ npx --yes supabase@latest db push --linked --skip-vault
   `20261005090000_konto_stilllegen.sql` ist unveränderlich.
 - **Danach:** Prüfung 4 ist grün. Teil A ist abgeschlossen.
 
+**A4.6 Nachtrag vom 09.10.2026 – Migration 16**
+
+- [ ] **Tun:** `docs/abnahme/migration-16.sql` vollständig abarbeiten.
+- **Warum:** Die anonyme Kontoanlage umging beim Verbrauch des Codes die
+  Archivprüfung aus `redeem_invite`. Die rote PGlite-Gegenprobe hat den Weg
+  reproduziert; Migration 16 schließt ihn in derselben atomaren Anweisung,
+  die auch Ablauf, Widerruf und Platzgrenze prüft.
+- **Danach:** Die letzte Gegenprobe aus Teil B, Schritt 13, im Browser
+  ausführen. Erst dann ist §6.10 vollständig belegt.
+
 ---
 
 ### A5 Was in keinem Schritt vorkommt
@@ -325,7 +335,7 @@ Dieser Teil holt nach, was `inbetriebnahme-staging.md` §0.5 als offen führt:
 Veröffentlichen, beide Lernrichtungen, Synchronisieren, Archivieren. Er
 läuft auf der **Pilotadresse**, nicht lokal.
 
-**Er ist ein Durchgang, keine Liste.** Die zwölf Schritte hängen aneinander
+**Er ist ein Durchgang, keine Liste.** Die dreizehn Schritte hängen aneinander
 – ohne veröffentlichte Fassung gibt es nichts zuzuweisen, ohne Zuweisung
 nichts zu üben. Wer mittendrin abbricht, fängt bei B2 wieder an.
 
@@ -354,7 +364,7 @@ nichts zu üben. Wer mittendrin abbricht, fängt bei B2 wieder an.
 | 9 | Im dritten Fenster beitreten: `Probe Dachs` | dito | belegt |
 | 10 | Als `Probe Fuchs` je eine Runde in **beiden** Richtungen, über **alle vier** Übungsformen: Karteikarten, Selbsttest, freies Üben, Vokabelliste. Mindestens zwölf Aufgaben insgesamt | Jede Form startet und zählt; „Heute" zeigt danach einen Lerntag | **§6.7** |
 | 11 | Dieselbe Person auf dem **zweiten** Gerät anmelden | **Sichtprüfung:** derselbe Lernstand, dieselbe Serie | **§6.8** |
-| 12 | Auf **beiden** Geräten üben, ohne dazwischen neu zu laden | **Sichtprüfung:** kein stiller Verlust – das zweite Gerät meldet den Konflikt, statt den Stand des ersten zu überschreiben | **§6.9** |
+| 12 | Auf **beiden** Geräten üben, ohne dazwischen neu zu laden | **Sichtprüfung:** kein stiller Verlust – nach dem Neuladen zeigen beide Geräte denselben Stand; die später gesendete Antwort hat gewonnen. Es gibt dabei bewusst keine sichtbare Konfliktmeldung (§6.9). | **§6.9** |
 | 13 | Als Lehrkraft den Kurs archivieren, dann als `Probe Fuchs` weiterüben | Die Gruppe übt weiter, der Lernstand läuft mit; niemand kommt neu hinzu, alte Codes führen nicht mehr hinein (ADR-12) | **§6.10** |
 
 ### Die vier Stellen, an denen wirklich jemand hinsehen muss
@@ -371,16 +381,33 @@ Diese vier melden sich **nicht**, wenn sie falsch laufen:
 3. **Schritt 11 – derselbe Stand.** Ein leerer Stand auf dem zweiten Gerät
    sieht aus wie „noch nichts geübt" und nicht wie ein Fehler.
 4. **Schritt 12 – der Revisionskonflikt.** Der gefährlichste Fall im ganzen
-   Protokoll: Wenn das zweite Gerät den Stand des ersten **stillschweigend**
-   überschreibt, sieht man nichts. Man sieht nur später, dass etwas fehlt.
-   Deshalb vorher notieren, in welchem Fach ein bestimmtes Wort steht, und
-   nachher nachsehen.
+   Protokoll: Die Auflösung ist absichtlich unsichtbar. Deshalb vorher
+   notieren, in welchem Fach ein bestimmtes Wort steht, auf beiden Geräten
+   antworten und danach auf beiden neu laden. Beide müssen denselben Stand
+   zeigen; die später gesendete Antwort muss gewonnen haben.
+
+### Ergebnis 08./09.10.2026
+
+Der Durchgang lief auf der öffentlichen Pilotadresse ausschließlich mit
+künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
+
+| Schritte | Ergebnis |
+| --- | --- |
+| 1–9 | Pilotband sichtbar; Kurs, Paket, Fassung 1, Zuweisung, Einladung und zwei künstliche Lernkonten funktionierten. Lern-ID und Wiederherstellungscode wurden jeweils einmal angezeigt und außerhalb des Projekts gesichert. |
+| 10 | Beide Lernrichtungen und alle vier Übungswege liefen; die Vokabelliste zeigte alle zwölf Einträge. „Heute" zeigte danach einen Lerntag. |
+| 11 | Derselbe Lernstand und dieselbe Serie waren in zwei getrennten Browsersitzungen sichtbar. |
+| 12 | Beide Sitzungen öffneten dieselbe Karte. Sitzung A antwortete zuerst, Sitzung B danach ohne Neuladen. Nach dem Neuladen zeigten beide 21 Antworten und denselben Stand; anschließend stieg der Stand regulär auf 22. Keine sichtbare Konfliktmeldung – wie in §6.9 festgelegt. |
+| 13 | Archivierung, ausgeblendete Änderungen und Codeerzeugung, sichtbarer abgeschlossener Kurs, Weiterüben und gespeicherter Lernstand sind live belegt. Dabei wurde ein Fehler gefunden: archivierte Kurse fehlten zunächst in „Heute", „Üben" und „Mein Fortschritt". Korrigiert in `8c8f5d4`, GitHub-Prüfkette 4.018 Tests grün, danach auf der Pilotadresse in allen vier Lernendenbereichen live bestätigt. **Noch offen:** Ein neues, bisher kursfremdes Testkonto löst einen alten Code ein und erhält die erwartete Ablehnung. |
 
 ### Danach
 
-- [ ] **Tun:** Schritte 1 bis 13 durchlaufen und die vier Sichtprüfungen
-      festhalten.
-- [ ] **Tun:** Die Zeilen 6.7 bis 6.10 in `inbetriebnahme-staging.md` §0.5
+- [x] **Getan:** Schritte 1 bis 12 und der bestehende Teil von Schritt 13
+      einschließlich der vier Sichtprüfungen.
+- [ ] **Tun:** Schritt 13 mit einem neuen, kursfremden Testkonto abschließen:
+      alter Einladungscode muss beim Einlösen abgelehnt werden.
+- [x] **Getan:** Die Zeilen 6.7 bis 6.9 in
+      `inbetriebnahme-staging.md` §0.5 auf **belegt** gesetzt.
+- [ ] **Tun:** Zeile 6.10 erst nach der offenen Beitrittsgegenprobe vollständig
       auf **belegt** setzen.
 - **Danach:** Prüfung 5 wird grün.
 - [ ] **Tun:** Die Testkonten stehen lassen – Teil C und D arbeiten damit

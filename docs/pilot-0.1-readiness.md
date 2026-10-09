@@ -237,13 +237,15 @@ Drei Abhängigkeiten sind echt und nicht verhandelbar:
 
 ## 3. Die Prüfungen – Stand nach A bis G
 
-`npm run pilot:pruefen` prüft elf Punkte. Acht stehen; die drei offenen
+`npm run pilot:pruefen` prüft zwölf Punkte. Acht stehen; die vier offenen
 sind genau die Handlungen, die ein Mensch am echten System tun muss.
 
-> **Stand 06.10.2026.** Prüfung 4 ist grün: Migration 14 wurde im SQL Editor
+> **Stand 09.10.2026.** Prüfung 4 ist grün: Migration 14 wurde im SQL Editor
 > angewandt und die Historie nachgetragen, Migration 15 danach einzeln per
-> `db push` – beide gemessen, beide Protokolle umgeschrieben. Prüfung 11 ist
-> neu und von Anfang an rot (siehe unten).
+> `db push` – beide gemessen, beide Protokolle umgeschrieben. Der Live-Happy-
+> Path ist bis auf die Beitrittsgegenprobe nach der Archivierung gelaufen;
+> Prüfung 5 bleibt deshalb bewusst rot. Prüfung 11 ist wegen des fehlenden
+> Sicherungsverfahrens weiterhin rot (siehe unten).
 
 | # | Prüfung | Stand |
 | --- | --- | --- |
@@ -251,13 +253,14 @@ sind genau die Handlungen, die ein Mensch am echten System tun muss.
 | 2 | Der Rollenriegel liegt bereit (Migration 14) | **grün** |
 | 3 | Der Sperrweg liegt bereit (Migration 15) | **grün** |
 | 4 | Die Migrationen 14 und 15 sind im Staging angewandt | **grün** (06.10.2026) |
-| 5 | Der Happy-Path 6.7 bis 6.10 ist im Staging belegt | **rot** |
+| 5 | Der Happy-Path 6.7 bis 6.10 ist im Staging belegt | **rot** – 6.7 bis 6.9 belegt; in 6.10 fehlt nur die Live-Gegenprobe „neues Konto + alter Code" |
 | 6 | Die Anwendung trägt eine Pilotkennzeichnung | **grün** |
 | 7 | KI ist bestimmt gesperrt, nicht zufällig aus | **grün** |
 | 8 | Jede Ansicht, die Daten holt, kennt den Verbindungsfehler | **grün** |
 | 9 | Es gibt Anleitungen für das Portal – für beide Seiten | **grün** |
 | 10 | Das Pilot-Abnahmeprotokoll ist abgearbeitet | **rot** |
 | 11 | Für das Stagingprojekt ist ein Sicherungsverfahren belegt | **rot** |
+| 12 | Der anonyme Beitritt in archivierte Kurse ist geschlossen | **rot** – Migration 16 liegt geprüft bereit, ist im Staging aber noch nicht angewandt |
 
 > **Zwei Prüfungen aus der ersten Fassung sind weggefallen, und warum.**
 >
