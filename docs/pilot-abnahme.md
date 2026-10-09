@@ -466,10 +466,17 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### C6 Abmelden
 
-- [ ] **Tun:** Abmelden, dann zurück-Taste.
+- [x] **Tun:** Abmelden, dann zurück-Taste.
 - **Erwartet:** Keine Inhalte mehr, auch nicht kurz.
-- [ ] **Tun:** Mitten in einer Übungsrunde abmelden.
+- **Belegt am 09.10.2026:** Mit dem künstlichen Konto `Probe Loeschen`
+  abgemeldet und anschließend Verlauf sowie `#/heute` aufgerufen. Beide
+  Wege blieben auf `#/anmelden`; kein Teil der Lernendenhülle erschien.
+- [x] **Tun:** Mitten in einer Übungsrunde abmelden.
 - **Erwartet:** Die Rückfrage „ginge etwas verloren?" erscheint (E14).
+- **Belegt am 09.10.2026:** In einer freien Runde eine offene Übersetzung
+  begonnen und „Abmelden" gewählt. Die Rückfrage „Deine angefangene Antwort
+  geht verloren" erschien; „Hierbleiben" war die vorausgewählte sichere
+  Handlung und die angefangene Eingabe blieb erhalten.
 
 ---
 
@@ -656,6 +663,11 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
   endete erfolgreich; 4.018 Prüfungen grün, anschließend Deployment nach
   `github-pages`. Die Live-Adresse zeigte das Pilotband und Commit
   `8c8f5d4`.
+- **Erneut belegt am 09.10.2026:** Lauf
+  `https://github.com/mp-studio-official/LexiFlow/actions/runs/37905453933`
+  endete vollständig grün; Prüfkette, Produktionsbau, Auslieferungsriegel
+  und Pages-Deployment liefen auf Commit `769985c` durch. Der Live-Test
+  bestätigte danach den korrigierten Abmeldefall.
 
 ### F4 Nachsehen
 
