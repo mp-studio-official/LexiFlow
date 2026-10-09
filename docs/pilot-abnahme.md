@@ -458,11 +458,20 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### C5 Kennwort vergessen
 
-- [ ] **Tun:** Als Lernende: Lern-ID + Wiederherstellungscode → neues
+- [x] **Tun:** Als Lernende: Lern-ID + Wiederherstellungscode → neues
       Kennwort.
 - **Erwartet:** Es klappt, und es kommt ein **neuer** Code.
-- [ ] **Tun:** Den **alten** Code noch einmal benutzen.
+- [x] **Tun:** Den **alten** Code noch einmal benutzen.
 - **Erwartet:** Abgelehnt.
+- **Belegt am 09.10.2026:** Mit dem künstlichen Konto
+  `Probe Neuer Code` wurde das Kennwort auf der Pilotadresse zurückgesetzt.
+  Der gedrehte Wiederherstellungscode erschien allein, musste erneut
+  eingegeben werden und führte danach zu „Heute“. Ein anschließender
+  Versuch mit dem bisherigen Code blieb auf der Wiederherstellungsseite und
+  endete mit „Diese Angaben passen nicht zusammen.“ Die hierfür korrigierte
+  Fassung `9ac5293` wurde im GitHub-Lauf
+  `https://github.com/mp-studio-official/LexiFlow/actions/runs/37918474500`
+  vollständig geprüft und veröffentlicht.
 
 ### C6 Abmelden
 
@@ -668,6 +677,11 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
   endete vollständig grün; Prüfkette, Produktionsbau, Auslieferungsriegel
   und Pages-Deployment liefen auf Commit `769985c` durch. Der Live-Test
   bestätigte danach den korrigierten Abmeldefall.
+- **Wiederherstellungskorrektur belegt am 09.10.2026:** Lauf
+  `https://github.com/mp-studio-official/LexiFlow/actions/runs/37918474500`
+  endete vollständig grün und veröffentlichte Commit `9ac5293`. Der
+  anschließende Live-Test bestätigte Anzeige und Bestätigung des neuen
+  Wiederherstellungscodes sowie die Ablehnung des bisherigen Codes.
 
 ### F4 Nachsehen
 
