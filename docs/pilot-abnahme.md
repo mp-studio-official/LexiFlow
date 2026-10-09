@@ -416,10 +416,18 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### C1 Die Lehrkraft sieht keine Lernstände
 
-- [ ] **Tun:** Als Lehrkraft jeden Bildschirm durchgehen.
+- [x] **Getan:** Als Lehrkraft jeden Bildschirm durchgehen.
 - **Erwartet:** **Keine** Zahl über das Üben – nicht „zuletzt aktiv", nicht
   „x von y", kein Punkt hinter einem Namen.
 - **Danach:** Das Produktversprechen ist einmal mit Augen geprüft.
+
+> **Live belegt am 09.10.2026:** Start, Kursliste, beide Kursdetails,
+> Lernpakete/Material, Einstellungen, KI-Zugang und Datenschutz wurden auf
+> der öffentlichen Pilotadresse mit dem Lehrkraftkonto geöffnet. Die
+> Kursdetails zeigen Mitgliedschaft und Einladungsauslastung, aber keine
+> Antwortzahl, Aktivität oder individuellen Lernstand. Der ausdrückliche
+> Hinweis „Hier steht nichts darüber, wie viel jemand geübt hat“ ist
+> sichtbar.
 
 ### C2 Die Selbsterhebung geht nicht
 
@@ -490,10 +498,15 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### D4 KI ist sichtbar gesperrt
 
-- [ ] **Tun:** Als Lehrkraft den KI-Zugang öffnen.
+- [x] **Getan:** Als Lehrkraft den KI-Zugang öffnen.
 - **Erwartet:** „Im Pilot nicht freigegeben", kein Feld für einen Schlüssel.
-- [ ] **Tun:** Netzwerkanzeige mitlaufen lassen.
+- [x] **Getan:** Netzwerkanzeige mitlaufen lassen.
 - **Erwartet:** **Kein** Aufruf von `ai-gateway`, in keiner Ansicht.
+
+> **Live belegt am 09.10.2026:** Die Seite zeigt „Im Pilot nicht
+> freigegeben“, enthält kein Eingabe-, Auswahl- oder Textfeld und die
+> Ressourcenliste der geladenen Seite enthält keinen Aufruf von
+> `ai-gateway`.
 
 ---
 
