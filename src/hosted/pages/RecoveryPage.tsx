@@ -23,10 +23,14 @@ import { KENNWORT_MINDESTLAENGE } from './NewPasswordPage';
  * das Konto. Das steht so auch auf der Seite.
  */
 export function RecoveryPage() {
+  const [ersatzcode, setErsatzcode] = useState<string>();
+
+  if (ersatzcode) return <ErsatzcodeNotieren recoveryCode={ersatzcode} />;
+
   return (
     <div className="stack">
       <h1>Kennwort vergessen</h1>
-      <LernendeWiederherstellung />
+      <LernendeWiederherstellung onErsatzcode={setErsatzcode} />
       <LehrkraftWiederherstellung />
       <p className="small muted">
         <Link to="/anmelden">Zurück zur Anmeldung</Link>
@@ -35,9 +39,12 @@ export function RecoveryPage() {
   );
 }
 
-function LernendeWiederherstellung() {
+function LernendeWiederherstellung({
+  onErsatzcode,
+}: {
+  onErsatzcode: (recoveryCode: string) => void;
+}) {
   const auth = useOptionalRepository('auth');
-  const navigate = useNavigate();
   const [learnerId, setLearnerId] = useState('');
   const [code, setCode] = useState('');
   const [kennwort, setKennwort] = useState('');
@@ -64,12 +71,12 @@ function LernendeWiederherstellung() {
         Zwischenzustand „Code stimmte, Kennwort noch offen“ wäre eine halb
         offene Tür.
       */
-      const session = await auth.redeemRecoveryCode({
+      const ergebnis = await auth.redeemRecoveryCode({
         learnerId,
         recoveryCode: code,
         newPassword: kennwort,
       });
-      navigate(HOME_PER_ROLE[session.role], { replace: true });
+      onErsatzcode(ergebnis.recoveryCode);
     } catch (error) {
       setFehler(error instanceof Error ? error.message : 'Diese Angaben passen nicht zusammen.');
     } finally {
@@ -144,6 +151,91 @@ function LernendeWiederherstellung() {
         alten ist dann verloren.
       </Alert>
     </Card>
+  );
+}
+
+function ErsatzcodeNotieren({
+  recoveryCode,
+}: {
+  recoveryCode: string;
+}) {
+  const auth = useOptionalRepository('auth');
+  const navigate = useNavigate();
+  const [abschrift, setAbschrift] = useState('');
+  const [fehler, setFehler] = useState('');
+  const [laeuft, setLaeuft] = useState(false);
+
+  async function bestaetigen(event: FormEvent) {
+    event.preventDefault();
+    setFehler('');
+    if (!auth) return;
+
+    setLaeuft(true);
+    try {
+      const passt = await auth.confirmRecoveryCode(abschrift);
+      if (!passt) {
+        setFehler('Das ist nicht derselbe Code. Schau noch einmal genau hin.');
+        return;
+      }
+      navigate(HOME_PER_ROLE.student, { replace: true });
+    } finally {
+      setLaeuft(false);
+    }
+  }
+
+  return (
+    <div className="stack">
+      <h1>Dein neuer Wiederherstellungscode</h1>
+      <Alert
+        tone="warning"
+        title="Schreib diesen Code auf. Er kommt nie wieder."
+        className="alert--decision"
+      >
+        <p
+          style={{
+            fontSize: '1.8rem',
+            letterSpacing: 'var(--tracking-eyebrow, 0.14em)',
+            fontWeight: 700,
+            margin: '0.4rem 0',
+          }}
+        >
+          {recoveryCode}
+        </p>
+        <p style={{ margin: 0 }}>
+          Dein bisheriger Code ist jetzt ungültig. Wenn du dein Kennwort noch einmal vergisst,
+          kommst du nur mit diesem neuen Code wieder herein.
+        </p>
+      </Alert>
+
+      <Card>
+        <form className="stack" onSubmit={bestaetigen}>
+          <Field
+            label="Tipp den neuen Code hier noch einmal ein"
+            hint="So ist sicher, dass du ihn wirklich hast."
+          >
+            {(props) => (
+              <input
+                {...props}
+                type="text"
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                value={abschrift}
+                onChange={(event) => setAbschrift(event.target.value)}
+                required
+                autoFocus
+              />
+            )}
+          </Field>
+
+          {fehler ? <Alert tone="error">{fehler}</Alert> : null}
+
+          <Button type="submit" variant="primary" disabled={laeuft}>
+            {laeuft ? 'Einen Moment …' : 'Weiter zum Lernen'}
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 }
 

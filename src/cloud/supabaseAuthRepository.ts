@@ -185,7 +185,11 @@ export function createSupabaseAuthRepository(deps: {
         refresh_token: tokens.refreshToken,
       });
       if (error) throw new Error('Die Anmeldung konnte nicht übernommen werden.');
-      return erwarteSitzung(data.session, 'Die Anmeldung konnte nicht übernommen werden.');
+      const session = await erwarteSitzung(
+        data.session,
+        'Die Anmeldung konnte nicht übernommen werden.',
+      );
+      return { session, recoveryCode: tokens.recoveryCode };
     },
 
     async registerWithInviteCode(input) {

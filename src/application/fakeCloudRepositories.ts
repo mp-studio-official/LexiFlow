@@ -360,7 +360,10 @@ export function createFakeCloud(options: { now?: () => string } = {}): FakeCloud
         throw new Error('Diese Angaben passen nicht zusammen.');
       }
       account.password = newPassword;
-      return setze(account.profile.id);
+      return {
+        session: setze(account.profile.id),
+        recoveryCode: account.recoveryCode,
+      };
     },
     async setPassword(newPassword) {
       ich().password = newPassword;

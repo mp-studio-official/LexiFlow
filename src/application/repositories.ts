@@ -96,7 +96,7 @@ export interface AuthRepository {
     learnerId: string;
     recoveryCode: string;
     newPassword: string;
-  }): Promise<Session>;
+  }): Promise<{ session: Session; recoveryCode: string }>;
 
   /** Ein neues Kennwort setzen – für die laufende, bereits geprüfte Sitzung. */
   setPassword(newPassword: string): Promise<void>;

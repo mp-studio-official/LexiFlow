@@ -38,6 +38,11 @@ export interface LearnerRegistrierung extends LearnerTokens {
   recoveryCode: string;
 }
 
+/** Was nach einer Wiederherstellung zurückkommen muss: Sitzung und Ersatzcode. */
+export interface LearnerWiederherstellung extends LearnerTokens {
+  recoveryCode: string;
+}
+
 /** Die Adresse der Funktion, abgeleitet aus der Projektadresse. */
 export function learnerAuthEndpoint(supabaseUrl: string): string {
   return `${supabaseUrl.replace(/\/+$/, '')}/functions/v1/learner-auth`;
@@ -129,18 +134,34 @@ export function createLearnerAuth(options: {
       learnerId: string;
       recoveryCode: string;
       newPassword: string;
-    }): Promise<LearnerTokens> {
-      return rufe(
-        options.transport,
-        url,
-        {
-          aktion: 'wiederherstellen',
-          learnerId: input.learnerId.trim(),
-          recoveryCode: input.recoveryCode.trim(),
-          newPassword: input.newPassword,
-        },
-        WIEDERHERSTELLUNG_FEHLGESCHLAGEN,
-      );
+    }): Promise<LearnerWiederherstellung> {
+      let antwort: { status: number; body: unknown };
+      try {
+        antwort = await options.transport({
+          url,
+          body: {
+            aktion: 'wiederherstellen',
+            learnerId: input.learnerId.trim(),
+            recoveryCode: input.recoveryCode.trim(),
+            newPassword: input.newPassword,
+          },
+        });
+      } catch {
+        throw new Error(NETZ_FEHLER);
+      }
+      if (antwort.status >= 500) throw new Error(NETZ_FEHLER);
+
+      const tokens = tokensAus(antwort.body);
+      const recoveryCode = textFeld(antwort.body, 'recoveryCode');
+      /*
+        Der Server macht den gebrauchten Code im selben Schritt wertlos.
+        Fehlt sein Ersatz in der Antwort, darf der Browser den Erfolg nicht
+        verschweigen und die Person ohne wiederherstellbares Konto ablegen.
+      */
+      if (antwort.status !== 200 || !tokens || !recoveryCode) {
+        throw new Error(WIEDERHERSTELLUNG_FEHLGESCHLAGEN);
+      }
+      return { ...tokens, recoveryCode };
     },
     /**
      * Ein Konto anlegen – mit einem Einladungscode als Eintrittskarte.

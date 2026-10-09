@@ -63,12 +63,39 @@ describe('Wiederherstellung für Lernende', () => {
     await user.type(screen.getByLabelText('Neues Kennwort'), 'neues-testkennwort');
     await user.click(screen.getByRole('button', { name: 'Neues Kennwort setzen' }));
 
+    expect(
+      await screen.findByRole('heading', { name: 'Dein neuer Wiederherstellungscode' }),
+    ).toBeInTheDocument();
+    await user.type(
+      screen.getByLabelText('Tipp den neuen Code hier noch einmal ein'),
+      'TESTCODE-NUR-ZUM-PROBIEREN',
+    );
+    await user.click(screen.getByRole('button', { name: 'Weiter zum Lernen' }));
+
     /*
       Seit 5B.4 ist das der Rollenstart der Lernenden. Vorher stand hier
       „Deine Kurse" — die Seite gibt es weiterhin unter `/lernen`, sie ist
       nur nicht mehr das Erste, was jemand nach der Anmeldung sieht.
     */
     expect(await screen.findByRole('heading', { name: 'Heute', level: 1 })).toBeInTheDocument();
+  });
+
+  it('zeigt den neuen Code und lässt ihn vor der Abschrift nicht verschwinden', async () => {
+    const cloud = createFakeCloud();
+    vi.spyOn(cloud.repositories.auth!, 'redeemRecoveryCode').mockResolvedValue({
+      session: { userId: 'u-lernend', role: 'student' },
+      recoveryCode: 'NEU2-NEU3-NEU4-NEU5',
+    });
+    const user = setup('/wiederherstellen', cloud.repositories);
+
+    await user.type(await screen.findByLabelText('Lern-ID'), 'fuchs-7390');
+    await user.type(screen.getByLabelText('Wiederherstellungscode'), 'ALTER-CODE');
+    await user.type(screen.getByLabelText('Neues Kennwort'), 'neues-testkennwort');
+    await user.click(screen.getByRole('button', { name: 'Neues Kennwort setzen' }));
+
+    expect(await screen.findByText('NEU2-NEU3-NEU4-NEU5')).toBeInTheDocument();
+    expect(screen.getByText(/bisheriger Code ist jetzt ungültig/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Heute', level: 1 })).not.toBeInTheDocument();
   });
 
   it('lehnt ein zu kurzes Kennwort ab, ohne den Code zu verbrauchen', async () => {

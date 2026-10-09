@@ -45,7 +45,7 @@ function fakeAuth(over: Partial<SupabaseAuthSlice> = {}) {
 function fakeLearner(over: Partial<LearnerAuth> = {}): LearnerAuth {
   return {
     anmelden: async () => TOKENS,
-    wiederherstellen: async () => TOKENS,
+    wiederherstellen: async () => ({ ...TOKENS, recoveryCode: 'NEUER-CODE' }),
     registrieren: async () => ({ ...TOKENS, learnerId: 'fuchs-1234', recoveryCode: 'AAAA-BBBB-CCCC-DDDD' }),
     ...over,
   };
@@ -206,7 +206,9 @@ describe('Wiederherstellung', () => {
   });
 
   it('löst für Lernende den Code ein und meldet gleich an', async () => {
-    const wiederherstellen = vi.fn<LearnerAuth['wiederherstellen']>().mockResolvedValue(TOKENS);
+    const wiederherstellen = vi
+      .fn<LearnerAuth['wiederherstellen']>()
+      .mockResolvedValue({ ...TOKENS, recoveryCode: 'NEUER-CODE' });
     const ergebnis = await baue({
       learner: fakeLearner({ wiederherstellen }),
       rolle: 'student',
@@ -221,7 +223,8 @@ describe('Wiederherstellung', () => {
       recoveryCode: 'test-code',
       newPassword: 'neues-testkennwort',
     });
-    expect(ergebnis.userId).toBe(NUTZER);
+    expect(ergebnis.session.userId).toBe(NUTZER);
+    expect(ergebnis.recoveryCode).toBe('NEUER-CODE');
   });
 });
 

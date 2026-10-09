@@ -34,7 +34,11 @@ function auth(antwort: { status: number; body: unknown }) {
 
 const ERFOLG = {
   status: 200,
-  body: { access_token: 'test-zugangstoken', refresh_token: 'test-erneuerungstoken' },
+  body: {
+    access_token: 'test-zugangstoken',
+    refresh_token: 'test-erneuerungstoken',
+    recoveryCode: 'NEUER-TESTCODE-ZUM-PROBIEREN',
+  },
 };
 
 describe('die Adresse der Funktion', () => {
@@ -153,6 +157,32 @@ describe('Wiederherstellung', () => {
     const meldung = await anmeldung
       .wiederherstellen({ learnerId: 'fuchs-7390', recoveryCode: 'falsch', newPassword: 'x' })
       .catch((e: Error) => e.message);
+    expect(meldung).toBe(WIEDERHERSTELLUNG_FEHLGESCHLAGEN);
+  });
+
+  it('gibt den vom Server gedrehten Ersatzcode an die Oberfläche weiter', async () => {
+    const { auth: anmeldung } = auth(ERFOLG);
+    await expect(
+      anmeldung.wiederherstellen({
+        learnerId: 'fuchs-7390',
+        recoveryCode: 'alter-code',
+        newPassword: 'neues-testkennwort',
+      }),
+    ).resolves.toMatchObject({ recoveryCode: 'NEUER-TESTCODE-ZUM-PROBIEREN' });
+  });
+
+  it('akzeptiert keinen Erfolg ohne Ersatzcode', async () => {
+    const { auth: anmeldung } = auth({
+      status: 200,
+      body: { access_token: 'test-zugangstoken', refresh_token: 'test-erneuerungstoken' },
+    });
+    const meldung = await anmeldung
+      .wiederherstellen({
+        learnerId: 'fuchs-7390',
+        recoveryCode: 'alter-code',
+        newPassword: 'neues-testkennwort',
+      })
+      .catch((error: Error) => error.message);
     expect(meldung).toBe(WIEDERHERSTELLUNG_FEHLGESCHLAGEN);
   });
 });
