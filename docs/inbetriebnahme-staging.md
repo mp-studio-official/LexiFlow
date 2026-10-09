@@ -134,7 +134,7 @@ gelaufen** ist, und trennt es von dem, was weiterhin aussteht.
 | Mitgliedschaft entfernen → Zugriff endet, Lernstand bleibt | **belegt**, siehe 6.12 |
 | Paket veröffentlichen, beide Lernrichtungen (6.7) | **belegt** (08.10.2026, Pilotadresse) |
 | Persönlicher Lernstand über zwei Geräte, Revisionskonflikt (6.8, 6.9) | **belegt** (08.10.2026, zwei getrennte Browsersitzungen; spätere Antwort gewinnt, beide Geräte danach deckungsgleich) |
-| Kurs archivieren und weiterlernen (6.10) | **teilweise belegt** (08./09.10.2026: Archivierung, gesperrte Mutationen, Sichtbarkeit und gespeicherter Lernstand live; **offen:** Beitrittsversuch eines neuen Kontos mit altem Code) |
+| Kurs archivieren und weiterlernen (6.10) | **belegt** (08./09.10.2026: Archivierung, gesperrte Mutationen, Sichtbarkeit, gespeicherter Lernstand und Ablehnung eines neuen Kontos mit altem Code live) |
 | KI-Zugang mit echtem Anbieterschlüssel (6.11) | offen |
 | Sicherheitsabnahme (Abschnitt 7) | teilweise – siehe dort |
 | Safari und Mobil (Abschnitt 8) | offen |

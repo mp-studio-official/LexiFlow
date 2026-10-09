@@ -64,6 +64,7 @@ const ANGEWANDT = [
   { datei: '20261003090000_lokale_lerntage.sql', am: '03.10.2026', summe: '94328104cb8ae1acb8c04a1e782a1619907a279575754591ad76ca25c0e0cb7a' },
   { datei: '20261004090000_rollenriegel.sql', am: '06.10.2026', summe: 'd07c0a04974328c4b0c3d419da277c57c6b2bd75fecb95dd181b7e519b59a0e9' },
   { datei: '20261005090000_konto_stilllegen.sql', am: '06.10.2026', summe: '65a9667224b770b271804d7b25ff9a3dba9f33a02b03ef6459d854e67dc27aa4' },
+  { datei: '20261006090000_archivierte_kurse_schliessen.sql', am: '09.10.2026', summe: '2c8dfbb405160363784abd6eff4ca631d0af34e8a7d11d37ec0455388ca892b3' },
 ];
 
 function summeVon(datei) {

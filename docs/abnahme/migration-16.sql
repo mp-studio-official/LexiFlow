@@ -1,7 +1,7 @@
 /*
   Migration 16 – archivierte Kurse auch für neue Lernkonten schließen
 
-  STATUS: NOCH NICHT AUSGEFÜHRT
+  STATUS: ANGEWANDT UND LIVE GEGENEPRÜFT AM 09.10.2026
 
   Anlass: Der Live-Durchgang am 08./09.10.2026 zeigte, dass der bestehende
   Beitritt eines angemeldeten Kontos archivierte Kurse ablehnt. Die anonyme
@@ -16,6 +16,24 @@
 
   Der Trockenlauf muss genau
   `20261006090000_archivierte_kurse_schliessen.sql` nennen.
+
+  Tatsächlicher Ablauf am 09.10.2026:
+
+  - Trockenlauf: genau diese eine Fassung.
+  - `db push --linked --skip-vault`: genau diese eine Fassung angewandt.
+  - `migration list --linked`: 16 Fassungen in beiden Spalten, zuletzt
+    `20261006090000`.
+  - anschließender Trockenlauf: `Remote database is up to date.`
+  - Live-Gegenprobe: Der alte Code des archivierten Kurses erreichte noch
+    das Kontoformular, die Kontoanlage endete dann neutral mit „Dieser Code
+    gilt nicht.“ Es erschienen weder Lern-ID noch Wiederherstellungscode noch
+    Anmeldung. Damit stoppte der Ablauf vor `createUser`.
+
+  A1/A2 und B1–B3 wurden nicht zusätzlich im SQL Editor ausgeführt. Der
+  Schemaumfang wird deshalb hier nicht als entfernt gemessen ausgegeben.
+  Belegt sind stattdessen die unveränderte reine `create or replace
+  function`-Migration, 65 grüne PostgreSQL-/Schema-/Unveränderlichkeitstests,
+  die deckungsgleiche Historie, der leere Trockenlauf und die Live-Ablehnung.
 */
 
 -- A1 – Ausgangsstand. Lesend.

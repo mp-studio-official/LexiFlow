@@ -307,13 +307,16 @@ npx --yes supabase@latest db push --linked --skip-vault
 
 **A4.6 Nachtrag vom 09.10.2026 – Migration 16**
 
-- [ ] **Tun:** `docs/abnahme/migration-16.sql` vollständig abarbeiten.
+- [x] **Getan:** `docs/abnahme/migration-16.sql` angewandt; Historie lokal
+  und remote deckungsgleich, anschließender Trockenlauf leer.
 - **Warum:** Die anonyme Kontoanlage umging beim Verbrauch des Codes die
   Archivprüfung aus `redeem_invite`. Die rote PGlite-Gegenprobe hat den Weg
   reproduziert; Migration 16 schließt ihn in derselben atomaren Anweisung,
   die auch Ablauf, Widerruf und Platzgrenze prüft.
-- **Danach:** Die letzte Gegenprobe aus Teil B, Schritt 13, im Browser
-  ausführen. Erst dann ist §6.10 vollständig belegt.
+- **Live-Gegenprobe:** Die vorbereitete Kontoanlage mit dem alten Code des
+  archivierten Kurses endete mit „Dieser Code gilt nicht.“ Es entstanden
+  weder Lern-ID noch Wiederherstellungscode noch Sitzung. §6.10 ist damit
+  vollständig belegt.
 
 ---
 
@@ -397,19 +400,14 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 | 10 | Beide Lernrichtungen und alle vier Übungswege liefen; die Vokabelliste zeigte alle zwölf Einträge. „Heute" zeigte danach einen Lerntag. |
 | 11 | Derselbe Lernstand und dieselbe Serie waren in zwei getrennten Browsersitzungen sichtbar. |
 | 12 | Beide Sitzungen öffneten dieselbe Karte. Sitzung A antwortete zuerst, Sitzung B danach ohne Neuladen. Nach dem Neuladen zeigten beide 21 Antworten und denselben Stand; anschließend stieg der Stand regulär auf 22. Keine sichtbare Konfliktmeldung – wie in §6.9 festgelegt. |
-| 13 | Archivierung, ausgeblendete Änderungen und Codeerzeugung, sichtbarer abgeschlossener Kurs, Weiterüben und gespeicherter Lernstand sind live belegt. Dabei wurde ein Fehler gefunden: archivierte Kurse fehlten zunächst in „Heute", „Üben" und „Mein Fortschritt". Korrigiert in `8c8f5d4`, GitHub-Prüfkette 4.018 Tests grün, danach auf der Pilotadresse in allen vier Lernendenbereichen live bestätigt. **Noch offen:** Ein neues, bisher kursfremdes Testkonto löst einen alten Code ein und erhält die erwartete Ablehnung. |
+| 13 | Archivierung, ausgeblendete Änderungen und Codeerzeugung, sichtbarer abgeschlossener Kurs, Weiterüben und gespeicherter Lernstand sind live belegt. Dabei wurde ein Fehler gefunden: archivierte Kurse fehlten zunächst in „Heute", „Üben" und „Mein Fortschritt". Korrigiert in `8c8f5d4`, GitHub-Prüfkette 4.018 Tests grün, danach auf der Pilotadresse in allen vier Lernendenbereichen live bestätigt. Die letzte Gegenprobe deckte einen zweiten Weg auf: Die anonyme Kontoanlage verbrauchte den Code vor der Archivprüfung. Korrigiert mit Migration 16; der erneute Live-Versuch endete neutral mit „Dieser Code gilt nicht.“ und ohne Lern-ID, Wiederherstellungscode oder Sitzung. |
 
 ### Danach
 
-- [x] **Getan:** Schritte 1 bis 12 und der bestehende Teil von Schritt 13
-      einschließlich der vier Sichtprüfungen.
-- [ ] **Tun:** Schritt 13 mit einem neuen, kursfremden Testkonto abschließen:
-      alter Einladungscode muss beim Einlösen abgelehnt werden.
-- [x] **Getan:** Die Zeilen 6.7 bis 6.9 in
+- [x] **Getan:** Schritte 1 bis 13 einschließlich der vier Sichtprüfungen.
+- [x] **Getan:** Die Zeilen 6.7 bis 6.10 in
       `inbetriebnahme-staging.md` §0.5 auf **belegt** gesetzt.
-- [ ] **Tun:** Zeile 6.10 erst nach der offenen Beitrittsgegenprobe vollständig
-      auf **belegt** setzen.
-- **Danach:** Prüfung 5 wird grün.
+- **Ergebnis:** Prüfung 5 ist grün.
 - [ ] **Tun:** Die Testkonten stehen lassen – Teil C und D arbeiten damit
       weiter, und `Probe Loeschen` aus der Löschprobe kommt noch dazu.
 
