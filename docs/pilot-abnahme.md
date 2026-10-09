@@ -431,19 +431,30 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### C2 Die Selbsterhebung geht nicht
 
-- [ ] **Tun:** Als **lernende** Person, in der Browserkonsole auf der
+- [x] **Tun:** Als **lernende** Person, in der Browserkonsole auf der
       Pilotadresse, eine Rollenänderung am eigenen Profil versuchen.
 - **Erwartet:** Abgelehnt.
 - **Danach:** Riegel 3 aus Migration 14 ist am echten System belegt – das
   ist der Punkt, den der SQL Editor **nicht** zeigen kann, weil er als
   Besitzer spricht.
+- **Belegt am 09.10.2026:** Das künstliche Lernkonto `Probe Neuer Code`
+  meldete sich über den echten Lernenden-Anmeldedienst an und versuchte per
+  PostgREST, die eigene Rolle auf `teacher` zu setzen. Der Server antwortete
+  mit HTTP 403 / PostgreSQL-Code `42501`; das anschließend gelesene Profil
+  trug weiterhin `student`.
 
 ### C3 Mitgliedschaft entfernen
 
-- [ ] **Tun:** Kurs → Mitglieder → Entfernen.
+- [x] **Tun:** Kurs → Mitglieder → Entfernen.
 - **Erwartet:** Für die Person verschwinden Kurs und Pakete sofort.
-- [ ] **Tun:** Wieder beitreten lassen.
+- [x] **Tun:** Wieder beitreten lassen.
 - **Erwartet:** Der Lernstand ist noch da.
+- **Belegt am 09.10.2026:** `Probe Loeschen` wurde aus `Englisch 7b`
+  entfernt. Nach dem Neuladen zeigte „Lernen“ weder Kurs noch Paket, sondern
+  den erklärten Zustand „Noch kein Kurs“. Nach dem Wiederbeitritt mit einem
+  neuen einmaligen Code waren Kurs und Paket sofort wieder da. „Mein
+  Fortschritt“ zeigte weiterhin den vorher gemessenen Lerntag mit 13
+  Aufgaben und das schwierige Wort `story`; der Lernstand war erhalten.
 
 ### C4 Ein Konto stilllegen
 
@@ -508,9 +519,16 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### D3 Leere Zustände
 
-- [ ] **Tun:** Mit einem frischen Lernendenkonto anmelden, **bevor** ein
+- [x] **Tun:** Mit einem frischen Lernendenkonto anmelden, **bevor** ein
       Paket zugewiesen ist.
 - **Erwartet:** Erklärte Leerzustände, kein Fehler.
+- **Belegt am 09.10.2026:** Für den künstlichen Kurs
+  `Pilot – Leerzustand` wurde vor jeder Paketzuweisung das neue Konto
+  `Probe Ohne Paket` angelegt. „Heute“ erklärte Weiterlernen, Fälligkeit und
+  letzte Nutzung; „Üben“ zeigte „Noch nichts zum Üben“; „Mein Fortschritt“
+  zeigte „Noch keine Vokabeln“ und am Kurs „In diesem Kurs liegt noch kein
+  Lernpaket“. Keine der vier Ansichten zeigte einen Fehler. Der Testkurs
+  wurde danach archiviert.
 
 ### D4 KI ist sichtbar gesperrt
 
