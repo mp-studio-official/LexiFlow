@@ -237,8 +237,8 @@ Drei Abhängigkeiten sind echt und nicht verhandelbar:
 
 ## 3. Die Prüfungen – Stand nach A bis G
 
-`npm run pilot:pruefen` prüft zwölf Punkte. Zehn stehen; die zwei offenen
-sind genau die Handlungen, die ein Mensch am echten System tun muss.
+`npm run pilot:pruefen` prüft zwölf Punkte. Elf stehen; offen ist nur noch
+das vollständige Pilot-Abnahmeprotokoll mit drei organisatorischen Handlungen.
 
 > **Stand 09.10.2026.** Prüfung 4 ist grün: Migration 14 wurde im SQL Editor
 > angewandt und die Historie nachgetragen, Migration 15 danach einzeln per
@@ -246,6 +246,8 @@ sind genau die Handlungen, die ein Mensch am echten System tun muss.
 > Path einschließlich der Beitrittsgegenprobe nach der Archivierung ist
 > gelaufen; Prüfungen 5 und 12 sind grün. Das eigene Sicherungsverfahren ist
 > am 12.10.2026 vollständig wiederhergestellt worden; Prüfung 11 ist grün.
+> Am selben Tag wurden die Offline- und Wiederverbindungsfälle am echten
+> Portal sowie Chromium und WebKit auf der Pages-Adresse technisch belegt.
 
 | # | Prüfung | Stand |
 | --- | --- | --- |
@@ -330,17 +332,17 @@ ist unverändert.
 | Pilotkennzeichnung auf jeder Seite | **gebaut** |
 | KI bestimmt abgeschaltet | **gebaut** |
 | Ehrliche Verbindungs- und Leerzustände | **gebaut** |
-| Rollenriegel (Migration 14) | **liegt bereit**, Folge A des Protokolls (A3) |
-| Ein Weg, ein Konto stillzulegen (Migration 15) | **liegt bereit**, Folge B des Protokolls (A4) |
-| Offene Registrierung aus | Teil A1 |
-| Happy-Path 6.7–6.10 am echten Staging | Teil B |
+| Rollenriegel (Migration 14) | **angewandt und abgenommen** (06.10.2026) |
+| Ein Weg, ein Konto stillzulegen (Migration 15) | **angewandt und abgenommen** (06.10.2026) |
+| Offene Registrierung aus | **belegt** (Teil A1) |
+| Happy-Path 6.7–6.10 am echten Staging | **belegt** (09.10.2026) |
 | Datenschutzhinweis und Löschweg für Minderjährige | **vorbereitet** – `docs/pilot-information-eltern.md`, `docs/pilot-loeschprobe.md`; beide noch nicht ausgeführt |
 | Benannte Ansprechperson | Teil E3 |
 | **Ein Sicherungsverfahren** | **belegt** – täglich 02:17 UTC, verschlüsselt, 14 Tage; Wiederherstellungsprobe vom 12.10.2026 grün |
 | Rückfall: portable Lerndatei – technisch | **belegt** (06.10.2026): 32 + 29 Prüfungen grün, Prüfsummen in Teil E5 |
 | Rückfall: portable Lerndatei – **übergeben** | **offen.** Eine geprüfte Datei im Projektordner hilft am Mittwoch niemandem |
 | Anleitungen für beide Seiten | **gebaut** |
-| Öffentliche Adresse mit dem echten Stand | Teil F |
+| Öffentliche Adresse mit dem echten Stand | **ausgeliefert und technisch abgenommen** (Teil F) |
 
 ### 5.2 Darf während des Pilots fehlen
 

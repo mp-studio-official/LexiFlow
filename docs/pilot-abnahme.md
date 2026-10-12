@@ -512,18 +512,31 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### D1 Ohne Netz
 
-- [ ] **Tun:** Netzwerk in den Entwicklerwerkzeugen auf „Offline", dann
+- [x] **Tun:** Netzwerk in den Entwicklerwerkzeugen auf „Offline", dann
       Kurse, Material, Heute, Mein Fortschritt und eine Übungsrunde öffnen.
 - **Erwartet:** Überall **„Keine Verbindung"** und **„Erneut versuchen"**.
   Nirgends eine Ladeanzeige, die stehen bleibt. Nirgends „Noch kein Kurs"
   oder „Noch kein Paket".
-- [ ] **Tun:** Netz wieder an, „Erneut versuchen".
+- **Belegt am 12.10.2026:** Mit kurzlebigen synthetischen Lehrkraft- und
+  Lernendenkonten wurde im echten Chromium-Browser die Verbindung zu Supabase
+  getrennt. Kurse, Material, Heute, Mein Fortschritt und die Übungsrunde
+  zeigten den jeweiligen Verbindungszustand und „Erneut versuchen"; keine
+  Ansicht behauptete einen leeren Datenbestand. Die Konten und ihre
+  abhängigen Daten wurden danach vollständig gelöscht.
+- [x] **Tun:** Netz wieder an, „Erneut versuchen".
 - **Erwartet:** Die Ansicht lädt.
+- **Belegt am 12.10.2026:** Material und Übungsrunde luden nach dem
+  Wiederverbinden und „Erneut versuchen" wieder ihren Inhalt.
 
 ### D2 Nichts wird falsch zugesagt
 
-- [ ] **Tun:** Offline eine Antwort geben.
+- [x] **Tun:** Offline eine Antwort geben.
 - **Erwartet:** Keine Meldung, die Speichern behauptet.
+- **Belegt am 12.10.2026:** Eine Karteikartenantwort bei getrennter
+  Supabase-Verbindung zeigte: „Deine letzte Antwort konnte nicht gespeichert
+  werden. Prüfe deine Verbindung – geübt hast du sie trotzdem." Es erschien
+  keine Speicherbestätigung. Das synthetische Lernkonto wurde danach
+  vollständig gelöscht.
 
 ### D3 Leere Zustände
 
@@ -684,6 +697,12 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
   `sprint/5a-cloud-portal-foundation` als `default_branch` und
   `has_pages: true`; der erfolgreiche Build konnte beide Vite-Variablen
   lesen und die echte Pilotadresse laden.
+- **Sicherheitsnachtrag 12.10.2026:** Die veralteten Legacy-API-Schlüssel
+  `anon` und `service_role` sind im Stagingprojekt deaktiviert. Danach wurden
+  die Auth-Konfiguration mit dem Publishable Key (HTTP 200), die
+  Lernendenfunktion mit dem neuen Secret Key (erwartete fachliche Ablehnung
+  bei falschen Zugangsdaten) und das öffentliche Portal erneut geprüft. Kein
+  Legacy-Schlüssel ist für den Pilotbetrieb nötig.
 
 ### F2 Redirect-URL
 
@@ -721,8 +740,13 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 
 ### F4 Nachsehen
 
-- [ ] **Tun:** Die Adresse in Safari und auf einem Telefon öffnen.
+- [x] **Tun:** Die Adresse in Safari und auf einem Telefon öffnen.
 - **Erwartet:** Band oben, kein waagerechtes Scrollen, Anmeldung erreichbar.
+- **Technisch belegt am 12.10.2026:** Die echte Pages-Adresse wurde in
+  Chromium und WebKit bei 390 und 1440 px geöffnet: HTTP 200, Pilotband
+  sichtbar, Anmeldung erreichbar, kein waagerechter Überlauf. Die
+  390-px-Prüfung bildet die Telefonbreite im echten Browsermotor ab; sie ist
+  keine Behauptung über ein bestimmtes physisches Telefonmodell.
 
 ---
 
