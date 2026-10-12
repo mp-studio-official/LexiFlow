@@ -368,9 +368,9 @@ test.describe('Barrierefreiheit', () => {
   });
 });
 
-/* ================================================ Material (Phase 5) ===== */
+/* ============================================= Lernpakete (Phase 5) ===== */
 
-test.describe('Material und Veröffentlichung', () => {
+test.describe('Lernpakete und Veröffentlichung', () => {
   test('@smoke ein Paket wird veröffentlicht, zugewiesen und ist für die Lerngruppe da', async ({
     page,
   }) => {
@@ -384,7 +384,8 @@ test.describe('Material und Veröffentlichung', () => {
     const code = await codeErzeugen(page);
 
     await page.goto('./portal/#/material');
-    await expect(page.getByRole('heading', { name: 'Material', level: 1 })).toBeVisible();
+    await expect(page).toHaveURL(/#\/pakete$/);
+    await expect(page.getByRole('heading', { name: 'Lernpakete', level: 1 })).toBeVisible();
 
     // In der Testfassung gibt es noch kein Paket – der leere Zustand erklärt es.
     await expect(page.getByText('Noch kein Paket im Konto')).toBeVisible();
@@ -406,10 +407,11 @@ test.describe('Material und Veröffentlichung', () => {
     await expect(page.getByText('Noch keine Vokabeln')).toBeVisible();
   });
 
-  test('@a11y die Materialseite ohne schwerwiegende Befunde', async ({ page }) => {
+  test('@a11y die Lernpaketeseite ohne schwerwiegende Befunde', async ({ page }) => {
     await alsLehrkraft(page);
     await page.goto('./portal/#/material');
-    await page.getByRole('heading', { name: 'Material', level: 1 }).waitFor();
+    await expect(page).toHaveURL(/#\/pakete$/);
+    await page.getByRole('heading', { name: 'Lernpakete', level: 1 }).waitFor();
 
     const ergebnis = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
