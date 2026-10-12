@@ -2,11 +2,16 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
 
 const wurzel = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ablauf = readFileSync(resolve(wurzel, '.github/workflows/pilot-sicherung.yml'), 'utf8');
 const zaehler = readFileSync(resolve(wurzel, 'scripts/sicherung/zaehlwerte.sql'), 'utf8');
+const pruefdatenbank = readFileSync(
+  resolve(wurzel, 'scripts/sicherung/pruefdatenbank.sql'),
+  'utf8',
+);
 
 describe('Die Pilotsicherung', () => {
   it('läuft täglich und auf Zuruf, aber nie infolge eines Quelltext-Pushs', () => {
@@ -67,5 +72,28 @@ describe('Die Pilotsicherung', () => {
       'progress_events', 'ai_allowed_hosts', 'ai_connections', 'auth_rate_limit',
     ];
     for (const tabelle of tabellen) expect(zaehler).toContain(`'${tabelle}'`);
+  });
+
+  it('bildet jede gemessene Supabase-Systemrolle vor dem Rollenexport nach', async () => {
+    const rollen = [
+      'anon', 'authenticated', 'authenticator', 'cli_login_postgres',
+      'dashboard_user', 'pgbouncer', 'service_role', 'supabase_admin',
+      'supabase_auth_admin', 'supabase_etl_admin', 'supabase_privileged_role',
+      'supabase_read_only_user', 'supabase_realtime_admin',
+      'supabase_replication_admin', 'supabase_storage_admin',
+    ];
+    for (const rolle of rollen) expect(pruefdatenbank).toContain(`'${rolle}'`);
+
+    const db = await PGlite.create();
+    try {
+      await db.exec(pruefdatenbank);
+      const ergebnis = await db.query(
+        `select rolname from pg_roles where rolname = any($1::text[]) order by rolname`,
+        [rollen],
+      );
+      expect(ergebnis.rows.map((zeile) => zeile.rolname)).toEqual([...rollen].sort());
+    } finally {
+      await db.close();
+    }
   });
 });

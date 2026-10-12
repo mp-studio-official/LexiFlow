@@ -1,14 +1,24 @@
 do $$
+declare
+  rolle text;
 begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then
-    create role anon nologin noinherit;
-  end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
-    create role authenticated nologin noinherit;
-  end if;
-  if not exists (select 1 from pg_roles where rolname = 'service_role') then
-    create role service_role nologin noinherit bypassrls;
-  end if;
+  -- Der Rollenexport ändert die Einstellungen dieser von Supabase
+  -- mitgebrachten Rollen. Eine leere PostgreSQL-Datenbank kennt sie nicht;
+  -- deshalb entstehen sie hier vor dem Einspielen des Exports. Die Liste ist
+  -- am 12.10.2026 direkt aus pg_roles des Pilotprojekts gemessen.
+  foreach rolle in array array[
+    'anon', 'authenticated', 'authenticator', 'cli_login_postgres',
+    'dashboard_user', 'pgbouncer', 'service_role', 'supabase_admin',
+    'supabase_auth_admin', 'supabase_etl_admin', 'supabase_privileged_role',
+    'supabase_read_only_user', 'supabase_realtime_admin',
+    'supabase_replication_admin', 'supabase_storage_admin'
+  ] loop
+    if not exists (select 1 from pg_roles where rolname = rolle) then
+      execute format('create role %I nologin noinherit', rolle);
+    end if;
+  end loop;
+
+  alter role service_role bypassrls;
 end
 $$;
 
