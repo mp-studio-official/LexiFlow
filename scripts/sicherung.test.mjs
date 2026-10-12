@@ -54,6 +54,9 @@ describe('Die Pilotsicherung', () => {
     expect(ablauf).toContain('postgres:17');
     expect(ablauf).toContain('session_replication_role = replica');
     expect(ablauf).toContain('diff -u /restore/zaehlwerte-vorher.json /tmp/zaehlwerte-nachher.json');
+    expect(ablauf.indexOf('/pruefung/pruefdatenbank.sql')).toBeLessThan(
+      ablauf.indexOf('/restore/roles.sql'),
+    );
   });
 
   it('zählt jede LexiFlow-Tabelle und die Auth-Konten', () => {

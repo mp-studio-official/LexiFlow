@@ -134,8 +134,8 @@ jobs:
             -v "$PWD/restore-work:/restore:ro" \
             -v "$PWD/scripts/sicherung:/pruefung:ro" \
             postgres:17 sh -euc '
-              psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f /restore/roles.sql
               psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f /pruefung/pruefdatenbank.sql
+              psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f /restore/roles.sql
               psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f /restore/schema.sql
               psql "$RESTORE_URL" -v ON_ERROR_STOP=1 \
                 -c "\\copy auth.users(id, email) from /restore/auth-users.csv with csv header"
