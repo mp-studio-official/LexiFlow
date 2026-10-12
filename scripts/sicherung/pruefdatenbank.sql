@@ -23,6 +23,7 @@ end
 $$;
 
 create schema if not exists auth;
+create schema if not exists extensions;
 
 -- Die öffentliche LexiFlow-Struktur verweist auf Supabases verwaltete
 -- Konten. Für die Wiederherstellungsprobe reichen Kennung und E-Mail: Die

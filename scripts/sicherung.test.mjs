@@ -87,6 +87,10 @@ describe('Die Pilotsicherung', () => {
     const db = await PGlite.create();
     try {
       await db.exec(pruefdatenbank);
+      const schema = await db.query(
+        `select schema_name from information_schema.schemata where schema_name = 'extensions'`,
+      );
+      expect(schema.rows).toHaveLength(1);
       const ergebnis = await db.query(
         `select rolname from pg_roles where rolname = any($1::text[]) order by rolname`,
         [rollen],
