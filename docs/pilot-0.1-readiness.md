@@ -166,7 +166,7 @@ eingetragen hat" kein Zustand, sondern eine Lücke. **Entscheidung 6.3.**
 | --- | --- | --- |
 | Datenschutz | `docs/portal-datenschutz-und-sicherheit.md`, `src/hosted/pages/PortalPrivacyPage.tsx`, `docs/gemini-datenschutz-und-sicherheit.md` | Auftragsverarbeitung/Einwilligung für **Minderjährige**, Löschweg auf Zuruf, Aufbewahrungsdauer |
 | Support | — | kein benannter Weg, wie eine Lehrkraft im Pilot ein Problem meldet |
-| Sicherung | Supabase-eigene Sicherungen | **kein geprüfter Wiederherstellungsversuch**, keine Aussage über Häufigkeit und Rückhaltezeit |
+| Sicherung | eigenes Verfahren: täglich 02:17 UTC, AES-256-verschlüsseltes GitHub-Artefakt, 14 Tage; Wiederherstellungsprobe am 12.10.2026 grün | Supabase Free stellt weiterhin keine eigene Projektsicherung bereit |
 | Rückfall | `docs/inbetriebnahme-staging.md` §12 „Rückbauplan" – vorhanden und brauchbar | nicht auf den Pilotfall zugeschnitten (laufende Lerngruppe statt leeres Staging) |
 
 Ein Rückfall, der für einen Pilot taugt, muss eine Frage beantworten, die §12
@@ -244,8 +244,8 @@ sind genau die Handlungen, die ein Mensch am echten System tun muss.
 > angewandt und die Historie nachgetragen, Migration 15 danach einzeln per
 > `db push` – beide gemessen, beide Protokolle umgeschrieben. Der Live-Happy-
 > Path einschließlich der Beitrittsgegenprobe nach der Archivierung ist
-> gelaufen; Prüfungen 5 und 12 sind grün. Prüfung 11 ist wegen des fehlenden
-> Sicherungsverfahrens weiterhin rot (siehe unten).
+> gelaufen; Prüfungen 5 und 12 sind grün. Das eigene Sicherungsverfahren ist
+> am 12.10.2026 vollständig wiederhergestellt worden; Prüfung 11 ist grün.
 
 | # | Prüfung | Stand |
 | --- | --- | --- |
@@ -259,7 +259,7 @@ sind genau die Handlungen, die ein Mensch am echten System tun muss.
 | 8 | Jede Ansicht, die Daten holt, kennt den Verbindungsfehler | **grün** |
 | 9 | Es gibt Anleitungen für das Portal – für beide Seiten | **grün** |
 | 10 | Das Pilot-Abnahmeprotokoll ist abgearbeitet | **rot** |
-| 11 | Für das Stagingprojekt ist ein Sicherungsverfahren belegt | **rot** |
+| 11 | Für das Stagingprojekt ist ein Sicherungsverfahren belegt | **grün** (12.10.2026: Lauf `38234499377`) |
 | 12 | Der anonyme Beitritt in archivierte Kurse ist geschlossen | **grün** (09.10.2026: Migration 16, Live-Ablehnung ohne Konto) |
 
 > **Zwei Prüfungen aus der ersten Fassung sind weggefallen, und warum.**
@@ -336,7 +336,7 @@ ist unverändert.
 | Happy-Path 6.7–6.10 am echten Staging | Teil B |
 | Datenschutzhinweis und Löschweg für Minderjährige | **vorbereitet** – `docs/pilot-information-eltern.md`, `docs/pilot-loeschprobe.md`; beide noch nicht ausgeführt |
 | Benannte Ansprechperson | Teil E3 |
-| **Ein Sicherungsverfahren** | **offen und blockierend** – siehe 6.1 |
+| **Ein Sicherungsverfahren** | **belegt** – täglich 02:17 UTC, verschlüsselt, 14 Tage; Wiederherstellungsprobe vom 12.10.2026 grün |
 | Rückfall: portable Lerndatei – technisch | **belegt** (06.10.2026): 32 + 29 Prüfungen grün, Prüfsummen in Teil E5 |
 | Rückfall: portable Lerndatei – **übergeben** | **offen.** Eine geprüfte Datei im Projektordner hilft am Mittwoch niemandem |
 | Anleitungen für beide Seiten | **gebaut** |
@@ -354,7 +354,6 @@ ist unverändert.
 | Titelbilder (5B.9), Zeitformen (5B.10), geplante Veröffentlichung (5B.11) | pausiert |
 | Werkstatt im Portal (5B.13, 5B.14) | portable Werkstatt, dann übernehmen |
 | Mobile Sonderfälle (5B.12) | die Breitensuite deckt 390 px ab |
-| Geprüfter Wiederherstellungsversuch der Sicherung | vertretbar, **wenn** der Rückfall steht (E4, E5) |
 
 ### 5.3 Erst nach dem Pilot
 
@@ -371,7 +370,7 @@ ist unverändert.
 
 ## 6. Was offen bleibt – und bei wem
 
-### 6.1 Die Sicherung – eine Entscheidung, und sie blockiert
+### 6.1 Die Sicherung – eigenes Verfahren belegt
 
 > **Befund vom 06.10.2026.** Das Stagingprojekt läuft im kostenfreien Tarif
 > von Supabase. Der enthält **keine** Projektsicherungen; planmäßige
@@ -382,16 +381,18 @@ ist unverändert.
 > damit falsch. Sie stand da, weil ich angenommen habe, was im Dashboard
 > allgemein über tägliche Sicherungen steht, gelte auch für dieses Projekt.
 
-Vor dem ersten echten Konto ist zu entscheiden:
+Entschieden wurde Weg (b):
 
 | | Weg | Was dann gilt |
 | --- | --- | --- |
 | **a** | Pro-Tarif vor echten Schülerdaten | tägliche Sicherung, sieben Tage Aufbewahrung |
-| **b** | Ein eigenes Verfahren, beschrieben **und** praktisch getestet | Intervall, Ablageort, Aufbewahrungsdauer und ein gelaufener Wiederherstellungsversuch – alle vier |
+| **b** | **Gewählt:** eigenes Verfahren, beschrieben und praktisch getestet | täglich 02:17 UTC; AES-256-verschlüsseltes GitHub-Actions-Artefakt; 14 Tage; Wiederherstellungsprobe grün |
 
-**Bis dahin: nur künstliche Testdaten.** Ein verlorener Lernstand einer
-echten Lerngruppe wäre nicht wiederherstellbar, und das ist keine Lage, in
-die man eine Schulklasse bringt.
+**Belegt am 12.10.2026:** Lauf `38234499377` exportierte die echte
+Stagingdatenbank, verschlüsselte und entschlüsselte das Archiv, stellte die
+LexiFlow-Daten in einer frischen Supabase-kompatiblen PostgreSQL-17-Datenbank
+wieder her und verglich alle Zählwerte exakt. Nur der Chiffretext wird
+14 Tage aufbewahrt. Das Verfahren steht in `docs/pilot-sicherung.md`.
 
 ### 6.2 Wer gerade was macht
 

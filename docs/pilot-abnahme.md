@@ -598,16 +598,15 @@ Erziehungsberechtigten.
 - **Erwartet:** Zwei Dokumente, eine Person. Stehen dort zwei verschiedene,
   meldet am Ende niemand etwas.
 
-### E4 Sicherung — **offen, und ein Pilotblocker**
+### E4 Sicherung — **belegt**
 
 > **Befund vom 06.10.2026, im Dashboard abgelesen.** Das Stagingprojekt
 > läuft im **kostenfreien Tarif**. Die tägliche Sicherung um Mitternacht
 > gilt dort **nicht**: Projektsicherungen sind nicht enthalten, planmäßige
 > Sicherungen über sieben Tage gibt es erst im Pro-Tarif.
 >
-> **Es gibt derzeit kein Sicherungsintervall und keine Aufbewahrungsdauer.**
-> Dieser Punkt wird **nicht** abgehakt, und er wird auch nicht durch einen
-> Satz ersetzt.
+> Supabase selbst stellt weiterhin kein Sicherungsintervall bereit. Deshalb
+> wurde ein eigenes Verfahren eingerichtet und praktisch geprüft.
 
 Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 
@@ -616,21 +615,18 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
 | **a** | **Pro-Tarif vor echten Schülerdaten** | tägliche Sicherung, sieben Tage Aufbewahrung – die Zahlen hier eintragen |
 | **b** | **Ein eigenes Verfahren**, ausdrücklich beschrieben und **praktisch getestet** | Intervall, Ablageort, Aufbewahrungsdauer und ein gelaufener Wiederherstellungsversuch – alles vier, sonst ist es kein Verfahren |
 
-- [ ] **Tun:** Entscheidung treffen und eintragen.
-- [ ] **Tun:** Bei (b) zusätzlich: einen Wiederherstellungsversuch
+- [x] **Getan:** Weg (b) gewählt und mit Intervall, Ablage und
+      Aufbewahrungsdauer dokumentiert.
+- [x] **Getan:** Einen Wiederherstellungsversuch
       durchführen und das Ergebnis festhalten.
-- **Bis dahin:** **nur künstliche Testdaten.** Das ist keine Vorsicht,
-  sondern die einzige Haltung, die zu „es gibt keine Sicherung" passt – ein
-  verlorener Lernstand einer echten Lerngruppe wäre nicht
-  wiederherstellbar.
 
-> **Verfahren vorbereitet am 12.10.2026, noch nicht belegt.** Gewählt ist
-> Weg (b): täglicher, AES-256-verschlüsselter Export als GitHub-Artefakt,
-> 14 Tage Aufbewahrung und eine automatische Wiederherstellungsprobe in
-> PostgreSQL 17. Ablauf und Grenzen stehen in `docs/pilot-sicherung.md`.
-> Offen sind die beiden GitHub-Secrets und der erste vollständig grüne Lauf;
-> bis dahin steht hier ausdrücklich noch **keine** Zeile
-> `SICHERUNG BELEGT`.
+> **SICHERUNG BELEGT: täglich 02:17 UTC · AES-256-verschlüsseltes
+> GitHub-Actions-Artefakt · 14 Tage · Wiederherstellungsprobe am 12.10.2026
+> in Lauf `38234499377` vollständig grün.** Export, Entschlüsselung,
+> Prüfsumme, Restore in eine frische Supabase-kompatible PostgreSQL-17-
+> Datenbank und exakter Zählwertvergleich bestanden. Aufbewahrt wird nur
+> `lexiflow-pilot-sicherung-38234499377` (27.341 Byte), Ablauf
+> 26.10.2026. Ablauf und Grenzen stehen in `docs/pilot-sicherung.md`.
 
 ### E5 Rückfall: die portable Lerndatei
 

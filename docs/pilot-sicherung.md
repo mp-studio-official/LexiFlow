@@ -4,8 +4,8 @@
 
 Dieses Verfahren gilt für das Supabase-Projekt `lexiflow` im kostenlosen
 Tarif. Dort gibt es keine vom Tarif bereitgestellten Projektsicherungen.
-Solange der unten beschriebene Ablauf nicht einmal vollständig grün gelaufen
-ist, bleibt die Grenze unverändert: **nur künstliche Testdaten**.
+Der unten beschriebene Ablauf ist am 12.10.2026 erstmals vollständig grün
+gelaufen. Damit ist die technische Sicherungsgrenze für den Pilot belegt.
 
 Die technische Grundlage folgt der Empfehlung von Supabase für Free-Projekte:
 regelmäßige logische Exporte mit der Supabase CLI und eine Ablage außerhalb
@@ -25,6 +25,14 @@ des Supabase-Projekts.
 Der Ablauf liegt in `.github/workflows/pilot-sicherung.yml`. Er läuft weder
 bei einem Push noch bei einem Pull Request. Eine Quelltextänderung darf keine
 echten Daten auslesen.
+
+**Erster vollständiger Beleg:** GitHub-Actions-Lauf
+[`38234499377`](https://github.com/mp-studio-official/LexiFlow/actions/runs/38234499377),
+12.10.2026. Export, AES-256-Verschlüsselung, Entschlüsselung, Prüfsumme,
+Wiederherstellung in eine frische Supabase-kompatible PostgreSQL-17-Datenbank
+und der exakte Zählwertvergleich waren grün. Aufbewahrt wurde ausschließlich
+das verschlüsselte Artefakt `lexiflow-pilot-sicherung-38234499377`
+(27.341 Byte), mit Ablauf am 26.10.2026.
 
 ## Einmalige Einrichtung
 
