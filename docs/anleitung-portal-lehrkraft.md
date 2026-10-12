@@ -113,11 +113,12 @@ Lerndatei.
 
 ## Wem du etwas meldest
 
-Trag hier **vor dem Pilot** einen Namen und einen Weg ein – nicht „jemand":
+- **Ansprechperson:** Frau Ohm
+- **Wie erreichbar:** support@lexiflow.info
 
-- **Ansprechperson:** _______________________
-- **Wie erreichbar:** _______________________
-- **Wie schnell:** _______________________
+Für den kleinen Pilot ist keine feste Reaktionszeit zugesagt. Eine Nachricht
+an diese Adresse ist trotzdem der verbindliche Weg, damit ein Problem nicht
+nur im Unterricht umgangen wird.
 
 Ein Pilot ohne benannten Ansprechpartner endet damit, dass Probleme nicht
 gemeldet, sondern umgangen werden – und dann erfährt sie niemand.

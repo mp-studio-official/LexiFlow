@@ -1,21 +1,16 @@
 # LexiFlow im Pilot – Information für Erziehungsberechtigte und Lernende
 
-> **Noch nicht verschickt.** Dieses Blatt ist vorbereitet. Es geht erst
-> hinaus, wenn die offenen Punkte am Ende geklärt sind – vor allem die
-> Datensicherung. Bis dahin arbeitet der Pilot ausschließlich mit
-> künstlichen Testkonten.
->
-> Ein Satz an die Lehrkraft, bevor sie das weitergibt: Die eckigen Klammern
-> unten sind auszufüllen. Ein Blatt mit `[…]` darin ist keine Information.
+> **Noch nicht verschickt.** Dieses Blatt ist fertig vorbereitet. Es wird
+> verteilt, bevor die ersten echten Lernendenkonten entstehen.
 
 ---
 
 ## Worum es geht
 
 Ihr Kind übt mit **LexiFlow** englische Vokabeln – am Telefon, am Tablet
-oder am Rechner. LexiFlow ist eine Erprobungsfassung („Pilot 0.1"), die
-[Name der Schule / der Lehrkraft] in einer Lerngruppe ausprobiert. Auf jeder
-Seite steht oben ein Band, das das sagt.
+oder am Rechner. LexiFlow ist eine Erprobungsfassung („Pilot 0.1"), die am
+**Georg-Büchner-Gymnasium der Stadt Kaarst** zunächst in einem kleinen Rahmen
+ausprobiert wird. Auf jeder Seite steht oben ein Band, das das sagt.
 
 ## Was gespeichert wird
 
@@ -66,10 +61,12 @@ Anbieter, Datenfluss und einem eigenen Hinweis.
 
 ## Wie lange, und wie wieder weg
 
-Die Daten bleiben, solange der Pilot läuft, längstens bis
-**[Datum eintragen]**.
+Ein festes Enddatum ist für den kleinen Pilot zunächst nicht festgelegt. Die
+Daten bleiben nur, solange sie für die Teilnahme am Pilot gebraucht werden.
+Endet der Pilot oder die Teilnahme einer Person, werden deren Konto und
+Lernstand gelöscht.
 
-**Löschen auf Zuruf:** Ein Wort an [Ansprechperson] genügt – das Konto und
+**Löschen auf Zuruf:** Eine Nachricht an Frau Ohm genügt – das Konto und
 der gesamte Lernstand werden gelöscht. Es bleibt nichts zurück, was auf Ihr
 Kind verweist. Eine Begründung ist nicht nötig, und es entsteht kein
 Nachteil im Unterricht: Wer nicht mitmacht, übt wie bisher auf Papier oder
@@ -81,9 +78,8 @@ mit der Offline-Datei.
 
 | | |
 | --- | --- |
-| Verantwortlich | [Name, Funktion] |
-| Erreichbar unter | [E-Mail / Telefon] |
-| Antwort spätestens | [z. B. innerhalb von zwei Schultagen] |
+| Ansprechpartnerin für den Pilot | Frau Ohm |
+| Erreichbar unter | support@lexiflow.info |
 
 ## Wenn das Netz ausfällt
 
@@ -94,16 +90,11 @@ Adresse.
 
 ---
 
-## Was wir Ihnen noch nicht sagen können
+## Was Sie noch wissen sollten
 
-Zwei Dinge sind offen, und sie stehen hier, statt zu fehlen:
-
-1. **Die Datensicherung.** Das Projekt läuft derzeit im kostenfreien Tarif
-   von Supabase, und der enthält **keine** Sicherungen. Solange das so ist,
-   arbeitet der Pilot nur mit künstlichen Testkonten. Vor dem ersten echten
-   Konto wird entweder der kostenpflichtige Tarif eingerichtet (dann:
-   tägliche Sicherung, sieben Tage Aufbewahrung) oder ein anderes,
-   beschriebenes und erprobtes Verfahren.
-2. **Die Erprobung ist eine Erprobung.** Es kann Fehler geben. Deshalb der
-   Hinweis oben auf jeder Seite, deshalb die kleine Gruppe, und deshalb die
-   Offline-Datei als Rückfall.
+- **Die Datensicherung** läuft einmal täglich. Die verschlüsselten
+  Sicherungen werden 14 Tage aufbewahrt; eine Wiederherstellung wurde vor
+  dem Pilot praktisch geprüft.
+- **Die Erprobung ist eine Erprobung.** Es kann Fehler geben. Deshalb der
+  Hinweis oben auf jeder Seite, deshalb der kleine Rahmen und deshalb die
+  Offline-Datei als Rückfall.

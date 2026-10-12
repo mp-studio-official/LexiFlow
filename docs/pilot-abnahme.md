@@ -606,10 +606,13 @@ Erziehungsberechtigten.
 
 ### E3 Ansprechperson
 
-- [ ] **Tun:** In `docs/anleitung-portal-lehrkraft.md` **und** im
-      Elternblatt dieselbe Person eintragen: Name, Weg, Reaktionszeit.
+- [x] **Tun:** In `docs/anleitung-portal-lehrkraft.md` **und** im
+      Elternblatt dieselbe Person und denselben Kontaktweg eintragen.
 - **Erwartet:** Zwei Dokumente, eine Person. Stehen dort zwei verschiedene,
   meldet am Ende niemand etwas.
+- **Festgelegt am 12.10.2026:** Frau Ohm, `support@lexiflow.info`. Der Pilot
+  beginnt in einem kleinen Rahmen ohne zugesagte Reaktionszeit; deshalb wird
+  in keinem Dokument eine Antwortfrist erfunden.
 
 ### E4 Sicherung — **belegt**
 
