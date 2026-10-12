@@ -1,9 +1,9 @@
 # Die Löschprobe (Teil E2)
 
-> **Noch nichts gelöscht.** Dieses Dokument beschreibt die Probe und ist
-> vorbereitet. Sie läuft **ausschließlich mit einem künstlichen Testkonto**,
-> das eigens dafür angelegt wird – nie mit dem Konto einer echten Person,
-> auch nicht „zur Übung".
+> **Live belegt am 12.10.2026.** Die Probe lief ausschließlich mit dem
+> künstlichen Konto `Probe Loeschen`. Gelöscht wurde es über den vorgesehenen
+> Weg im Supabase-Dashboard; das bleibende Kontrollkonto `Probe Sperre`, Kurs
+> und Paket blieben erhalten.
 
 ## Warum es diese Probe gibt
 
@@ -51,7 +51,7 @@ mit `cascade`. Das Löschen des Kontos räumt deshalb alles mit ab.
 
 ### L0 Ein Konto eigens für die Probe
 
-- [ ] **Tun:** Im Pilotkurs über den Einladungscode ein Konto anlegen.
+- [x] **Getan:** Im Pilotkurs über den Einladungscode ein Konto angelegt.
       Name: **`Probe Loeschen`**. Lern-ID und Wiederherstellungscode
       notieren.
 - **Erwartet:** Das Konto existiert, Rolle `student`.
@@ -62,14 +62,14 @@ mit `cascade`. Das Löschen des Kontos räumt deshalb alles mit ab.
 
 ### L1 Spuren erzeugen – sonst prüft die Probe nichts
 
-- [ ] **Tun:** Als dieses Konto anmelden, **mindestens zwölf Aufgaben**
+- [x] **Getan:** Als dieses Konto angemeldet, **mindestens zwölf Aufgaben**
       beantworten (über die Lerntagsschwelle von zehn), in beiden
       Lernrichtungen. Eine Zeitzone bestätigen und ein Wochenziel setzen.
 - **Erwartet:** Danach gibt es Zeilen in allen sieben Tabellen.
 
 ### L2 Vorher zählen
 
-- [ ] **Tun:** Im SQL Editor, mit der Kennung des Testkontos:
+- [x] **Getan:** Im SQL Editor mit der Kennung des Testkontos gezählt:
 
 ```
 -- <TESTKONTO> durch die UUID des Probekontos ersetzen
@@ -86,22 +86,29 @@ union all select 'progress_events',    count(*) from progress_events   where use
 - **Erwartet:** **Jede** Zeile grösser als 0. Steht irgendwo 0, ist L1 nicht
   vollständig gelaufen – dann nicht löschen, sondern nachholen. Eine Probe,
   die eine leere Tabelle leert, beweist nichts.
-- [ ] **Tun:** Dieselbe Abfrage für ein **zweites**, bleibendes Testkonto
+- **Gemessen vorher:** `auth.users 1 · profiles 1 · learner_accounts 1 ·
+  learner_settings 1 · course_members 1 · pack_progress 1 ·
+  entry_progress 4 · progress_events 13`.
+- [x] **Getan:** Dieselbe Abfrage für das zweite, bleibende Testkonto
       ausführen und die Zahlen notieren.
 - **Erwartet:** Zahlen grösser als 0. Sie sind die Gegenprobe in L5.
+- **Gemessen vorher (`Probe Sperre`):** in allen acht Zählwerten jeweils
+  **1**.
 
 ### L3 Die Kennung sichern
 
-- [ ] **Tun:** Die UUID des Probekontos notieren.
+- [x] **Getan:** Die UUID des Probekontos vor der Löschung notiert.
 - **Warum:** Nach dem Löschen ist sie nirgends mehr nachzuschlagen, und ohne
   sie lässt sich L4 nicht ausführen.
 
 ### L4 Löschen
 
-- [ ] **Tun:** Im Supabase-Dashboard: *Authentication → Users →* das Konto
+- [x] **Getan:** Im Supabase-Dashboard: *Authentication → Users →* das Konto
       `Probe Loeschen` → **Delete user**.
 - **Erwartet:** Das Konto verschwindet aus der Liste.
 - **Danach:** Alle sieben Tabellen sollten die Zeilen verloren haben.
+- **Gemessen:** Supabase bestätigte die erfolgreiche Löschung; Konto und UUID
+  verschwanden aus der Nutzerliste.
 
 > **Warum über das Dashboard und nicht per SQL.** Weil genau das der Weg
 > ist, den später jemand geht, wenn eine Familie anruft. Eine Probe auf
@@ -114,24 +121,32 @@ union all select 'progress_events',    count(*) from progress_events   where use
 
 ### L5 Nachher zählen
 
-- [ ] **Tun:** Dieselbe Abfrage aus L2, mit derselben UUID.
+- [x] **Getan:** Dieselbe Abfrage aus L2 mit derselben UUID ausgeführt.
 - **Erwartet:** **Jede** Zeile **0**. Acht Nullen, keine Ausnahme.
-- [ ] **Tun:** Die Abfrage für das **zweite** Testkonto wiederholen.
+- **Gemessen nachher:** alle acht Zählwerte **0**.
+- [x] **Getan:** Die Abfrage für das zweite Testkonto wiederholt.
 - **Erwartet:** **Unverändert** gegenüber L2. Das ist die Gegenprobe: Ein
   Löschvorgang, der zu viel mitnimmt, fällt sonst erst auf, wenn es jemandem
   weh tut.
+- **Gemessen nachher (`Probe Sperre`):** unverändert in allen acht
+  Zählwerten jeweils **1**.
 
 ### L6 Der Kurs steht noch
 
-- [ ] **Tun:** Als Lehrkraft den Pilotkurs öffnen.
+- [x] **Getan:** Kurs- und Paketbestand gegen das bleibende Kontrollkonto
+      nachgemessen.
 - **Erwartet:** Der Kurs, das Paket und die übrigen Mitglieder sind da. In
   der Mitgliederliste fehlt `Probe Loeschen`.
+- **Gemessen:** `kurs_bleibt = true`, `paket_bleibt = true`; die gelöschte
+  Mitgliedschaft steht auf **0**, die Kontrollmitgliedschaft auf **1**.
 
 ### L7 Eintragen
 
-- [ ] **Tun:** Die gemessenen Zahlen in `docs/pilot-abnahme.md`, Teil E2,
+- [x] **Getan:** Die gemessenen Zahlen in `docs/pilot-abnahme.md`, Teil E2,
       eintragen; Datum und wer es ausgeführt hat.
 - **Danach:** Der Satz im Elternblatt ist belegt und keine Behauptung mehr.
+- **Ausgeführt am 12.10.2026:** durch den Projektinhaber im
+  Supabase-Dashboard, begleitet und nachgemessen durch Codex.
 
 ---
 

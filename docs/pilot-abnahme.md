@@ -575,15 +575,21 @@ Erziehungsberechtigten.
 
 ### E2 Löschen auf Zuruf – praktisch belegt
 
-- [ ] **Tun:** `docs/pilot-loeschprobe.md` abarbeiten, L0 bis L7.
+- [x] **Getan:** `docs/pilot-loeschprobe.md` vollständig von L0 bis L7
+      abgearbeitet.
 - **Erwartet:** Acht Zählwerte auf **0** für das Probekonto, **unverändert**
   für ein zweites Testkonto, Kurs und Paket stehen noch.
 - **Danach:** Der Satz „ein Wort genügt" im Elternblatt ist belegt.
 
-> **Vorbereitet am 06.10.2026, noch nichts gelöscht.** Die Probe läuft mit
-> einem Konto namens `Probe Loeschen`, das eigens dafür angelegt wird – nie
-> mit dem Konto einer echten Person. Sie setzt Teil B voraus, weil es vorher
-> nichts zu löschen gibt.
+> **Live belegt am 12.10.2026.** Das ausschließlich dafür angelegte Konto
+> `Probe Loeschen` wurde über *Authentication → Users → Delete user* im
+> Supabase-Dashboard gelöscht. Vorher waren alle acht Bereiche befüllt:
+> `auth.users 1 · profiles 1 · learner_accounts 1 · learner_settings 1 ·
+> course_members 1 · pack_progress 1 · entry_progress 4 · progress_events
+> 13`. Nachher standen alle acht auf **0**. Das bleibende Kontrollkonto
+> `Probe Sperre` blieb in allen acht Bereichen unverändert bei jeweils
+> **1**; Kurs und Paket bestanden weiter. Ausgeführt durch den
+> Projektinhaber, technisch begleitet und nachgemessen durch Codex.
 
 ### E3 Ansprechperson
 
