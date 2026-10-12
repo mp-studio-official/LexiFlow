@@ -458,14 +458,22 @@ künstlichen Testdaten (`Pilotprobe 2026-10-08`, `Probe Fuchs`, `Probe Dachs`).
 
 ### C4 Ein Konto stilllegen
 
-- [ ] **Tun:** Serverseitig `disabled_at` setzen (nur `service_role`).
+- [x] **Tun:** Serverseitig `disabled_at` setzen (nur `service_role`).
 - **Erwartet:** Die Person sieht **nichts** mehr – keine Kurse, keine Pakete.
-- [ ] **Tun:** Dieselbe Person versucht sich anzumelden.
+- [x] **Tun:** Dieselbe Person versucht sich anzumelden.
 - **Erwartet:** Die Anmeldung **gelingt**, und danach ist nichts zu sehen.
   Das ist kein Fehler: Die Anmeldung führt Supabase Auth, nicht diese
   Datenbank. Steht es hier anders, ist etwas anderes passiert.
-- [ ] **Tun:** `disabled_at` zurück auf `null`.
+- [x] **Tun:** `disabled_at` zurück auf `null`.
 - **Erwartet:** Alles ist wieder da, einschließlich Lernstand.
+- **Belegt am 12.10.2026:** Für das künstliche Konto `Probe Sperre` lagen
+  vor der Sperre eine Mitgliedschaft, ein Fortschrittsereignis und ein
+  Lernstandseintrag vor. Nach `disabled_at = now()` verschwanden
+  `Englisch 7b` und `Staging – Storytelling` sowohl aus „Lernen“ als auch
+  aus „Heute“. Die erneute Anmeldung gelang und zeigte weiterhin keine
+  Kurs- oder Paketdaten. Nach `disabled_at = null` erschienen Kurs und Paket
+  wieder; die Datenbankmessung stand erneut unverändert auf
+  `Mitgliedschaften 1 · Ereignisse 1 · Lernstände 1`.
 
 ### C5 Kennwort vergessen
 
