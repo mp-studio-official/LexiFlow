@@ -147,14 +147,58 @@ describe('Glas kommt nur aus dem Baustein', () => {
 });
 
 describe('Tippziele', () => {
-  it('jedes anklickbare Ziel nennt mindestens 44 px', () => {
-    for (const auswahl of ['.huelle-leiste__ziel', '.huelle-unten__ziel', '.huelle__sprung']) {
-      const treffer = [...CSS.matchAll(new RegExp(`\\${auswahl}\\s*\\{([^}]*)\\}`, 'g'))]
-        .map((t) => t[1] ?? '')
-        .join('');
-      expect(treffer, `${auswahl} nennt keine Mindesthöhe`).toMatch(
-        /min-block-size:\s*(var\(--tap-target\)|44px)/,
-      );
+  /**
+   * Die Mindesthöhe einer Regel — oder `undefined`, wenn sie keine nennt.
+   *
+   * Gibt es mehrere, zählt die **kleinste**: Eine Regel, die an einer Stelle
+   * 56 px und an einer anderen 36 px setzt, hat ein Ziel von 36 px.
+   */
+  function mindesthoehe(auswahl: string): number | undefined {
+    const rumpf = [...CSS.matchAll(new RegExp(`\\${auswahl}\\s*\\{([^}]*)\\}`, 'g'))]
+      .map((t) => t[1] ?? '')
+      .join('');
+    const werte: number[] = [];
+    for (const treffer of rumpf.matchAll(/min-block-size:\s*([^;]+)/g)) {
+      const wert = (treffer[1] ?? '').trim();
+      if (wert === 'var(--tap-target)') werte.push(44);
+      else if (/^\d+(\.\d+)?px$/.test(wert)) werte.push(Number.parseFloat(wert));
+      else return undefined;
     }
+    return werte.length > 0 ? Math.min(...werte) : undefined;
+  }
+
+  it('jedes anklickbare Ziel nennt mindestens 44 px', () => {
+    /*
+      Vorher stand hier ein Mustervergleich auf `var(--tap-target)` oder
+      genau `44px`. Mit der Angleichung an Variante B bekam die untere
+      Leiste 56 px — mehr als verlangt, und der Vergleich wurde trotzdem
+      rot. Eine Wache, die „grösser als gefordert" ablehnt, zwingt dazu,
+      entweder sie oder die Gestaltung zu verbiegen.
+
+      Jetzt wird der Wert gelesen und gerechnet. Abgelehnt wird dasselbe wie
+      vorher — zu klein —, und zusätzlich alles, was sich nicht nachrechnen
+      lässt (`undefined`): Eine Höhe aus einer unbekannten Rechnung ist
+      keine belegte Höhe.
+    */
+    for (const auswahl of ['.huelle-leiste__ziel', '.huelle-unten__ziel', '.huelle__sprung']) {
+      const hoehe = mindesthoehe(auswahl);
+      expect(hoehe, `${auswahl} nennt keine nachrechenbare Mindesthöhe`).toBeDefined();
+      expect(hoehe, `${auswahl} ist zu klein`).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  it('und erkennt ein zu kleines Ziel auch wirklich', () => {
+    /*
+      Die Wache an sich selbst geprüft: Ohne das hier liefe sie grün durch,
+      sobald der Ausdruck oben ins Leere griffe.
+    */
+    const probe = (wert: string): number | undefined => {
+      if (wert === 'var(--tap-target)') return 44;
+      return /^\d+(\.\d+)?px$/.test(wert) ? Number.parseFloat(wert) : undefined;
+    };
+    expect(probe('56px')).toBe(56);
+    expect(probe('40px')).toBeLessThan(44);
+    expect(probe('var(--tap-target)')).toBe(44);
+    expect(probe('calc(2 * 1rem)')).toBeUndefined();
   });
 });

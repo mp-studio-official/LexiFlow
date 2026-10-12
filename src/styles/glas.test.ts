@@ -94,7 +94,14 @@ describe('Glas liegt nur, wo es hingehört', () => {
     Gestaltungsentscheidung und gehört in den Block, der sie trifft — nicht in
     eine Zeile, die beim Durchlesen eines Diffs nicht auffällt.
   */
-  const ERLAUBT = ['.glas', '.glas--fest'];
+  /*
+    `.glas--telefon` kam mit der Angleichung an Variante B dazu: dieselbe
+    Fläche, aber nur unterhalb von 62rem. Sie steht hier, weil das Verlängern
+    dieser Liste eine Gestaltungsentscheidung ist — und die gehört in den
+    Block, der sie trifft. Dieser Block trifft sie: Variante B zeigt den
+    mobilen Kopf als Glas und den Schreibtischkopf ohne.
+  */
+  const ERLAUBT = ['.glas', '.glas--fest', '.glas--telefon'];
 
   it.each(STILDATEIEN)('%s führt keine unerlaubte Glasfläche', (datei) => {
     const unerlaubt = glasregeln(ohneKommentare(lies(datei))).filter(

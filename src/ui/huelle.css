@@ -25,9 +25,69 @@
 @import '../styles/glas.css';
 
 .huelle {
+  position: relative;
   min-block-size: 100vh;
   background: var(--grund);
   color: var(--tinte);
+}
+
+/* ------------------------------------------------------------- Aurora */
+
+/*
+  Vier weiche Wolken hinter allem, und sie tragen nie Text.
+
+  Warum Wolken und kein durchlaufender Verlauf: Ein Verlauf über die ganze
+  Fläche färbt auch die Stellen, an denen gelesen wird. Wolken lassen sich
+  dorthin legen, wo Platz ist.
+
+  **`fixed` statt `absolute`**, und das ist der eine Unterschied zum
+  Entwurfsblatt. Dort liegt die Aurora `absolute` in einem Rahmen mit
+  `overflow: hidden` und ragt links und rechts 10 % hinaus. Hier gibt es
+  diesen Rahmen nicht: Dieselbe Regel ergäbe waagerechten Überlauf, und
+  `overflow: hidden` auf der Hülle nähme der Iconleiste ihr `sticky`.
+  Eine feste Ebene hat beides nicht — und sieht genauso aus, weil die
+  Wolken ohnehin im oberen Bereich stehen bleiben.
+
+  `z-index: 0` und nicht `-1`: Bei `-1` läge sie hinter der eigenen
+  Grundfläche der Hülle und wäre unsichtbar.
+*/
+.huelle::before {
+  content: '';
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 78vh;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 52% at 18% 30%, var(--aurora-violett) 0%, transparent 70%),
+    radial-gradient(34% 46% at 62% 12%, var(--aurora-rosa) 0%, transparent 72%),
+    radial-gradient(42% 56% at 92% 38%, var(--aurora-himmel) 0%, transparent 70%),
+    radial-gradient(26% 40% at 44% 62%, var(--aurora-pfirsich) 0%, transparent 74%);
+  opacity: 0.55;
+  filter: blur(18px);
+}
+
+/*
+  Eine positionierte Ebene malt über den Inhalt, der nicht positioniert ist.
+  Deshalb bekommt die Arbeitsspalte ausdrücklich eine Ebene darüber — und
+  zwar nur sie: Die untere Leiste ist `fixed` und steht ohnehin höher, und
+  die Iconleiste ist `sticky` und damit schon positioniert.
+*/
+.huelle__arbeit {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+  Wo das System die Farben vorgibt, hat eine Stimmungsfläche nichts zu
+  suchen: Sie würde dort als flächiger Block erzwungen und läge über dem
+  Text.
+*/
+@media (forced-colors: active) {
+  .huelle::before {
+    display: none;
+  }
 }
 
 /* --------------------------------------------------------- Sprungziel */
@@ -63,13 +123,20 @@
   flex-direction: column;
   min-block-size: 100vh;
 }
+/*
+  Am Telefon eine schwebende Glasleiste über der Aurora (Variante B), am
+  Schreibtisch eine schlichte Zeile. Beides derselbe Kopf: Die Rücknahme des
+  Glases steht in `glas.css` unter `.glas--telefon`, die Form hier.
+*/
 .huelle__kopf {
+  margin: var(--space-3) var(--space-3) 0;
+  border-radius: var(--rund);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4) var(--gutter);
+  padding: var(--space-2) var(--space-3);
 }
 /*
   Auch die Marke ist ein Verweis und damit ein Tippziel. Beim Messen stand sie
@@ -190,27 +257,35 @@
   display: none;
 }
 
+/*
+  Eingerückt und mit grossem Radius (Variante B): Die Leiste liegt **auf**
+  der Seite, sie schliesst sie nicht ab. Der Abstand nach unten nimmt den
+  sicheren Bereich mit — sonst sitzt sie auf dem Telefon im Bereich der
+  Hausleiste.
+*/
 .huelle-unten {
   position: fixed;
-  inset-inline: 0;
-  inset-block-end: 0;
+  inset-inline: var(--space-3);
+  inset-block-end: calc(var(--space-3) + var(--safe-bottom));
   z-index: 20;
+  border-radius: var(--rund-gross);
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: var(--space-1);
-  padding: var(--space-2) var(--space-2) calc(var(--space-2) + var(--safe-bottom));
+  padding: var(--space-1);
 }
 .huelle-unten__ziel {
   position: relative;
-  min-block-size: var(--tap-target);
+  /* 56 px wie im Entwurfsblatt — mehr als das Mindestmass, nicht weniger. */
+  min-block-size: 56px;
   min-inline-size: var(--tap-target);
   display: grid;
   justify-items: center;
   align-content: center;
   gap: 2px;
   padding: var(--space-2) var(--space-1);
-  border-radius: var(--rund-klein);
+  border-radius: var(--rund);
   color: var(--tinte-2);
   text-decoration: none;
   font-size: var(--text-2xs);
@@ -248,7 +323,7 @@
   Erklärung hätte. `:has()` fragt das am Baum, wie schon bei der Rasterspalte.
 */
 .huelle:has(.huelle-unten) .huelle__arbeit {
-  padding-block-end: calc(4.5rem + var(--safe-bottom));
+  padding-block-end: calc(5.5rem + var(--safe-bottom));
 }
 
 /* ============================================ Schreibtisch ab 62rem (992 px) */
@@ -259,9 +334,14 @@
     es keine — `:has()` fragt das am Baum und nicht an einer zweiten Klasse,
     die jemand zu setzen vergessen kann.
   */
+  /*
+    Die Spalte ist um den Einzug breiter als die Leiste: Die Leiste bleibt
+    76 px (`huelle.layout.test.ts` liest das nach), und der Einzug links
+    gehört zur Spalte, nicht zum Inhalt daneben.
+  */
   .huelle:has(.huelle-leiste) {
     display: grid;
-    grid-template-columns: 76px 1fr;
+    grid-template-columns: calc(76px + var(--space-4)) 1fr;
   }
 
   .huelle-unten {
@@ -278,6 +358,24 @@
     display: none;
   }
 
+  /*
+    Und die Marke im Kopf ebenso: Am Schreibtisch trägt sie die Iconleiste,
+    mit demselben Ziel und demselben Namen. Zwei Verweise auf dieselbe Seite
+    nebeneinander sind kein zweiter Weg, sondern derselbe zweimal — eine
+    Vorlesehilfe liest ihn dann doppelt. Der Entwurf zeigt rechts oben nur
+    noch die Handlungen.
+  */
+  .huelle__kopfmarke {
+    display: none;
+  }
+
+  /* Ohne Marke bleibt nichts, was links stünde. */
+  .huelle__kopf {
+    justify-content: flex-end;
+    margin: 0;
+    padding: var(--space-4) var(--gutter) 0;
+  }
+
   .huelle-leiste {
     display: flex;
     flex-direction: column;
@@ -290,11 +388,19 @@
     inline-size: 76px;
     min-inline-size: 76px;
     max-inline-size: 76px;
-    block-size: 100vh;
+    /*
+      Schwebend statt anliegend (Variante B): Einzug ringsum, grosser
+      Radius, Glas. Die Höhe nimmt den Einzug heraus, sonst stünde die
+      Leiste unten über den Rand hinaus.
+    */
+    margin: var(--space-4) 0 var(--space-4) var(--space-4);
+    border-radius: var(--rund-gross);
+    block-size: calc(100vh - 2 * var(--space-4));
     position: sticky;
-    inset-block-start: 0;
-    padding-block: var(--space-4);
+    inset-block-start: var(--space-4);
+    padding-block: var(--space-3);
     overflow: visible;
+    z-index: 1;
   }
 
   .huelle-leiste__marke {

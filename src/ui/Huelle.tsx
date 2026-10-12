@@ -363,7 +363,7 @@ export function Huelle({
           beiden Größen. „Als Lernende ansehen" steht hier und nicht in der
           Navigation: Es ist eine Handlung, kein Ort.
         */}
-        <header className="huelle__kopf">
+        <header className="huelle__kopf glas glas--telefon">
           <a className="huelle__kopfmarke" href={markePfad} aria-label="LexiFlow – Startseite">
             {marke}
           </a>

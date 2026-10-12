@@ -54,8 +54,36 @@
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glas,
-  .glas--fest {
+  .glas--fest,
+  .glas--telefon {
     background: var(--flaeche);
     border-color: var(--rand);
+  }
+}
+
+/*
+  Glas, das es nur am Telefon gibt (Variante B).
+
+  Der Kopf der Hülle ist derselbe Baustein an beiden Haltepunkten, und das
+  soll er bleiben — zwei Köpfe wären zwei Orte für dieselbe Zeile. Variante B
+  will ihn aber nur am Telefon als schwebende Glasfläche: Am Schreibtisch
+  trägt die Iconleiste das Schweben, und ein zweites Glas daneben machte aus
+  einer Aussage eine Dekoration.
+
+  Die Zurücknahme steht **hier** und nicht in `huelle.css`: Dort gibt es
+  kein `backdrop-filter`, auch kein `none` — sonst stünde die Glasdefinition
+  wieder an zwei Orten, und `glas.test.ts` sagt zu Recht Nein.
+
+  Nach dem `@supports`-Block, damit die Zurücknahme auch ohne
+  `backdrop-filter` gilt: Dort wäre der Kopf sonst am Schreibtisch eine
+  deckend weisse Leiste über der Aurora.
+*/
+@media (min-width: 62rem) {
+  .glas--telefon {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
