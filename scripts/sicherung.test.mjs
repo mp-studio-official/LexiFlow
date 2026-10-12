@@ -38,6 +38,7 @@ describe('Die Pilotsicherung', () => {
     expect(ablauf).toContain('--role-only');
     expect(ablauf).toContain('schema.sql');
     expect(ablauf).toContain('--data-only --use-copy');
+    expect(ablauf).toContain('--data-only --use-copy --schema public');
     expect(ablauf).toContain('--table=auth.users --table=auth.identities');
   });
 

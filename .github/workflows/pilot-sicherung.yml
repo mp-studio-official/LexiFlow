@@ -74,7 +74,12 @@ jobs:
           mkdir -p backup-work
           supabase db dump --db-url "$SUPABASE_DB_URL" -f backup-work/roles.sql --role-only
           supabase db dump --db-url "$SUPABASE_DB_URL" -f backup-work/schema.sql
-          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup-work/data.sql --data-only --use-copy
+          # Nur LexiFlows Anwendungsdaten gehören in diesen SQL-Export.
+          # Supabases verwaltetes `auth`-Schema kann zwischen Serverabbildern
+          # abweichen; Konten und Identitäten werden darunter separat und
+          # vollständig als auth-data.dump gesichert.
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup-work/data.sql \
+            --data-only --use-copy --schema public
 
           docker run --rm --network host \
             -e SOURCE_URL="$SUPABASE_DB_URL" \
