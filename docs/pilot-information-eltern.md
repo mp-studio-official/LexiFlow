@@ -9,8 +9,9 @@
 
 Ihr Kind übt mit **LexiFlow** englische Vokabeln – am Telefon, am Tablet
 oder am Rechner. LexiFlow ist eine Erprobungsfassung („Pilot 0.1"), die am
-**Georg-Büchner-Gymnasium der Stadt Kaarst** zunächst in einem kleinen Rahmen
-ausprobiert wird. Auf jeder Seite steht oben ein Band, das das sagt.
+Anfang nur von einer Lehrerin mit einem kleinen Kreis ausprobiert wird. Die
+Schule ist weder Betreiberin noch Partnerin von LexiFlow. Auf jeder Seite
+steht oben ein Band, das auf die Erprobungsfassung hinweist.
 
 ## Was gespeichert wird
 

@@ -17,7 +17,12 @@ einen persönlichen Zugriffstoken im Projekt.
 
 Die Pilotadresse lautet:
 
-`https://mp-studio-official.github.io/LexiFlow/portal/`
+`https://lexiflow.info/portal/`
+
+Die bisherige Pages-Adresse
+`https://mp-studio-official.github.io/LexiFlow/` wird nach der Einrichtung
+von GitHub Pages auf die eigene Domain weitergeleitet. Der Build liegt dort
+an der Wurzel (`LEXIFLOW_BASE=/`), nicht mehr unter `/LexiFlow/`.
 
 ## Warum kein persönlicher Deployment-Token nötig ist
 
@@ -78,17 +83,42 @@ Unter *Settings → Pages → Build and deployment* wird **GitHub Actions** als
 Quelle gewählt. Der Workflow veröffentlicht sein geprüftes Artefakt direkt;
 ein `gh-pages`-Zweig wird nicht benötigt.
 
-### 4. Supabase-Rückkehradresse
+Unter *Custom domain* wird `lexiflow.info` eingetragen. Weil ein eigener
+Actions-Ablauf veröffentlicht, ist keine `CNAME`-Datei im Projekt nötig.
+Sobald GitHub das Zertifikat bereitgestellt hat, wird **Enforce HTTPS**
+eingeschaltet.
 
-Die operative Adresse ist bereits als Rückkehradresse vorhanden:
+Beim DNS-Anbieter ersetzen vier `A`-Einträge die bisherige Weiterleitung:
 
 ```text
-https://mp-studio-official.github.io/LexiFlow/portal/**
+@  A  185.199.108.153
+@  A  185.199.109.153
+@  A  185.199.110.153
+@  A  185.199.111.153
 ```
 
-Der zusätzlich vorbereitete Eintrag für `LexiFlow-Pilot` ist für diesen Weg
-nicht erforderlich, aber unschädlich. `LEXIFLOW_ALLOWED_ORIGINS` bleibt
-unverändert, weil ein Ursprung nur aus Schema und Host besteht.
+Zusätzlich zeigt `www` direkt auf den Pages-Ursprung:
+
+```text
+www  CNAME  mp-studio-official.github.io
+```
+
+Andere `A`-, `AAAA`-, `ALIAS`- oder Weiterleitungseinträge für `@` und
+`www` werden entfernt; sonst kann GitHub das HTTPS-Zertifikat nicht
+zuverlässig ausstellen. DNS-Änderungen können bis zu 24 Stunden brauchen.
+
+### 4. Supabase-Rückkehradresse
+
+Als Rückkehradresse wird zusätzlich eingetragen:
+
+```text
+https://lexiflow.info/portal/**
+```
+
+Die bisherige GitHub-Pages-Adresse bleibt während der Umstellung bestehen.
+`LEXIFLOW_ALLOWED_ORIGINS` wird um `https://lexiflow.info` ergänzt, weil die
+eigene Domain ein neuer Ursprung ist. Pfade wie `/portal/` gehören nicht in
+diese Liste.
 
 ## Der Lauf
 

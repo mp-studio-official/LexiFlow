@@ -36,9 +36,9 @@ describe('der Pilot bleibt eine ausdrückliche Handlung', () => {
 });
 
 describe('die Auslieferung bleibt im bestehenden Projekt', () => {
-  it('verwendet den Namen des aktuellen Repositorys als Grundpfad', () => {
-    expect(ablauf.match(/LEXIFLOW_BASE: \/\$\{\{ github\.event\.repository\.name \}\}\//g))
-      .toHaveLength(2);
+  it('liefert die eigene Domain an der Wurzel aus', () => {
+    expect(ablauf.match(/LEXIFLOW_BASE: \/$/gm)).toHaveLength(2);
+    expect(ablauf).not.toContain('github.event.repository.name');
   });
 
   it('braucht weder Zielprojekt noch persönlichen Zugriffstoken', () => {
@@ -103,8 +103,16 @@ describe('GitHub Pages bekommt nur das frisch geprüfte Artefakt', () => {
 
 describe('die Anleitung beschreibt denselben Weg', () => {
   it('nennt die operative Adresse und schließt das zweite Projekt aus', () => {
-    expect(anleitung).toContain('https://mp-studio-official.github.io/LexiFlow/portal/');
+    expect(anleitung).toContain('https://lexiflow.info/portal/');
     expect(anleitung).toContain('Ein zweites Projekt wird nicht angelegt');
+  });
+
+  it('hält die Domain-, DNS- und Supabase-Umstellung zusammen', () => {
+    expect(anleitung).toContain('*Custom domain* wird `lexiflow.info` eingetragen');
+    expect(anleitung).toContain('185.199.108.153');
+    expect(anleitung).toContain('www  CNAME  mp-studio-official.github.io');
+    expect(anleitung).toContain('https://lexiflow.info/portal/**');
+    expect(anleitung).toContain('`LEXIFLOW_ALLOWED_ORIGINS` wird um `https://lexiflow.info` ergänzt');
   });
 
   it('verlangt keinen persönlichen Deployment-Token', () => {

@@ -115,8 +115,8 @@ jobs:
       - name: Beide Auslieferungen bauen
         run: npm run build
         env:
-          # Der Grundpfad dieser Projektseite.
-          LEXIFLOW_BASE: /${{ github.event.repository.name }}/
+          # Die eigene Domain liefert diese Projektseite an der Wurzel aus.
+          LEXIFLOW_BASE: /
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           # Ausdrücklich **nicht** gesetzt: VITE_LEXIFLOW_FAKE_CLOUD.
@@ -126,7 +126,7 @@ jobs:
         # und seit Pilot 0.1 auch das Pilotband.
         run: npm run verify:deploy
         env:
-          LEXIFLOW_BASE: /${{ github.event.repository.name }}/
+          LEXIFLOW_BASE: /
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
 
       - name: Pages-Artefakt bereitstellen

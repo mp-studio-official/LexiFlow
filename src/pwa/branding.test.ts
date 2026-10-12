@@ -117,13 +117,18 @@ describe('index.html', () => {
   });
 
   it('behält die ehrliche deutsche Beschreibung', () => {
-    expect(html).toContain('alle Lernstände bleiben lokal im Browser');
+    expect(html).toContain('freiwillige, datensparsame Lernhilfe');
+    expect(html).toContain('ohne Werbung und ohne Leistungsüberwachung');
     expect(html).toContain('lang="de"');
   });
 
   it('verweist auf das SVG-Favicon und lädt nichts von fremden Hosts', () => {
     expect(html).toContain('href="favicon.svg"');
-    expect(html).not.toMatch(/https?:\/\//);
+    const absoluteAdressen = [...html.matchAll(/https?:\/\/[^"\s<]+/g)].map(
+      ([adresse]) => new URL(adresse),
+    );
+    expect(absoluteAdressen.length).toBeGreaterThan(0);
+    expect(absoluteAdressen.every(({ origin }) => origin === 'https://lexiflow.info')).toBe(true);
   });
 });
 

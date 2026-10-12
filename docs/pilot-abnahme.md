@@ -574,8 +574,9 @@ Erziehungsberechtigten.
 
 ### E1 Information für Erziehungsberechtigte und Lernende
 
-- [ ] **Tun:** `docs/pilot-information-eltern.md` durchgehen, die eckigen
-      Klammern ausfüllen (Schule, Ansprechperson, Enddatum) und verteilen.
+- [ ] **Tun:** `docs/pilot-information-eltern.md` inhaltlich freigeben und
+      verteilen. Die Schule wird nicht als Betreiberin oder Partnerin genannt;
+      sie stellt lediglich die Lehrerin, die den kleinen Test durchführt.
 - **Erwartet:** Das Blatt sagt, **was** gespeichert wird (Pseudonym,
   Kurzkennung, Lern-ID, Lernstand), **was nicht** (kein Klarname, keine
   E-Mail, keine Lernzeit), **wer es sieht** (die Lehrkraft nur die
