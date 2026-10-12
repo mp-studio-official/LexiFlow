@@ -4,6 +4,7 @@ import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Alert, Button, Card, EmptyState, Field } from '../../ui/components';
 import type { Course } from '../../application/repositories';
 import { Verbindungsfehler } from '../verbindung';
+import { Kurskarte, motivFuer } from '../../ui/bausteine';
 
 /**
  * Die Kursliste einer Lehrkraft.
@@ -115,20 +116,26 @@ export function CoursesPage() {
 function Kursliste({ kurse }: { kurse: readonly Course[] }) {
   if (kurse.length === 0) return null;
   return (
-    <ul className="stack" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+    <ul className="kursraster">
       {kurse.map((kurs) => (
         <li key={kurs.id}>
-          <Card>
-            <h2 style={{ marginTop: 0, marginBottom: '0.2rem' }}>
-              <Link to={`/kurse/${kurs.id}`}>{kurs.title}</Link>
-            </h2>
-            <p className="small muted" style={{ margin: 0 }}>
-              {[kurs.schoolYear ? `Schuljahr ${kurs.schoolYear}` : '', kurs.archived ? 'archiviert' : '']
-                .filter(Boolean)
-                .join(' · ') || 'aktiv'}
-            </p>
-            {kurs.description ? <p style={{ marginBottom: 0 }}>{kurs.description}</p> : null}
-          </Card>
+          <Kurskarte
+            titel={kurs.title}
+            motiv={motivFuer(kurs.id)}
+            {...(kurs.schoolYear ? { eyebrow: `Schuljahr ${kurs.schoolYear}` } : {})}
+            {...(kurs.description ? { beschreibung: kurs.description } : {})}
+            angaben={kurs.archived ? [{ label: 'Stand', wert: 'archiviert' }] : []}
+            /*
+              Der Linktext ist der Kurstitel, nicht „Kurs öffnen".
+
+              Vorher **war** der Titel der Verweis (`h2 > Link`). Eine Karte
+              mit einer Handlung namens „öffnen" hätte in einer Liste aus
+              fünf Kursen fünfmal denselben Namen — und wer die Verweise
+              einer Seite auflistet, bekäme fünfmal „öffnen". Dass der Titel
+              darüber noch einmal steht, ist der kleinere Preis.
+            */
+            aktion={<Link to={`/kurse/${kurs.id}`}>{kurs.title}</Link>}
+          />
         </li>
       ))}
     </ul>

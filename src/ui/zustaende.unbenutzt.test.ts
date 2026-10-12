@@ -134,6 +134,13 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
     */
     Fortschritt: ['hosted/learner/FortschrittPage.tsx', 'hosted/learner/HeutePage.tsx'],
     LeererZustand: ['hosted/learner/FortschrittPage.tsx', 'hosted/learner/HeutePage.tsx'],
+    /*
+      Variante B, Teil 4: Die Kurskarte kommt in die Kursliste der
+      Lehrkraft. Sie lag seit 5B.1 fertig daneben und wurde von keinem
+      Bildschirm benutzt — genau der Zustand, den diese Wache festhält.
+    */
+    Kurskarte: ['hosted/teacher/CoursesPage.tsx'],
+    Paketkarte: ['hosted/teacher/MaterialPage.tsx'],
   };
 
   for (const baustein of NEU) {

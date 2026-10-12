@@ -248,3 +248,37 @@
 .huelle .empty-state__title {
   font-size: var(--text-lg);
 }
+
+/* ------------------------------------------------------------ Kartenraster */
+
+/*
+  Karten stehen nebeneinander, sobald Platz ist — und untereinander, wenn
+  nicht. `min(…, 100%)` ist der Riegel gegen waagerechtes Scrollen: Ohne ihn
+  verlangte die Spalte ihre Mindestbreite auch dann, wenn der Bildschirm sie
+  nicht hat.
+*/
+.huelle .kursraster,
+.huelle .paketraster {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+}
+
+/*
+  Die Handlungsspalte einer Paketkarte.
+
+  Ein Lernpaket trägt zwei bis drei Handlungen statt einer: veröffentlichen,
+  Fassung zurückziehen, einer Lerngruppe geben. Sie stehen untereinander,
+  weil die dritte ein Formular mit Auswahlfeld und Knopf ist — in derselben
+  Zeile wie zwei Knöpfe ergäbe das bei 390 px einen Umbruch mitten im
+  Formular.
+*/
+.huelle .paketkarte__handlungen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  inline-size: 100%;
+}

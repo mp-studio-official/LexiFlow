@@ -54,7 +54,17 @@ describe('die Materialseite', () => {
     setup('/material', 'u-lehrerin', cloud);
 
     expect(await screen.findByRole('heading', { name: pack.meta.title })).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`${pack.entries.length} Vokabeln`))).toBeInTheDocument();
+    expect(screen.getByText(`Klasse ${pack.meta.grade}`)).toBeInTheDocument();
+    /*
+      Seit Variante B steht die Vokabelzahl als Wert zu ihrer Bezeichnung in
+      einer Beschreibungsliste, nicht mehr als „12 Vokabeln" in einem Satz.
+      Geprüft wird deshalb das Paar, nicht die Zeichenkette: Dass die Zahl
+      irgendwo steht, wäre die schwächere Zusage — hier muss sie unter
+      „Vokabeln" stehen.
+    */
+    const vokabeln = screen.getByText('Vokabeln').closest('.karte__angabe');
+    expect(vokabeln).not.toBeNull();
+    expect(within(vokabeln as HTMLElement).getByText(String(pack.entries.length))).toBeInTheDocument();
     expect(screen.getByText(/nur Entwurf/)).toBeInTheDocument();
   });
 

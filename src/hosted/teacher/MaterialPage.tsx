@@ -1,7 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { soloUrlFrom } from '../../runtime/entryUrls';
-import { Alert, Button, Card, EmptyState } from '../../ui/components';
+import { Alert, Button, EmptyState } from '../../ui/components';
+import { Paketkarte, motivFuer } from '../../ui/bausteine';
 import { Verbindungsfehler } from '../verbindung';
 import type { Course, PackSummary } from '../../application/repositories';
 
@@ -110,58 +111,77 @@ export function MaterialPage() {
         </EmptyState>
       ) : null}
 
-      {(liste ?? []).map((paket) => (
-        <Card key={paket.id}>
-          <h2 style={{ marginTop: 0, marginBottom: '0.2rem' }}>{paket.title}</h2>
-          <p className="small muted" style={{ margin: 0 }}>
-            Klasse {paket.grade} · {paket.entryCount} Vokabeln · <Zustand paket={paket} />
-          </p>
+      {liste !== undefined && liste.length > 0 ? (
+        <ul className="paketraster">
+          {(liste ?? []).map((paket) => (
+            <li key={paket.id}>
+              <Paketkarte
+                titel={paket.title}
+                eyebrow={`Klasse ${paket.grade}`}
+                motiv={motivFuer(paket.id)}
+                angaben={[
+                  { label: 'Vokabeln', wert: paket.entryCount },
+                  { label: 'Stand', wert: <Zustand paket={paket} /> },
+                ]}
+                aktion={
+                  <div className="paketkarte__handlungen">
+                    <div className="row" style={{ flexWrap: 'wrap' }}>
+                      <Button
+                        variant="primary"
+                        small
+                        onClick={() =>
+                          tue(async () => {
+                            const revision = await publication.publish(paket.id);
+                            return `„${paket.title}" ist als Fassung ${revision.revision} veröffentlicht.`;
+                          })
+                        }
+                      >
+                        {paket.publishedRevision === undefined
+                          ? 'Veröffentlichen'
+                          : 'Neue Fassung veröffentlichen'}
+                      </Button>
 
-          <div className="row" style={{ marginTop: '0.8rem', flexWrap: 'wrap' }}>
-            <Button
-              variant="primary"
-              small
-              onClick={() =>
-                tue(async () => {
-                  const revision = await publication.publish(paket.id);
-                  return `„${paket.title}" ist als Fassung ${revision.revision} veröffentlicht.`;
-                })
-              }
-            >
-              {paket.publishedRevision === undefined ? 'Veröffentlichen' : 'Neue Fassung veröffentlichen'}
-            </Button>
+                      {paket.publishedRevision === undefined ? null : (
+                        <Button
+                          small
+                          variant="quiet"
+                          onClick={() =>
+                            tue(async () => {
+                              await publication.withdraw(paket.id, paket.publishedRevision!);
+                              return `Fassung ${paket.publishedRevision} ist zurückgezogen und aus allen Kursen genommen.`;
+                            })
+                          }
+                        >
+                          Fassung {paket.publishedRevision} zurückziehen
+                        </Button>
+                      )}
+                    </div>
 
-            {paket.publishedRevision === undefined ? null : (
-              <Button
-                small
-                variant="quiet"
-                onClick={() =>
-                  tue(async () => {
-                    await publication.withdraw(paket.id, paket.publishedRevision!);
-                    return `Fassung ${paket.publishedRevision} ist zurückgezogen und aus allen Kursen genommen.`;
-                  })
+                    {paket.publishedRevision !== undefined && kurse.length > 0 ? (
+                      <Zuweisung
+                        paket={paket}
+                        kurse={kurse}
+                        onZuweisen={(courseId) =>
+                          tue(async () => {
+                            await publication.assignToCourse(
+                              courseId,
+                              paket.id,
+                              paket.publishedRevision!,
+                              0,
+                            );
+                            const kurs = kurse.find((eintrag) => eintrag.id === courseId);
+                            return `„${paket.title}" liegt jetzt in „${kurs?.title ?? 'dem Kurs'}".`;
+                          })
+                        }
+                      />
+                    ) : null}
+                  </div>
                 }
-              >
-                Fassung {paket.publishedRevision} zurückziehen
-              </Button>
-            )}
-          </div>
-
-          {paket.publishedRevision !== undefined && kurse.length > 0 ? (
-            <Zuweisung
-              paket={paket}
-              kurse={kurse}
-              onZuweisen={(courseId) =>
-                tue(async () => {
-                  await publication.assignToCourse(courseId, paket.id, paket.publishedRevision!, 0);
-                  const kurs = kurse.find((eintrag) => eintrag.id === courseId);
-                  return `„${paket.title}" liegt jetzt in „${kurs?.title ?? 'dem Kurs'}".`;
-                })
-              }
-            />
-          ) : null}
-        </Card>
-      ))}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -190,7 +210,7 @@ function Zuweisung({
   const [kurs, setKurs] = useState('');
 
   return (
-    <div className="row" style={{ marginTop: '0.8rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+    <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
       <div className="field" style={{ margin: 0 }}>
         <label htmlFor={`kurs-${paket.id}`}>Einer Lerngruppe geben</label>
         <select

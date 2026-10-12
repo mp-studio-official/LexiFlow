@@ -33,8 +33,33 @@ import './bausteine.css';
  * Text, den man lesen können muss.
  */
 
-/** Die vier Aurora-Töne. Fläche, nie Schrift. */
-export type Motiv = 'violett' | 'rosa' | 'himmel' | 'pfirsich';
+/**
+ * Die vier Aurora-Töne. Fläche, nie Schrift.
+ *
+ * Als Liste **und** als Typ: Wer ein Motiv ableiten will — aus einer
+ * Kennung, nicht aus einer Listenposition —, braucht die Werte zur
+ * Laufzeit. Eine zweite Liste daneben liefe beim nächsten Ton auseinander.
+ */
+export const MOTIVE = ['violett', 'rosa', 'himmel', 'pfirsich'] as const;
+export type Motiv = (typeof MOTIVE)[number];
+
+/**
+ * Das Motiv eines Eintrags — aus seiner Kennung, nicht aus seiner Position.
+ *
+ * Eine Farbe nach Listenplatz wechselte, sobald ein Eintrag dazukommt oder
+ * verschwindet: dieselbe Lerngruppe wäre montags violett und dienstags
+ * himmelblau. Aus der Kennung abgeleitet bleibt sie beim Eintrag, solange es
+ * ihn gibt. Dieselbe Überlegung wie bei `packMotif` — nur viel kleiner, denn
+ * hier geht es um vier Werte und nicht um eine Zeichnung.
+ *
+ * Hier und nicht in einem Bildschirm, weil zwei Listen sie brauchen (Kurse,
+ * Pakete) und zwei Kopien beim nächsten Ton auseinanderliefen.
+ */
+export function motivFuer(id: string): Motiv {
+  let summe = 0;
+  for (const zeichen of id) summe = (summe + zeichen.charCodeAt(0)) % 1_000_003;
+  return MOTIVE[summe % MOTIVE.length] as Motiv;
+}
 
 /** Ein Wert mit seiner Bezeichnung, wie er am Fuß einer Karte steht. */
 export interface Angabe {
@@ -133,6 +158,17 @@ export function Paketkarte({
   eyebrow?: ReactNode;
   beschreibung?: ReactNode;
   angaben?: readonly Angabe[];
+  /**
+   * Was auf dieser Karte getan werden kann.
+   *
+   * Bei der `Kurskarte` ist das **eine** Handlung, die weiterführt. Ein
+   * Lernpaket ist der Fall daneben: Die Karte ist nicht der Weg zu einem
+   * Bildschirm, auf dem gearbeitet wird — sie **ist** der Arbeitsplatz
+   * (veröffentlichen, Fassung zurückziehen, einer Lerngruppe geben). Dann
+   * steht hier eine Reihe statt eines Verweises. Der Unterschied ist kein
+   * Versehen: Eine Karte, die nirgendwohin führt, darf keine „eine
+   * Handlung" erfinden, nur damit der Vertrag stimmt.
+   */
   aktion?: ReactNode;
   motiv?: Motiv;
   /**
