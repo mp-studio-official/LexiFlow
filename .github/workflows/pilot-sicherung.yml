@@ -1,0 +1,156 @@
+# Tägliche, verschlüsselte Sicherung für Pilot 0.1 im Supabase-Free-Tarif.
+#
+# Supabase stellt in diesem Tarif keine Projektsicherungen bereit. Dieser
+# Ablauf erzeugt deshalb einen logischen Export, verschlüsselt ihn, beweist
+# die Wiederherstellbarkeit der Anwendungsdaten in einer frischen PostgreSQL-
+# Datenbank und lädt ausschließlich den Chiffretext als GitHub-Artefakt hoch.
+#
+# Zwei Repository-Secrets sind erforderlich:
+#   SUPABASE_DB_URL              Session-Pooler-Verbindung mit Datenbankkennwort
+#   LEXIFLOW_BACKUP_PASSPHRASE  langes, nur für diese Sicherungen verwendetes Kennwort
+
+name: Pilotdaten sichern
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pilot-sicherung
+  cancel-in-progress: false
+
+jobs:
+  sichern-und-wiederherstellen:
+    name: Export, Verschlüsselung und Wiederherstellungsprobe
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      pruefdatenbank:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: lexiflow-pruefung
+          POSTGRES_DB: lexiflow_restore
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lexiflow_restore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+
+      - name: Erforderliche Geheimnisse prüfen
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.LEXIFLOW_BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL" || { echo 'SUPABASE_DB_URL fehlt.'; exit 1; }
+          test -n "$BACKUP_PASSPHRASE" || { echo 'LEXIFLOW_BACKUP_PASSPHRASE fehlt.'; exit 1; }
+          test "${#BACKUP_PASSPHRASE}" -ge 32 || { echo 'Das Sicherungskennwort muss mindestens 32 Zeichen lang sein.'; exit 1; }
+
+      - name: Rollen, Struktur und Daten exportieren
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p backup-work
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup-work/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup-work/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup-work/data.sql --data-only --use-copy
+
+          docker run --rm --network host \
+            -e SOURCE_URL="$SUPABASE_DB_URL" \
+            -v "$PWD/backup-work:/work" \
+            -v "$PWD/scripts/sicherung:/pruefung:ro" \
+            postgres:17 sh -euc '
+              pg_dump "$SOURCE_URL" \
+                --data-only --format=custom --no-owner --no-privileges \
+                --table=auth.users --table=auth.identities \
+                --file=/work/auth-data.dump
+              psql "$SOURCE_URL" -v ON_ERROR_STOP=1 \
+                -c "\\copy (select id, email from auth.users order by id) to stdout with csv header" \
+                > /work/auth-users.csv
+              psql "$SOURCE_URL" -v ON_ERROR_STOP=1 -At \
+                -f /pruefung/zaehlwerte.sql > /work/zaehlwerte-vorher.json
+            '
+
+          test -s backup-work/roles.sql
+          test -s backup-work/schema.sql
+          test -s backup-work/data.sql
+          test -s backup-work/auth-data.dump
+          test -s backup-work/auth-users.csv
+          test -s backup-work/zaehlwerte-vorher.json
+
+          printf '%s\n' \
+            "erstellt_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            "projekt=syqanerfqqfzqflmgjol" \
+            "postgres=17.6" \
+            "git=${GITHUB_SHA}" \
+            > backup-work/metadaten.txt
+
+      - name: Sicherung verschlüsseln und Entschlüsselung beweisen
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.LEXIFLOW_BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          tar -C backup-work -czf lexiflow-pilot.tar.gz \
+            roles.sql schema.sql data.sql auth-data.dump auth-users.csv \
+            zaehlwerte-vorher.json metadaten.txt
+          sha256sum lexiflow-pilot.tar.gz > klartext.sha256
+
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg \
+            --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 \
+            --output lexiflow-pilot.tar.gz.gpg lexiflow-pilot.tar.gz
+
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg \
+            --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --decrypt --output wiederhergestellt.tar.gz \
+            lexiflow-pilot.tar.gz.gpg
+          printf '%s  %s\n' "$(cut -d' ' -f1 klartext.sha256)" wiederhergestellt.tar.gz \
+            | sha256sum --check --status
+          mkdir -p restore-work
+          tar -C restore-work -xzf wiederhergestellt.tar.gz
+
+      - name: In eine frische Prüfdatenbank wiederherstellen
+        env:
+          RESTORE_URL: postgresql://postgres:lexiflow-pruefung@localhost:55432/lexiflow_restore
+        run: |
+          set -euo pipefail
+          docker run --rm --network host \
+            -e RESTORE_URL="$RESTORE_URL" \
+            -v "$PWD/restore-work:/restore:ro" \
+            -v "$PWD/scripts/sicherung:/pruefung:ro" \
+            postgres:17 sh -euc '
+              psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f /restore/roles.sql
+              psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f /pruefung/pruefdatenbank.sql
+              psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -f /restore/schema.sql
+              psql "$RESTORE_URL" -v ON_ERROR_STOP=1 \
+                -c "\\copy auth.users(id, email) from /restore/auth-users.csv with csv header"
+              psql "$RESTORE_URL" --single-transaction -v ON_ERROR_STOP=1 \
+                -c "set session_replication_role = replica" \
+                -f /restore/data.sql
+              psql "$RESTORE_URL" -v ON_ERROR_STOP=1 -At \
+                -f /pruefung/zaehlwerte.sql > /tmp/zaehlwerte-nachher.json
+              diff -u /restore/zaehlwerte-vorher.json /tmp/zaehlwerte-nachher.json
+            '
+
+      - name: Nur den verschlüsselten Export aufbewahren
+        uses: actions/upload-artifact@v4
+        with:
+          name: lexiflow-pilot-sicherung-${{ github.run_id }}
+          path: lexiflow-pilot.tar.gz.gpg
+          retention-days: 14
+          if-no-files-found: error

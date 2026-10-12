@@ -624,6 +624,14 @@ Vor dem ersten echten Konto ist eine der beiden Entscheidungen zu treffen:
   verlorener Lernstand einer echten Lerngruppe wäre nicht
   wiederherstellbar.
 
+> **Verfahren vorbereitet am 12.10.2026, noch nicht belegt.** Gewählt ist
+> Weg (b): täglicher, AES-256-verschlüsselter Export als GitHub-Artefakt,
+> 14 Tage Aufbewahrung und eine automatische Wiederherstellungsprobe in
+> PostgreSQL 17. Ablauf und Grenzen stehen in `docs/pilot-sicherung.md`.
+> Offen sind die beiden GitHub-Secrets und der erste vollständig grüne Lauf;
+> bis dahin steht hier ausdrücklich noch **keine** Zeile
+> `SICHERUNG BELEGT`.
+
 ### E5 Rückfall: die portable Lerndatei
 
 **Technisch belegt am 06.10.2026.** Die portablen Dateien sind neu gebaut:
