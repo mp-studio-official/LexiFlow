@@ -241,7 +241,7 @@ export function StartInhalt({
               Ein Lernpaket ist eine Wortliste. Veröffentlicht wird sie als unveränderlicher
               Stand, den ein Kurs dann sieht.
             </p>
-            <Link className="start__ziel" to="/material">Lernpaket erstellen</Link>
+            <Link className="start__ziel" to="/pakete">Lernpaket erstellen</Link>
           </EmptyState>
         ) : (
           <>
@@ -250,7 +250,7 @@ export function StartInhalt({
               {pakete.filter((paket) => paket.publishedRevision !== undefined).length}{' '}
               veröffentlicht
             </p>
-            <Link className="start__ziel" to="/material">Material öffnen</Link>
+            <Link className="start__ziel" to="/pakete">Material öffnen</Link>
           </>
         )}
       </Card>
@@ -265,7 +265,7 @@ export function StartInhalt({
           <ul className="stack stack--tight">
             {stellen.map(({ paket, was }) => (
               <li key={paket.id} className="start__zeile">
-                <Link className="start__ziel" to="/material">
+                <Link className="start__ziel" to="/pakete">
                   {paket.title}
                 </Link>
                 <span className="muted">{was}</span>

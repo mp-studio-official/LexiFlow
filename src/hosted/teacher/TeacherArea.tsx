@@ -28,7 +28,7 @@ const AiPage = lazy(() => import('./AiPage'));
  *
  * ## Warum ein `section`-Wert und keine eigenen `Routes`
  *
- * Drei Adressen führen hierher: `/kurse`, `/material`, `/verwaltung`. Ein
+ * Drei Adressen führen hierher: `/kurse`, `/pakete`, `/verwaltung`. Ein
  * eigener `Routes`-Block müsste raten, unter welcher von ihnen er gerade
  * hängt – und riete beim ersten Versuch falsch, weil unter jeder von ihnen der
  * Restpfad leer ist und damit `index` greift. Der Abschnitt kommt deshalb von
@@ -36,7 +36,7 @@ const AiPage = lazy(() => import('./AiPage'));
  * Abschnitt in seiner Phase, dann innerhalb seiner eigenen Datei.
  */
 
-export const TEACHER_SECTIONS = ['start', 'kurse', 'material', 'ki', 'einstellungen', 'verwaltung'] as const;
+export const TEACHER_SECTIONS = ['start', 'kurse', 'pakete', 'ki', 'einstellungen', 'verwaltung'] as const;
 export type TeacherSection = (typeof TEACHER_SECTIONS)[number];
 
 interface Platz {
@@ -56,7 +56,7 @@ const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
     phase: 'Phase 4',
     text: 'Lerngruppen anlegen, Einladungscodes ausgeben und zurückziehen, Mitglieder sehen und entfernen.',
   },
-  material: {
+  pakete: {
     titel: 'Material',
     phase: 'Phase 5',
     text: 'Pakete im Konto anlegen, aus der lokalen Fassung übernehmen, als unveränderliche Revision veröffentlichen und einem Kurs zuweisen.',
@@ -106,7 +106,7 @@ export function TeacherArea({ section }: { section: TeacherSection }) {
     );
   }
 
-  if (section === 'material') {
+  if (section === 'pakete') {
     return (
       <Routes>
         <Route index element={<MaterialPage />} />

@@ -202,23 +202,31 @@ describe('der Stand, den dieser Block festhält', () => {
     ]);
   });
 
-  it('`#/pakete` ist seit 5B.2c′ weitergeleitet', () => {
+  it('`#/pakete` ist die Route, nicht mehr die Weiterleitung', () => {
+    /*
+      Bis zur Angleichung an Variante B stand hier `weiterleitung` nach
+      `/material`. E13 ist jetzt eingelöst: Die Seite liegt unter
+      `/pakete`, und `/material` zeigt dorthin.
+    */
     const umsetzung = umsetzungVon('#/pakete');
-    expect(umsetzung?.zustand).toBe('weiterleitung');
-    expect(umsetzung?.leitetAuf).toBe('/material');
+    expect(umsetzung?.zustand).toBe('vorhanden');
+    expect(umsetzung?.route).toBe('/pakete');
+    expect(umsetzung?.leitetAuf).toBeUndefined();
   });
 });
 
-describe('der Übergangsredirect `#/pakete` → `#/material` (E13)', () => {
+describe('die dauerhafte Weiterleitung `/material` → `/pakete` (E13)', () => {
   /*
-    Die Richtung ist in dieser Phase ausdrücklich die hier und nicht die aus
-    E13: Die Seite liegt noch unter `/material`, also zeigt die neue Adresse
-    auf die alte. Erst wenn die Seite umzieht, dreht sich das um. Beide
-    Richtungen gleichzeitig wären kein Grenzfall, sondern eine Seite, die
-    nicht mehr lädt.
+    E13 ist eingelöst, und zwar in der Richtung, die dort steht: `/pakete`
+    ist die Route, `/material` zeigt dorthin. Vorher war es umgekehrt, weil
+    die Seite noch unter `/material` lag.
+
+    **Dauerhaft** heisst dauerhaft: `/material` steht in Lesezeichen und in
+    `docs/`. Beide Richtungen gleichzeitig wären kein Grenzfall, sondern
+    eine Seite, die nicht mehr lädt.
   */
 
-  it('eine Lehrkraft landet wirklich im Materialbereich', async () => {
+  it('eine Lehrkraft landet wirklich im Paketbereich', async () => {
     /*
       Geprüft wird der **gerenderte Bereich**, nicht die Adresse. Eine
       Weiterleitung, die die Adresse ändert und dann auf der Startseite
@@ -252,19 +260,24 @@ describe('der Übergangsredirect `#/pakete` → `#/material` (E13)', () => {
     expect(screen.queryByRole('heading', { name: 'Material', level: 1 })).toBeNull();
   });
 
-  it('`/material` leitet in dieser Phase **nicht** auf `/pakete`', async () => {
+  it('`/pakete` leitet **nicht** zurück auf `/material`', async () => {
     /*
       Sonst zeigten beide Adressen aufeinander. Der Browser läuft dann im
       Kreis, bis er aufgibt — und zwar ohne Fehlermeldung, die auf die Ursache
       zeigt.
     */
-    oeffne('/material', 'u-lehrerin');
+    oeffne('/pakete', 'u-lehrerin');
     expect(await screen.findByRole('heading', { name: 'Material', level: 1 })).toBeInTheDocument();
     const quelle = readFileSync(resolve(import.meta.dirname, 'HostedApp.tsx'), 'utf8');
     const ohneKommentare = quelle.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '');
     expect(ohneKommentare, 'es gibt eine Rückweiterleitung — das ist die Schleife').not.toMatch(
-      /path="material"\s+element=\{<Navigate/,
+      /path="pakete"\s+element=\{<Navigate/,
     );
+  });
+
+  it('und `/material` kommt wirklich dort an', async () => {
+    oeffne('/material', 'u-lehrerin');
+    expect(await screen.findByRole('heading', { name: 'Material', level: 1 })).toBeInTheDocument();
   });
 
   it('steht innerhalb des Lehrkraftriegels', () => {
@@ -278,7 +291,7 @@ describe('der Übergangsredirect `#/pakete` → `#/material` (E13)', () => {
       niemand sucht: Sie sieht wie eine Umbenennung aus.
     */
     const quelle = readFileSync(resolve(import.meta.dirname, 'HostedApp.tsx'), 'utf8');
-    const stelle = quelle.indexOf('path="pakete"');
+    const stelle = quelle.indexOf('path="material"');
     expect(stelle, 'die Weiterleitung fehlt').toBeGreaterThan(0);
 
     const lehrkraftriegel = quelle.indexOf('<RequireArea area="teacher">');
@@ -292,11 +305,11 @@ describe('der Übergangsredirect `#/pakete` → `#/material` (E13)', () => {
 
   it('nur die Wurzel, keine erfundenen Unterpfade', async () => {
     /*
-      Unter `/material` gibt es heute keine Unterpfade — `TeacherArea` hat
-      dort einzig `index`. Eine Weiterleitung für `pakete/*` erfände Adressen,
-      die nirgends hinführen.
+      Unter `/pakete` gibt es heute keine Unterpfade — `TeacherArea` hat
+      dort einzig `index`. Eine Weiterleitung für `material/*` erfände
+      Adressen, die nirgends hinführen.
     */
-    oeffne('/pakete/irgendwas', 'u-lehrerin');
+    oeffne('/material/irgendwas', 'u-lehrerin');
     expect(await screen.findByRole('heading', { name: LANDUNG, level: 1 })).toBeInTheDocument();
   });
 

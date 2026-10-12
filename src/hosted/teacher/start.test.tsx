@@ -112,7 +112,7 @@ describe('der Start zeigt, was es gibt', () => {
     expect(screen.getByRole('heading', { name: 'Noch kein Lernpaket' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Lernpaket erstellen' })).toHaveAttribute(
       'href',
-      '/material',
+      '/pakete',
     );
 
     /* Kein Kasten für etwas, das es nicht gibt. */
@@ -168,7 +168,14 @@ describe('der Start zeigt, was es gibt', () => {
     const inhalt = document.querySelector('main.huelle__inhalt') as HTMLElement;
     const ziele = [...inhalt.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
     expect(ziele.length).toBeGreaterThan(0);
-    const ERLAUBT = [/^\/kurse$/, /^\/kurse\/[^/]+$/, /^\/material$/, /^\/einstellungen$/];
+    /*
+      `/pakete` statt `/material`: Seit der Angleichung an Variante B ist
+      `/pakete` die Route (E13). `/material` bleibt als dauerhafte
+      Weiterleitung erreichbar, aber der Start verweist auf die echte
+      Adresse — ein Verweis auf eine Weiterleitung ist ein Umweg, den
+      niemand braucht.
+    */
+    const ERLAUBT = [/^\/kurse$/, /^\/kurse\/[^/]+$/, /^\/pakete$/, /^\/einstellungen$/];
     for (const ziel of ziele) {
       expect(
         ERLAUBT.some((muster) => muster.test(ziel)),

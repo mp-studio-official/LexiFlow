@@ -66,15 +66,16 @@ const UMSETZUNG: Readonly<Record<string, Umsetzung>> = {
   '#/lernen': { zustand: 'vorhanden', route: '/lernen' },
 
   /*
-    E13, Übergangsphase: Die Seite liegt noch unter `/material`, also zeigt
-    `#/pakete` dorthin. Gebaut und geprüft in 5B.2c′ — vorher stand hier
-    `geplant`, weil ein Zustand eine Aussage über die Wirklichkeit ist.
+    E13 ist eingelöst: `#/pakete` **ist** die Route, `/material` die
+    dauerhafte Weiterleitung dorthin. Die Richtung hat sich mit der
+    Angleichung an Variante B umgedreht — vorher stand hier
+    `weiterleitung`, weil die Seite noch unter `/material` lag.
 
-    Später dreht sich die Richtung um: `#/pakete` wird die echte Route,
-    `#/material` die dauerhafte Weiterleitung. Dann verschwindet diese Zeile
-    zugunsten eines schlichten `vorhanden`.
+    Die Weiterleitung bleibt, und zwar dauerhaft: `/material` steht in
+    Lesezeichen, in `docs/` und auf dem Start der Lehrkraft. Eine Adresse,
+    die einmal funktioniert hat, führt weiter irgendwohin.
   */
-  '#/pakete': { zustand: 'weiterleitung', route: '/pakete', leitetAuf: '/material' },
+  '#/pakete': { zustand: 'vorhanden', route: '/pakete' },
 
   '#/start': { zustand: 'vorhanden', route: '/start' },
   /*
@@ -183,7 +184,7 @@ export function sichtbareZiele(profil: Profil, groesse: Groesse): readonly Ziel[
 const ZUORDNUNG: ReadonlyArray<readonly [RegExp, string]> = [
   [/^\/start(\/|$)/, '#/start'],
   [/^\/kurse(\/|$)/, '#/kurse'],
-  /* `/material` ist die Route, `#/pakete` das Ziel (E13, Übergangsphase). */
+  /* `/pakete` ist die Route; `/material` leitet dorthin und zählt als dasselbe Ziel. */
   [/^\/(material|pakete)(\/|$)/, '#/pakete'],
   [/^\/ki(\/|$)/, '#/ki'],
   /*

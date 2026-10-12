@@ -166,34 +166,37 @@ export function HostedRoutes() {
           }
         />
         {/*
-          E13, **Übergangsphase**: `#/material` heißt künftig `#/pakete`. Die
-          Seite liegt heute noch unter `/material`, also zeigt die neue
-          Adresse vorerst auf die alte.
+          E13 ist eingelöst: `/pakete` ist die Route, `/material` leitet
+          dauerhaft dorthin. Vorher war es umgekehrt.
 
-          Die Richtung dreht sich später um — dann wird `#/pakete` die echte
-          Route und `#/material` die dauerhafte Weiterleitung aus E13. Beide
-          Richtungen gleichzeitig wären kein Grenzfall, sondern eine Seite,
-          die nicht mehr lädt: Deshalb gibt es hier **keine** Weiterleitung
-          von `/material`.
+          **Dauerhaft** heisst dauerhaft. `/material` steht in Lesezeichen,
+          in `docs/` und auf dem Start der Lehrkraft; eine Adresse, die
+          einmal funktioniert hat, führt weiter irgendwohin. Die Zeile
+          bleibt also stehen, auch wenn im Produkt nichts mehr dorthin
+          verweist.
+
+          Beide Richtungen gleichzeitig wären kein Grenzfall, sondern eine
+          Seite, die nicht mehr lädt: Deshalb gibt es **keine**
+          Weiterleitung von `/pakete`.
 
           `replace`, nicht `push`: Sonst stünde die Weiterleitung im Verlauf,
-          und ein Schritt zurück aus dem Material führte wieder hierher und
-          von hier wieder ins Material.
+          und ein Schritt zurück aus den Paketen führte wieder hierher und
+          von hier wieder in die Pakete.
 
           Innerhalb des Lehrkraftriegels, nicht davor — eine Weiterleitung
           außerhalb wäre ein Weg um `RequireArea` herum.
 
-          Nur die Wurzel: Unter `/material` gibt es heute keine Unterpfade
+          Nur die Wurzel: Unter `/pakete` gibt es heute keine Unterpfade
           (`TeacherArea` hat dort einzig `index`). Eine Weiterleitung für
-          `pakete/*` würde Adressen erfinden, die nirgends hinführen.
+          `material/*` würde Adressen erfinden, die nirgends hinführen.
         */}
-        <Route path="pakete" element={<Navigate to="/material" replace />} />
+        <Route path="material" element={<Navigate to="/pakete" replace />} />
 
         <Route
-          path="material/*"
+          path="pakete/*"
           element={
-            <Suspense fallback={<Laedt was="Das Material" />}>
-              <TeacherArea section="material" />
+            <Suspense fallback={<Laedt was="Die Lernpakete" />}>
+              <TeacherArea section="pakete" />
             </Suspense>
           }
         />
