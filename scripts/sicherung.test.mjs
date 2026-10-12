@@ -57,6 +57,7 @@ describe('Die Pilotsicherung', () => {
     expect(ablauf).toContain('--decrypt');
     expect(ablauf).toContain('sha256sum --check --status');
     expect(ablauf).toContain('postgres:17');
+    expect(ablauf).toContain('public.ecr.aws/supabase/postgres:17.11.0.002');
     expect(ablauf).toContain('session_replication_role = replica');
     expect(ablauf).toContain('diff -u /restore/zaehlwerte-vorher.json /tmp/zaehlwerte-nachher.json');
     expect(ablauf.indexOf('/pruefung/pruefdatenbank.sql')).toBeLessThan(

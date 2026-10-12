@@ -30,7 +30,10 @@ jobs:
     timeout-minutes: 30
     services:
       pruefdatenbank:
-        image: postgres:17
+        # Dasselbe Supabase-PostgreSQL-Abbild, das die festgeschriebene CLI
+        # für den Export benutzt. Das normale postgres:17 enthält
+        # `supabase_vault` nicht und wäre deshalb kein gültiges Restore-Ziel.
+        image: public.ecr.aws/supabase/postgres:17.11.0.002
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: lexiflow-pruefung
