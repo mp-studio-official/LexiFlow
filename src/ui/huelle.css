@@ -97,8 +97,18 @@
   was nicht gerendert wird, ist nicht fokussierbar, und dann gibt es den
   Sprung gar nicht.
 */
+/*
+  `fixed` und nicht `absolute`, seit die Hülle `position: relative` trägt.
+
+  Vorher war der nächste positionierte Vorfahre das Fenster, und „oberhalb
+  des Bildes" hiess wirklich oberhalb des Bildes. Mit der Aurora bekam die
+  Hülle eine eigene Positionierung — und der Sprung mass seinen negativen
+  Abstand plötzlich von **ihrem** oberen Rand. Der liegt unter den beiden
+  Bändern, also stand er sichtbar in der Seite. Gefunden auf der ersten
+  Aufnahme nach der Angleichung.
+*/
 .huelle__sprung {
-  position: absolute;
+  position: fixed;
   inset-inline-start: var(--space-4);
   inset-block-start: calc(var(--space-4) * -4);
   z-index: 100;

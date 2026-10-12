@@ -2,6 +2,14 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HostedApp } from './hosted/HostedApp';
 import './styles/global.css';
+/*
+  Die zweite, engere Schicht: Variante B für die Bausteine, die sich das
+  Portal mit der portablen Lerndatei teilt. Jede Regel dort beginnt mit
+  `.huelle` — die portable Datei rendert diese Klasse nicht und bleibt
+  unberührt. Sie steht hier und nicht in `HostedApp`, weil sie zur
+  **Auslieferung** gehört, nicht zu einer Komponente.
+*/
+import './hosted/portal.css';
 
 /**
  * Einstiegspunkt des Portals – die zweite Web-Auslieferung.

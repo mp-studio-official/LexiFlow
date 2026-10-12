@@ -1,0 +1,250 @@
+/* ===========================================================================
+   Variante B im Portal — Bausteine (Teil 2)
+   ===========================================================================
+
+   ## Warum eine eigene Datei und keine Änderung an `global.css`
+
+   `components.tsx` ist gemeinsamer Besitz: Dieselben `Button`, `Card`,
+   `Alert`, `Field`, `Badge` und `EmptyState` rendert auch `StudentShell` in
+   der portablen Lerndatei. Ihre Regeln in `global.css` zu ändern hiesse, die
+   portable Datei mitzuändern — und die bleibt in diesem Block unberührt.
+
+   Deshalb liegt hier eine zweite, **engere** Schicht: Jede Regel beginnt mit
+   `.huelle`. Die portable Datei rendert diese Klasse nicht (sie trägt
+   `.app-*`, siehe `huellenklassen.test.ts`), also erreicht sie keine einzige
+   Zeile von hier.
+
+   ## Was das kostet, und warum es trotzdem richtig ist
+
+   Dieselbe Schaltfläche sieht im Portal anders aus als in der portablen
+   Datei. Das ist kein Versehen: Beide Auslieferungen sind verschiedene
+   Produkte mit verschiedenen Versprechen, und Variante B ist die Haut des
+   Portals. Die Alternative wäre, die portable Datei mitzuziehen — ein
+   eigener Block, mit eigener Abnahme.
+
+   ## Kein Glas hier
+
+   Glas kommt ausschliesslich aus `glas.css`. Diese Datei setzt kein
+   `backdrop-filter`; was schweben soll, trägt die Klasse `glas`.
+   =========================================================================== */
+
+/* ------------------------------------------------------------ Typografie */
+
+/*
+  Manrope kräftig statt Newsreader: Variante B trägt ihre Überschriften in
+  derselben Schrift wie den Text, nur schwer und eng. Die editoriale Schrift
+  bleibt der portablen Datei.
+*/
+.huelle h1,
+.huelle h2,
+.huelle h3,
+.huelle h4 {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-black);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.huelle h1 {
+  font-size: var(--text-3xl);
+}
+
+/* ------------------------------------------------------------ Schaltflächen */
+
+/*
+  Pille statt abgerundetem Rechteck, und die Grundausführung ist die
+  sekundäre: weisse Fläche auf fast weissem Grund. Was sie dort abgrenzt, ist
+  allein die Kontur — deshalb `--rand-bedienung` (3,67 : 1) und nicht
+  `--rand`, der für eine Trennlinie gedacht ist und als Umriss eines
+  Bedienelements zu blass wäre.
+*/
+.huelle .btn {
+  min-block-size: var(--tap-target);
+  padding-inline: var(--space-5);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--rand-bedienung);
+  background: var(--flaeche);
+  color: var(--tinte);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0;
+}
+
+/* Primär: deckend und kontrastreich. Hier ist kein Glas. */
+.huelle .btn--primary {
+  background: var(--tinte);
+  border-color: var(--tinte);
+  color: var(--tinte-invers);
+  box-shadow: var(--schatten-flach);
+}
+
+/* Still: kein Rahmen, keine Fläche — ein Verweis in Knopfform. */
+.huelle .btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  padding-inline: var(--space-3);
+  color: var(--tinte-2);
+  box-shadow: none;
+}
+
+/*
+  Akzent und Gefahr behalten ihre Bedeutung und bekommen nur die Form.
+  Die Farben stehen in den Token und sind dort gerechnet.
+*/
+.huelle .btn--accent {
+  background: var(--akzent-weich);
+  border-color: transparent;
+  color: var(--akzent);
+}
+.huelle .btn--danger {
+  background: var(--fehler-weich);
+  border-color: transparent;
+  color: var(--fehler);
+}
+
+/*
+  Klein heisst schmaler, nicht niedriger. Die Höhe eines Tippziels ist keine
+  Gestaltungsfrage.
+*/
+.huelle .btn--small {
+  min-block-size: var(--tap-target);
+  padding-inline: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------------ Karten */
+
+.huelle .card {
+  border-radius: var(--rund-gross);
+  border: 1px solid var(--rand);
+  background: var(--flaeche);
+  box-shadow: var(--schatten-flach);
+  padding: var(--space-5);
+}
+
+/*
+  Die stille Karte trägt keinen Schatten: Sie liegt in der Seite, statt auf
+  ihr. Über der Aurora braucht sie trotzdem eine Fläche — sonst stünde ihr
+  Text auf dem Verlauf.
+*/
+.huelle .card--quiet {
+  background: var(--flaeche-stumpf);
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- Meldungen */
+
+/*
+  Deckend, immer. Eine Meldung auf Glas ist eine Meldung, die man je nach
+  Scrollstand lesen kann oder nicht.
+*/
+.huelle .alert {
+  border-radius: var(--rund);
+  border: 1px solid transparent;
+  padding: var(--space-4);
+}
+.huelle .alert--info {
+  background: var(--flaeche-stumpf);
+  border-color: var(--rand);
+  color: var(--tinte);
+}
+.huelle .alert--success {
+  background: var(--gut-weich);
+  color: var(--gut);
+}
+.huelle .alert--warning {
+  background: var(--warn-weich);
+  color: var(--warn);
+}
+.huelle .alert--error {
+  background: var(--fehler-weich);
+  color: var(--fehler);
+}
+
+/* ---------------------------------------------------------------- Formulare */
+
+.huelle .field {
+  display: grid;
+  gap: var(--space-1);
+}
+.huelle .field > label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+/*
+  Eingabefelder sind **deckend**: Sie gehören zum Formular, nicht zum Glas.
+  Und sie tragen die Bedienungskontur — ein Feld ohne erkennbare Grenze ist
+  kein Feld (WCAG 1.4.11).
+*/
+.huelle input:not([type='checkbox']):not([type='radio']),
+.huelle select,
+.huelle textarea {
+  min-block-size: var(--tap-target);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--rand-bedienung);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--tinte);
+  font: inherit;
+}
+
+.huelle .field__hint {
+  color: var(--tinte-3);
+  font-size: var(--text-sm);
+}
+.huelle .field__error {
+  color: var(--fehler);
+  font-size: var(--text-sm);
+}
+
+/* ---------------------------------------------------------------- Plaketten */
+
+.huelle .badge {
+  border-radius: var(--radius-pill);
+  padding: 4px 11px;
+  border: 1px solid var(--rand);
+  background: var(--flaeche-stumpf);
+  color: var(--tinte-2);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-black);
+}
+.huelle .badge--success {
+  background: var(--gut-weich);
+  color: var(--gut);
+  border-color: transparent;
+}
+.huelle .badge--warning {
+  background: var(--warn-weich);
+  color: var(--warn);
+  border-color: transparent;
+}
+.huelle .badge--error {
+  background: var(--fehler-weich);
+  color: var(--fehler);
+  border-color: transparent;
+}
+.huelle .badge--accent {
+  background: var(--akzent-weich);
+  color: var(--akzent);
+  border-color: transparent;
+}
+
+/* ------------------------------------------------------------ Leerer Zustand */
+
+/*
+  Ein leerer Bereich ist kein Fehler, sondern der Anfang — also eine ruhige
+  Fläche und kein gestrichelter Kasten, der nach „hier fehlt etwas" aussieht.
+*/
+.huelle .empty-state {
+  border-radius: var(--rund-gross);
+  border: 1px solid var(--rand);
+  background: var(--flaeche);
+  box-shadow: var(--schatten-flach);
+  padding: var(--space-6) var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+.huelle .empty-state__title {
+  font-size: var(--text-lg);
+}
