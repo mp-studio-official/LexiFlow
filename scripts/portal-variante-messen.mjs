@@ -89,13 +89,18 @@ const ROUTEN = [
   { name: 'lernende-ueben', rolle: 'lernende', pfad: '#/ueben' },
   { name: 'lernende-fortschritt', rolle: 'lernende', pfad: '#/fortschritt' },
   /*
-    `#/einstellungen` stand hier als „lernende-einstellungen" — eine Route,
-    die es für Lernende nicht gibt. Sie gehört dem Lehrkraftbereich; eine
-    lernende Person bekommt dort den Riegel aus `RequireArea` zu sehen.
-    Gemessen wurde also vier Breiten lang eine Absage, nicht ein Bildschirm.
-    Aufgefallen ist es erst, als die Wache auf die leere Seite dazukam —
-    der Riegel rendert ohne Hülle.
+    Die Absage, nicht ein Bildschirm — und deshalb unter ihrem richtigen
+    Namen. `#/einstellungen` gehört dem Lehrkraftbereich; eine lernende
+    Person bekommt dort den Riegel aus `RequireArea`. Als
+    „lernende-einstellungen" gemessen behauptete die Liste vier Breiten
+    lang eine Route, die es für Lernende nie gab.
+
+    Sie steht wieder in der Liste, weil die Absage seit dem Abschluss in
+    der Hülle der eigenen Rolle steht: Sie hat jetzt Navigation, Marke und
+    Tippziele — also etwas zu messen. Vorher fiel sie aus der Hülle, und
+    die Wache auf die leere Seite hat genau das gefunden.
   */
+  { name: 'lernende-absage', rolle: 'lernende', pfad: '#/einstellungen' },
 ];
 
 const browserPfad = process.env['LEXIFLOW_CHROMIUM'];

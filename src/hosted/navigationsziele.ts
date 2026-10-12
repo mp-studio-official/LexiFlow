@@ -43,7 +43,8 @@ export interface Umsetzung {
    * Die Adresse, unter der die Route im Router steht — ohne `#`.
    *
    * Bei `weiterleitung` ist das **nicht** dasselbe wie der Pfad des Ziels:
-   * `#/pakete` steht im Router noch nicht, `#/material` schon.
+   * Das Ziel trägt die Adresse, unter der es einmal stehen soll, die Route
+   * die, unter der heute etwas antwortet.
    */
   readonly route?: string;
   /** Wohin eine Weiterleitung führt. Nur bei `weiterleitung` gesetzt. */

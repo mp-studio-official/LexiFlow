@@ -147,7 +147,7 @@ export function StartPage() {
     <div className="stack">
       <PageTitle
         title="Start"
-        description="Deine Kurse und dein Material auf einen Blick."
+        description="Deine Kurse und deine Lernpakete auf einen Blick."
       />
 
       {stand.art === 'laedt' ? <Skeleton lines={4} label="Dein Start wird geladen" /> : null}
@@ -163,8 +163,8 @@ export function StartPage() {
         >
           <p>
             {stand.offline
-              ? 'Kurse und Material stehen wieder da, sobald das Netz zurück ist. Es geht nichts verloren.'
-              : 'Die Kurse und das Material ließen sich nicht laden.'}
+              ? 'Kurse und Lernpakete stehen wieder da, sobald das Netz zurück ist. Es geht nichts verloren.'
+              : 'Die Kurse und die Lernpakete ließen sich nicht laden.'}
           </p>
         </ErrorState>
       ) : null}

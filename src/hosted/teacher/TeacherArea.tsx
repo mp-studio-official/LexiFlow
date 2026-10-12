@@ -49,7 +49,7 @@ const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
   start: {
     titel: 'Start',
     phase: 'Phase 5',
-    text: 'Kurse und Material auf einen Blick.',
+    text: 'Kurse und Lernpakete auf einen Blick.',
   },
   kurse: {
     titel: 'Kurse',
@@ -57,7 +57,7 @@ const PLAETZE: Readonly<Record<TeacherSection, Platz>> = {
     text: 'Lerngruppen anlegen, Einladungscodes ausgeben und zurückziehen, Mitglieder sehen und entfernen.',
   },
   pakete: {
-    titel: 'Material',
+    titel: 'Lernpakete',
     phase: 'Phase 5',
     text: 'Pakete im Konto anlegen, aus der lokalen Fassung übernehmen, als unveränderliche Revision veröffentlichen und einem Kurs zuweisen.',
   },

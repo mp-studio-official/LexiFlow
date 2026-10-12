@@ -7,7 +7,7 @@ import { Verbindungsfehler } from '../verbindung';
 import type { Course, PackSummary } from '../../application/repositories';
 
 /**
- * Das Material einer Lehrkraft: Pakete, Fassungen, Zuweisungen.
+ * Die Lernpakete einer Lehrkraft: Pakete, Fassungen, Zuweisungen.
  *
  * ## Die drei Zustände, die sichtbar sein müssen
  *
@@ -40,7 +40,7 @@ export function MaterialPage() {
     hat, und steht neben einer Liste, die es gibt. Dieser sagt, dass es die
     Liste nicht gibt – und dann darf darunter nichts stehen, was aussieht,
     als gäbe es sie doch. Vorher blieb `liste` undefiniert und darunter stand
-    „Material wird geladen …", ohne Ende.
+    „Lernpakete werden geladen …", ohne Ende.
   */
   const [ladefehler, setLadefehler] = useState(false);
 
@@ -60,7 +60,7 @@ export function MaterialPage() {
   }, [laden]);
 
   if (!packs || !publication) {
-    return <Alert tone="info">In dieser Fassung gibt es kein Material im Konto.</Alert>;
+    return <Alert tone="info">In dieser Fassung gibt es keine Lernpakete im Konto.</Alert>;
   }
 
   async function tue(was: () => Promise<string>) {
@@ -77,15 +77,15 @@ export function MaterialPage() {
   if (ladefehler) {
     return (
       <div className="stack">
-        <h1>Material</h1>
-        <Verbindungsfehler was="Das Material" erneut={() => void laden()} />
+        <h1>Lernpakete</h1>
+        <Verbindungsfehler was="Die Lernpakete" erneut={() => void laden()} />
       </div>
     );
   }
 
   return (
     <div className="stack">
-      <h1>Material</h1>
+      <h1>Lernpakete</h1>
 
       {fehler ? <Alert tone="error">{fehler}</Alert> : null}
       {meldung ? (
@@ -98,7 +98,7 @@ export function MaterialPage() {
         <LocalImportPanel onUebernommen={laden} />
       </Suspense>
 
-      {liste === undefined ? <p className="muted">Material wird geladen …</p> : null}
+      {liste === undefined ? <p className="muted">Lernpakete werden geladen …</p> : null}
 
       {liste !== undefined && liste.length === 0 ? (
         <EmptyState title="Noch kein Paket im Konto">

@@ -1,9 +1,11 @@
+import { createContext, useContext, type ReactNode } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useOptionalRepository } from '../application/RepositoryContext';
 import { Copyright } from '../ui/Copyright';
 import { Logo } from '../ui/Logo';
 import { Huelle, type Huellenaktion, type Navigationsziel } from '../ui/Huelle';
 import { HOME_PER_ROLE } from '../runtime/access';
+import type { Role } from '../application/repositories';
 import { beschriftung, type Groesse, type Profil } from '../ui/navigation';
 import { soloUrlFrom } from '../runtime/entryUrls';
 import { aktivesZiel, laeuftUebungsrunde, sichtbareZiele } from './navigationsziele';
@@ -101,10 +103,20 @@ function Rahmen({
   profil,
   hinweis,
   kopfAktionen,
+  kinder,
 }: {
   profil: Profil;
   hinweis: string;
   kopfAktionen?: React.ReactNode;
+  /**
+   * Was in der Hülle steht, wenn es nicht die Route ist.
+   *
+   * Der Normalfall bleibt `<Outlet />`: Die Hülle ist eine Layoutroute, und
+   * was darin steht, entscheidet der Router. Der eine Fall daneben ist die
+   * Zugriffsmeldung — sie gehört in die Hülle der Rolle, die wirklich
+   * angemeldet ist, und die kennt der Router an dieser Stelle nicht.
+   */
+  kinder?: React.ReactNode;
 }) {
   const { pathname } = useLocation();
   const abmelden = useAbmelden();
@@ -144,9 +156,32 @@ function Rahmen({
         </>
       }
     >
-      <Outlet />
+      <HuelleVorhanden.Provider value>{kinder ?? <Outlet />}</HuelleVorhanden.Provider>
     </Huelle>
   );
+}
+
+/**
+ * Steht schon eine Hülle um diese Stelle?
+ *
+ * ## Wozu
+ *
+ * Der Riegel `RequireArea` steht an zwei verschiedenen Plätzen: **um** eine
+ * Hülle herum (Lern- und Lehrkraftbereich) und **in** einer Hülle drin (die
+ * Verwaltung, die enger ist als der Lehrkraftbereich um sie). Die
+ * Zugriffsmeldung muss im ersten Fall selbst eine Hülle mitbringen und darf
+ * es im zweiten auf keinen Fall — sonst stünde die Navigation zweimal
+ * untereinander, mit zwei `aria-current` und zwei Marken.
+ *
+ * Ein Prop am Riegel hätte dieselbe Wirkung und einen Fehler mehr: Es wäre
+ * von Hand gesetzt, an fünf Stellen, und beim nächsten Riegel vergessen.
+ * Die Hülle weiß selbst, dass sie da ist; sie sagt es weiter.
+ */
+export const HuelleVorhanden = createContext(false);
+
+/** Steht um diese Stelle schon eine Portalhülle? */
+export function useInHuelle(): boolean {
+  return useContext(HuelleVorhanden);
 }
 
 /**
@@ -156,11 +191,12 @@ function Rahmen({
  * das Profil `lernende` ihn nicht kennt und das lazy geladene
  * Lehrkraftbündel hier nie angefordert wird.
  */
-export function LearnerShell() {
+export function LearnerShell({ kinder }: { kinder?: ReactNode } = {}) {
   return (
     <Rahmen
       profil="lernende"
       hinweis="Dein Lernstand gehört dir. Lehrkräfte sehen nicht, wie oft du geübt hast."
+      {...(kinder ? { kinder } : {})}
     />
   );
 }
@@ -173,7 +209,7 @@ export function LearnerShell() {
  * E23 kennt ihn für Lehrkräfte nicht mehr, und ohne diesen Verweis wäre der
  * Weg in den Lernbereich für Lehrkräfte verschwunden.
  */
-export function TeacherShell() {
+export function TeacherShell({ kinder }: { kinder?: ReactNode } = {}) {
   return (
     <Rahmen
       profil="lehrkraft"
@@ -183,7 +219,25 @@ export function TeacherShell() {
           Als Lernende ansehen
         </Link>
       }
+      {...(kinder ? { kinder } : {})}
     />
+  );
+}
+
+/**
+ * Die Hülle, die zu einer Rolle gehört — eine Antwort, nicht zwei.
+ *
+ * `admin` bekommt die Lehrkrafthülle, und das ist keine Nachlässigkeit: Die
+ * Verwaltung liegt im Lehrkraftbündel und unter dessen Layoutroute, eine
+ * angemeldete Administration sieht dort also ohnehin genau diese Hülle. Eine
+ * dritte Hülle für eine Rolle, die dieselben Ziele hat, wäre eine zweite
+ * Wahrheit über dieselbe Navigation.
+ */
+export function HuelleDerRolle({ rolle, children }: { rolle: Role; children: ReactNode }) {
+  return rolle === 'student' ? (
+    <LearnerShell kinder={children} />
+  ) : (
+    <TeacherShell kinder={children} />
   );
 }
 

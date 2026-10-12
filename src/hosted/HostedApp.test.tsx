@@ -71,6 +71,20 @@ describe('als lernende Person', () => {
     expect(await screen.findByText(/nicht für dieses Konto/)).toBeInTheDocument();
   });
 
+  it('trägt auf ihrer eigenen Seite genau ein `aria-current` je Navigation', async () => {
+    /*
+      Die Gegenprobe zur Absage weiter unten: Dort ist null die richtige
+      Zahl, hier ist es eins. Ohne diese Hälfte liesse sich die andere auch
+      dadurch erfüllen, dass `aria-current` nirgends mehr steht.
+    */
+    setup('/lernen', 'u-lernend');
+    const navigationen = await screen.findAllByRole('navigation', { name: 'Hauptnavigation' });
+    expect(navigationen.length).toBe(2);
+    for (const nav of navigationen) {
+      expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    }
+  });
+
   it('sieht in ihrer Navigation keinen Weg zur Werkstatt', async () => {
     setup('/lernen', 'u-lernend');
     /*
@@ -95,6 +109,69 @@ describe('als lernende Person', () => {
     }
   });
 });
+
+/**
+ * Die Zugriffsmeldung fällt nicht aus der eigenen Hülle.
+ *
+ * Vorher ersetzte sie die ganze Hülle: eine weiße Seite mit einem Satz
+ * darauf, ohne Navigation, ohne Marke, ohne Abmelden — und wer dort landete,
+ * hielt genau das für den Defekt, den der Satz vermeiden soll.
+ *
+ * Geprüft werden **alle drei** Kombinationen, die `mayEnter` im Portal
+ * wirklich ausschließt. Die vierte gibt es nicht: In den Lernbereich dürfen
+ * alle drei Rollen, dieser Riegel schlägt angemeldet nie zu.
+ */
+describe.each([
+  /*
+    Die letzte Zahl ist die erwartete Menge `aria-current` je sichtbarer
+    Navigation, und sie ist nicht überall dieselbe:
+
+    - Bei den ersten beiden steht die Adresse in dieser Navigation gar nicht
+      (`#/kurse` und `#/verwaltung` kennt das Profil `lernende` nicht). Dann
+      ist **keines** richtig: Ein Eintrag mit `aria-current` wäre die
+      Behauptung, man befinde sich dort.
+    - Beim dritten hängt `/verwaltung` seit jeher unter „Einstellungen", und
+      die hat eine Lehrkraft. Dort ist **eines** richtig, und zwar an
+      „Einstellungen". Das war vorher so und bleibt so.
+
+    Zwei wären in allen drei Fällen zwei Hüllen ineinander.
+  */
+  ['lernende Person', 'u-lernend', '/kurse', '#/lernen', '#/kurse', 0],
+  ['lernende Person', 'u-lernend', '/verwaltung', '#/lernen', '#/verwaltung', 0],
+  ['Lehrkraft', 'u-lehrerin', '/verwaltung', '#/kurse', '#/verwaltung', 1],
+])(
+  'die Absage für eine %s auf %s',
+  (_wer, konto, route, eigenesZiel, fremdesZiel, aktiv) => {
+    it('steht in der Hülle der eigenen Rolle, und zwar genau einmal', async () => {
+      setup(route, konto);
+      expect(await screen.findByText(/nicht für dieses Konto/)).toBeInTheDocument();
+
+      /*
+        Zwei Navigationen im Baum (Icon-Leiste und untere Leiste), von denen
+        je nach Breite eine sichtbar ist — genau wie auf jeder anderen Seite.
+        Vier wären zwei Hüllen ineinander, null wäre der alte Zustand.
+      */
+      const navigationen = await screen.findAllByRole('navigation', { name: 'Hauptnavigation' });
+      expect(navigationen.length).toBe(2);
+
+      for (const nav of navigationen) {
+        const ziele = [...nav.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+        // Die eigene Navigation, nicht die des gesperrten Bereichs.
+        expect(ziele).toContain(eigenesZiel);
+        expect(ziele).not.toContain(fremdesZiel);
+        expect(nav.querySelectorAll('[aria-current]')).toHaveLength(aktiv);
+      }
+    });
+
+    it('zeigt keinen geschützten Inhalt', async () => {
+      setup(route, konto);
+      await screen.findByText(/nicht für dieses Konto/);
+      expect(screen.queryByRole('button', { name: 'Kurs anlegen' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Lernpakete', level: 1 })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Verwaltung', level: 1 })).toBeNull();
+    });
+  },
+);
 
 describe('als Lehrkraft', () => {
   it('kommt in den Lehrkraftbereich', async () => {

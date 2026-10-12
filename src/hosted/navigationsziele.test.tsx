@@ -233,12 +233,12 @@ describe('die dauerhafte Weiterleitung `/material` → `/pakete` (E13)', () => {
       endet, hätte eine Prüfung auf `location.pathname` bestanden.
     */
     oeffne('/pakete', 'u-lehrerin');
-    expect(await screen.findByRole('heading', { name: 'Material', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Lernpakete', level: 1 })).toBeInTheDocument();
   });
 
   it('weder Wildcard noch Landungsseite haben gegriffen', async () => {
     oeffne('/pakete', 'u-lehrerin');
-    await screen.findByRole('heading', { name: 'Material', level: 1 });
+    await screen.findByRole('heading', { name: 'Lernpakete', level: 1 });
     expect(screen.queryByRole('heading', { name: LANDUNG, level: 1 })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Anmelden' })).toBeNull();
   });
@@ -251,13 +251,13 @@ describe('die dauerhafte Weiterleitung `/material` → `/pakete` (E13)', () => {
     */
     oeffne('/pakete', 'u-lernend');
     expect(await screen.findByText(/nicht für dieses Konto/)).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Material', level: 1 })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Lernpakete', level: 1 })).toBeNull();
   });
 
   it('ohne Anmeldung führt sie zur Anmeldung, nicht ins Material', async () => {
     oeffne('/pakete');
     expect(await screen.findByRole('heading', { name: 'Anmelden' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Material', level: 1 })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Lernpakete', level: 1 })).toBeNull();
   });
 
   it('`/pakete` leitet **nicht** zurück auf `/material`', async () => {
@@ -267,7 +267,7 @@ describe('die dauerhafte Weiterleitung `/material` → `/pakete` (E13)', () => {
       zeigt.
     */
     oeffne('/pakete', 'u-lehrerin');
-    expect(await screen.findByRole('heading', { name: 'Material', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Lernpakete', level: 1 })).toBeInTheDocument();
     const quelle = readFileSync(resolve(import.meta.dirname, 'HostedApp.tsx'), 'utf8');
     const ohneKommentare = quelle.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, '');
     expect(ohneKommentare, 'es gibt eine Rückweiterleitung — das ist die Schleife').not.toMatch(
@@ -277,7 +277,7 @@ describe('die dauerhafte Weiterleitung `/material` → `/pakete` (E13)', () => {
 
   it('und `/material` kommt wirklich dort an', async () => {
     oeffne('/material', 'u-lehrerin');
-    expect(await screen.findByRole('heading', { name: 'Material', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Lernpakete', level: 1 })).toBeInTheDocument();
   });
 
   it('steht innerhalb des Lehrkraftriegels', () => {
@@ -344,7 +344,7 @@ describe('die dauerhafte Weiterleitung `/material` → `/pakete` (E13)', () => {
       </RepositoryProvider>,
     );
 
-    await screen.findByRole('heading', { name: 'Material', level: 1 });
+    await screen.findByRole('heading', { name: 'Lernpakete', level: 1 });
 
     const { userEvent } = await import('@testing-library/user-event');
     await userEvent.setup().click(screen.getByRole('button', { name: 'einen zurück' }));
