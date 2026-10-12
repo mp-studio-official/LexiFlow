@@ -72,10 +72,13 @@ describe('GitHub Pages bekommt nur das frisch geprüfte Artefakt', () => {
   });
 
   it('prüft vor dem Upload und veröffentlicht erst danach', () => {
+    const einstieg = ablauf.indexOf('node scripts/pilot-einstieg.mjs');
     const riegel = ablauf.indexOf('npm run verify:deploy');
     const upload = ablauf.indexOf('actions/upload-pages-artifact@v4');
     const deploy = ablauf.indexOf('actions/deploy-pages@v4');
 
+    expect(einstieg).toBeGreaterThan(-1);
+    expect(einstieg).toBeLessThan(riegel);
     expect(riegel).toBeGreaterThan(-1);
     expect(riegel).toBeLessThan(upload);
     expect(upload).toBeLessThan(deploy);

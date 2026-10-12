@@ -121,6 +121,9 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           # Ausdrücklich **nicht** gesetzt: VITE_LEXIFLOW_FAKE_CLOUD.
 
+      - name: Das Portal an die Hauptadresse setzen
+        run: node scripts/pilot-einstieg.mjs
+
       - name: Der Riegel vor dem Netz
         # Sucht die Testfassung, Geheimnisse, Pfade außerhalb des Grundpfads –
         # und seit Pilot 0.1 auch das Pilotband.

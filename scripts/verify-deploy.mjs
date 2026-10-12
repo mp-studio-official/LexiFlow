@@ -160,6 +160,31 @@ const base = process.env['LEXIFLOW_BASE'] ?? '/';
 const startseite = readFileSync(join(dist, 'index.html'), 'utf8');
 const portalseite = readFileSync(join(dist, 'portal', 'index.html'), 'utf8');
 
+/*
+  Auf der eigenen Domain ist das Portal das Produkt. Die kontofreie
+  Lehrkraftanwendung darf dort nicht versehentlich ohne Anmeldung erscheinen.
+  Ihr Einstieg bleibt als portable Datei erhalten; der Pilot setzt dagegen
+  die gebaute Portalhülle an `/` und führt einen Aufruf ohne Hash zum Login.
+*/
+if (!/src="\/portal\/assets\/[^"']+\.js"/.test(startseite)) {
+  meckern('`dist/index.html` lädt nicht das Portalbündel.');
+}
+if (!startseite.includes("window.location.replace('/#/anmelden')")) {
+  meckern('`dist/index.html` führt einen Aufruf ohne Ziel nicht zur Anmeldung.');
+}
+if (startseite.includes('noindex, nofollow')) {
+  meckern('Die öffentliche Hauptadresse ist versehentlich von Suchmaschinen ausgeschlossen.');
+}
+if (!startseite.includes('<link rel="canonical" href="https://lexiflow.info/"')) {
+  meckern('Die öffentliche Hauptadresse nennt ihre kanonische Adresse nicht.');
+}
+const ruhestand = readFileSync(join(dist, 'sw.js'), 'utf8');
+for (const spur of ['caches.delete', 'registration.unregister']) {
+  if (!ruhestand.includes(spur)) {
+    meckern(`Der frühere Service Worker wird nicht vollständig stillgelegt (${spur}).`);
+  }
+}
+
 for (const [name, inhalt] of [
   ['index.html', startseite],
   ['portal/index.html', portalseite],
