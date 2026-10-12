@@ -103,7 +103,7 @@ function Kursliste() {
       {kurse.map((kurs) => (
         <li key={kurs.id}>
           <Card>
-            <h2 style={{ marginTop: 0 }}>
+            <h2>
               <Link to={`/lernen/kurs/${kurs.id}`}>{kurs.title}</Link>
             </h2>
             {kurs.description ? <p>{kurs.description}</p> : null}
@@ -145,7 +145,7 @@ function Kurs() {
 
   return (
     <div className="stack">
-      <p className="small muted" style={{ margin: 0 }}>
+      <p className="small muted">
         <Link to="/lernen">Zurück zu deinen Kursen</Link>
       </p>
       <h1>{kurs?.title ?? 'Kurs'}</h1>
@@ -160,7 +160,7 @@ function Kurs() {
 
       {pakete !== undefined && pakete.length === 0 ? (
         <EmptyState title="Noch keine Vokabeln">
-          <p style={{ marginBottom: 0 }}>
+          <p>
             Deine Lehrkraft hat diesem Kurs noch kein Paket gegeben. Sobald eines da ist, steht es
             hier.
           </p>
@@ -171,11 +171,11 @@ function Kurs() {
         {(pakete ?? []).map((paket) => (
           <li key={paket.packId}>
             <Card>
-              <h2 style={{ marginTop: 0, marginBottom: '0.2rem' }}>{paket.pack.meta.title}</h2>
-              <p className="small muted" style={{ margin: 0 }}>
+              <h2>{paket.pack.meta.title}</h2>
+              <p className="small muted">
                 {paket.pack.entries.length} Vokabeln · Klasse {paket.pack.meta.grade}
               </p>
-              <p style={{ marginBottom: 0 }}>
+              <p>
                 <Link to={`/lernen/kurs/${courseId ?? ''}/ueben/${paket.packId}`}>Üben</Link>
               </p>
             </Card>

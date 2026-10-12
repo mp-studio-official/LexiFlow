@@ -136,8 +136,8 @@ function Rahmen({
       {...(abmelden ? { fussAktionen: [abmelden] } : {})}
       fusszeile={
         <>
-          <p style={{ margin: 0 }}>{hinweis}</p>
-          <p style={{ margin: 0 }}>
+          <p>{hinweis}</p>
+          <p>
             <Link to="/datenschutz">Datenschutz</Link>
           </p>
           <Copyright />
@@ -206,14 +206,14 @@ export function PublicShell() {
       markePfad="/"
       fusszeile={
         <>
-          <p style={{ margin: 0 }}>
+          <p>
             Freiwillige Lernhilfe. Lehrkräfte sehen keine individuellen Lernstände.
           </p>
-          <p style={{ margin: 0 }}>
+          <p>
             <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> läuft
             vollständig im Browser – ohne Anmeldung und ohne Server.
           </p>
-          <p style={{ margin: 0 }}>
+          <p>
             <Link to="/datenschutz">Datenschutz</Link>
           </p>
           <Copyright />

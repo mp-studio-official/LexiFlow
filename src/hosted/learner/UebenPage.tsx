@@ -100,7 +100,7 @@ export function UebenPage() {
           announce={false}
           action={<Button onClick={() => void laden()}>Erneut versuchen</Button>}
         >
-          <p style={{ margin: 0 }}>
+          <p>
             {stand.offline
               ? 'Sobald das Netz zurück ist, steht hier wieder, was du üben kannst.'
               : 'Deine Kurse und Pakete ließen sich nicht laden.'}

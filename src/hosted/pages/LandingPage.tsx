@@ -22,7 +22,7 @@ export function LandingPage() {
 
       {status === 'angemeldet' && role ? (
         <Card>
-          <p style={{ marginTop: 0 }}>Du bist angemeldet.</p>
+          <p>Du bist angemeldet.</p>
           <Link className="btn btn--primary" to={HOME_PER_ROLE[role]}>
             Weiter zu deinem Bereich
           </Link>
@@ -30,7 +30,7 @@ export function LandingPage() {
       ) : (
         <div className="stack">
           <Card>
-            <h2 style={{ marginTop: 0 }}>Du hast einen Code bekommen</h2>
+            <h2>Du hast einen Code bekommen</h2>
             <p>
               Dann gehörst du zu einer Lerngruppe. Der Code ist acht Zeichen lang und steht an der
               Tafel oder in der Nachricht deiner Lehrkraft.
@@ -41,7 +41,7 @@ export function LandingPage() {
           </Card>
 
           <Card quiet>
-            <h2 style={{ marginTop: 0 }}>Du hast schon ein Konto</h2>
+            <h2>Du hast schon ein Konto</h2>
             <p>
               <Link to="/anmelden">Anmelden</Link> – Lehrkräfte mit ihrer E-Mail-Adresse, Lernende
               mit ihrer Lern-ID.
@@ -51,8 +51,8 @@ export function LandingPage() {
       )}
 
       <Card quiet>
-        <h2 style={{ marginTop: 0 }}>Es geht auch ganz ohne Konto</h2>
-        <p style={{ marginBottom: 0 }}>
+        <h2>Es geht auch ganz ohne Konto</h2>
+        <p>
           LexiFlow gibt es weiterhin als einzelne HTML-Datei, die vollständig auf dem eigenen Gerät
           läuft. Wer sie benutzt, braucht dieses Portal nicht – und umgekehrt.
         </p>

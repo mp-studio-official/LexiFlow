@@ -421,6 +421,20 @@
     color: var(--tinte);
   }
 
+  /*
+    In der Leiste steht nur das Zeichen, nicht der Schriftzug.
+
+    Die Leiste ist 76 px breit; die Wortmarke braucht gut das Dreifache. Sie
+    lief deshalb nach links aus der Leiste heraus und wurde am Bildschirm
+    abgeschnitten — auf jeder Aufnahme ein halbes rotes Quadrat am Rand.
+    Verloren geht nichts: Der Verweis trägt `aria-label="LexiFlow –
+    Startseite"`, der Name steht also weiterhin da, wo er gebraucht wird.
+    Am Telefon bleibt der Schriftzug sichtbar — dort trägt ihn der Kopf.
+  */
+  .huelle-leiste__marke .logo__word {
+    display: none;
+  }
+
   .huelle-leiste__nav {
     display: flex;
     flex-direction: column;

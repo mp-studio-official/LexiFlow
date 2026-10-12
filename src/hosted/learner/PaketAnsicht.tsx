@@ -93,7 +93,7 @@ export function PaketAnsicht({
         announce={false}
         action={<Button onClick={() => void laden()}>Erneut versuchen</Button>}
       >
-        <p style={{ margin: 0 }}>{stand.text}</p>
+        <p>{stand.text}</p>
       </ErrorState>
     );
   }

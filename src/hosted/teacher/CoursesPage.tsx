@@ -30,6 +30,7 @@ export function CoursesPage() {
   */
   const [ladefehler, setLadefehler] = useState(false);
   const [zeigeArchiv, setZeigeArchiv] = useState(false);
+  const [formularOffen, setFormularOffen] = useState(false);
 
   const laden = useCallback(async () => {
     if (!courses) return;
@@ -71,15 +72,40 @@ export function CoursesPage() {
 
   return (
     <div className="stack">
-      <h1>Kurse</h1>
+      {/*
+        Titel links, Handlung rechts — so steht es auf jedem Blatt der
+        Variante B. Der Auslöser steht deshalb im Kopf, das Formular bleibt
+        darunter im Fluss: Ein Formular mit zwei Feldern und zwei Knöpfen in
+        einer Kopfzeile wäre bei 390 px ein Umbruch mitten im Satz.
+      */}
+      <div className="seitenkopf">
+        <div className="seitenkopf__text">
+          <h1>Kurse</h1>
+        </div>
+        {formularOffen ? null : (
+          <div className="seitenkopf__aktionen">
+            <Button variant="primary" onClick={() => setFormularOffen(true)}>
+              Kurs anlegen
+            </Button>
+          </div>
+        )}
+      </div>
 
-      <NeuerKurs onAngelegt={laden} />
+      {formularOffen ? (
+        <NeuerKurs
+          onAngelegt={async () => {
+            setFormularOffen(false);
+            await laden();
+          }}
+          onAbbrechen={() => setFormularOffen(false)}
+        />
+      ) : null}
 
       {kurse === undefined ? <p className="muted">Kurse werden geladen …</p> : null}
 
       {kurse !== undefined && aktive.length === 0 ? (
         <EmptyState title="Noch kein Kurs">
-          <p style={{ marginBottom: 0 }}>
+          <p>
             Ein Kurs ist eine Lerngruppe. Danach gibt es einen Einladungscode zum Vorlesen.
           </p>
         </EmptyState>
@@ -142,9 +168,14 @@ function Kursliste({ kurse }: { kurse: readonly Course[] }) {
   );
 }
 
-function NeuerKurs({ onAngelegt }: { onAngelegt: () => Promise<void> }) {
+function NeuerKurs({
+  onAngelegt,
+  onAbbrechen,
+}: {
+  onAngelegt: () => Promise<void>;
+  onAbbrechen: () => void;
+}) {
   const courses = useOptionalRepository('courses');
-  const [offen, setOffen] = useState(false);
   const [titel, setTitel] = useState('');
   const [schuljahr, setSchuljahr] = useState('');
   const [fehler, setFehler] = useState('');
@@ -163,21 +194,12 @@ function NeuerKurs({ onAngelegt }: { onAngelegt: () => Promise<void> }) {
       });
       setTitel('');
       setSchuljahr('');
-      setOffen(false);
       await onAngelegt();
     } catch (error) {
       setFehler(error instanceof Error ? error.message : 'Der Kurs wurde nicht angelegt.');
     } finally {
       setLaeuft(false);
     }
-  }
-
-  if (!offen) {
-    return (
-      <Button variant="primary" onClick={() => setOffen(true)}>
-        Kurs anlegen
-      </Button>
-    );
   }
 
   return (
@@ -213,7 +235,7 @@ function NeuerKurs({ onAngelegt }: { onAngelegt: () => Promise<void> }) {
           <Button type="submit" variant="primary" disabled={laeuft}>
             {laeuft ? 'Einen Moment …' : 'Anlegen'}
           </Button>
-          <Button variant="quiet" onClick={() => setOffen(false)}>
+          <Button variant="quiet" onClick={onAbbrechen}>
             Abbrechen
           </Button>
         </div>

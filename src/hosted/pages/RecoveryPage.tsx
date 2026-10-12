@@ -87,7 +87,7 @@ function LernendeWiederherstellung({
 
   return (
     <Card>
-      <h2 style={{ marginTop: 0 }}>Wenn du lernst</h2>
+      <h2>Wenn du lernst</h2>
       <p>
         Du hast beim Anlegen deines Kontos einen Wiederherstellungscode bekommen und bestätigt,
         dass du ihn hast. Mit ihm kommst du wieder herein.
@@ -201,7 +201,7 @@ function ErsatzcodeNotieren({
         >
           {recoveryCode}
         </p>
-        <p style={{ margin: 0 }}>
+        <p>
           Dein bisheriger Code ist jetzt ungültig. Wenn du dein Kennwort noch einmal vergisst,
           kommst du nur mit diesem neuen Code wieder herein.
         </p>
@@ -269,7 +269,7 @@ function LehrkraftWiederherstellung() {
 
   return (
     <Card quiet>
-      <h2 style={{ marginTop: 0 }}>Wenn du unterrichtest</h2>
+      <h2>Wenn du unterrichtest</h2>
       {gesendet ? (
         <Alert tone="success" title="Wenn es ein Konto zu dieser Adresse gibt, ist die E-Mail unterwegs">
           {/*

@@ -102,7 +102,7 @@ export function MaterialPage() {
 
       {liste !== undefined && liste.length === 0 ? (
         <EmptyState title="Noch kein Paket im Konto">
-          <p style={{ marginBottom: 0 }}>
+          <p>
             Pakete entstehen weiterhin in{' '}
             <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> – dort gibt es
             die Werkstatt mit Text, Liste und Thema. Hier werden sie veröffentlicht und einer
@@ -211,7 +211,7 @@ function Zuweisung({
 
   return (
     <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-      <div className="field" style={{ margin: 0 }}>
+      <div className="field">
         <label htmlFor={`kurs-${paket.id}`}>Einer Lerngruppe geben</label>
         <select
           id={`kurs-${paket.id}`}

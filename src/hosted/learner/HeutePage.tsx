@@ -122,7 +122,7 @@ export function HeutePage() {
           announce={false}
           action={<Button onClick={() => void laden()}>Erneut versuchen</Button>}
         >
-          <p style={{ margin: 0 }}>
+          <p>
             {stand.offline
               ? 'Sobald das Netz zurück ist, steht hier wieder, was heute dran ist.'
               : 'Deine Kurse, Pakete und Lerntage ließen sich nicht laden.'}

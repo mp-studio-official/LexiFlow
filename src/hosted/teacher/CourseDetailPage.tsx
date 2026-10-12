@@ -58,7 +58,7 @@ export function CourseDetailPage() {
   if (ladefehler) {
     return (
       <div className="stack">
-        <p className="small muted" style={{ margin: 0 }}>
+        <p className="small muted">
           <Link to="/kurse">Alle Kurse</Link>
         </p>
         <Verbindungsfehler was="Dieser Kurs" erneut={() => void laden()} />
@@ -78,7 +78,7 @@ export function CourseDetailPage() {
 
   return (
     <div className="stack">
-      <p className="small muted" style={{ margin: 0 }}>
+      <p className="small muted">
         <Link to="/kurse">Alle Kurse</Link>
       </p>
       <h1>{kurs.title}</h1>
@@ -94,9 +94,9 @@ export function CourseDetailPage() {
       <Einladungen courseId={courseId} archiviert={kurs.archived} />
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Wer im Kurs ist</h2>
+        <h2>Wer im Kurs ist</h2>
         {mitglieder.length === 0 ? (
-          <p className="muted" style={{ marginBottom: 0 }}>
+          <p className="muted">
             Noch niemand. Gib den Einladungscode an deine Lerngruppe weiter.
           </p>
         ) : (
@@ -139,14 +139,14 @@ export function CourseDetailPage() {
             </table>
           </div>
         )}
-        <p className="small muted" style={{ marginBottom: 0 }}>
+        <p className="small muted">
           Hier steht nichts darüber, wie viel jemand geübt hat. Das ist Absicht und keine
           Auslassung: Lernstände gehören den Lernenden.
         </p>
       </Card>
 
       <Card quiet>
-        <h2 style={{ marginTop: 0 }}>Kurs {kurs.archived ? 'wieder öffnen' : 'archivieren'}</h2>
+        <h2>Kurs {kurs.archived ? 'wieder öffnen' : 'archivieren'}</h2>
         <p>
           {kurs.archived
             ? 'Ein geöffneter Kurs nimmt wieder Mitglieder auf und lässt sich wieder ändern.'
@@ -211,7 +211,7 @@ function Einladungen({ courseId, archiviert }: { courseId: string; archiviert: b
 
   return (
     <Card>
-      <h2 style={{ marginTop: 0 }}>Einladungscode</h2>
+      <h2>Einladungscode</h2>
 
       {frischerCode ? (
         <Alert tone="success" title="Diesen Code jetzt weitergeben">
@@ -225,7 +225,7 @@ function Einladungen({ courseId, archiviert }: { courseId: string; archiviert: b
           >
             {frischerCode}
           </p>
-          <p style={{ margin: 0 }}>
+          <p>
             Er steht <strong>nur jetzt</strong> hier. Gespeichert ist nur seine Prüfsumme – auch du
             kannst ihn später nicht mehr nachschlagen. Wenn er verloren geht, erzeuge einfach einen
             neuen.

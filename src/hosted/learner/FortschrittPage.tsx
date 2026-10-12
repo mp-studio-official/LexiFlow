@@ -118,7 +118,7 @@ export function FortschrittPage() {
           announce={false}
           action={<Button onClick={() => void laden()}>Erneut versuchen</Button>}
         >
-          <p style={{ margin: 0 }}>
+          <p>
             {stand.offline
               ? 'Sobald das Netz zurück ist, steht hier wieder, wie weit du bist.'
               : 'Deine Kurse, Pakete und Lernstände ließen sich nicht laden.'}

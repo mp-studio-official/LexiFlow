@@ -91,14 +91,14 @@ export function JoinPage() {
       <div className="stack">
         <h1>Bist du neu hier?</h1>
         <Card>
-          <h2 style={{ marginTop: 0 }}>Ich bin neu</h2>
+          <h2>Ich bin neu</h2>
           <p>Du bekommst eine Lern-ID und legst ein Kennwort fest.</p>
           <Button variant="primary" onClick={() => setSchritt('registrieren')}>
             Konto anlegen
           </Button>
         </Card>
         <Card quiet>
-          <h2 style={{ marginTop: 0 }}>Ich habe schon ein Konto</h2>
+          <h2>Ich habe schon ein Konto</h2>
           <p style={{ marginBottom: '0.6rem' }}>
             Dann melde dich an – danach wird der Code eingelöst.
           </p>
@@ -318,9 +318,9 @@ function ZugangNotieren({ zugang }: { zugang: { learnerId: string; recoveryCode:
       <h1>Dein Zugang</h1>
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Deine Lern-ID</h2>
+        <h2>Deine Lern-ID</h2>
         <p style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.2rem 0' }}>{zugang.learnerId}</p>
-        <p className="small muted" style={{ marginBottom: 0 }}>
+        <p className="small muted">
           Damit meldest du dich an – zusammen mit deinem Kennwort.
         </p>
       </Card>
@@ -336,7 +336,7 @@ function ZugangNotieren({ zugang }: { zugang: { learnerId: string; recoveryCode:
         >
           {zugang.recoveryCode}
         </p>
-        <p style={{ margin: 0 }}>
+        <p>
           Wenn du dein Kennwort vergisst, kommst du <strong>nur</strong> damit wieder herein. Deine
           Lehrkraft kann dir kein neues Kennwort geben – und das ist Absicht: Sonst könnte sie sich
           als du anmelden.

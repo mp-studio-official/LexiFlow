@@ -79,7 +79,7 @@ export function LocalImportPanel({ onUebernommen }: { onUebernommen: () => Promi
 
   return (
     <Card quiet>
-      <h2 style={{ marginTop: 0 }}>Auf diesem Gerät liegen {lokale.length} Pakete</h2>
+      <h2>Auf diesem Gerät liegen {lokale.length} Pakete</h2>
       <p>
         Sie stammen aus{' '}
         <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> und liegen im
@@ -99,7 +99,7 @@ export function LocalImportPanel({ onUebernommen }: { onUebernommen: () => Promi
         {laeuft ? 'Einen Moment …' : 'Alle übernehmen'}
       </Button>
 
-      <p className="small muted" style={{ marginBottom: 0 }}>
+      <p className="small muted">
         Übernommen werden nur die Vokabelpakete. Lernstände bleiben auf dem Gerät, auf dem sie
         entstanden sind – auch deine eigenen.
       </p>

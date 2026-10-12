@@ -282,3 +282,104 @@
   gap: var(--space-3);
   inline-size: 100%;
 }
+
+/* ------------------------------------------------------------- Seitenkopf */
+
+/*
+  Oberzeile, Titel, Lead links — Handlungen rechts.
+
+  So steht es auf jedem Blatt der Variante B (`.kopf` in `variante.css`).
+  Produktiv war der Kopf bisher nur „Überschrift, darunter ein Satz"; die
+  Handlung stand irgendwo weiter unten im Fluss. `align-items: flex-end`
+  setzt die Knöpfe auf die Grundlinie des Leads statt an den oberen Rand des
+  Titels — sonst schwebten sie neben einer 3rem hohen Überschrift.
+*/
+.huelle .seitenkopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+.huelle .seitenkopf__text {
+  display: grid;
+  gap: var(--space-2);
+}
+.huelle .seitenkopf__oberzeile {
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  font-weight: var(--weight-bold);
+  color: var(--tinte-3);
+  margin: 0;
+}
+.huelle .seitenkopf__aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* --------------------------------------------------------------- Abschnitt */
+
+/*
+  Ein Abschnitt ist keine Karte.
+
+  Vorher trug `<Card><h2>Kurse</h2> … </Card>` eine Liste, in der jede Zeile
+  wieder eine Karte war: Karte in Karte, zwei Rahmen um dieselbe Sache. In
+  der Variante B steht der Abschnittstitel auf der Aurora, und die Karten
+  liegen darunter im Raster. Rechts daneben darf ein stiller Verweis stehen
+  („Alle Kurse") — `baseline`, damit er auf der Schriftlinie des Titels
+  sitzt und nicht auf dessen Kasten.
+*/
+.huelle .abschnitt {
+  display: grid;
+  gap: var(--space-4);
+}
+.huelle .abschnitt__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.huelle .abschnitt__titel {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-black);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------- Flussreset */
+
+/*
+  Der erste Absatz einer Fläche hat keinen Abstand nach oben, der letzte
+  keinen nach unten.
+
+  Das stand bisher 68-mal als `style={{ marginTop: 0 }}` im JSX — einmal je
+  Überschrift und Absatz, der zufällig am Rand einer Karte landete. Eine
+  Regel, die man an jeder Verwendungsstelle von Hand wiederholt, ist keine
+  Regel, sondern eine Verabredung: Sie fehlt beim nächsten Absatz, und
+  niemand sieht es, bis die Fläche schief aussieht.
+
+  `:where()` hält die Spezifität bei null, damit eine Seite, die es wirklich
+  anders braucht, nicht gegen `!important` anrennen muss.
+*/
+.huelle :where(.card, .alert, .empty-state, .karte, .error-state) > :first-child {
+  margin-block-start: 0;
+}
+.huelle :where(.card, .alert, .empty-state, .karte, .error-state) > :last-child {
+  margin-block-end: 0;
+}
+
+/*
+  Zwei Flächen, die keine Karten sind und dieselbe Verabredung brauchten:
+  die Fußzeile der Hülle (vier Absätze untereinander, jeder mit
+  `margin: 0`) und eine Reihe, in der Absätze neben Knöpfen stehen. Dort
+  gibt der Abstand die Lücke vor, nicht der Textfluss.
+*/
+.huelle .huelle__fusszeile {
+  display: grid;
+  gap: var(--space-2);
+}
+.huelle .huelle__fusszeile > *,
+.huelle .row > :where(p, h1, h2, h3, h4) {
+  margin-block: 0;
+}

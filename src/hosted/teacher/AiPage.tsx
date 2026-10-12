@@ -172,7 +172,7 @@ export function AiPage() {
       {meldung ? <Alert tone="success">{meldung}</Alert> : null}
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Zugang hinzufügen</h2>
+        <h2>Zugang hinzufügen</h2>
 
         <div className="field">
           <label htmlFor="ki-anbieter">Anbieter</label>
@@ -209,7 +209,7 @@ export function AiPage() {
               value={schluessel}
               onChange={(event) => setSchluessel(event.target.value)}
             />
-            <p className="small muted" style={{ marginBottom: 0 }}>
+            <p className="small muted">
               Geht an {anbieter.eigeneAdresse && adresse.trim() !== '' ? adresse.trim() : anbieter.adresse} – und an keine
               andere Adresse.
             </p>
@@ -242,7 +242,7 @@ export function AiPage() {
               onChange={(event) => setAdresse(event.target.value)}
               placeholder={anbieter.adresse}
             />
-            <p className="small muted" style={{ marginBottom: 0 }}>
+            <p className="small muted">
               Nur Hosts, die deine Verwaltung freigegeben hat. Leer lassen heißt: {anbieter.adresse}
             </p>
           </div>
@@ -261,7 +261,7 @@ export function AiPage() {
 
       {liste !== undefined && liste.length === 0 ? (
         <EmptyState title="Noch kein KI-Zugang">
-          <p style={{ marginBottom: 0 }}>
+          <p>
             LexiFlow funktioniert vollständig ohne. Ein Zugang ergänzt Vorschläge bei der
             Materialerstellung – im Lernbereich wird nie ein Modell angerufen.
           </p>
@@ -270,8 +270,8 @@ export function AiPage() {
 
       {(liste ?? []).map((zugang) => (
         <Card key={zugang.id}>
-          <h2 style={{ marginTop: 0, marginBottom: '0.2rem' }}>{zugang.label}</h2>
-          <p className="small muted" style={{ margin: 0 }}>
+          <h2>{zugang.label}</h2>
+          <p className="small muted">
             {ANBIETER.find((eintrag) => eintrag.id === zugang.adapter)?.label ?? zugang.adapter}
             {zugang.model ? ` · ${zugang.model}` : ''}
             {zugang.maskedSecret ? ` · Schlüssel ${zugang.maskedSecret}` : ''}
@@ -310,7 +310,7 @@ export function AiPage() {
       ))}
 
       <Card quiet>
-        <p className="small muted" style={{ margin: 0 }}>
+        <p className="small muted">
           Ein Modell bekommt Wörter und Beispielsätze zu sehen – nie Namen, nie Lernstände, nie
           etwas aus dem Lernbereich. Das gilt unabhängig davon, welchen Anbieter du wählst.
         </p>

@@ -88,7 +88,14 @@ const ROUTEN = [
   { name: 'lernende-heute', rolle: 'lernende', pfad: '#/heute' },
   { name: 'lernende-ueben', rolle: 'lernende', pfad: '#/ueben' },
   { name: 'lernende-fortschritt', rolle: 'lernende', pfad: '#/fortschritt' },
-  { name: 'lernende-einstellungen', rolle: 'lernende', pfad: '#/einstellungen' },
+  /*
+    `#/einstellungen` stand hier als „lernende-einstellungen" — eine Route,
+    die es für Lernende nicht gibt. Sie gehört dem Lehrkraftbereich; eine
+    lernende Person bekommt dort den Riegel aus `RequireArea` zu sehen.
+    Gemessen wurde also vier Breiten lang eine Absage, nicht ein Bildschirm.
+    Aufgefallen ist es erst, als die Wache auf die leere Seite dazukam —
+    der Riegel rendert ohne Hülle.
+  */
 ];
 
 const browserPfad = process.env['LEXIFLOW_CHROMIUM'];
@@ -128,6 +135,29 @@ for (const breite of BREITEN) {
         await seite.mouse.move(breite - 2, 880);
         /* Kurz warten: Die Seiten laden ihre Daten erst nach dem ersten Bild. */
         await seite.waitForTimeout(600);
+
+        /*
+          Zuerst: Steht überhaupt etwas da?
+
+          Ohne diese Prüfung meldete das Skript „ok" für eine weiße Seite.
+          Eine Vorschau ohne `LEXIFLOW_BASE` liefert für jede Adresse die
+          Ersatzseite des Solo-Teils aus; die Portalbündel laufen ins Leere,
+          React rendert nie — und eine leere Seite hat weder waagerechten
+          Überlauf noch zu kleine Tippziele. Beide Messungen waren grün,
+          weil sie nichts zu messen hatten. Genau die Sorte Prüfung, die
+          ihren Namen nicht verdient.
+        */
+        const gerendert = await seite.evaluate(() => ({
+          huelle: Boolean(document.querySelector('.huelle')),
+          zeichen: (document.body.innerText ?? '').trim().length,
+        }));
+        if (!gerendert.huelle || gerendert.zeichen < 40) {
+          befunde.push(
+            `${route.name} @ ${breite}px: leere Seite (.huelle ${gerendert.huelle ? 'da' : 'fehlt'}, ${gerendert.zeichen} Zeichen Text)`,
+          );
+          console.log('  %s @ %dpx  LEER', route.name, breite);
+          continue;
+        }
 
         const ueberlauf = await seite.evaluate(
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

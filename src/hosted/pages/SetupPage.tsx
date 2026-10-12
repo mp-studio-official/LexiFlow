@@ -22,13 +22,13 @@ export function SetupPage({ result }: { result: HostedConfigResult }) {
       </Alert>
 
       <Card quiet>
-        <h2 style={{ marginTop: 0 }}>Die Vorlage</h2>
+        <h2>Die Vorlage</h2>
         <pre>
           <code>
             {`${HOSTED_ENV_KEYS.url}=https://<projekt>.supabase.co\n${HOSTED_ENV_KEYS.key}=<publishable key>`}
           </code>
         </pre>
-        <p className="small muted" style={{ marginBottom: 0 }}>
+        <p className="small muted">
           Beide Werte dürfen öffentlich sein – sie stehen im ausgelieferten Bündel. Der geheime
           Schlüssel gehört <strong>nicht</strong> hierher, sondern ausschließlich in die Secrets der
           Funktionen.
@@ -36,8 +36,8 @@ export function SetupPage({ result }: { result: HostedConfigResult }) {
       </Card>
 
       <Card quiet>
-        <h2 style={{ marginTop: 0 }}>Die portablen Dateien sind davon nicht betroffen</h2>
-        <p style={{ marginBottom: 0 }}>
+        <h2>Die portablen Dateien sind davon nicht betroffen</h2>
+        <p>
           Die Lehrkraftdatei und die Lerndateien brauchen keine Konfiguration – sie haben kein
           Backend und können auch keines bekommen.
         </p>

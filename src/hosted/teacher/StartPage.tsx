@@ -161,7 +161,7 @@ export function StartPage() {
             <Button onClick={() => void laden()}>Erneut versuchen</Button>
           }
         >
-          <p style={{ margin: 0 }}>
+          <p>
             {stand.offline
               ? 'Kurse und Material stehen wieder da, sobald das Netz zurück ist. Es geht nichts verloren.'
               : 'Die Kurse und das Material ließen sich nicht laden.'}
@@ -198,8 +198,15 @@ export function StartInhalt({
 
   return (
     <>
-      <Card>
-        <h2>Kurse</h2>
+      <section className="abschnitt">
+        <div className="abschnitt__kopf">
+          <h2 className="abschnitt__titel">Kurse</h2>
+          {kurse.length === 0 ? null : (
+            <Link className="start__ziel" to="/kurse">
+              Alle Kurse
+            </Link>
+          )}
+        </div>
         {kurse.length === 0 ? (
           /*
             Kein leerer Kasten mit einer Null darin: Wer noch keinen Kurs hat,
@@ -228,13 +235,19 @@ export function StartInhalt({
                 </li>
               ))}
             </ul>
-            <Link className="start__ziel" to="/kurse">Alle Kurse</Link>
           </>
         )}
-      </Card>
+      </section>
 
-      <Card>
-        <h2>Lernpakete</h2>
+      <section className="abschnitt">
+        <div className="abschnitt__kopf">
+          <h2 className="abschnitt__titel">Lernpakete</h2>
+          {pakete.length === 0 ? null : (
+            <Link className="start__ziel" to="/pakete">
+              Alle Lernpakete
+            </Link>
+          )}
+        </div>
         {pakete.length === 0 ? (
           <EmptyState title="Noch kein Lernpaket">
             <p>
@@ -250,14 +263,13 @@ export function StartInhalt({
               {pakete.filter((paket) => paket.publishedRevision !== undefined).length}{' '}
               veröffentlicht
             </p>
-            <Link className="start__ziel" to="/pakete">Material öffnen</Link>
           </>
         )}
-      </Card>
+      </section>
 
       {stellen.length > 0 ? (
-        <Card>
-          <h2>Offene Stellen</h2>
+        <section className="abschnitt">
+          <h2 className="abschnitt__titel">Offene Stellen</h2>
           <p className="small muted">
             Lücken und Widersprüche in deinen eigenen Entwürfen. Keine Rückfragen von Lernenden —
             die gibt es hier nicht.
@@ -272,7 +284,7 @@ export function StartInhalt({
               </li>
             ))}
           </ul>
-        </Card>
+        </section>
       ) : null}
 
       {kiEingerichtet ? null : (

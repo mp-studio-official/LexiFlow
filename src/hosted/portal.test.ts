@@ -31,10 +31,37 @@ const ROH = readFileSync(resolve(hier, 'portal.css'), 'utf8');
 const CSS = ROH.replace(/\/\*[\s\S]*?\*\//g, '');
 const TOKEN = readFileSync(resolve(hier, '..', 'styles', 'tokens.css'), 'utf8');
 
+/**
+ * Trennt eine Selektorliste an den Kommas — aber nur an den obersten.
+ *
+ * `:where(.card, .alert)` enthält selbst Kommas. Ein naives `split(',')`
+ * zerschnitt die Klammer und meldete `.alert` als Regel ohne `.huelle`
+ * davor, obwohl die Regel sauber eingegrenzt war. Umgekehrt hätte eine
+ * Wache, die man darauf hin abschwächt, gar nichts mehr geprüft; also
+ * zählt sie die Klammertiefe mit.
+ */
+function teileOberste(liste: string): string[] {
+  const teile: string[] = [];
+  let tiefe = 0;
+  let laufend = '';
+  for (const zeichen of liste) {
+    if (zeichen === '(') tiefe += 1;
+    else if (zeichen === ')') tiefe -= 1;
+    if (zeichen === ',' && tiefe === 0) {
+      teile.push(laufend);
+      laufend = '';
+      continue;
+    }
+    laufend += zeichen;
+  }
+  teile.push(laufend);
+  return teile;
+}
+
 /** Die Selektoren der Datei, einer je Wahl. */
 function auswahlen(): string[] {
   return [...CSS.matchAll(/(^|\})\s*([^{}@]+)\{/g)]
-    .flatMap((treffer) => (treffer[2] ?? '').split(','))
+    .flatMap((treffer) => teileOberste(treffer[2] ?? ''))
     .map((wahl) => wahl.trim())
     .filter((wahl) => wahl.length > 0);
 }
@@ -53,6 +80,16 @@ describe('die Portalschicht erreicht nur das Portal', () => {
   it('es gibt überhaupt Regeln zu prüfen', () => {
     // Sonst liefe die Schleife oben ins Leere und meldete Erfolg.
     expect(auswahlen().length).toBeGreaterThan(15);
+  });
+
+  it('und lässt sich von `:where(…)` nicht täuschen — in beide Richtungen', () => {
+    /*
+      Die Klammer darf die Wache weder blind machen (links) noch ein
+      falsches Alarmsignal auslösen (rechts).
+    */
+    expect(teileOberste('.huelle :where(.card, .alert) > :first-child')).toHaveLength(1);
+    expect(teileOberste(':where(.a, .b), .btn')).toHaveLength(2);
+    expect(teileOberste(':where(.a, .b), .btn')[1]?.trim()).toBe('.btn');
   });
 
   it('und erkennt eine offene Regel auch wirklich', () => {

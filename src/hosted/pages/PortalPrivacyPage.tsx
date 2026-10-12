@@ -31,13 +31,13 @@ export function PortalPrivacyPage() {
       </Alert>
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Dein Lernstand gehört dir</h2>
+        <h2>Dein Lernstand gehört dir</h2>
         <p>
           Wie oft du geübt hast, was du richtig oder falsch hattest, wann du zuletzt dran warst –
           das sehen <strong>nur du selbst</strong>. Nicht deine Lehrkraft, nicht die Schule, nicht
           die Verwaltung dieses Portals.
         </p>
-        <p style={{ marginBottom: 0 }}>
+        <p>
           Das ist keine Einstellung, die jemand umlegen könnte: In der Datenbank gibt es für den
           Lernstand anderer Menschen keine Abfrage, die etwas zurückgäbe. Die Regel dazu steht in
           den Zugriffsregeln der Datenbank und wird bei jeder Änderung geprüft.
@@ -45,18 +45,18 @@ export function PortalPrivacyPage() {
       </Card>
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Was deine Lehrkraft sieht</h2>
+        <h2>Was deine Lehrkraft sieht</h2>
         <ul>
           <li>Deinen Anzeigenamen – den du selbst wählst. Ein Spitzname genügt.</li>
           <li>Eine kurze Kennung wie „LX-7390“, damit zwei gleiche Namen unterscheidbar sind.</li>
           <li>Dass du im Kurs bist, und seit wann.</li>
         </ul>
-        <p style={{ marginBottom: 0 }}>Mehr nicht. Insbesondere keine Zahl über dein Üben.</p>
+        <p>Mehr nicht. Insbesondere keine Zahl über dein Üben.</p>
       </Card>
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Wenn du lernst: keine E-Mail-Adresse</h2>
-        <p style={{ marginBottom: 0 }}>
+        <h2>Wenn du lernst: keine E-Mail-Adresse</h2>
+        <p>
           Für die Anmeldung brauchst du eine Lern-ID und ein Kennwort – keine E-Mail-Adresse.
           LexiFlow fragt sie nicht ab und speichert sie nicht. Was nicht erhoben wird, kann auch
           nicht verlorengehen.
@@ -64,16 +64,16 @@ export function PortalPrivacyPage() {
       </Card>
 
       <Card quiet>
-        <h2 style={{ marginTop: 0 }}>Keine Werbung, keine Auswertung, keine Weitergabe</h2>
-        <p style={{ marginBottom: 0 }}>
+        <h2>Keine Werbung, keine Auswertung, keine Weitergabe</h2>
+        <p>
           LexiFlow bindet keine Werbenetzwerke ein, misst kein Verhalten und gibt nichts an Dritte
           weiter. Es gibt keine Analysewerkzeuge und keine Zählpixel.
         </p>
       </Card>
 
       <Card quiet>
-        <h2 style={{ marginTop: 0 }}>Dein Konto gehört dir</h2>
-        <p style={{ marginBottom: 0 }}>
+        <h2>Dein Konto gehört dir</h2>
+        <p>
           Du kannst deine Daten als Datei herunterladen und dein Konto löschen. Beim Löschen
           verschwinden dein Profil und dein Lernstand. Kursinhalte anderer bleiben bestehen – sie
           gehören nicht dir.

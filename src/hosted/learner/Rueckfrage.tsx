@@ -145,7 +145,7 @@ export function Rueckfrage({
       }}
     >
       <Card>
-        <h2 id="rueckfrage-titel" style={{ marginTop: 0 }}>
+        <h2 id="rueckfrage-titel">
           Deine angefangene Antwort geht verloren
         </h2>
         <p>

@@ -402,7 +402,7 @@ export function PracticePage() {
     vorbei.
   */
   const ausgang = (
-    <div className="row" style={{ margin: 0 }}>
+    <div className="row">
       <Button variant="quiet" className="runde__ausgang" onClick={beenden}>
         Runde beenden
       </Button>
@@ -430,7 +430,7 @@ export function PracticePage() {
         {ausgang}
         <h1>{gezaehlt === 0 ? 'Gerade nichts fällig' : 'Runde beendet'}</h1>
         <Card>
-          <p style={{ marginTop: 0 }}>
+          <p>
             {gezaehlt === 0
               ? `Gerade ist in „${pack.meta.title}" nichts fällig.`
               : `${gezaehlt} ${gezaehlt === 1 ? 'Antwort' : 'Antworten'} in „${pack.meta.title}".`}
@@ -441,11 +441,11 @@ export function PracticePage() {
             es weitergeht – nicht rätseln, warum nichts kommt.
           */}
           {naechste ? (
-            <p className="small muted" style={{ margin: 0 }}>
+            <p className="small muted">
               Das Nächste ist am {new Date(naechste).toLocaleDateString('de-DE')} wieder dran.
             </p>
           ) : null}
-          <p className="small muted" style={{ marginBottom: 0 }}>
+          <p className="small muted">
             Dein Lernstand liegt in deinem Konto. Auf einem anderen Gerät machst du dort weiter, wo
             du hier aufgehört hast.
           </p>
@@ -465,7 +465,7 @@ export function PracticePage() {
       {nachfrage}
       {ausgang}
       <h1>{pack.meta.title}</h1>
-      <p className="small muted" style={{ margin: 0 }}>
+      <p className="small muted">
         Noch {remainingCount(state)} in dieser Runde
       </p>
 

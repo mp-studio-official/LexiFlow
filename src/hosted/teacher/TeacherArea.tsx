@@ -145,7 +145,7 @@ export function TeacherArea({ section }: { section: TeacherSection }) {
         {platz.text}
       </Alert>
       <Card quiet>
-        <p style={{ margin: 0 }}>
+        <p>
           Bis dahin bleibt die portable Lehrkraftdatei der vollständige Weg: Sie kann alles, was
           LexiFlow heute kann, und braucht dafür kein Konto.
         </p>
