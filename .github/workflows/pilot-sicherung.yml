@@ -35,13 +35,16 @@ jobs:
         # `supabase_vault` nicht und wäre deshalb kein gültiges Restore-Ziel.
         image: public.ecr.aws/supabase/postgres:17.11.0.002
         env:
-          POSTGRES_USER: postgres
+          # Das Supabase-Abbild führt seine Startmigrationen als
+          # `supabase_admin` aus; diese Rolle muss deshalb schon von initdb
+          # als Besitzerin angelegt werden.
+          POSTGRES_USER: supabase_admin
           POSTGRES_PASSWORD: lexiflow-pruefung
           POSTGRES_DB: lexiflow_restore
         ports:
           - 55432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d lexiflow_restore"
+          --health-cmd "pg_isready -U supabase_admin -d lexiflow_restore"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -129,7 +132,7 @@ jobs:
 
       - name: In eine frische Prüfdatenbank wiederherstellen
         env:
-          RESTORE_URL: postgresql://postgres:lexiflow-pruefung@localhost:55432/lexiflow_restore
+          RESTORE_URL: postgresql://supabase_admin:lexiflow-pruefung@localhost:55432/lexiflow_restore
         run: |
           set -euo pipefail
           docker run --rm --network host \
