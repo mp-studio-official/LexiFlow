@@ -1,0 +1,61 @@
+/* ===========================================================================
+   Der Lerncoach
+   ===========================================================================
+   Variante B, auf `.huelle` eingegrenzt.
+   =========================================================================== */
+
+.huelle .ki-coach {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.huelle .ki-coach__titel {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+/*
+  Vier feste Handlungen, keine Eingabezeile. Am Telefon untereinander, am
+  Schreibtisch so viele nebeneinander, wie passen.
+*/
+.huelle .ki-coach__aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.huelle .ki-coach__laedt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.huelle .ki-coach__laedt > p {
+  margin: 0;
+  color: var(--tinte-2);
+}
+
+.huelle .ki-coach__antwort {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche-stumpf);
+}
+
+.huelle .ki-coach__antwort > p {
+  margin: 0;
+}
+
+/*
+  Die Fussnote steht an jeder Antwort, nicht einmal oben: Wer nur die
+  Antwort liest, soll trotzdem sehen, dass sie maschinell ist.
+*/
+.huelle .ki-coach__fussnote,
+.huelle .ki-coach__abbruch {
+  margin: 0;
+}
