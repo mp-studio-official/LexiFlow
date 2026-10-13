@@ -192,3 +192,61 @@
 .huelle .werkstatt__aufnehmen {
   margin-block: var(--space-3) 0;
 }
+
+/* ---------------------------------------------------------------------------
+   Die Textwerkstatt
+   --------------------------------------------------------------------------- */
+
+/*
+  Quelltext und Prüfliste nebeneinander — aber erst, wenn beide Spalten
+  wirklich Platz haben. Unter 64rem untereinander: Zwei Spalten à 20rem
+  sind zwei Spalten, in denen man weder lesen noch tippen kann.
+*/
+.huelle .werkstatt__zweispaltig {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .huelle .werkstatt__zweispaltig {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.huelle .werkstatt__kandidaten {
+  display: grid;
+  gap: var(--space-3);
+  max-block-size: 36rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.huelle .werkstatt__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--tap-target);
+  margin-block: var(--space-2);
+  padding-inline-end: var(--space-2);
+}
+
+/*
+  Eine aufgenommene Zeile ist nicht nur farbig umrandet, sie trägt auch
+  ihre Felder. Der Unterschied ist damit auch ohne Farbe da — und zwar
+  der, auf den es ankommt.
+*/
+.huelle .werkstatt__zeile[data-aufgenommen='ja'] {
+  border-color: var(--primary);
+}
+
+.huelle .werkstatt__formen,
+.huelle .werkstatt__satz {
+  margin: 0;
+}
+
+.huelle .werkstatt__satz {
+  color: var(--tinte-2);
+}
