@@ -1002,16 +1002,18 @@ describe('KI-Verbindungen', () => {
     expect(await zaehle(SICHTBAR)).toBe(0);
   });
 
-  it('eine lernende Person legt keine an', async () => {
-    /*
-      ADR-1 an dieser Stelle: KI gibt es im Lehrkraftbereich. Nicht, weil die
-      Oberfläche den Knopf verbirgt, sondern weil die Regel ablehnt.
-    */
+  it('eine lernende Person legt genau ihre eigene an', async () => {
     await alsPerson(db, LERNENDE);
+    await db.query(
+      `insert into ai_connections (owner_id, label, adapter) values ($1, 'Mein Lerncoach', 'gemini')`,
+      [LERNENDE],
+    );
+    expect(await zaehle(SICHTBAR)).toBe(1);
+
     const fehler = await fehlerVon(
       db.query(
-        `insert into ai_connections (owner_id, label, adapter) values ($1, 'Meine', 'gemini')`,
-        [LERNENDE],
+        `insert into ai_connections (owner_id, label, adapter) values ($1, 'Fremd', 'gemini')`,
+        [ZWEITE_LERNENDE],
       ),
     );
     expect(fehler).toMatch(/row-level security/i);

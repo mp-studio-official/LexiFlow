@@ -80,7 +80,7 @@ export function Lerncoach({
     return (
       <Alert tone="info" title="Kein Zugang eingerichtet">
         <p>
-          Für den Lerncoach braucht die Schule einen eigenen API-Zugang — zum Beispiel die
+          Für den Lerncoach brauchst du einen eingerichteten API-Zugang — zum Beispiel die
           OpenAI API, die Anthropic Claude API, die Gemini API oder ein lokales Modell. Ein
           persönliches Abonnement eines Chatdienstes reicht dafür nicht: Es hat keine
           Schnittstelle, über die LexiFlow fragen könnte.

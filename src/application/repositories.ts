@@ -592,7 +592,10 @@ export interface AiGateway {
   }): Promise<AiConnectionSummary>;
   deleteConnection(id: string): Promise<void>;
   testConnection(id: string): Promise<{ ok: boolean; message: string }>;
-  /** Der einzige Weg zu einem Anbieter. Nur Lehrkräfte, nur auf Klick. */
+  /**
+   * Der einzige Weg zu einem Anbieter, nur auf Klick. Lernende werden
+   * serverseitig zusätzlich auf die festen Lerncoach-Aufträge begrenzt.
+   */
   invoke(input: {
     connectionId: string;
     capability: string;

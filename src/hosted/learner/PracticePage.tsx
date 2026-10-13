@@ -52,6 +52,9 @@ import { activeDirections } from '../../domain/schema';
 import type { EntryProgress, TaskDirection, VocabPack } from '../../domain/schema';
 import type { ProgressEvent } from '../../application/repositories';
 import { Verbindungsfehler } from '../verbindung';
+import { useSession } from '../SessionContext';
+import { KI_IM_PILOT } from '../pilot';
+import { LerncoachEinbettung } from './LerncoachEinbettung';
 
 /**
  * Üben im Portal – mit einem Lernstand, der am Gerät nicht endet.
@@ -175,6 +178,8 @@ export function PracticePage() {
   const seed = Number.isFinite(roherSeed) && roherSeed > 0 ? roherSeed >>> 0 : 0;
   const publication = useOptionalRepository('publication');
   const progress = useOptionalRepository('progress');
+  const ai = useOptionalRepository('ai');
+  const { session } = useSession();
 
   const [pack, setPack] = useState<VocabPack | undefined>(undefined);
   const [state, setState] = useState<SessionState | undefined>(undefined);
@@ -665,6 +670,23 @@ export function PracticePage() {
           </div>
         ) : null}
       </Card>
+
+      {KI_IM_PILOT !== 'gesperrt' ? (
+        <LerncoachEinbettung
+          freigegeben
+          {...(session?.userId ? { profilId: session.userId } : {})}
+          {...(ai ? { ai } : {})}
+          aufgabe={{
+            lernform: aufgabe.task.entry.english,
+            richtung: aufgabe.task.direction,
+            ...(beispiel ? { beispielsatz: beispiel.english } : {}),
+            ...(ergebnis && gegeben ? { antwort: gegeben } : {}),
+            ...(aufgabe.task.expected[0] ? { loesung: aufgabe.task.expected[0] } : {}),
+            sprache: 'de',
+            niveau: pack.meta.cefrLevel,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

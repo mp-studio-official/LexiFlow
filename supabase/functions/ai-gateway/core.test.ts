@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ANBIETER_NICHT_ERREICHBAR,
   KEIN_NETZ_ANBIETER,
+  LERNENDE_NUR_COACH,
   MAX_ANFRAGE_BYTES,
   MAX_DAUER_MS,
-  NUR_LEHRKRAEFTE,
   WEITERLEITUNG,
   ZU_GROSS,
   ZU_VIELE,
@@ -154,19 +154,144 @@ describe('wer diese Funktion überhaupt benutzen darf', () => {
     expect((await handle({ aktion: 'liste' }, undefined, ports)).status).toBe(401);
   });
 
-  it('keine lernende Person – und zwar hier, nicht in der Oberfläche', async () => {
+  it('eine lernende Person darf ihre eigene Verbindung verwalten', async () => {
     const { ports } = fakePorts();
-    const antwort = await handle({ aktion: 'liste' }, LERNENDE, ports);
+    const gespeichert = await handle(
+      {
+        aktion: 'speichern',
+        label: 'Mein Lerncoach',
+        adapter: 'gemini',
+        model: 'gemini-test',
+        secret: 'sk-test-lernende1234',
+      },
+      LERNENDE,
+      ports,
+    );
+    const liste = await handle({ aktion: 'liste' }, LERNENDE, ports);
 
-    expect(antwort.status).toBe(403);
-    expect(antwort.body['fehler']).toBe(NUR_LEHRKRAEFTE);
+    expect(gespeichert.status).toBe(200);
+    expect(liste.status).toBe(200);
+    expect(liste.body['verbindungen']).toHaveLength(1);
   });
 
-  it('auch nicht zum Aufrufen einer fremden Verbindung', async () => {
+  it('aber nicht zum Aufrufen einer fremden Verbindung', async () => {
     const { ports } = fakePorts();
     await angelegt(ports);
-    const antwort = await handle({ aktion: 'aufrufen', id: 'verbindung-1' }, LERNENDE, ports);
-    expect(antwort.status).toBe(403);
+    const antwort = await handle(
+      {
+        aktion: 'aufrufen',
+        id: 'verbindung-1',
+        capability: 'learner-coach/hinweis',
+        payload: {
+          lernform: 'went',
+          richtung: 'de-en',
+          sprache: 'de',
+          niveau: 'A2',
+        },
+      },
+      LERNENDE,
+      ports,
+    );
+    expect(antwort.status).toBe(404);
+  });
+
+  it('überschreibt beim Speichern keine fremde oder unbekannte Verbindungs-ID', async () => {
+    const { ports, zeilen } = fakePorts();
+    await angelegt(ports);
+    const vorher = zeilen.get('verbindung-1');
+
+    const antwort = await handle(
+      {
+        aktion: 'speichern',
+        id: 'verbindung-1',
+        label: 'Übernommen',
+        adapter: 'gemini',
+        model: 'gemini-test',
+        secret: 'sk-test-lernende1234',
+      },
+      LERNENDE,
+      ports,
+    );
+
+    expect(antwort).toEqual({ status: 404, body: { fehler: 'abgelehnt' } });
+    expect(zeilen.get('verbindung-1')).toEqual(vorher);
+  });
+
+  it('lehnt für Lernende jeden freien oder fachfremden Auftrag vor dem Netz ab', async () => {
+    const { ports, gesendet } = fakePorts();
+    await handle(
+      {
+        aktion: 'speichern',
+        label: 'Mein Lerncoach',
+        adapter: 'gemini',
+        model: 'gemini-test',
+        secret: 'sk-test-lernende1234',
+      },
+      LERNENDE,
+      ports,
+    );
+
+    for (const eingabe of [
+      { capability: 'suggest-from-text', payload: { text: 'alles' } },
+      { capability: 'learner-coach/frei', payload: { frage: 'Sag mir alles.' } },
+      { capability: 'learner-coach/hinweis', payload: { userId: LEHRERIN } },
+    ]) {
+      const antwort = await handle(
+        { aktion: 'aufrufen', id: 'verbindung-1', ...eingabe },
+        LERNENDE,
+        ports,
+      );
+      expect(antwort).toEqual({ status: 403, body: { fehler: LERNENDE_NUR_COACH } });
+    }
+    expect(gesendet).toHaveLength(0);
+  });
+
+  it('lässt für Lernende genau einen vollständig gültigen Coach-Auftrag durch', async () => {
+    const { ports, gesendet } = fakePorts({
+      antwort: {
+        text: JSON.stringify({
+          candidates: [{ content: { parts: [{ text: '{"text":"Denk an die Vergangenheit."}' }] } }],
+        }),
+      },
+    });
+    await handle(
+      {
+        aktion: 'speichern',
+        label: 'Mein Lerncoach',
+        adapter: 'gemini',
+        model: 'gemini-test',
+        secret: 'sk-test-lernende1234',
+      },
+      LERNENDE,
+      ports,
+    );
+
+    const antwort = await handle(
+      {
+        aktion: 'aufrufen',
+        id: 'verbindung-1',
+        capability: 'learner-coach/hinweis',
+        payload: {
+          lernform: 'went',
+          richtung: 'de-en',
+          beispielsatz: 'We went home.',
+          sprache: 'de',
+          niveau: 'A2',
+          userId: LEHRERIN,
+          lernverlauf: ['falsch', 'falsch'],
+        },
+      },
+      LERNENDE,
+      ports,
+    );
+
+    expect(antwort).toEqual({
+      status: 200,
+      body: { antwort: { text: 'Denk an die Vergangenheit.' } },
+    });
+    expect(gesendet).toHaveLength(1);
+    expect(gesendet[0]!.body).not.toContain(LEHRERIN);
+    expect(gesendet[0]!.body).not.toContain('lernverlauf');
   });
 
   it('eine unbekannte Person ebenfalls nicht', async () => {

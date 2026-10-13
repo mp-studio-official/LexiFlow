@@ -21,6 +21,7 @@ import {
   anbieterAnfrage,
   anbieterAntwort,
 } from './anbieterprotokoll.ts';
+import { coachAuftrag } from './coachauftrag.ts';
 
 /**
  * Der Kern von `ai-gateway` – ohne Deno, ohne Netz, ohne Datenbank.
@@ -37,8 +38,9 @@ import {
  * 2. **Es wird nur dorthin gesendet, wo gesendet werden darf.** Zweimal
  *    geprüft: beim Speichern und noch einmal unmittelbar vor dem Aufruf. Die
  *    Freigabeliste kann sich zwischen beidem geändert haben.
- * 3. **Nur Lehrkräfte.** Eine lernende Person hat hier nichts zu suchen, und
- *    zwar nicht, weil die Oberfläche den Knopf verbirgt.
+ * 3. **Lernende nur im Lerncoach.** Eine lernende Person darf ihren eigenen
+ *    Zugang verwalten und genau die vier festen Coach-Aufträge senden. Freie
+ *    oder fachfremde KI-Aufträge scheitern hier – nicht nur in der Oberfläche.
  * 4. **Kein Lernstand, keine Person.** Diese Funktion nimmt einen
  *    Nutzlastteil entgegen und reicht ihn weiter; sie liest keine Tabelle mit
  *    Lernständen und hat keinen Port dafür.
@@ -140,11 +142,12 @@ export const MAX_ANTWORT_BYTES = 256 * 1024;
 /** Ein Anbieter darf die Edge Function nicht bis an ihr Laufzeitende festhalten. */
 export const MAX_DAUER_MS = 20_000;
 
-/** Aufrufe je Lehrkraft und Stunde. */
+/** Aufrufe je Person und Stunde. */
 export const BREMSE = { hoechstzahl: 120, fensterSekunden: 3600 };
 
 export const ABGELEHNT = { fehler: 'abgelehnt' } as const;
-export const NUR_LEHRKRAEFTE = 'Dieser Bereich ist Lehrkräften vorbehalten.';
+export const LERNENDE_NUR_COACH =
+  'Für Lernende ist ausschließlich der Lerncoach freigegeben.';
 export const ZU_VIELE = 'Zu viele Anfragen. Bitte später noch einmal.';
 export const WEITERLEITUNG =
   'Der Anbieter hat auf eine andere Adresse umgeleitet. Das ist nicht zulässig.';
@@ -204,12 +207,24 @@ async function speichern(
   if (label === '') return { status: 400, body: { fehler: 'Ein Name fehlt.' } };
 
   /*
+    Eine angegebene ID bedeutet „meine bestehende Verbindung ändern" und
+    niemals „unter dieser ID anlegen". `saveConnection` arbeitet mit
+    Service-Rechten; ohne diese Besitzprüfung könnte ein erratener fremder
+    Primärschlüssel beim Upsert überschrieben werden. Fremd und unbekannt
+    sehen absichtlich gleich aus.
+  */
+  const angegebeneId = text(eingabe['id'], 64);
+  if (angegebeneId !== '' && !(await ports.db.readConnection(userId, angegebeneId))) {
+    return { status: 404, body: ABGELEHNT };
+  }
+  const id = angegebeneId || ports.newId();
+
+  /*
     Das Browsermodell hat keinen Schlüssel und keine Adresse. Es steht
     trotzdem in der Liste, damit eine Lehrkraft sieht, dass es da ist – aber
     es wird hier nur vermerkt, nicht angebunden.
   */
   if (adapter === 'browsermodell') {
-    const id = text(eingabe['id'], 64) || ports.newId();
     await ports.db.saveConnection({
       id,
       ownerId: userId,
@@ -253,7 +268,6 @@ async function speichern(
     return { status: 503, body: { fehler: SCHLUESSEL_FEHLT } };
   }
 
-  const id = text(eingabe['id'], 64) || ports.newId();
   const geheimnis = await versiegeln(
     schluessel,
     { ownerId: userId, connectionId: id, adapter },
@@ -453,13 +467,20 @@ export async function handle(
   if (!userId) return { status: 401, body: ABGELEHNT };
 
   const rolle = await ports.db.myRole(userId);
-  if (rolle !== 'teacher' && rolle !== 'admin') {
-    /*
-      Die Zusage aus ADR-1, an dieser Stelle: Eine lernende Person hat keinen
-      KI-Zugang. Nicht, weil die Oberfläche den Knopf verbirgt, sondern weil
-      die Funktion ablehnt.
-    */
-    return { status: 403, body: { fehler: NUR_LEHRKRAEFTE } };
+  if (!rolle) return { status: 403, body: ABGELEHNT };
+
+  /*
+    Lernende dürfen ihre **eigene** Verbindung verwalten. Beim Aufruf ist
+    die engere Grenze entscheidend: Nur ein Auftrag, den `coachAuftrag`
+    vollständig versteht und auf seine Felder reduziert, kommt weiter.
+    Ein Präfixvergleich allein wäre keine Grenze – `learner-coach/frei`
+    sähe passend aus und wäre trotzdem ein freier Kanal.
+  */
+  if (rolle === 'student' && eingabe['aktion'] === 'aufrufen') {
+    const capability = text(eingabe['capability'], 80);
+    if (!coachAuftrag(capability, eingabe['payload'])) {
+      return { status: 403, body: { fehler: LERNENDE_NUR_COACH } };
+    }
   }
 
   switch (eingabe['aktion']) {

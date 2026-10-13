@@ -1,0 +1,56 @@
+/*
+  Migration 17 — persönliche Lerncoach-Zugänge
+
+  STATUS: NOCH NICHT AUSGEFÜHRT.
+
+  Diese Datei wird nach der Anwendung zum Messprotokoll umgeschrieben. Bis
+  dahin bleibt `KI_IM_PILOT` gesperrt.
+
+  Anwenden:
+
+    npx --yes supabase@latest db push --linked --dry-run
+
+  Erwartet: ausschließlich
+  `20261007090000_lerncoach_byok.sql`.
+
+    npx --yes supabase@latest db push --linked --skip-vault
+
+  Danach die Messungen B1 bis B4 ausführen.
+*/
+
+-- A1 / B1 — Umfang bleibt bis auf die Historie gleich.
+select
+  (select count(*) from information_schema.tables   where table_schema   = 'public') as tabellen,
+  (select count(*) from information_schema.columns  where table_schema   = 'public') as spalten,
+  (select count(*) from pg_policies                 where schemaname     = 'public') as regeln,
+  (select count(*) from information_schema.routines where routine_schema = 'public') as funktionen,
+  (select count(*) from pg_trigger where not tgisinternal)                           as trigger;
+
+-- Erwartet vor und nachher: 16 · 102 · 28 · 40 · 14.
+
+-- A2 / B2 — Wortlaut der einzigen geänderten Regel.
+select policyname, cmd, qual, with_check
+  from pg_policies
+ where schemaname = 'public'
+   and tablename = 'ai_connections'
+   and policyname = 'ai_verbindungen_eigene';
+
+-- Vorher nennt `with_check` teacher und admin.
+-- Nachher nennt es student, teacher und admin; `qual` bleibt auf der eigenen
+-- aktiven Person. Keine Regel auf fremde Eigentümer und kein `true`.
+
+-- A3 / B3 — die Siegelspalten bleiben für Browserrollen unlesbar.
+select grantee, privilege_type, column_name
+  from information_schema.column_privileges
+ where table_schema = 'public'
+   and table_name = 'ai_connections'
+   and column_name in ('secret_ciphertext', 'secret_iv', 'secret_key_version')
+ order by grantee, column_name, privilege_type;
+
+-- Erwartet: kein `authenticated` mit SELECT auf einer der drei Spalten.
+
+-- B4 — Historie.
+select count(*) as versionen, max(version) as zuletzt
+  from supabase_migrations.schema_migrations;
+
+-- Erwartet danach: 17 · 20261007090000.
