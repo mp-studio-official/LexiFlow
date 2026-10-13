@@ -63,6 +63,21 @@ async function alsLernende(seite) {
     Messung.
   */
   await seite.getByRole('heading', { name: 'Heute', exact: true }).first().waitFor();
+
+  /*
+    Die Zeitzone bestätigen — sonst misst die Aufnahme die halbe Seite.
+
+    Ohne bestätigte Zone bleiben Woche, Serie, Wochenfortschritt **und**
+    das Tagesziel unbeziffert (E27). Gemessen wurde dann vier Breiten lang
+    eine Seite voller „zeigen wir erst, wenn …" — und die neuen Bausteine
+    standen gar nicht erst im Baum. Eine Messung, die das Gemessene nicht
+    zeichnet, ist keine.
+  */
+  const bestaetigen = seite.getByRole('button', { name: /Stimmt, bestätigen/ });
+  if (await bestaetigen.count()) {
+    await bestaetigen.first().click();
+    await seite.waitForTimeout(400);
+  }
 }
 
 /**
@@ -80,6 +95,8 @@ const ROUTEN = [
   { name: 'lehrkraft-start', rolle: 'lehrkraft', pfad: '#/start' },
   { name: 'lehrkraft-kurse', rolle: 'lehrkraft', pfad: '#/kurse' },
   { name: 'lehrkraft-pakete', rolle: 'lehrkraft', pfad: '#/pakete' },
+  /* Die Werkstatt: eine Handlung an den Lernpaketen, kein eigenes Ziel. */
+  { name: 'lehrkraft-werkstatt', rolle: 'lehrkraft', pfad: '#/pakete/neu' },
   { name: 'lehrkraft-material', rolle: 'lehrkraft', pfad: '#/material' },
   { name: 'lehrkraft-ki', rolle: 'lehrkraft', pfad: '#/ki' },
   { name: 'lehrkraft-einstellungen', rolle: 'lehrkraft', pfad: '#/einstellungen' },
@@ -121,6 +138,17 @@ for (const breite of BREITEN) {
 
     const kontext = await browser.newContext({ viewport: { width: breite, height: 900 } });
     const seite = await kontext.newPage();
+    /*
+      Konsolenfehler sind ein Befund, kein Rauschen: Eine Seite, die beim
+      Zeichnen etwas wirft, hat an irgendeiner Stelle nicht getan, was sie
+      sollte — und das sieht man ihr oft nicht an. Gesammelt wird je
+      Kontext, zugeordnet wird beim Abschluss der Route.
+    */
+    const konsole = [];
+    seite.on('console', (nachricht) => {
+      if (nachricht.type() === 'error') konsole.push(`error: ${nachricht.text().slice(0, 160)}`);
+    });
+    seite.on('pageerror', (fehler) => konsole.push(`pageerror: ${String(fehler).slice(0, 160)}`));
     try {
       if (rolle === 'lehrkraft') await alsLehrkraft(seite);
       else if (rolle === 'lernende') await alsLernende(seite);
@@ -197,6 +225,61 @@ for (const breite of BREITEN) {
         });
         for (const eintrag of zuKlein) {
           befunde.push(`${route.name} @ ${breite}px: Tippziel ${eintrag}`);
+        }
+
+        /*
+          Tastaturfokus — mit der Tastatur geprüft, nicht mit `el.focus()`.
+
+          Die erste Fassung rief `focus()` und las die berechnete
+          Umrandung. Das meldete auf **jeder** Route Befunde, und zwar zu
+          Unrecht: Der Fokusring hängt an `:focus-visible`, und das setzt
+          Chromium bei programmatischem Fokus absichtlich nicht. Gemessen
+          wurde also eine Eigenschaft, die es unter diesen Bedingungen gar
+          nicht geben kann.
+
+          Dazu kam ein zweiter Fehler derselben Art: Elemente in einem
+          nicht gerenderten Teilbaum (die Telefonnavigation am
+          Schreibtisch) haben eine eigene berechnete `display`-Angabe und
+          sahen sichtbar aus. `getClientRects()` sagt, was wirklich
+          dasteht.
+
+          Jetzt wird wirklich getabbt. Das ist langsamer und prüft dafür
+          das, was eine Person mit der Tastatur erlebt.
+        */
+        const fokus = await (async () => {
+          const ohne = [];
+          const gesehen = new Set();
+          await seite.evaluate(() => document.body.focus());
+          for (let schritt = 0; schritt < 60; schritt += 1) {
+            await seite.keyboard.press('Tab');
+            const stand = await seite.evaluate(() => {
+              const el = document.activeElement;
+              if (!el || el === document.body) return undefined;
+              const stil = getComputedStyle(el);
+              const ring =
+                (stil.outlineStyle !== 'none' && parseFloat(stil.outlineWidth) > 0) ||
+                stil.boxShadow !== 'none';
+              const kennung = `${el.tagName.toLowerCase()}.${el.className || '—'}`;
+              return { kennung, ring, sichtbar: el.getClientRects().length > 0 };
+            });
+            if (!stand) break;
+            if (gesehen.has(stand.kennung)) continue;
+            gesehen.add(stand.kennung);
+            if (stand.sichtbar && !stand.ring) {
+              ohne.push(`ohne sichtbaren Fokus: ${stand.kennung}`);
+            }
+          }
+          return { anzahl: gesehen.size, ohne: [...new Set(ohne)] };
+        })();
+        if (fokus.anzahl === 0) {
+          befunde.push(`${route.name} @ ${breite}px: kein Element per Tabulator erreichbar`);
+        }
+        for (const eintrag of fokus.ohne) {
+          befunde.push(`${route.name} @ ${breite}px: ${eintrag}`);
+        }
+
+        for (const eintrag of konsole.splice(0)) {
+          befunde.push(`${route.name} @ ${breite}px: Konsole ${eintrag}`);
         }
 
         await seite.screenshot({ path: `${ORDNER}/${route.name}-${breite}.png` });
