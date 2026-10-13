@@ -39,6 +39,7 @@ const BLAETTER = [
   'portal.css',
   'teacher/werkstatt/werkstatt.css',
   'learner/motivation/motivation.css',
+  'learner/sprache/sprache.css',
 ] as const;
 
 const ROH = BLAETTER.map((blatt) => readFileSync(resolve(hier, blatt), 'utf8')).join('\n');

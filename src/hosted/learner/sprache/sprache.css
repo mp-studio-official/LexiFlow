@@ -1,0 +1,94 @@
+/* ===========================================================================
+   Sprachliche Hilfen im Lernbereich
+   ===========================================================================
+
+   Variante B, auf `.huelle` eingegrenzt wie jede Portalregel.
+   =========================================================================== */
+
+.huelle .sprache-hinweise {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.huelle .sprache-hinweise__liste {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  color: var(--tinte-2);
+  font-size: var(--text-sm);
+}
+
+/*
+  Die Lücke im Beispielsatz steht etwas größer da als die übrigen
+  Hinweise: Sie wird gelesen, nicht überflogen.
+*/
+.huelle .sprache-hinweise__liste > li[data-art='satz'] {
+  font-size: var(--text-base);
+  color: var(--tinte);
+}
+
+.huelle .sprache-hinweise__rest {
+  color: var(--tinte-3);
+}
+
+.huelle .sprache-fehler__text,
+.huelle .sprache-fehler__richtig {
+  margin-block: 0;
+}
+
+.huelle .sprache-fehler__richtig {
+  margin-block-start: var(--space-2);
+}
+
+.huelle .sprache-formen {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.huelle .sprache-formen__titel {
+  margin: 0;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--tinte-3);
+}
+
+.huelle .sprache-formen__liste {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
+}
+
+.huelle .sprache-formen__paar > dt {
+  color: var(--tinte-3);
+  font-size: var(--text-xs);
+}
+
+.huelle .sprache-formen__paar > dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+}
+
+.huelle .sprache-beispiel {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche-stumpf);
+}
+
+.huelle .sprache-beispiel__satz {
+  margin: 0;
+  font-family: var(--font-quote);
+  font-size: var(--text-lg);
+}
+
+.huelle .sprache-beispiel__deutsch {
+  color: var(--tinte-2);
+  font-size: var(--text-sm);
+}
