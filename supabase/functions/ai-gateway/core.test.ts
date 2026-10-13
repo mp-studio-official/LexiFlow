@@ -1,8 +1,10 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
+  ANBIETER_NICHT_ERREICHBAR,
   KEIN_NETZ_ANBIETER,
   MAX_ANFRAGE_BYTES,
+  MAX_DAUER_MS,
   NUR_LEHRKRAEFTE,
   WEITERLEITUNG,
   ZU_GROSS,
@@ -34,6 +36,7 @@ interface Aufzeichnung {
   headers: Record<string, string>;
   body: string;
   hoechstensBytes: number;
+  timeoutMs: number;
 }
 
 interface FakeOptionen {
@@ -47,6 +50,7 @@ interface FakeOptionen {
     weiterleitungNach: string;
   }>;
   bremseOffen?: boolean;
+  netzfehler?: boolean;
 }
 
 function fakePorts(optionen: FakeOptionen = {}) {
@@ -100,9 +104,17 @@ function fakePorts(optionen: FakeOptionen = {}) {
     http: {
       async senden(input) {
         gesendet.push(input);
+        if (optionen.netzfehler) throw new Error('Zeit abgelaufen');
+        const standardAntwort = input.url.includes('api.openai.com')
+          ? JSON.stringify({ output: [{ content: [{ type: 'output_text', text: '{"ok":true}' }] }] })
+          : input.url.includes('/chat/completions')
+            ? JSON.stringify({ choices: [{ message: { content: '{"ok":true}' } }] })
+            : input.url.includes('/messages')
+              ? JSON.stringify({ content: [{ type: 'text', text: '{"ok":true}' }] })
+              : JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] });
         return {
           status: optionen.antwort?.status ?? 200,
-          text: optionen.antwort?.text ?? '{"ok":true}',
+          text: optionen.antwort?.text ?? standardAntwort,
           abgeschnitten: optionen.antwort?.abgeschnitten ?? false,
           ...(optionen.antwort?.weiterleitungNach === undefined
             ? {}
@@ -255,6 +267,7 @@ describe('der Anbieterschlüssel geht hinein und nie wieder heraus', () => {
     expect(gesendet[0]!.headers['x-goog-api-key']).toBe('sk-test-abcdefgh1234');
     expect(gesendet[0]!.url).not.toContain('sk-test');
     expect(gesendet[0]!.url).not.toContain('key=');
+    expect(gesendet[0]!.url).toContain(':generateContent');
   });
 
   it('und die Antwort an den Browser enthält ihn nicht', async () => {
@@ -301,6 +314,94 @@ describe('die Kopfzeilen baut die Funktion selbst', () => {
 
     expect(gesendet[0]!.headers['anthropic-version']).toBe('2023-06-01');
     expect(gesendet[0]!.headers['x-api-key']).toBe('sk-test-abcdefgh1234');
+    expect(gesendet[0]!.url).toBe('https://api.anthropic.com/v1/messages');
+  });
+});
+
+/* ================================================== Anbieterprotokolle === */
+
+describe('aus dem neutralen Auftrag wird eine echte Anbieteranfrage', () => {
+  it('spricht die offizielle OpenAI Responses API und gibt nur die Fachantwort zurück', async () => {
+    const { ports, gesendet } = fakePorts();
+    await angelegt(ports, { adapter: 'openai-kompatibel', model: 'gpt-test' });
+
+    const antwort = await handle(
+      {
+        aktion: 'aufrufen',
+        id: 'verbindung-1',
+        capability: 'suggest-from-text',
+        payload: { kandidaten: ['walk'] },
+      },
+      LEHRERIN,
+      ports,
+    );
+
+    expect(antwort).toMatchObject({ status: 200, body: { antwort: { ok: true } } });
+    expect(gesendet[0]!.url).toBe('https://api.openai.com/v1/responses');
+    expect(JSON.parse(gesendet[0]!.body)).toMatchObject({
+      model: 'gpt-test',
+      store: false,
+      text: { format: { type: 'json_object' } },
+    });
+  });
+
+  it('spricht die Anthropic Messages API', async () => {
+    const { ports, gesendet } = fakePorts();
+    await angelegt(ports, { adapter: 'anthropic-kompatibel', model: 'claude-test' });
+
+    const antwort = await handle(
+      { aktion: 'aufrufen', id: 'verbindung-1', capability: 'explain', payload: { wort: 'went' } },
+      LEHRERIN,
+      ports,
+    );
+
+    expect(antwort).toMatchObject({ status: 200, body: { antwort: { ok: true } } });
+    expect(gesendet[0]!.url).toBe('https://api.anthropic.com/v1/messages');
+    expect(JSON.parse(gesendet[0]!.body)).toMatchObject({
+      model: 'claude-test',
+      max_tokens: 1024,
+    });
+  });
+
+  it('sendet ohne Modell nichts und nimmt keine unlesbare Erfolgsantwort an', async () => {
+    const ohneModell = fakePorts();
+    const nichtGespeichert = await handle(
+      {
+        aktion: 'speichern',
+        label: 'Ohne Modell',
+        adapter: 'openai-kompatibel',
+        model: '',
+        secret: 'sk-test-abcdefgh1234',
+      },
+      LEHRERIN,
+      ohneModell.ports,
+    );
+    expect(nichtGespeichert.status).toBe(400);
+    expect(nichtGespeichert.body['fehler']).toMatch(/Modell/);
+    expect(ohneModell.gesendet).toHaveLength(0);
+
+    const unlesbar = fakePorts({ antwort: { text: '{"output":[]}' } });
+    await angelegt(unlesbar.ports, { adapter: 'openai-kompatibel', model: 'gpt-test' });
+    const antwort = await handle(
+      { aktion: 'aufrufen', id: 'verbindung-1', payload: {} },
+      LEHRERIN,
+      unlesbar.ports,
+    );
+    expect(antwort.status).toBe(502);
+    expect(antwort.body['fehler']).toMatch(/brauchbare Antwort/);
+  });
+
+  it('meldet Zeitablauf und Netzfehler kontrolliert', async () => {
+    const { ports } = fakePorts({ netzfehler: true });
+    await angelegt(ports, { adapter: 'anthropic-kompatibel', model: 'claude-test' });
+
+    const antwort = await handle(
+      { aktion: 'aufrufen', id: 'verbindung-1', payload: {} },
+      LEHRERIN,
+      ports,
+    );
+
+    expect(antwort).toEqual({ status: 502, body: { fehler: ANBIETER_NICHT_ERREICHBAR } });
   });
 });
 
@@ -323,6 +424,7 @@ describe('wohin gesendet werden darf', () => {
         label: 'Schul-KI',
         adapter: 'openai-kompatibel',
         baseUrl: 'https://ki.schule.example/v1/',
+        model: 'gpt-test',
         secret: 'sk-test-abcdefgh1234',
       },
       LEHRERIN,
@@ -341,6 +443,7 @@ describe('wohin gesendet werden darf', () => {
         label: 'Schul-KI',
         adapter: 'openai-kompatibel',
         baseUrl: 'https://ki.schule.example/v1/',
+        model: 'gpt-test',
         secret: 'sk-test-abcdefgh1234',
       },
       LEHRERIN,
@@ -384,6 +487,7 @@ describe('wohin gesendet werden darf', () => {
         label: 'Test',
         adapter: 'openai-kompatibel',
         baseUrl: adresse,
+        model: 'gpt-test',
         secret: 'sk-test-abcdefgh1234',
       },
       LEHRERIN,
@@ -406,6 +510,7 @@ describe('wohin gesendet werden darf', () => {
         label: 'Schul-KI',
         adapter: 'openai-kompatibel',
         baseUrl: 'https://ki.schule.example/v1/',
+        model: 'gpt-test',
         secret: 'sk-test-abcdefgh1234',
       },
       LEHRERIN,
@@ -427,6 +532,7 @@ describe('wohin gesendet werden darf', () => {
         label: 'Schul-KI',
         adapter: 'openai-kompatibel',
         baseUrl: 'https://api.openai.com/v1/',
+        model: 'gpt-test',
         secret: 'sk-test-abcdefgh1234',
       },
       LEHRERIN,
@@ -469,6 +575,7 @@ describe('Weiterleitungen und Größen', () => {
     await handle({ aktion: 'aufrufen', id: 'verbindung-1' }, LEHRERIN, ports);
 
     expect(gesendet[0]!.hoechstensBytes).toBeGreaterThan(0);
+    expect(gesendet[0]!.timeoutMs).toBe(MAX_DAUER_MS);
   });
 
   it('eine zu große Anfrage geht gar nicht erst hinaus', async () => {
@@ -516,6 +623,7 @@ describe('wenn der Hauptschlüssel fehlt oder nicht passt', () => {
         aktion: 'speichern',
         label: 'Noch eine',
         adapter: 'gemini',
+        model: 'gemini-test',
         secret: 'sk-test-abcdefgh1234',
       },
       LEHRERIN,
