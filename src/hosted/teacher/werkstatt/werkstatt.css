@@ -242,6 +242,27 @@
   border-color: var(--primary);
 }
 
+/*
+  Jedes Kästchen in der Werkstatt bekommt seine Fläche — nicht nur die
+  in `.werkstatt__auswahl`.
+
+  Die Browsermessung hat das gefunden: Das Kästchen „Satz als Beispiel
+  übernehmen" entsteht erst, nachdem ein Wort aufgenommen wurde, und
+  fiel deshalb unter keine der bestehenden Regeln. Gemessen wurden
+  274 × 42 px bei 390 und 641 × 24 px bei 768 — beides unter 44.
+
+  Das Tippziel ist dabei die Beschriftung und nicht das Kästchen: Ein
+  `input[type=checkbox]` ist 18 × 18 px, daran ändert keine Mindesthöhe
+  am Umfeld etwas. Die Beschriftung umschliesst es und schaltet mit.
+*/
+.huelle .werkstatt .checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--tap-target);
+  padding-inline-end: var(--space-2);
+}
+
 .huelle .werkstatt__formen,
 .huelle .werkstatt__satz {
   margin: 0;

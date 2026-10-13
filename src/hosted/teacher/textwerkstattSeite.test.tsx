@@ -50,7 +50,7 @@ function kandidatenliste(): HTMLElement {
 }
 
 async function textEinfuegen(user: ReturnType<typeof userEvent.setup>, text = SCOTLAND_WALES) {
-  const feld = await screen.findByRole('textbox', { name: /Vokabeln einfügen|Englischer Text/ });
+  const feld = await screen.findByRole('textbox', { name: /Text oder Vokabelliste|Englischer Text/ });
   /*
     `paste` statt `type`: Eine Lehrkraft fügt einen Text ein, sie tippt
     ihn nicht ab — und 1100 Zeichen einzeln zu tippen dauert in dieser

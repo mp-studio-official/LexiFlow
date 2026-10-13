@@ -100,7 +100,7 @@ describe('der Weg zur Werkstatt', () => {
 describe('aus einer eingefügten Liste wird ein Entwurf', () => {
   async function bisVorschau() {
     const { cloud, user } = setup('/pakete/neu', 'u-lehrerin');
-    const feld = await screen.findByLabelText('Vokabeln einfügen');
+    const feld = await screen.findByLabelText('Text oder Vokabelliste');
     await user.click(feld);
     await user.paste(LISTE);
     await user.click(screen.getByRole('button', { name: 'Weiter' }));
@@ -170,7 +170,7 @@ describe('aus einer eingefügten Liste wird ein Entwurf', () => {
 describe('Handkorrekturen überleben eine neue Erkennung', () => {
   it('behält die geänderte Übersetzung', async () => {
     const { user } = setup('/pakete/neu', 'u-lehrerin');
-    const feld = await screen.findByLabelText('Vokabeln einfügen');
+    const feld = await screen.findByLabelText('Text oder Vokabelliste');
     await user.click(feld);
     await user.paste(LISTE);
     await user.click(screen.getByRole('button', { name: 'Weiter' }));

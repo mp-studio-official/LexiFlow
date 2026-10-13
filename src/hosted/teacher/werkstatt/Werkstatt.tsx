@@ -112,12 +112,16 @@ function Quellenschritt({
   return (
     <div className="stack werkstatt">
       <Card>
-        <h2 className="werkstatt__titel">Material einfügen</h2>
+        <h2 className="werkstatt__titel">Text oder Liste einfügen</h2>
         <p id={hinweisId} className="small muted werkstatt__hinweis">
-          Eine Liste aus Word, Excel, Google Sheets oder einem Dokument. Das Format wird erkannt —
-          Spalten müssen nicht vorher zugeordnet werden.
+          Ein zusammenhängender englischer Text — daraus sucht LexiFlow die Lernwörter. Oder eine
+          fertige Vokabelliste aus Word, Excel oder Google Sheets. Was von beidem es ist, wird
+          erkannt; Spalten müssen nicht vorher zugeordnet werden.
         </p>
-        <Field label="Vokabeln einfügen" hint="Eine Vokabel je Zeile, Englisch und Deutsch.">
+        <Field
+          label="Text oder Vokabelliste"
+          hint="Beides geht in dasselbe Feld. Die Auswertung läuft hier im Browser."
+        >
           {(props) => (
             <textarea
               {...props}
@@ -125,7 +129,20 @@ function Quellenschritt({
               value={text}
               spellCheck={false}
               onChange={(ereignis) => setText(ereignis.target.value)}
-              placeholder={'house\tHaus\ncar\tAuto'}
+              /*
+                Der Fließtext zuerst.
+
+                Eine Liste erklärt sich selbst; dass hier auch ein ganzer
+                Text hineindarf, erklärt sich nicht — und bis zur
+                Wiederherstellung der Textwerkstatt stimmte es auch nicht.
+                Ein Platzhalter, der nur `house  Haus` zeigt, hält
+                genau die Hälfte dieses Feldes geheim.
+              */
+              placeholder={
+                'Scotland is in the North of Britain. Edinburgh is the capital city.\n' +
+                '\n— oder eine Liste —\n' +
+                'house\tHaus\ncar\tAuto'
+              }
             />
           )}
         </Field>
