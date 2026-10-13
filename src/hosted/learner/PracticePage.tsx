@@ -10,6 +10,13 @@ import {
 } from '../../domain/motivation';
 import { Abschlussfeier, Rundenbalken } from './motivation/Motivation';
 import {
+  beispielsatz,
+  fehlererklaerung,
+  formangaben,
+  hinweiseFuer,
+} from '../../domain/sprache';
+import { Beispiel, Fehlerkarte, Formtafel, Hinweistreppe } from './sprache/Sprache';
+import {
   alsLernstand,
   antwortEreignis,
   erneutRechnen,
@@ -192,6 +199,22 @@ export function PracticePage() {
     Aufgabe meldet es; hier liegt es, weil der Ausgang es braucht.
   */
   const [entwurf, setEntwurf] = useState('');
+  /**
+   * Wie viele Hinweisstufen zu dieser Aufgabe offen sind.
+   *
+   * Im Rundenzustand und nicht in der `Hinweistreppe`: Wer eine Vokabel
+   * nach drei Hinweisen löst, hat sie anders gelöst als jemand ohne — das
+   * gehört zur Runde, nicht in eine Komponente, die beim nächsten Zeichnen
+   * vergisst, was war.
+   *
+   * **Auf die Bewertung wirkt es vorerst nicht.** `checkAnswer` bleibt die
+   * alleinige Instanz, das Leitner-Fach steigt wie bisher. Ob benutzte
+   * Hinweise den Lernstand beeinflussen sollen, ist eine Produktfrage und
+   * keine, die sich beim Verdrahten nebenbei beantworten lässt.
+   */
+  const [hinweiseOffen, setHinweiseOffen] = useState(0);
+  /** Was wirklich getippt wurde — für die Fehlererklärung, nicht für das Urteil. */
+  const [gegeben, setGegeben] = useState('');
   const [rueckfrage, setRueckfrage] = useState<{ aufloesen: (darf: boolean) => void } | null>(null);
   const feldRef = useRef<HTMLDivElement>(null);
 
@@ -384,10 +407,11 @@ export function PracticePage() {
 
   const aufgabe = currentItem(state);
 
-  async function beantworten(gepruefte: AnswerCheckResult) {
+  async function beantworten(gepruefte: AnswerCheckResult, eingabe: string) {
     const laufend = currentItem(state!);
     if (!laufend) return;
     setErgebnis(gepruefte);
+    setGegeben(eingabe);
 
     const schluessel = directionKey(laufend.task.entryId, laufend.task.direction);
     const { event, nachher } = antwortEreignis({
@@ -449,6 +473,12 @@ export function PracticePage() {
     if (!ergebnis) return;
     setState(submitVerdict(state!, ergebnis.verdict).state);
     setErgebnis(null);
+    /*
+      Die nächste Aufgabe fängt ohne Hinweise an. Offene Stufen stehen
+      zu lassen hiesse, die nächste Vokabel schon halb verraten zu haben.
+    */
+    setHinweiseOffen(0);
+    setGegeben('');
   }
 
   /*
@@ -530,6 +560,19 @@ export function PracticePage() {
     );
   }
 
+  /*
+    Welcher Beispielsatz dran ist, hängt an der Zahl der bisherigen
+    Begegnungen mit dieser Vokabel — richtige und falsche zusammen. Wer
+    eine Vokabel zum fünften Mal sieht, soll nicht zum fünften Mal
+    denselben Satz lesen. Gedreht wird deterministisch: Beim erneuten
+    Zeichnen derselben Karte bleibt der Satz stehen.
+  */
+  const stand = staende.current.get(directionKey(aufgabe.task.entryId, aufgabe.task.direction));
+  const beispiel = beispielsatz(
+    aufgabe.task.entry,
+    (stand?.correctCount ?? 0) + (stand?.wrongCount ?? 0),
+  );
+
   return (
     <div className="stack">
       {nachfrage}
@@ -557,19 +600,63 @@ export function PracticePage() {
             task={aufgabe.task}
             result={ergebnis}
             onDraftChange={setEntwurf}
-            onSubmit={(gepruefte) => {
-              void beantworten(gepruefte);
+            onSubmit={(gepruefte, eingabe) => {
+              void beantworten(gepruefte, eingabe);
             }}
           />
         </div>
 
+        {/*
+          Die Hinweise stehen **vor** der Antwort und verschwinden danach:
+          Danach ist die Lösung ohnehin zu sehen, und eine Treppe, die man
+          dann noch weiterklicken kann, ist eine Attrappe.
+        */}
+        {ergebnis ? null : (
+          <div className="stack" style={{ marginTop: '1rem' }}>
+            <Hinweistreppe
+              hinweise={hinweiseFuer(aufgabe.task.entry, aufgabe.task.direction)}
+              offen={hinweiseOffen}
+              aufMehr={() => setHinweiseOffen((bisher) => bisher + 1)}
+            />
+          </div>
+        )}
+
         {ergebnis ? (
           <div className="stack" style={{ marginTop: '1rem' }}>
-            <Alert tone={ergebnis.verdict === 'correct' ? 'success' : 'info'}>
-              {ergebnis.verdict === 'correct'
-                ? 'Richtig.'
-                : `Richtig wäre: ${ergebnis.expected.join(' · ')}`}
-            </Alert>
+            {/*
+              `checkAnswer` hat geurteilt; hier wird dieses Urteil nur
+              erklärt. Die Erklärung sagt mehr als „Richtig wäre …" — etwa,
+              dass die Vokabel gewusst und nur die Frage verlesen war.
+            */}
+            {ergebnis.verdict === 'correct' ? (
+              <Alert tone="success">Richtig.</Alert>
+            ) : (
+              <Fehlerkarte
+                erklaerung={
+                  fehlererklaerung(gegeben, ergebnis, aufgabe.task.entry, aufgabe.task.direction) ?? {
+                    art: 'nichts-erkannt',
+                    text: 'Das war eine andere Vokabel.',
+                    richtig: ergebnis.expected,
+                  }
+                }
+              />
+            )}
+
+            {/*
+              Lehrkraftdaten, unverändert gezeigt: Flexion und
+              Beispielsätze stehen so da, wie sie eingegeben wurden. Nichts
+              davon wird abgeleitet, ergänzt oder stillschweigend
+              korrigiert.
+            */}
+            <Formtafel angaben={formangaben(aufgabe.task.entry)} />
+
+            {beispiel ? (
+              <Beispiel
+                englisch={beispiel.english}
+                {...(beispiel.german === undefined ? {} : { deutsch: beispiel.german })}
+              />
+            ) : null}
+
             <div className="row">
               <Button variant="primary" onClick={weiter} autoFocus>
                 Weiter
