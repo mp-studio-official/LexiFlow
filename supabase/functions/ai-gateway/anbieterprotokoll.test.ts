@@ -10,6 +10,48 @@ const BASIS = {
 };
 
 describe('die echten Anbieterprotokolle', () => {
+  it('gibt der Textwerkstatt bei offiziellen OpenAI-Modellen ein festes Antwortschema', () => {
+    const anfrage = anbieterAnfrage({
+      adapter: 'openai-kompatibel',
+      baseUrl: 'https://api.openai.com/v1/',
+      model: 'ein-modell',
+      capability: 'teacher-text/suggestions',
+      payload: {
+        context: { grade: '8', cefrLevel: 'A2' },
+        candidates: [
+          {
+            id: 'c-customs',
+            english: 'customs',
+            sourceSentence: 'Scotland has some unique customs.',
+            occurrences: 1,
+          },
+        ],
+      },
+    });
+    expect(anfrage.body).toMatchObject({
+      text: {
+        format: {
+          type: 'json_schema',
+          strict: true,
+          schema: { required: ['suggestions'], additionalProperties: false },
+        },
+      },
+    });
+    expect(JSON.stringify(anfrage.body)).not.toContain('sourceText');
+  });
+
+  it('lässt einen kaputten Textwerkstattauftrag nicht in den freien Rückfall fallen', () => {
+    expect(() =>
+      anbieterAnfrage({
+        adapter: 'openai-kompatibel',
+        baseUrl: 'https://api.openai.com/v1/',
+        model: 'ein-modell',
+        capability: 'teacher-text/suggestions',
+        payload: { sourceText: 'ungeprüfter Volltext' },
+      }),
+    ).toThrow(/Textwerkstatt-Auftrag ist ungültig/);
+  });
+
   it('benutzt bei OpenAI den Responses-Endpunkt und Structured Outputs', () => {
     const anfrage = anbieterAnfrage({
       ...BASIS,

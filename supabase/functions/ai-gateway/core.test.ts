@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ANBIETER_NICHT_ERREICHBAR,
+  KI_GESPERRT,
   KEIN_NETZ_ANBIETER,
   LERNENDE_NUR_COACH,
   MAX_ANFRAGE_BYTES,
@@ -9,6 +10,7 @@ import {
   WEITERLEITUNG,
   ZU_GROSS,
   ZU_VIELE,
+  VERBINDUNG_INAKTIV,
   handle,
   type Ports,
   type Rolle,
@@ -65,7 +67,7 @@ function fakePorts(optionen: FakeOptionen = {}) {
       zaehler += 1;
       return `verbindung-${zaehler}`;
     },
-    env: optionen.env ?? { LEXIFLOW_AI_MASTER_KEY_V1: KEY_V1 },
+    env: optionen.env ?? { LEXIFLOW_AI_MASTER_KEY_V1: KEY_V1, LEXIFLOW_AI_ENABLED: 'true' },
 
     db: {
       async myRole(userId) {
@@ -233,6 +235,13 @@ describe('wer diese Funktion überhaupt benutzen darf', () => {
 
     for (const eingabe of [
       { capability: 'suggest-from-text', payload: { text: 'alles' } },
+      {
+        capability: 'teacher-text/suggestions',
+        payload: {
+          context: { grade: '8', cefrLevel: 'A2' },
+          candidates: [{ id: 'c1', english: 'caber', sourceSentence: 'tossing the caber', occurrences: 1 }],
+        },
+      },
       { capability: 'learner-coach/frei', payload: { frage: 'Sag mir alles.' } },
       { capability: 'learner-coach/hinweis', payload: { userId: LEHRERIN } },
     ]) {
@@ -349,6 +358,29 @@ describe('wer diese Funktion überhaupt benutzen darf', () => {
       }),
     };
     expect((await handle({ aktion: 'liste' }, undefined, sperrig)).status).toBe(401);
+  });
+});
+
+describe('die serverseitige Pilotsperre', () => {
+  it('verhindert Aufruf und Verbindungstest vor Verbindung und Netz', async () => {
+    const { ports, gesendet } = fakePorts({
+      env: { LEXIFLOW_AI_MASTER_KEY_V1: KEY_V1, LEXIFLOW_AI_ENABLED: 'false' },
+    });
+    const gesperrt: Ports = {
+      ...ports,
+      db: {
+        ...ports.db,
+        async readConnection() {
+          throw new Error('Die Pilotsperre kam zu spät.');
+        },
+      },
+    };
+
+    for (const aktion of ['aufrufen', 'pruefen']) {
+      const antwort = await handle({ aktion, id: 'verbindung-1' }, LEHRERIN, gesperrt);
+      expect(antwort).toEqual({ status: 503, body: { fehler: KI_GESPERRT } });
+    }
+    expect(gesendet).toHaveLength(0);
   });
 });
 
@@ -717,6 +749,75 @@ describe('Weiterleitungen und Größen', () => {
   });
 });
 
+describe('der Textwerkstattvertrag', () => {
+  const payload = {
+    context: { grade: '8', cefrLevel: 'A2' },
+    candidates: [{
+      id: 'c1',
+      english: 'caber',
+      sourceSentence: 'They toss the caber.',
+      occurrences: 1,
+    }],
+  };
+
+  it('gibt nur eine geprüfte Antwort für bekannte Kandidaten zurück', async () => {
+    const text = JSON.stringify({ output: [{ content: [{
+      type: 'output_text',
+      text: JSON.stringify({ suggestions: [{
+        candidateId: 'c1',
+        german: 'Baumstamm',
+        learningForm: 'caber',
+        lemma: 'caber',
+        partOfSpeech: 'noun',
+      }] }),
+    }] }] });
+    const { ports } = fakePorts({ antwort: { text } });
+    await angelegt(ports, { adapter: 'openai-kompatibel', model: 'gpt-test' });
+
+    const antwort = await handle(
+      { aktion: 'aufrufen', id: 'verbindung-1', capability: 'teacher-text/suggestions', payload },
+      LEHRERIN,
+      ports,
+    );
+    expect(antwort).toEqual({
+      status: 200,
+      body: { antwort: { suggestions: [expect.objectContaining({ candidateId: 'c1' })] } },
+    });
+  });
+
+  it('weist unbekannte Kandidaten vollständig zurück', async () => {
+    const text = JSON.stringify({ output: [{ content: [{
+      type: 'output_text',
+      text: JSON.stringify({ suggestions: [{
+        candidateId: 'c99',
+        german: 'erfunden',
+        learningForm: 'invented',
+        lemma: 'invent',
+        partOfSpeech: 'verb',
+      }] }),
+    }] }] });
+    const { ports } = fakePorts({ antwort: { text } });
+    await angelegt(ports, { adapter: 'openai-kompatibel', model: 'gpt-test' });
+    const antwort = await handle(
+      { aktion: 'aufrufen', id: 'verbindung-1', capability: 'teacher-text/suggestions', payload },
+      LEHRERIN,
+      ports,
+    );
+    expect(antwort.status).toBe(502);
+  });
+});
+
+describe('ausgeschaltete Verbindungen', () => {
+  it('gehen weder an den Schlüsselbund noch ins Netz', async () => {
+    const { ports, zeilen, gesendet } = fakePorts();
+    await angelegt(ports);
+    zeilen.set('verbindung-1', { ...zeilen.get('verbindung-1')!, active: false });
+    const antwort = await handle({ aktion: 'aufrufen', id: 'verbindung-1' }, LEHRERIN, ports);
+    expect(antwort).toEqual({ status: 409, body: { fehler: VERBINDUNG_INAKTIV } });
+    expect(gesendet).toHaveLength(0);
+  });
+});
+
 /* ============================================================= Bremse === */
 
 describe('die Bremse', () => {
@@ -739,7 +840,7 @@ describe('wenn der Hauptschlüssel fehlt oder nicht passt', () => {
     await angelegt(ports);
     expect(zeilen.size).toBe(1);
 
-    const ohne = fakePorts({ env: {} });
+    const ohne = fakePorts({ env: { LEXIFLOW_AI_ENABLED: 'true' } });
     // Dieselbe Zeile in die Fassung ohne Schlüssel hineinreichen.
     await ohne.ports.db.saveConnection(zeilen.get('verbindung-1')!);
 
@@ -765,7 +866,7 @@ describe('wenn der Hauptschlüssel fehlt oder nicht passt', () => {
     const { ports, zeilen } = fakePorts();
     await angelegt(ports);
 
-    const ohne = fakePorts({ env: {} });
+    const ohne = fakePorts({ env: { LEXIFLOW_AI_ENABLED: 'true' } });
     await ohne.ports.db.saveConnection(zeilen.get('verbindung-1')!);
 
     const antwort = await handle({ aktion: 'aufrufen', id: 'verbindung-1' }, LEHRERIN, ohne.ports);
@@ -780,7 +881,10 @@ describe('wenn der Hauptschlüssel fehlt oder nicht passt', () => {
     await angelegt(ports);
 
     const falsch = fakePorts({
-      env: { LEXIFLOW_AI_MASTER_KEY_V1: alsBase64(new Uint8Array(32).fill(9)) },
+      env: {
+        LEXIFLOW_AI_MASTER_KEY_V1: alsBase64(new Uint8Array(32).fill(9)),
+        LEXIFLOW_AI_ENABLED: 'true',
+      },
     });
     await falsch.ports.db.saveConnection(zeilen.get('verbindung-1')!);
 

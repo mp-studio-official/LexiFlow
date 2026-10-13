@@ -1,5 +1,10 @@
 import type { Adapter } from './anbieter.ts';
 import { coachAuftrag } from './coachauftrag.ts';
+import {
+  TEXTWERKSTATT_AUFTRAG_UNGUELTIG,
+  TEXTWERKSTATT_CAPABILITY,
+  textwerkstattAuftrag,
+} from './textwerkstattauftrag.ts';
 
 export const MODELL_FEHLT = 'Bitte ein Modell angeben.';
 export const ANTWORT_UNLESBAR = 'Der Anbieter hat keine brauchbare Antwort geliefert.';
@@ -41,6 +46,17 @@ function auftrag(capability: string, payload: unknown): {
       nutzertext: JSON.stringify({ aktion: coach.aktion, aufgabe: coach.aufgabe }),
       schema: coach.schema,
     };
+  }
+  const textwerkstatt = textwerkstattAuftrag(capability, payload);
+  if (textwerkstatt) {
+    return {
+      system: textwerkstatt.system,
+      nutzertext: JSON.stringify(textwerkstatt.payload),
+      schema: textwerkstatt.schema,
+    };
+  }
+  if (capability === TEXTWERKSTATT_CAPABILITY) {
+    throw new Error(TEXTWERKSTATT_AUFTRAG_UNGUELTIG);
   }
   return { system: SYSTEM, nutzertext: JSON.stringify({ aufgabe: capability, inhalt: payload }) };
 }

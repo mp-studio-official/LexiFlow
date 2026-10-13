@@ -22,6 +22,12 @@ import {
   anbieterAntwort,
 } from './anbieterprotokoll.ts';
 import { coachAuftrag } from './coachauftrag.ts';
+import {
+  TEXTWERKSTATT_AUFTRAG_UNGUELTIG,
+  TEXTWERKSTATT_CAPABILITY,
+  textwerkstattAntwort,
+  textwerkstattAuftrag,
+} from './textwerkstattauftrag.ts';
 
 /**
  * Der Kern von `ai-gateway` – ohne Deno, ohne Netz, ohne Datenbank.
@@ -156,6 +162,8 @@ export const ZU_GROSS = 'Die Antwort des Anbieters ist zu groß.';
 export const ANBIETER_NICHT_ERREICHBAR = 'Der Anbieter ist gerade nicht erreichbar.';
 export const KEIN_NETZ_ANBIETER =
   'Dieses Modell läuft im Browser. Es wird nicht über den Server aufgerufen.';
+export const KI_GESPERRT = 'KI-Aufrufe sind in dieser Fassung nicht freigegeben.';
+export const VERBINDUNG_INAKTIV = 'Diese KI-Verbindung ist ausgeschaltet.';
 
 /* ------------------------------------------------------------ Helfer ---- */
 
@@ -328,6 +336,7 @@ async function anfragen(
 
   const zeile = await ports.db.readConnection(userId, id);
   if (!zeile) return { status: 404, body: ABGELEHNT };
+  if (!zeile.active) return { status: 409, body: { fehler: VERBINDUNG_INAKTIV } };
 
   if (zeile.adapter === 'browsermodell') {
     return { status: 400, body: { fehler: KEIN_NETZ_ANBIETER } };
@@ -407,7 +416,19 @@ async function anfragen(
     return { status: 502, body: { fehler: 'Der Anbieter hat die Anfrage abgelehnt.' } };
   }
   try {
-    return { status: 200, body: { antwort: anbieterAntwort(zeile.adapter, antwort.text) }, zeile };
+    const gelesen = anbieterAntwort(zeile.adapter, antwort.text);
+    if (capability === TEXTWERKSTATT_CAPABILITY) {
+      const auftrag = textwerkstattAuftrag(capability, payload);
+      const bereinigt = auftrag
+        ? textwerkstattAntwort(
+            gelesen,
+            new Set(auftrag.payload.candidates.map((kandidat) => kandidat.id)),
+          )
+        : undefined;
+      if (!bereinigt) throw new Error(ANTWORT_UNLESBAR);
+      return { status: 200, body: { antwort: bereinigt }, zeile };
+    }
+    return { status: 200, body: { antwort: gelesen }, zeile };
   } catch {
     return { status: 502, body: { fehler: ANTWORT_UNLESBAR } };
   }
@@ -447,6 +468,9 @@ async function aufrufen(
     Stelle, ohne fachliche Lernlogik in die Serverfunktion zu ziehen.
   */
   const capability = text(eingabe['capability'], 80) || 'allgemein';
+  if (capability === TEXTWERKSTATT_CAPABILITY && !textwerkstattAuftrag(capability, eingabe['payload'])) {
+    return { status: 400, body: { fehler: TEXTWERKSTATT_AUFTRAG_UNGUELTIG } };
+  }
   const ergebnis = await anfragen(userId, id, capability, eingabe['payload'] ?? {}, ports);
   return { status: ergebnis.status, body: ergebnis.body };
 }
@@ -469,6 +493,13 @@ export async function handle(
 
   const rolle = await ports.db.myRole(userId);
   if (!rolle) return { status: 403, body: ABGELEHNT };
+
+  if (
+    (eingabe['aktion'] === 'aufrufen' || eingabe['aktion'] === 'pruefen') &&
+    ports.env['LEXIFLOW_AI_ENABLED'] !== 'true'
+  ) {
+    return { status: 503, body: { fehler: KI_GESPERRT } };
+  }
 
   /*
     Lernende dürfen ihre **eigene** Verbindung verwalten. Beim Aufruf ist
