@@ -118,6 +118,72 @@ describe('die echten Anbieterprotokolle', () => {
   });
 });
 
+describe('der feste Lerncoach-Vertrag am Anbieter', () => {
+  const COACH = {
+    capability: 'learner-coach/hinweis',
+    payload: {
+      lernform: 'to tell sb. sth.',
+      richtung: 'de-en',
+      loesung: 'to tell somebody something',
+      sprache: 'de',
+      niveau: 'A2',
+      userId: 'geht-nicht-hinaus',
+    },
+  };
+
+  it('erzwingt bei OpenAI das eine vereinbarte Antwortfeld per JSON-Schema', () => {
+    const anfrage = anbieterAnfrage({
+      ...BASIS,
+      ...COACH,
+      adapter: 'openai-kompatibel',
+      baseUrl: 'https://api.openai.com/v1/',
+    });
+    expect(anfrage.body).toMatchObject({
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'lexiflow_coachantwort',
+          strict: true,
+          schema: { required: ['text'], additionalProperties: false },
+        },
+      },
+    });
+    expect(JSON.stringify(anfrage.body)).not.toContain('geht-nicht-hinaus');
+  });
+
+  it('gibt Gemini dasselbe Antwortschema', () => {
+    const anfrage = anbieterAnfrage({
+      ...BASIS,
+      ...COACH,
+      adapter: 'gemini',
+      baseUrl: 'https://generativelanguage.googleapis.com/v1beta/',
+    });
+    expect(anfrage.body).toMatchObject({
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: { required: ['text'], additionalProperties: false },
+      },
+    });
+  });
+
+  it('lehnt freie oder unvollstaendige Lerncoach-Auftraege vor dem Netz ab', () => {
+    expect(() => anbieterAnfrage({
+      ...BASIS,
+      capability: 'learner-coach/freier-chat',
+      payload: COACH.payload,
+      adapter: 'openai-kompatibel',
+      baseUrl: 'https://api.openai.com/v1/',
+    })).toThrow(/Lerncoach-Auftrag/);
+    expect(() => anbieterAnfrage({
+      ...BASIS,
+      capability: 'learner-coach/hinweis',
+      payload: { lernform: 'walk' },
+      adapter: 'openai-kompatibel',
+      baseUrl: 'https://api.openai.com/v1/',
+    })).toThrow(/Lerncoach-Auftrag/);
+  });
+});
+
 describe('der Edge-Mantel setzt die Laufzeitgrenze auch wirklich um', () => {
   it('übergibt den Zeitablauf an fetch und folgt weiterhin keiner Weiterleitung', () => {
     const quelle = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
