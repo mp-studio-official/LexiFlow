@@ -6,6 +6,7 @@ import { CoursesPage } from './CoursesPage';
 import { MaterialPage } from './MaterialPage';
 import { SettingsPage } from './SettingsPage';
 import { StartPage } from './StartPage';
+import { WerkstattPage } from './WerkstattPage';
 
 /**
  * Der KI-Zugang – lazy, weil eine Lehrkraft ohne KI ihn nie braucht.
@@ -110,6 +111,15 @@ export function TeacherArea({ section }: { section: TeacherSection }) {
     return (
       <Routes>
         <Route index element={<MaterialPage />} />
+        {/*
+          Die Werkstatt liegt unter `#/pakete/neu` und nicht als eigenes
+          Navigationsziel: Sie ist eine Handlung an den Lernpaketen, kein
+          Ort daneben. Ein sechstes Symbol in der Leiste für etwas, das man
+          beim Anlegen eines Pakets braucht, hiesse, den Weg dorthin zu
+          verdoppeln — und E23 lässt kein Ziel zu, das nur manchmal etwas
+          bedeutet.
+        */}
+        <Route path="neu" element={<WerkstattPage />} />
       </Routes>
     );
   }
