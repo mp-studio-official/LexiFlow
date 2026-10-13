@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { soloUrlFrom } from '../../runtime/entryUrls';
 import { Alert, Button, EmptyState } from '../../ui/components';
@@ -77,7 +78,7 @@ export function MaterialPage() {
   if (ladefehler) {
     return (
       <div className="stack">
-        <h1>Lernpakete</h1>
+        <Kopf />
         <Verbindungsfehler was="Die Lernpakete" erneut={() => void laden()} />
       </div>
     );
@@ -85,7 +86,7 @@ export function MaterialPage() {
 
   return (
     <div className="stack">
-      <h1>Lernpakete</h1>
+      <Kopf />
 
       {fehler ? <Alert tone="error">{fehler}</Alert> : null}
       {meldung ? (
@@ -103,7 +104,11 @@ export function MaterialPage() {
       {liste !== undefined && liste.length === 0 ? (
         <EmptyState title="Noch kein Paket im Konto">
           <p>
-            Pakete entstehen weiterhin in{' '}
+            Mit <Link to="/pakete/neu">Neues Lernpaket</Link> entsteht eines aus einer Liste, die
+            du einfügst, oder aus einer Datei — CSV, Excel oder ein LexiFlow-Paket.
+          </p>
+          <p>
+            Pakete entstehen weiterhin auch in{' '}
             <a
               href={soloUrlFrom(
                 import.meta.env.BASE_URL,
@@ -190,6 +195,31 @@ export function MaterialPage() {
           ))}
         </ul>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Titel und der Weg in die Werkstatt.
+ *
+ * Eigene Komponente, weil der Knopf **auch dann** dastehen muss, wenn die
+ * Liste nicht geladen werden konnte. Ein neues Lernpaket anzulegen braucht
+ * die vorhandenen nicht; in der ersten Fassung stand der Knopf nur im
+ * Erfolgsfall, und eine Lehrkraft mit wackeliger Verbindung sass vor einer
+ * Seite, auf der nichts ging. Aufgefallen ist das an einem Prüflauf, der
+ * einmal rot und dreimal grün war — das Flackern war der Befund.
+ */
+function Kopf() {
+  return (
+    <div className="seitenkopf">
+      <div className="seitenkopf__text">
+        <h1>Lernpakete</h1>
+      </div>
+      <div className="seitenkopf__aktionen">
+        <Link className="btn btn--primary" to="/pakete/neu">
+          Neues Lernpaket
+        </Link>
+      </div>
     </div>
   );
 }

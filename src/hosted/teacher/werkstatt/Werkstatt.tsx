@@ -43,10 +43,20 @@ export interface WerkstattProps {
   readonly stand: Werkstattstand;
   readonly aufZug: (zug: Werkstattzug) => void;
   /**
-   * „Veröffentlichen und einer Lerngruppe geben."
+   * Eine Datei wurde gewählt — lesen muss sie die Einbettung.
    *
-   * Noch nicht verdrahtet: Diese Komponente ruft den Rückruf auf, mehr
-   * nicht. Was dann geschieht, entscheidet die Einbettung.
+   * Ein `File` lesen heisst warten, und diese Komponente wartet auf
+   * nichts: Sie meldet die Wahl, die Einbettung liest und schickt
+   * `datei-gelesen` oder `lesen-gescheitert` zurück. Fehlt der Rückruf,
+   * bleibt das Dateifeld weg — ein Feld, dessen Inhalt niemand abholt,
+   * verspricht etwas, das nicht passiert.
+   */
+  readonly aufDatei?: (datei: File) => void;
+  /**
+   * Der geprüfte Entwurf ist fertig.
+   *
+   * Was damit geschieht, entscheidet die Einbettung — diese Komponente
+   * veröffentlicht nichts und weist nichts zu.
    */
   readonly aufFertig: (entwurf: GepruefterEntwurf) => void;
   /**
@@ -60,10 +70,12 @@ export interface WerkstattProps {
   readonly gibtAb?: boolean;
 }
 
-export function Werkstatt({ stand, aufZug, aufFertig, offline, gibtAb }: WerkstattProps) {
+export function Werkstatt({ stand, aufZug, aufDatei, aufFertig, offline, gibtAb }: WerkstattProps) {
   switch (stand.schritt) {
     case 'quelle':
-      return <Quellenschritt aufZug={aufZug} />;
+      return (
+        <Quellenschritt aufZug={aufZug} {...(aufDatei === undefined ? {} : { aufDatei })} />
+      );
     case 'liest':
       return <Lieststritt {...(stand.dateiname === undefined ? {} : { name: stand.dateiname })} />;
     case 'fehler':
@@ -86,7 +98,13 @@ export function Werkstatt({ stand, aufZug, aufFertig, offline, gibtAb }: Werksta
   }
 }
 
-function Quellenschritt({ aufZug }: { aufZug: (zug: Werkstattzug) => void }) {
+function Quellenschritt({
+  aufZug,
+  aufDatei,
+}: {
+  aufZug: (zug: Werkstattzug) => void;
+  aufDatei?: (datei: File) => void;
+}) {
   const [text, setText] = useState('');
   const dateifeld = useRef<HTMLInputElement>(null);
   const hinweisId = useId();
@@ -122,23 +140,25 @@ function Quellenschritt({ aufZug }: { aufZug: (zug: Werkstattzug) => void }) {
         </div>
       </Card>
 
-      <Card quiet>
-        <h2 className="werkstatt__titel">Oder eine Datei</h2>
-        <p className="small muted werkstatt__hinweis">
-          CSV, TSV, Excel (.xlsx) oder ein LexiFlow-Paket.
-        </p>
-        <input
-          ref={dateifeld}
-          className="werkstatt__datei"
-          type="file"
-          accept=".csv,.tsv,.txt,.xlsx,.json"
-          aria-label="Datei auswählen"
-          onChange={(ereignis) => {
-            const datei = ereignis.target.files?.[0];
-            if (datei) aufZug({ art: 'datei-gewaehlt', name: datei.name });
-          }}
-        />
-      </Card>
+      {aufDatei ? (
+        <Card quiet>
+          <h2 className="werkstatt__titel">Oder eine Datei</h2>
+          <p className="small muted werkstatt__hinweis">
+            CSV, TSV, Excel (.xlsx) oder ein LexiFlow-Paket.
+          </p>
+          <input
+            ref={dateifeld}
+            className="werkstatt__datei"
+            type="file"
+            accept=".csv,.tsv,.txt,.xlsx,.json"
+            aria-label="Datei auswählen"
+            onChange={(ereignis) => {
+              const datei = ereignis.target.files?.[0];
+              if (datei) aufDatei(datei);
+            }}
+          />
+        </Card>
+      ) : null}
     </div>
   );
 }
@@ -276,6 +296,16 @@ function Vorschauschritt({
       ) : null}
 
       <div className="row werkstatt__handlungen">
+        {/*
+          „Lernpaket anlegen", nicht „Veröffentlichen und zuweisen".
+
+          Die erste Fassung hiess so, und das war eine Zusage, die diese
+          Komponente nicht halten kann: Was mit dem Entwurf geschieht,
+          entscheidet die Einbettung — und die legt ihn an, mehr nicht.
+          Veröffentlichen friert eine Fassung ein, Zuweisen legt sie vor
+          eine Lerngruppe; beides gehört einer Lehrkraft, nicht einem
+          Assistenten, der gerade beim Speichern ist.
+        */}
         <Button
           variant="primary"
           disabled={!fertig || offline === true || gibtAb === true}
@@ -284,7 +314,7 @@ function Vorschauschritt({
             if (entwurf) aufFertig(entwurf);
           }}
         >
-          {gibtAb ? 'Einen Moment …' : 'Veröffentlichen und zuweisen'}
+          {gibtAb ? 'Einen Moment …' : 'Lernpaket anlegen'}
         </Button>
         <Button variant="quiet" onClick={() => aufZug({ art: 'verworfen' })}>
           Verwerfen

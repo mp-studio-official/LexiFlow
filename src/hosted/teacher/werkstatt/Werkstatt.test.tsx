@@ -36,6 +36,19 @@ describe('die Pflichtzustände stehen wirklich da', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
+  it('zeigt das Dateifeld nur, wenn jemand die Datei auch liest', () => {
+    /*
+      Ohne `aufDatei` holt niemand den Inhalt ab. Ein Feld, dessen Datei
+      nichts auslöst, ist schlimmer als keines: Es sieht aus wie ein Weg
+      und ist eine Sackgasse.
+    */
+    zeichne(anfang());
+    expect(screen.queryByLabelText('Datei auswählen')).not.toBeInTheDocument();
+
+    zeichne(anfang(), { aufDatei: () => {} });
+    expect(screen.getByLabelText('Datei auswählen')).toBeInTheDocument();
+  });
+
   it('Datei wird gelesen: sagt welche, und sagt es als Statusmeldung', () => {
     zeichne(werkstattZug(anfang(), { art: 'datei-gewaehlt', name: 'liste.csv' }));
     const status = screen.getByRole('status');
@@ -91,28 +104,28 @@ describe('die Pflichtzustände stehen wirklich da', () => {
   it('erfolgreich geprüft: die Abgabe ist frei', () => {
     const stand = werkstattZug(vorschau(), { art: 'titel-geaendert', titel: 'Unit 3' });
     zeichne(stand);
-    expect(screen.getByRole('button', { name: 'Veröffentlichen und zuweisen' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Lernpaket anlegen' })).toBeEnabled();
   });
 
   it('offline: erklärt, was weitergeht, und verspricht die Abgabe nicht', () => {
     const stand = werkstattZug(vorschau(), { art: 'titel-geaendert', titel: 'Unit 3' });
     zeichne(stand, { offline: true });
     expect(screen.getByText(/Gerade keine Verbindung/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Veröffentlichen und zuweisen' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Lernpaket anlegen' })).toBeDisabled();
   });
 });
 
 describe('die Abgabe bleibt ein Rückruf', () => {
   it('ruft erst auf, wenn ein Titel dasteht', async () => {
     const { aufFertig } = zeichne(vorschau());
-    expect(screen.getByRole('button', { name: 'Veröffentlichen und zuweisen' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Lernpaket anlegen' })).toBeDisabled();
     expect(aufFertig).not.toHaveBeenCalled();
   });
 
   it('reicht Titel und Einträge weiter — und sonst nichts', async () => {
     const stand = werkstattZug(vorschau(), { art: 'titel-geaendert', titel: 'Unit 3' });
     const { aufFertig, user } = zeichne(stand);
-    await user.click(screen.getByRole('button', { name: 'Veröffentlichen und zuweisen' }));
+    await user.click(screen.getByRole('button', { name: 'Lernpaket anlegen' }));
     expect(aufFertig).toHaveBeenCalledTimes(1);
     const entwurf = aufFertig.mock.calls[0]?.[0];
     expect(entwurf.titel).toBe('Unit 3');
