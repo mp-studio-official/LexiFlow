@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Button } from '../../ui/components';
 import { Fortschritt, LeererZustand } from '../../ui/bausteine';
+import { tagesstand } from '../../domain/motivation';
+import { Tagesziel } from './motivation/Motivation';
 import { ErrorState, PageTitle, Skeleton } from '../../ui/zustaende';
 import type { Kalenderstand } from '../../application/repositories';
 import { WOCHENTAGE, heutebild, type Heutebild, type Paketzeile } from './heuteDaten';
@@ -398,8 +400,27 @@ function Lernserie({ bild, bestaetigt }: { bild: Heutebild; bestaetigt: boolean 
 }
 
 function Ziele({ bild, bestaetigt }: { bild: Heutebild; bestaetigt: boolean }) {
+  /*
+    Der heutige Tag steht schon in `bild.woche` — `wochenaktivitaet` setzt
+    `heute` genau an einem Eintrag. Kein zusätzlicher Abruf, keine
+    Geräteuhr: Welcher Tag heute ist, hat der Server gesagt (E28).
+
+    **Kein zusätzliches `bestaetigt &&` davor.** Es stand hier und war tot:
+    Ohne bestätigte Zeitzone bleibt `woche` leer, weil `heutebild` die
+    Wochenaktivität dann gar nicht erst rechnet — `heute` ist dann
+    `undefined`, und die Bedingung hätte nie etwas verhindert. Eine
+    Mutationsprobe hat es gezeigt: entfernt man sie, bleibt alles grün.
+    Zwei Riegel übereinander sind nicht doppelt sicher, sondern eine
+    Stelle mehr, an der die zweite später von der ersten abweicht.
+  */
+  const heute = bild.woche.find((tag) => tag.heute);
+
   return (
     <Bereich titel="Ziele" kennung="ziele">
+      {heute ? (
+        <Tagesziel stand={tagesstand({ localDay: heute.localDay, taskCount: heute.taskCount })} />
+      ) : null}
+
       {bild.wochenziel === undefined ? (
         <LeererZustand titel="Kein Wochenziel">
           Du kannst dir vornehmen, an wie vielen Tagen pro Woche du lernen

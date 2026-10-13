@@ -729,9 +729,52 @@ describe('Serie und Woche', () => {
 
     zeige(cloud);
     await warteAufInhalt();
-    const balken = within(bereich('ziele')).getByRole('progressbar');
+    /*
+      Seit dem Tagesziel stehen hier **zwei** Balken: einer für heute,
+      einer für die Woche. Angesprochen wird deshalb über den Namen und
+      nicht über „der eine Balken in diesem Bereich" — das war eine
+      Annahme über die Anzahl, nicht über die Sache.
+    */
+    const balken = within(bereich('ziele')).getByRole('progressbar', {
+      name: /Lerntage diese Woche/,
+    });
     expect(balken).toHaveAttribute('aria-valuenow', '1');
     expect(balken).toHaveAttribute('aria-valuemax', '3');
+  });
+
+  it('zeigt daneben das Tagesziel', async () => {
+    const cloud = await mitLerntag(10);
+    zeige(cloud);
+    await warteAufInhalt();
+    const heute = within(bereich('ziele')).getByRole('progressbar', { name: /Tagesziel/ });
+    expect(heute).toHaveAttribute('aria-valuenow', '10');
+    expect(screen.getByText('Heute geschafft.')).toBeInTheDocument();
+  });
+
+  it('zeigt das Tagesziel **nicht** ohne bestätigte Zeitzone', async () => {
+    /*
+      Welcher Tag „heute" ist, sagt der Server auf Grundlage der
+      bestätigten Zone (E27/E28). Ohne sie gibt es keinen Tag, auf den
+      sich eine Tageszahl beziehen könnte — und eine Null, die in
+      Wahrheit „wir wissen es nicht" heisst, ist die schlechteste Auskunft
+      von allen.
+
+      Die Zusage hängt an `heutebild`: Ohne bestätigte Zone bleibt `woche`
+      leer. Fiele das weg, würde diese Prüfung rot — nachgewiesen.
+    */
+    const cloud = createFakeCloud({ now: () => '2026-10-06T08:00:00Z' });
+    cloud.signInAs('u-lernend');
+    cloud.spieleEreignisseEin({
+      userId: 'u-lernend',
+      recordedAt: '2026-10-06T07:00:00Z',
+      anzahl: 10,
+      kennung: 'heute',
+    });
+    zeige(cloud);
+    await warteAufInhalt();
+    expect(
+      within(bereich('ziele')).queryByRole('progressbar', { name: /Tagesziel/ }),
+    ).toBeNull();
   });
 });
 
