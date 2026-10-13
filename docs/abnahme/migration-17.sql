@@ -20,10 +20,16 @@
   `migration list --linked` die Fassung lokal und remote; ein erneuter
   Trockenlauf meldete die entfernte Datenbank als aktuell.
 
-  Die SQL-Messungen B1 bis B4 im Dashboard stehen noch aus. Historie und
-  Migrationsziel sind durch den CLI-Lauf belegt; Regelwortlaut und
-  Spaltenrechte werden erst nach Eintragung der vier Ausgaben als abgenommen
-  bezeichnet.
+  SQL-Nachmessung am 13.10.2026:
+
+    B1  16 Tabellen · 102 Spalten · 28 Regeln · 40 Funktionen · 14 Trigger
+    B2  owner_id = auth.uid(), aktives Konto und Rolle aus
+        student · teacher · admin
+    B3  0 für authenticated lesbare Geheimspalten
+    B4  17 Fassungen · zuletzt 20261007090000
+
+  Damit sind Migrationsziel, Regelwortlaut, Geheimnisschutz und Historie am
+  echten Stagingprojekt belegt.
 */
 
 -- A1 / B1 — Umfang bleibt bis auf die Historie gleich.
@@ -34,7 +40,7 @@ select
   (select count(*) from information_schema.routines where routine_schema = 'public') as funktionen,
   (select count(*) from pg_trigger where not tgisinternal)                           as trigger;
 
--- Erwartet vor und nachher: 16 · 102 · 28 · 40 · 14.
+-- Gemessen nachher: 16 · 102 · 28 · 40 · 14.
 
 -- A2 / B2 — Wortlaut der einzigen geänderten Regel.
 select policyname, cmd, qual, with_check
@@ -55,10 +61,10 @@ select grantee, privilege_type, column_name
    and column_name in ('secret_ciphertext', 'secret_iv', 'secret_key_version')
  order by grantee, column_name, privilege_type;
 
--- Erwartet: kein `authenticated` mit SELECT auf einer der drei Spalten.
+-- Gemessen: kein `authenticated` mit SELECT auf einer der drei Spalten.
 
 -- B4 — Historie.
 select count(*) as versionen, max(version) as zuletzt
   from supabase_migrations.schema_migrations;
 
--- Erwartet danach: 17 · 20261007090000.
+-- Gemessen danach: 17 · 20261007090000.
