@@ -69,6 +69,38 @@ function scoreLanguage(values: readonly string[]): { german: number; english: nu
 }
 
 /**
+ * Der Anteil der Werte, die mit einem Grossbuchstaben beginnen.
+ *
+ * Deutsche Substantive werden grossgeschrieben, englische nicht. Bei einer
+ * schlichten Liste `Haus → house` greift sonst kein einziges Merkmal:
+ * Umlaute kommen nicht vor, Artikel auch nicht, und `to/the/a/an` erst
+ * recht nicht. Die Erkennung liess sie deshalb stehen, wie sie stand, und
+ * die Lehrkraft fand ihre Vokabeln seitenverkehrt wieder.
+ */
+function uppercaseShare(values: readonly string[]): number {
+  const mitBuchstaben = values.filter((value) => /^\p{L}/u.test(value.trim()));
+  if (mitBuchstaben.length === 0) return 0;
+  const gross = mitBuchstaben.filter((value) => /^\p{Lu}/u.test(value.trim())).length;
+  return gross / mitBuchstaben.length;
+}
+
+/**
+ * Der Stichentscheid, wenn Umlaute und Artikel nichts hergeben.
+ *
+ * Nur dann — er darf keinen Fall umdrehen, den die Merkmale oben schon
+ * entschieden haben. Die Schwellen sind absichtlich weit auseinander: Eine
+ * Spalte, die fast durchgehend gross beginnt, neben einer, die fast
+ * durchgehend klein beginnt, ist ein deutliches Bild. Alles dazwischen
+ * bleibt unentschieden, und dann gilt weiter Englisch links.
+ */
+function groessereDeutschwahrscheinlichkeit(
+  links: readonly string[],
+  rechts: readonly string[],
+): boolean {
+  return uppercaseShare(links) >= 0.8 && uppercaseShare(rechts) <= 0.2;
+}
+
+/**
  * Erkennt Spaltenrollen. Wenn die erste Zeile wie ein Kopf aussieht, wird sie
  * ausgewertet; sonst entscheidet eine einfache Sprachheuristik über die
  * Reihenfolge Englisch/Deutsch. Die Zuordnung ist in der Vorschau änderbar.
@@ -94,12 +126,21 @@ export function detectColumns(rows: readonly string[][]): ColumnMapping {
     const scores = columns.map(scoreLanguage);
     const firstScore = scores[0];
     const secondScore = scores[1];
+    const merkmaleSchweigen =
+      firstScore !== undefined &&
+      secondScore !== undefined &&
+      firstScore.german === 0 &&
+      firstScore.english === 0 &&
+      secondScore.german === 0 &&
+      secondScore.english === 0;
+
     const swap =
       columnCount >= 2 &&
       firstScore !== undefined &&
       secondScore !== undefined &&
-      firstScore.german > firstScore.english &&
-      secondScore.english >= secondScore.german;
+      ((firstScore.german > firstScore.english && secondScore.english >= secondScore.german) ||
+        (merkmaleSchweigen &&
+          groessereDeutschwahrscheinlichkeit(columns[0] ?? [], columns[1] ?? [])));
 
     if (columnCount >= 1) roles[0] = swap ? 'german' : 'english';
     if (columnCount >= 2) roles[1] = swap ? 'english' : 'german';
