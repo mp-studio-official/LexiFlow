@@ -4,6 +4,7 @@ import {
   type DictionaryProvider,
   type DictionarySuggestion,
 } from '../dictionary/DictionaryProvider';
+import { partOfSpeechOfSource } from './wortartQuelle';
 import { isQuestionable } from '../dictionary/ranking';
 import { isVerifiedReference } from '../dictionary/verifiedReferences';
 import type { PartOfSpeech } from '../domain/schema';
@@ -178,32 +179,13 @@ export async function enrichWithDictionary<Row extends EnrichableRow>(
 
 /* ------------------------------------------------------------------ Wortart */
 
-/**
- * Die Wortartbezeichnungen der Quelle auf die sieben von LexiFlow.
- *
- * Wiktionary kennt weit mehr Kategorien, als ein Vokabelpaket braucht.
- * Zusammengefasst wird nur, was sich zusammenfassen lässt; alles Übrige landet
- * bei `other` und nicht bei einer erfundenen Nachbarschaft.
- */
-const PART_OF_SPEECH_BY_SOURCE: Readonly<Record<string, PartOfSpeech>> = {
-  noun: 'noun',
-  name: 'noun',
-  verb: 'verb',
-  adj: 'adjective',
-  adv: 'adverb',
-  phrase: 'phrase',
-  proverb: 'phrase',
-  prep_phrase: 'phrase',
-  prep: 'preposition',
-  postp: 'preposition',
-  intj: 'other',
-  num: 'other',
-  pron: 'other',
-  det: 'other',
-  conj: 'other',
-  particle: 'other',
-  contraction: 'other',
-};
+/*
+  Die Tabelle steht in `wortartQuelle.ts` — sie ist eine Zuordnung und
+  braucht das Wörterbuch nicht. Hier stehend zog sie `src/dictionary/**`
+  über `cognates.ts` bis ins Portalbündel; hier weiterhin ausgereicht,
+  damit kein Aufrufer etwas umschreiben muss.
+*/
+export { partOfSpeechOfSource } from './wortartQuelle';
 
 /**
  * Die Wortart, die sich vorausfüllen lässt – oder gar keine.
@@ -221,7 +203,7 @@ export function partOfSpeechOf(
   );
   if (sources.size !== 1) return '';
   const [only] = [...sources];
-  return (only && PART_OF_SPEECH_BY_SOURCE[only]) ?? '';
+  return (only && partOfSpeechOfSource(only)) ?? '';
 }
 
 /**
@@ -235,9 +217,6 @@ export function partOfSpeechOf(
  * damit die Bedeutungsgruppe gewählt, und die ist ein Substantiv. Die Auskunft
  * ist jetzt eindeutig, weil die Auswahl sie eindeutig gemacht hat.
  */
-export function partOfSpeechOfSource(source: string | undefined): PartOfSpeech | undefined {
-  return source ? PART_OF_SPEECH_BY_SOURCE[source] : undefined;
-}
 
 /* ------------------------------------------------- Sichere Sammelübernahme */
 

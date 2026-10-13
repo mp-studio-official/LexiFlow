@@ -1,6 +1,25 @@
 import { normalizeAnswer, splitAnswers } from '../domain/normalize';
-import { partOfSpeechOfSource } from './dictionarySuggestions';
-import type { DictionaryEntry } from '../dictionary/DictionaryProvider';
+import { partOfSpeechOfSource } from './wortartQuelle';
+/**
+ * Was diese Datei von einem Wörterbucheintrag wirklich braucht.
+ *
+ * Nicht `DictionaryEntry` aus `src/dictionary/`: Ein `import type` ist zur
+ * Laufzeit nichts, aber `portableIsolation.test.ts` liest den Quelltext
+ * und kann das nicht unterscheiden — bewusst, weil eine Textsuche sich
+ * nicht sicher sein kann. Die Wache steht dort, seit einmal 6,3 MB
+ * Wiktionary in einem Bündel landeten, das ohne sie 261 kB gross ist, und
+ * sie konservativ zu lassen ist billiger, als sie klüger zu machen.
+ *
+ * Strukturell beschrieben passt jeder echte `DictionaryEntry` hierher; der
+ * Typprüfer sorgt dafür, dass es so bleibt.
+ */
+interface Beleg {
+  readonly partOfSpeech?: string | undefined;
+  readonly senses: readonly {
+    readonly via?: unknown;
+    readonly suggestions: readonly { readonly german: string }[];
+  }[];
+}
 import type { PartOfSpeech } from '../domain/schema';
 
 /**
@@ -77,7 +96,7 @@ export function identicalMeanings(english: string, german: string): string[] {
  * Übersetzung bereits da, und gefragt ist nur, ob die Quelle sie kennt.
  */
 export function attestsIdenticalMeaning(
-  entries: readonly DictionaryEntry[],
+  entries: readonly Beleg[],
   english: string,
   partOfSpeech?: PartOfSpeech | undefined,
 ): boolean {
