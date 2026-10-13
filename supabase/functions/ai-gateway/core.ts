@@ -15,6 +15,12 @@ import {
   versiegeln,
   type Geheimnis,
 } from './tresor.ts';
+import {
+  ANTWORT_UNLESBAR,
+  MODELL_FEHLT,
+  anbieterAnfrage,
+  anbieterAntwort,
+} from './anbieterprotokoll.ts';
 
 /**
  * Der Kern von `ai-gateway` – ohne Deno, ohne Netz, ohne Datenbank.
@@ -113,6 +119,7 @@ export interface Ports {
       headers: Record<string, string>;
       body: string;
       hoechstensBytes: number;
+      timeoutMs: number;
     }): Promise<{
       status: number;
       text: string;
@@ -130,6 +137,9 @@ export const MAX_ANFRAGE_BYTES = 32 * 1024;
 /** Höchstens so viel kommt herein. Alles darüber ist keine Antwort mehr. */
 export const MAX_ANTWORT_BYTES = 256 * 1024;
 
+/** Ein Anbieter darf die Edge Function nicht bis an ihr Laufzeitende festhalten. */
+export const MAX_DAUER_MS = 20_000;
+
 /** Aufrufe je Lehrkraft und Stunde. */
 export const BREMSE = { hoechstzahl: 120, fensterSekunden: 3600 };
 
@@ -139,6 +149,7 @@ export const ZU_VIELE = 'Zu viele Anfragen. Bitte später noch einmal.';
 export const WEITERLEITUNG =
   'Der Anbieter hat auf eine andere Adresse umgeleitet. Das ist nicht zulässig.';
 export const ZU_GROSS = 'Die Antwort des Anbieters ist zu groß.';
+export const ANBIETER_NICHT_ERREICHBAR = 'Der Anbieter ist gerade nicht erreichbar.';
 export const KEIN_NETZ_ANBIETER =
   'Dieses Modell läuft im Browser. Es wird nicht über den Server aufgerufen.';
 
@@ -216,6 +227,7 @@ async function speichern(
   }
 
   if (schluessel === '') return { status: 400, body: { fehler: 'Der Schlüssel fehlt.' } };
+  if (model === '') return { status: 400, body: { fehler: MODELL_FEHLT } };
 
   // Welche Adresse? Die eigene nur, wenn dieser Anbieter das hergibt.
   const gewuenscht = text(eingabe['baseUrl'], 300);
@@ -291,7 +303,8 @@ async function loeschen(
 async function anfragen(
   userId: string,
   id: string,
-  nutzlast: string,
+  capability: string,
+  payload: unknown,
   ports: Ports,
 ): Promise<{ status: number; body: Record<string, unknown>; zeile?: VerbindungZeile }> {
   if (!(await ports.db.noteCall(userId))) {
@@ -304,10 +317,6 @@ async function anfragen(
   if (zeile.adapter === 'browsermodell') {
     return { status: 400, body: { fehler: KEIN_NETZ_ANBIETER } };
   }
-  if (nutzlast.length > MAX_ANFRAGE_BYTES) {
-    return { status: 413, body: { fehler: 'Die Anfrage ist zu groß.' } };
-  }
-
   /*
     Noch einmal geprüft, obwohl beim Speichern schon geprüft wurde. Zwischen
     beidem kann eine Verwaltung einen Host wieder entfernt haben – und eine
@@ -335,12 +344,38 @@ async function anfragen(
     return { status: 409, body: { fehler: NICHT_LESBAR } };
   }
 
-  const antwort = await ports.http.senden({
-    url: geprueft.url!,
-    headers: kopfzeilenFuer(ANBIETER[zeile.adapter], schluessel),
-    body: nutzlast,
-    hoechstensBytes: MAX_ANTWORT_BYTES,
-  });
+  let anfrage;
+  try {
+    anfrage = anbieterAnfrage({
+      adapter: zeile.adapter,
+      baseUrl: geprueft.url!,
+      model: zeile.model,
+      capability,
+      payload,
+    });
+  } catch (error) {
+    return {
+      status: 400,
+      body: { fehler: error instanceof Error ? error.message : 'Die Anfrage ist ungültig.' },
+    };
+  }
+  const nutzlast = JSON.stringify(anfrage.body);
+  if (new TextEncoder().encode(nutzlast).byteLength > MAX_ANFRAGE_BYTES) {
+    return { status: 413, body: { fehler: 'Die Anfrage ist zu groß.' } };
+  }
+
+  let antwort;
+  try {
+    antwort = await ports.http.senden({
+      url: anfrage.url,
+      headers: kopfzeilenFuer(ANBIETER[zeile.adapter], schluessel),
+      body: nutzlast,
+      hoechstensBytes: MAX_ANTWORT_BYTES,
+      timeoutMs: MAX_DAUER_MS,
+    });
+  } catch {
+    return { status: 502, body: { fehler: ANBIETER_NICHT_ERREICHBAR } };
+  }
 
   /*
     Weiterleitungen werden nicht verfolgt. Eine Umleitung ist der übliche Weg,
@@ -353,14 +388,14 @@ async function anfragen(
   }
   if (antwort.abgeschnitten) return { status: 502, body: { fehler: ZU_GROSS } };
 
-  return {
-    status: antwort.status >= 200 && antwort.status < 300 ? 200 : 502,
-    body:
-      antwort.status >= 200 && antwort.status < 300
-        ? { antwort: antwort.text }
-        : { fehler: 'Der Anbieter hat die Anfrage abgelehnt.' },
-    zeile,
-  };
+  if (antwort.status < 200 || antwort.status >= 300) {
+    return { status: 502, body: { fehler: 'Der Anbieter hat die Anfrage abgelehnt.' } };
+  }
+  try {
+    return { status: 200, body: { antwort: anbieterAntwort(zeile.adapter, antwort.text) }, zeile };
+  } catch {
+    return { status: 502, body: { fehler: ANTWORT_UNLESBAR } };
+  }
 }
 
 async function pruefen(
@@ -371,7 +406,7 @@ async function pruefen(
   const id = text(eingabe['id'], 64);
   if (id === '') return { status: 400, body: ABGELEHNT };
 
-  const ergebnis = await anfragen(userId, id, JSON.stringify({ lexiflow: 'verbindungstest' }), ports);
+  const ergebnis = await anfragen(userId, id, 'connection-test', { lexiflow: 'verbindungstest' }, ports);
   if (ergebnis.status === 200 && ergebnis.zeile) {
     await ports.db.markChecked(userId, id, ports.now().toISOString());
     return { status: 200, body: { ok: true, meldung: 'Die Verbindung steht.' } };
@@ -391,12 +426,13 @@ async function aufrufen(
   if (id === '') return { status: 400, body: ABGELEHNT };
 
   /*
-    Die Nutzlast wird durchgereicht, nicht ausgelegt. Diese Funktion weiß
-    nicht, was ein Vokabelvorschlag ist – und sie soll es nicht wissen: Was
-    sie nicht auslegt, kann sie auch nicht verwechseln.
+    Der Kern kennt weiterhin keine Vokabelfelder. Er benennt nur Fähigkeit
+    und Nutzlast; `anbieterprotokoll.ts` übersetzt diesen neutralen Auftrag in
+    die jeweilige HTTP-Gestalt. So liegt das Anbieterwissen an genau einer
+    Stelle, ohne fachliche Lernlogik in die Serverfunktion zu ziehen.
   */
-  const nutzlast = JSON.stringify(eingabe['payload'] ?? {});
-  const ergebnis = await anfragen(userId, id, nutzlast, ports);
+  const capability = text(eingabe['capability'], 80) || 'allgemein';
+  const ergebnis = await anfragen(userId, id, capability, eingabe['payload'] ?? {}, ports);
   return { status: ergebnis.status, body: ergebnis.body };
 }
 

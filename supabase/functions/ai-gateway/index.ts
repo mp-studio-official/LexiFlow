@@ -175,13 +175,14 @@ function bastlePorts(): Ports {
     },
 
     http: {
-      async senden({ url, headers, body, hoechstensBytes }) {
+      async senden({ url, headers, body, hoechstensBytes, timeoutMs }) {
         const antwort = await fetch(url, {
           method: 'POST',
           headers,
           body,
           // Der Punkt, der nur hier stehen kann.
           redirect: 'manual',
+          signal: AbortSignal.timeout(timeoutMs),
         });
 
         if (antwort.status >= 300 && antwort.status < 400) {
