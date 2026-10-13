@@ -1,7 +1,9 @@
 import type { Adapter } from './anbieter.ts';
+import { coachAuftrag } from './coachauftrag.ts';
 
 export const MODELL_FEHLT = 'Bitte ein Modell angeben.';
 export const ANTWORT_UNLESBAR = 'Der Anbieter hat keine brauchbare Antwort geliefert.';
+export const COACH_AUFTRAG_UNGUELTIG = 'Der Lerncoach-Auftrag ist ungültig.';
 
 interface AnfrageEingabe {
   adapter: Adapter;
@@ -26,8 +28,21 @@ function mitEndung(baseUrl: string, endung: string): string {
   return new URL(endung, basis).toString();
 }
 
-function auftrag(capability: string, payload: unknown): string {
-  return JSON.stringify({ aufgabe: capability, inhalt: payload });
+function auftrag(capability: string, payload: unknown): {
+  system: string;
+  nutzertext: string;
+  schema?: Record<string, unknown>;
+} {
+  if (capability.startsWith('learner-coach/')) {
+    const coach = coachAuftrag(capability, payload);
+    if (!coach) throw new Error(COACH_AUFTRAG_UNGUELTIG);
+    return {
+      system: coach.system,
+      nutzertext: JSON.stringify({ aktion: coach.aktion, aufgabe: coach.aufgabe }),
+      schema: coach.schema,
+    };
+  }
+  return { system: SYSTEM, nutzertext: JSON.stringify({ aufgabe: capability, inhalt: payload }) };
 }
 
 /**
@@ -38,7 +53,7 @@ function auftrag(capability: string, payload: unknown): string {
 export function anbieterAnfrage(eingabe: AnfrageEingabe): AnbieterAnfrage {
   const model = eingabe.model.trim();
   if (model === '') throw new Error(MODELL_FEHLT);
-  const nutzertext = auftrag(eingabe.capability, eingabe.payload);
+  const inhalt = auftrag(eingabe.capability, eingabe.payload);
 
   switch (eingabe.adapter) {
     case 'gemini':
@@ -48,9 +63,12 @@ export function anbieterAnfrage(eingabe: AnfrageEingabe): AnbieterAnfrage {
           `models/${encodeURIComponent(model)}:generateContent`,
         ),
         body: {
-          systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents: [{ role: 'user', parts: [{ text: nutzertext }] }],
-          generationConfig: { responseMimeType: 'application/json' },
+          systemInstruction: { parts: [{ text: inhalt.system }] },
+          contents: [{ role: 'user', parts: [{ text: inhalt.nutzertext }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            ...(inhalt.schema ? { responseSchema: inhalt.schema } : {}),
+          },
         },
       };
 
@@ -63,10 +81,19 @@ export function anbieterAnfrage(eingabe: AnfrageEingabe): AnbieterAnfrage {
               model,
               store: false,
               input: [
-                { role: 'system', content: [{ type: 'input_text', text: SYSTEM }] },
-                { role: 'user', content: [{ type: 'input_text', text: nutzertext }] },
+                { role: 'system', content: [{ type: 'input_text', text: inhalt.system }] },
+                { role: 'user', content: [{ type: 'input_text', text: inhalt.nutzertext }] },
               ],
-              text: { format: { type: 'json_object' } },
+              text: {
+                format: inhalt.schema
+                  ? {
+                      type: 'json_schema',
+                      name: 'lexiflow_coachantwort',
+                      strict: true,
+                      schema: inhalt.schema,
+                    }
+                  : { type: 'json_object' },
+              },
             },
           }
         : {
@@ -74,8 +101,8 @@ export function anbieterAnfrage(eingabe: AnfrageEingabe): AnbieterAnfrage {
             body: {
               model,
               messages: [
-                { role: 'system', content: SYSTEM },
-                { role: 'user', content: nutzertext },
+                { role: 'system', content: inhalt.system },
+                { role: 'user', content: inhalt.nutzertext },
               ],
               response_format: { type: 'json_object' },
             },
@@ -88,8 +115,8 @@ export function anbieterAnfrage(eingabe: AnfrageEingabe): AnbieterAnfrage {
         body: {
           model,
           max_tokens: 1024,
-          system: SYSTEM,
-          messages: [{ role: 'user', content: nutzertext }],
+          system: inhalt.system,
+          messages: [{ role: 'user', content: inhalt.nutzertext }],
         },
       };
 
