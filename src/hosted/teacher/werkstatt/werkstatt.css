@@ -1,0 +1,114 @@
+/* ===========================================================================
+   Die Werkstatt im Portal
+   ===========================================================================
+
+   Variante B, keine dritte Sprache: Flächen, Radien, Knöpfe und Felder
+   kommen aus `portal.css`. Hier steht nur, was dieser Bildschirm zusätzlich
+   braucht — und jede Regel ist wie dort auf `.huelle` eingegrenzt, damit
+   die portable Lerndatei nichts davon abbekommt.
+   =========================================================================== */
+
+.huelle .werkstatt__titel {
+  margin-block: 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.huelle .werkstatt__hinweis {
+  margin-block: 0 var(--space-4);
+}
+
+.huelle .werkstatt__handlungen {
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/*
+  Das Dateifeld bekommt dieselbe Höhe wie jedes andere Bedienelement.
+  Browser liefern es in drei verschiedenen Gestalten aus; ohne diese Zeilen
+  steht es als einziges Element der Seite 28 px hoch zwischen 44-px-Zielen.
+*/
+.huelle .werkstatt__datei {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--tap-target);
+  padding: var(--space-2);
+  border: 1px solid var(--rand-bedienung);
+  border-radius: var(--rund);
+  background: var(--flaeche);
+  color: var(--tinte);
+}
+
+.huelle .werkstatt__erkennung,
+.huelle .werkstatt__zusammenfassung,
+.huelle .werkstatt__offen {
+  margin-block: 0;
+}
+
+.huelle .werkstatt__unzugeordnet {
+  margin-block: var(--space-2) 0;
+  padding-inline-start: var(--space-5);
+}
+
+/*
+  Die Vorschau.
+
+  Am Telefon eine Spalte, am Schreibtisch so viele, wie nebeneinander
+  passen. `minmax(min(24rem, 100%), 1fr)` ist derselbe Riegel gegen
+  waagerechtes Scrollen wie beim Kursraster: Ohne das `min(…, 100%)`
+  verlangte eine Spalte ihre Mindestbreite auch auf einem Bildschirm, der
+  sie nicht hat.
+*/
+.huelle .werkstatt__liste {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(24rem, 100%), 1fr));
+}
+
+.huelle .werkstatt__zeile {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--rand);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+}
+
+/*
+  Eine unvollständige Zeile trägt einen kräftigeren Rand — und zusätzlich
+  den Befund als Text darunter. Farbe allein trägt hier nichts: Wer sie
+  nicht unterscheidet, liest den Satz.
+*/
+.huelle .werkstatt__zeile[data-fehler='ja'] {
+  border-color: var(--fehler);
+}
+
+.huelle .werkstatt__auswahl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--tap-target);
+}
+
+.huelle .werkstatt__auswahltext {
+  font-size: var(--text-sm);
+}
+
+.huelle .werkstatt__felder {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.huelle .werkstatt__befunde {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--tinte-2);
+}
+
+.huelle .werkstatt__befunde > li[data-art='fehler'] {
+  color: var(--fehler);
+}

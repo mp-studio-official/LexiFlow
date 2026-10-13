@@ -26,7 +26,18 @@ import { describe, expect, it } from 'vitest';
  */
 
 const hier = resolve(import.meta.dirname);
-const ROH = readFileSync(resolve(hier, 'portal.css'), 'utf8');
+
+/**
+ * Alle Stilblätter der Portalschicht, nicht nur das erste.
+ *
+ * `portal.css` war lange das einzige. Mit der Werkstatt kam ein zweites
+ * dazu, und ein zweites Stilblatt, das diese Wache nicht liest, ist
+ * genau der Ort, an dem die erste `.btn`-Regel ohne `.huelle` entsteht —
+ * unbemerkt, weil die Wache ja grün ist.
+ */
+const BLAETTER = ['portal.css', 'teacher/werkstatt/werkstatt.css'] as const;
+
+const ROH = BLAETTER.map((blatt) => readFileSync(resolve(hier, blatt), 'utf8')).join('\n');
 /** Ohne Kommentare — sonst prüft die Wache ihre eigene Begründung mit. */
 const CSS = ROH.replace(/\/\*[\s\S]*?\*\//g, '');
 const TOKEN = readFileSync(resolve(hier, '..', 'styles', 'tokens.css'), 'utf8');

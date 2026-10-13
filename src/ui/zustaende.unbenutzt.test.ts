@@ -133,7 +133,16 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
       für vier Fälle eines frischen Kontos.
     */
     Fortschritt: ['hosted/learner/FortschrittPage.tsx', 'hosted/learner/HeutePage.tsx'],
-    LeererZustand: ['hosted/learner/FortschrittPage.tsx', 'hosted/learner/HeutePage.tsx'],
+    /*
+      Dazu die Werkstatt (naechste Stufe): Eine Quelle, aus der keine
+      einzige Zeile zu lesen war, ist genau der Fall, fuer den dieser
+      Baustein da ist — eine Erklaerung statt einer leeren Liste.
+    */
+    LeererZustand: [
+      'hosted/learner/FortschrittPage.tsx',
+      'hosted/learner/HeutePage.tsx',
+      'hosted/teacher/werkstatt/Werkstatt.tsx',
+    ],
     /*
       Variante B, Teil 4: Die Kurskarte kommt in die Kursliste der
       Lehrkraft. Sie lag seit 5B.1 fertig daneben und wurde von keinem
