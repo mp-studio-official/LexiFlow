@@ -27,8 +27,9 @@ import { coachAuftrag } from './coachauftrag.ts';
  * Der Kern von `ai-gateway` – ohne Deno, ohne Netz, ohne Datenbank.
  *
  * Derselbe Aufbau wie bei `learner-auth`: Alles, was entscheidet, steht hier
- * und bekommt seine Seiteneffekte als Parameter. Offen bleibt der Deno-Mantel
- * in `index.ts` und das Deployment – beides ist nie gelaufen (§ 7.1).
+ * und bekommt seine Seiteneffekte als Parameter. Der Deno-Mantel ist seit
+ * dem 13.10.2026 im Staging deployt; offen bleibt der erste echte
+ * Anbieteraufruf.
  *
  * ## Die vier Zusagen dieser Datei
  *

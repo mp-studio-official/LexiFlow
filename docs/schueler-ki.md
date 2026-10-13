@@ -66,3 +66,10 @@ Vor einer Freigabe mit Minderjährigen müssen außerhalb des Codes feststehen:
 Die technische Freigabe ist danach ein eigener Commit und kein versteckter
 Umgebungswert.
 
+## Stagingstand vom 13. Oktober 2026
+
+Migration 17 ist angewandt und `ai-gateway` ist mit der Lernendenbegrenzung
+deployt. Ein fremder Ursprung wird mit 403 abgewiesen; der erlaubte
+Pilotursprung ohne gültige Sitzung mit 401. Ein echter Anbieteraufruf und die
+Prüfung mit einem künstlichen Lernendenkonto stehen noch aus. Deshalb bleibt
+die Pilotoberfläche gesperrt.

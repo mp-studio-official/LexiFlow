@@ -22,10 +22,11 @@ import type { AiConnectionSummary, AiGateway } from '../application/repositories
  * Schnittstelle liefert ihn, und die Datenbank gibt die Siegelspalten für
  * angemeldete Rollen gar nicht erst heraus.
  *
- * ## Ungeprüft, wie seine Geschwister
+ * ## Dünn, obwohl der Mantel jetzt läuft
  *
- * Diese Datei spricht HTTP mit einer Funktion, die nie gelaufen ist (§ 7.1).
- * Sie ist deshalb so dünn wie möglich gehalten.
+ * Die Serverfunktion ist seit dem 13.10.2026 im Staging deployt. Herkunfts-
+ * und anonyme Ablehnung sind dort belegt; ein echter Anbieteraufruf steht
+ * noch aus. Diese Datei bleibt deshalb so dünn wie möglich gehalten.
  */
 
 export interface AiTransport {

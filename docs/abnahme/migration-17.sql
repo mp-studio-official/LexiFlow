@@ -1,21 +1,29 @@
 /*
   Migration 17 — persönliche Lerncoach-Zugänge
 
-  STATUS: NOCH NICHT AUSGEFÜHRT.
+  STATUS: AM 13.10.2026 IM STAGING AUSGEFÜHRT.
 
-  Diese Datei wird nach der Anwendung zum Messprotokoll umgeschrieben. Bis
-  dahin bleibt `KI_IM_PILOT` gesperrt.
+  `KI_IM_PILOT` bleibt trotz der Anwendung gesperrt. Die Migration schafft
+  nur den persönlichen, eigentumsgebundenen Zugang; sie schaltet keinen
+  Anbieter und keine Oberfläche frei.
 
   Anwenden:
 
     npx --yes supabase@latest db push --linked --dry-run
 
-  Erwartet: ausschließlich
+  Gemessen: ausschließlich
   `20261007090000_lerncoach_byok.sql`.
 
     npx --yes supabase@latest db push --linked --skip-vault
 
-  Danach die Messungen B1 bis B4 ausführen.
+  Ergebnis: genau diese eine Fassung angewandt. Danach zeigte
+  `migration list --linked` die Fassung lokal und remote; ein erneuter
+  Trockenlauf meldete die entfernte Datenbank als aktuell.
+
+  Die SQL-Messungen B1 bis B4 im Dashboard stehen noch aus. Historie und
+  Migrationsziel sind durch den CLI-Lauf belegt; Regelwortlaut und
+  Spaltenrechte werden erst nach Eintragung der vier Ausgaben als abgenommen
+  bezeichnet.
 */
 
 -- A1 / B1 — Umfang bleibt bis auf die Historie gleich.

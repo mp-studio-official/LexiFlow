@@ -7,11 +7,12 @@
  * `handle` aufrufen, antworten. Keine Entscheidung. Alles, was entscheidet,
  * steht in `core.ts`, `ziel.ts` und `tresor.ts` und ist dort mit Fakes
  * geprüft – 123 Prüfungen, kein einziger Netzaufruf, kein einziger echter
- * Schlüssel.
+ * Schlüssel. Der Mantel ist seit dem 13.10.2026 im Staging deployt; ein
+ * echter Anbieteraufruf steht weiterhin aus.
  *
- * Was offen bleibt, bleibt offen: Dieser Mantel und das Deployment sind **nie
- * gelaufen**. Es gibt kein Supabase-Projekt, keine Function Secrets und keinen
- * Anbieterschlüssel. Das steht so auch in § 7.1 der Sprintdokumentation.
+ * Offen bleibt der erste echte Anbieteraufruf. Die Funktion hat bisher nur
+ * kontrollierte Ablehnungen beantwortet; dabei wurde weder ein Schlüssel
+ * entschlüsselt noch Inhalt an einen Anbieter übertragen.
  *
  * ## Die zwei Dinge, die nur hier stehen können
  *

@@ -2,8 +2,9 @@
 
 Stand: 13. Oktober 2026
 
-Diese Arbeit läuft parallel zum Pilot. Sie ist **nicht deployt**, im Pilot
-bleibt KI sichtbar gesperrt. Sie ändert weder Datenbank noch Schlüsselbestand.
+Diese Arbeit läuft parallel zum Pilot. `ai-gateway` und Migration 17 sind seit
+dem 13. Oktober 2026 im Staging deployt; im Pilot bleibt KI sichtbar gesperrt.
+Es gab noch keinen echten Anbieteraufruf.
 
 ## Was dieser Block leistet
 
@@ -37,9 +38,10 @@ Evals und dürfen nicht im Transport erfunden werden.
 
 ## Lernendenassistenz
 
-Der technische Transport allein gibt Lernenden **noch keinen** KI-Zugang.
-Das ist Absicht: Vor einer Freigabe für Minderjährige müssen mindestens diese
-Produktentscheidungen feststehen und abgenommen sein:
+Der technische Transport und der persönliche Zugang allein schalten für
+Lernende **noch keine** KI im Pilot frei. Das ist Absicht: Vor einer Freigabe
+für Minderjährige müssen mindestens diese Produktentscheidungen feststehen
+und abgenommen sein:
 
 1. Wer trägt den Schlüssel und die Kosten: Schule/Lehrkraft oder Lernende?
 2. Welche Inhalte dürfen den Anbieter verlassen?
@@ -49,9 +51,10 @@ Produktentscheidungen feststehen und abgenommen sein:
    ersten Aufruf?
 5. Welche Tages- und Sitzungsgrenzen verhindern Kosten- und Missbrauchsspitzen?
 
-Bis dahin bleibt die vorhandene Serverregel unverändert: Nur Lehrkraft und
-Verwaltung dürfen eine Verbindung speichern oder aufrufen. Ein persönlicher
-Schlüssel einer lernenden Person wird in diesem Block nicht eingeführt.
+Migration 17 erlaubt einer lernenden Person ausschließlich die Verwaltung
+ihres eigenen Schlüssels. Der Server lässt für sie nur die vier festen
+Lerncoach-Aufträge zu; die sichtbare Oberfläche bleibt bis zur Freigabe durch
+`KI_IM_PILOT = 'gesperrt'` aus dem Pilotbündel entfernt.
 
 ## Nachweise
 
@@ -66,4 +69,3 @@ Offizielle Grundlage für OpenAI:
 [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)
 und
 [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
-
