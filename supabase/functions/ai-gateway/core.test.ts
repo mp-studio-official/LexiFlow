@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ANBIETER_NICHT_ERREICHBAR,
+  GATEWAY_FAEHIGKEITEN,
   KI_GESPERRT,
   KEIN_NETZ_ANBIETER,
   LERNENDE_NUR_COACH,
@@ -925,6 +926,13 @@ describe('das Modell im Browser', () => {
 /* ======================================================== Verwaltung ===== */
 
 describe('Verwalten der Verbindungen', () => {
+  it('meldet die serverseitig wirklich vorhandenen Fähigkeiten', async () => {
+    const { ports } = fakePorts();
+    const gespeichert = await angelegt(ports);
+    expect((gespeichert['verbindung'] as Record<string, unknown>)['capabilities']).toEqual(
+      GATEWAY_FAEHIGKEITEN,
+    );
+  });
   it('listet nur die eigenen', async () => {
     const { ports, zeilen } = fakePorts();
     await angelegt(ports);

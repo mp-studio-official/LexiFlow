@@ -21,7 +21,7 @@ import {
   anbieterAnfrage,
   anbieterAntwort,
 } from './anbieterprotokoll.ts';
-import { coachAuftrag } from './coachauftrag.ts';
+import { COACH_AKTIONEN, coachAuftrag } from './coachauftrag.ts';
 import {
   TEXTWERKSTATT_AUFTRAG_UNGUELTIG,
   TEXTWERKSTATT_CAPABILITY,
@@ -164,6 +164,10 @@ export const KEIN_NETZ_ANBIETER =
   'Dieses Modell läuft im Browser. Es wird nicht über den Server aufgerufen.';
 export const KI_GESPERRT = 'KI-Aufrufe sind in dieser Fassung nicht freigegeben.';
 export const VERBINDUNG_INAKTIV = 'Diese KI-Verbindung ist ausgeschaltet.';
+export const GATEWAY_FAEHIGKEITEN = [
+  ...COACH_AKTIONEN.map((aktion) => `learner-coach/${aktion}`),
+  TEXTWERKSTATT_CAPABILITY,
+] as const;
 
 /* ------------------------------------------------------------ Helfer ---- */
 
@@ -175,7 +179,7 @@ export function ohneGeheimnis(zeile: VerbindungZeile): VerbindungOhneGeheimnis {
     baseUrl: zeile.baseUrl,
     model: zeile.model,
     maskedSecret: zeile.maskedSecret,
-    capabilities: zeile.capabilities,
+    capabilities: zeile.adapter === 'browsermodell' ? [] : [...GATEWAY_FAEHIGKEITEN],
     active: zeile.active,
     ...(zeile.lastCheckedAt === undefined ? {} : { lastCheckedAt: zeile.lastCheckedAt }),
   };

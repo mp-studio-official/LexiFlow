@@ -30,9 +30,23 @@ function vorschau(text = ZWEISPALTIG): Werkstattstand {
 }
 
 describe('die Pflichtzustände stehen wirklich da', () => {
-  it('leer: fragt nach Material und verspricht keine Vorschau', () => {
+  it('leer: nennt beide Quellen und verspricht keine Vorschau', () => {
+    /*
+      Verschärft statt angepasst. Vorher stand hier nur die Überschrift
+      „Material einfügen"; die Browsermessung zeigte, dass dieser
+      Bildschirm ausschliesslich zu einer Vokabelliste einlud, obwohl
+      der Fliesstextweg dahinter längst lief. Geprüft wird jetzt, dass
+      **beide** Quellen benannt sind — sonst ist der Textweg zwar
+      vorhanden, aber unauffindbar.
+    */
     zeichne(anfang());
-    expect(screen.getByRole('heading', { name: 'Material einfügen' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Text oder Liste einfügen' })).toBeInTheDocument();
+    expect(screen.getByText(/zusammenhängender englischer Text/)).toBeInTheDocument();
+    expect(screen.getByText(/fertige Vokabelliste/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveAttribute(
+      'placeholder',
+      expect.stringContaining('Scotland'),
+    );
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 

@@ -129,3 +129,145 @@
 .huelle .werkstatt__befunde > li[data-art='fehler'] {
   color: var(--fehler);
 }
+
+/* ---------------------------------------------------------------------------
+   Der Quelltext
+   ---------------------------------------------------------------------------
+
+   Er ist Text und bleibt Text. Woerter sind `<span>`, aufgenommene
+   `<mark>` — die Hervorhebung traegt also schon im Markup Bedeutung und
+   wird hier nur sichtbar gemacht. Farbe allein unterscheidet die
+   Zustaende nicht: Der uebernommene Zustand bekommt zusaetzlich eine
+   Unterstreichung, der gelistete eine gestrichelte.
+   --------------------------------------------------------------------------- */
+
+.huelle .werkstatt__quelltext {
+  max-block-size: 28rem;
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--rand);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.huelle .werkstatt__wort {
+  border-radius: var(--rund);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/*
+  Ein Wort ist kein Knopf und bekommt trotzdem einen sichtbaren Fokus.
+  Ohne diese Regel waere die Tastaturbedienung zwar vorhanden, aber
+  unsichtbar — und damit fuer alle unbenutzbar, die sie am noetigsten
+  haben.
+*/
+.huelle .werkstatt__wort:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.huelle .werkstatt__wort[data-state='taken'] {
+  background: var(--gut-weich);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.huelle .werkstatt__wort[data-state='listed'] {
+  background: var(--warn-weich);
+  text-decoration: underline dashed;
+  text-underline-offset: 3px;
+}
+
+/* Die erweiterte Markierung – eine Wortgruppe wie „depend on“. */
+.huelle .werkstatt__wort[data-selected='true'] {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.huelle .werkstatt__aufnehmen {
+  margin-block: var(--space-3) 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Die Textwerkstatt
+   --------------------------------------------------------------------------- */
+
+/*
+  Quelltext und Prüfliste nebeneinander — aber erst, wenn beide Spalten
+  wirklich Platz haben. Unter 64rem untereinander: Zwei Spalten à 20rem
+  sind zwei Spalten, in denen man weder lesen noch tippen kann.
+*/
+.huelle .werkstatt__zweispaltig {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .huelle .werkstatt__zweispaltig {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.huelle .werkstatt__kandidaten {
+  display: grid;
+  gap: var(--space-3);
+  max-block-size: 36rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.huelle .werkstatt__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--tap-target);
+  margin-block: var(--space-2);
+  padding-inline-end: var(--space-2);
+}
+
+/*
+  Eine aufgenommene Zeile ist nicht nur farbig umrandet, sie trägt auch
+  ihre Felder. Der Unterschied ist damit auch ohne Farbe da — und zwar
+  der, auf den es ankommt.
+*/
+.huelle .werkstatt__zeile[data-aufgenommen='ja'] {
+  border-color: var(--primary);
+}
+
+/*
+  Jedes Kästchen in der Werkstatt bekommt seine Fläche — nicht nur die
+  in `.werkstatt__auswahl`.
+
+  Die Browsermessung hat das gefunden: Das Kästchen „Satz als Beispiel
+  übernehmen" entsteht erst, nachdem ein Wort aufgenommen wurde, und
+  fiel deshalb unter keine der bestehenden Regeln. Gemessen wurden
+  274 × 42 px bei 390 und 641 × 24 px bei 768 — beides unter 44.
+
+  Das Tippziel ist dabei die Beschriftung und nicht das Kästchen: Ein
+  `input[type=checkbox]` ist 18 × 18 px, daran ändert keine Mindesthöhe
+  am Umfeld etwas. Die Beschriftung umschliesst es und schaltet mit.
+*/
+.huelle .werkstatt .checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--tap-target);
+  padding-inline-end: var(--space-2);
+}
+
+.huelle .werkstatt__formen,
+.huelle .werkstatt__satz {
+  margin: 0;
+}
+
+.huelle .werkstatt__satz {
+  color: var(--tinte-2);
+}
