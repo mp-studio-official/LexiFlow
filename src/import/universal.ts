@@ -59,6 +59,7 @@ export type Quelle =
 
 export type Quellenart =
   | 'tabelle'
+  | 'fliesstext'
   | 'eingefuegte-liste'
   | 'strukturierte-liste'
   | 'tabellenblatt'
@@ -93,6 +94,16 @@ export type Importergebnis =
       /** Zeilen, die zu keiner Vokabel gehörten. Sie gehen nicht verloren. */
       readonly unzugeordnet: readonly string[];
     }
+  /**
+   * Zusammenhängender Text — nicht zu Zeilen zerlegbar, sondern zu
+   * analysieren.
+   *
+   * Der Universalimport hört hier bewusst auf. Was aus Fließtext wird,
+   * entscheidet die Textwerkstatt zusammen mit der Lehrkraft; eine
+   * Vokabelliste daraus zu bauen wäre genau die stille Fehlannahme, die
+   * diese Spielart abstellt.
+   */
+  | { readonly art: 'fliesstext'; readonly erkennung: Erkennung; readonly text: string }
   | { readonly art: 'leer'; readonly grund: string }
   | { readonly art: 'fehler'; readonly grund: string }
   | { readonly art: 'zu-gross'; readonly grund: string; readonly grenze: number };
@@ -149,6 +160,108 @@ function spaltenbild(text: string, trenner: Delimiter): { spalten: number; einhe
     .sort((a, b) => zahlen.filter((z) => z === b).length - zahlen.filter((z) => z === a).length)[0]!;
   const treffer = zahlen.filter((zahl) => zahl === haeufigste).length;
   return { spalten: haeufigste, einheitlich: treffer / zahlen.length >= 0.8 };
+}
+
+
+/**
+ * Woran man zusammenhängenden Text erkennt — und woran eine Liste.
+ *
+ * ## Warum das überhaupt eine eigene Frage ist
+ *
+ * Bis hierher fiel alles ohne erkennbare zweite Spalte auf
+ * `eingefuegte-liste`. Ein englischer Sachtext hat keine zweite Spalte,
+ * also war er eine einspaltige Vokabelliste — mit „Scotland is in the
+ * North of Britain." als erster Vokabel. Das ist keine schlechte
+ * Erkennung, sondern eine fehlende: Die Frage wurde nie gestellt.
+ *
+ * ## Woran unterschieden wird
+ *
+ * An drei Dingen, die eine Vokabelliste zuverlässig **nicht** hat:
+ *
+ * 1. **Wörter je Zeile.** Eine Vokabelzeile hat ein bis vier Wörter,
+ *    auch mit Artikel und Partikel (`to depend on – abhängen von`). Ein
+ *    Textabsatz hat Dutzende, und selbst hart umbrochener Text liegt bei
+ *    acht bis fünfzehn.
+ * 2. **Satzschlusszeichen.** Vokabelzeilen enden nicht mit Punkt.
+ * 3. **Satzlänge.** Ein Satz aus zwei Wörtern ist eher eine Abkürzung
+ *    mit Punkt als ein Satz.
+ *
+ * Keines der drei allein genügt. Eine Liste von Beispielsätzen hätte
+ * Punkte, eine Liste langer Wendungen hätte viele Wörter je Zeile — erst
+ * zusammen ergeben sie ein Bild.
+ *
+ * ## Warum die Zahl der Sätze über `sicher` entscheidet
+ *
+ * Ein einzelner Satz ist Fließtext, aber ein dürftiger: Daraus entstehen
+ * eine Handvoll Kandidaten, und die Lehrkraft soll das vorher wissen statt
+ * hinterher. Deshalb `sicher: false` mit dem Grund im Satz daneben — nicht
+ * eine andere Quellenart, denn eine Liste ist er deswegen nicht.
+ */
+interface Textbild {
+  readonly woerter: number;
+  readonly zeilen: number;
+  readonly saetze: number;
+  readonly woerterJeZeile: number;
+  readonly woerterJeSatz: number;
+}
+
+/* Satzschluss: Punkt, Ruf- oder Fragezeichen, gefolgt von Leerraum oder Ende. */
+const SATZSCHLUSS = /[.!?]["')\]]?(?=\s|$)/g;
+
+function textbild(text: string): Textbild {
+  const zeilen = text
+    .split('\n')
+    .map((zeile) => zeile.trim())
+    .filter((zeile) => zeile.length > 0);
+  const woerter = text.split(/\s+/).filter((wort) => /[\p{L}]/u.test(wort)).length;
+  const saetze = (text.match(SATZSCHLUSS) ?? []).length;
+  return {
+    woerter,
+    zeilen: zeilen.length,
+    saetze,
+    woerterJeZeile: zeilen.length === 0 ? 0 : woerter / zeilen.length,
+    woerterJeSatz: saetze === 0 ? 0 : woerter / saetze,
+  };
+}
+
+/** Mindestmaße, ab denen von Fließtext die Rede sein kann. */
+const FLIESSTEXT = {
+  /**
+   * Weniger ist kein Text, sondern eine Überschrift oder ein Stichwort.
+   *
+   * Sechs und nicht zehn: „Scotland is in the North of Britain." hat
+   * sieben Wörter und ist ein Satz. Ihn „eine Zeile je Vokabel, ohne
+   * erkennbare zweite Spalte" zu nennen wäre eine falsche Aussage über
+   * den Inhalt — dass daraus wenig entsteht, sagt `sicher: false`, und
+   * das ist die richtige Stelle dafür.
+   */
+  woerter: 6,
+  /** Eine Vokabelzeile bleibt deutlich darunter — auch mit Partikel. */
+  woerterJeZeile: 6,
+  /** Ein „Satz" aus zwei Wörtern ist eher „z. B." als ein Satz. */
+  woerterJeSatz: 4,
+  /** Ab hier lohnt die Analyse ohne Vorbehalt. */
+  sicherAbSaetzen: 2,
+  sicherAbWoertern: 25,
+} as const;
+
+function istFliesstext(bild: Textbild): boolean {
+  if (bild.woerter < FLIESSTEXT.woerter) return false;
+  if (bild.saetze < 1) return false;
+  if (bild.woerterJeZeile < FLIESSTEXT.woerterJeZeile) return false;
+  return bild.woerterJeSatz >= FLIESSTEXT.woerterJeSatz;
+}
+
+function fliesstexterkennung(bild: Textbild, dateiname?: string): Erkennung {
+  const woher = dateiname ? ` aus „${dateiname}“` : '';
+  const sicher = bild.saetze >= FLIESSTEXT.sicherAbSaetzen && bild.woerter >= FLIESSTEXT.sicherAbWoertern;
+  return {
+    art: 'fliesstext',
+    begruendung: sicher
+      ? `Ein zusammenhängender Text${woher} mit ${bild.saetze} Sätzen und ${bild.woerter} Wörtern — er wird nach Lernwörtern durchsucht.`
+      : `Nur ${bild.saetze === 1 ? 'ein Satz' : `${bild.saetze} Sätze`}${woher} mit ${bild.woerter} Wörtern — daraus entstehen wenige Vorschläge.`,
+    sicher,
+  };
 }
 
 /** Was diese Quelle ist — ohne sie schon zu lesen. */
@@ -213,6 +326,21 @@ function erkenneText(roh: string, dateiname?: string): Erkennung {
     };
   }
 
+  /*
+    Erst jetzt die Frage nach dem Fließtext — nach der einheitlichen
+    Tabelle, vor allem anderen.
+
+    Die Reihenfolge ist keine Geschmacksfrage. Nach der einheitlichen
+    Tabelle, weil eine Tabelle mit Beispielsätzen in der zweiten Spalte
+    eine Tabelle bleibt. Vor der uneinheitlichen, weil ein Absatz mit drei
+    Kommas sonst als „vermutlich eine Tabelle mit vier Spalten" durchginge
+    — genau das tat der Scotland-Text bis hierher.
+  */
+  const gestalt = textbild(text);
+  if (istFliesstext(gestalt)) {
+    return dateiname ? fliesstexterkennung(gestalt, dateiname) : fliesstexterkennung(gestalt);
+  }
+
   if (bild.spalten >= 2) {
     return {
       art: 'tabelle',
@@ -269,6 +397,10 @@ export function importiereText(roh: string, optionen: Importoptionen = {}): Impo
   const erkennung = optionen.trennzeichen
     ? { ...erkenneText(text), art: 'tabelle' as const, trennzeichen: optionen.trennzeichen }
     : erkenneText(text);
+
+  if (erkennung.art === 'fliesstext') {
+    return { art: 'fliesstext', erkennung, text };
+  }
 
   if (erkennung.art === 'strukturierte-liste') {
     const gelesen = parseStructuredList(text);

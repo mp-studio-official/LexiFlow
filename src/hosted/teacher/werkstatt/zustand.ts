@@ -40,6 +40,9 @@ import {
 
 export type Werkstattschritt = 'quelle' | 'liest' | 'vorschau' | 'fehler';
 
+const FLIESSTEXT_MELDUNG =
+  'Das ist ein zusammenhängender Text und keine Vokabelliste. Die Textwerkstatt dafür wird im nächsten Schritt eingebaut.';
+
 export interface Werkstattstand {
   readonly schritt: Werkstattschritt;
   readonly titel: string;
@@ -109,6 +112,23 @@ function ausErgebnis(
   quelle: Quelle,
   optionen: Importoptionen,
 ): Werkstattstand {
+  if (ergebnis.art === 'fliesstext') {
+    /*
+      Noch kein eigener Schritt — der kommt mit der Textwerkstatt.
+
+      Bis dahin steht hier ein Satz, der stimmt. Die Alternative wäre, den
+      Text durch den Listenweg zu schicken; genau das war der Fehler, den
+      die Erkennung gerade abgestellt hat.
+    */
+    return {
+      ...vorher,
+      schritt: 'fehler',
+      zeilen: [],
+      erzeugt: [],
+      meldung: FLIESSTEXT_MELDUNG,
+    };
+  }
+
   if (ergebnis.art !== 'gelesen') {
     return {
       ...vorher,
@@ -172,7 +192,11 @@ export function werkstattZug(stand: Werkstattstand, zug: Werkstattzug): Werkstat
           ? importiereText(stand.quelle.text, optionen)
           : importiereDatei(stand.quelle, optionen);
       if (ergebnis.art !== 'gelesen') {
-        return { ...stand, schritt: 'fehler', meldung: ergebnis.grund };
+        return {
+          ...stand,
+          schritt: 'fehler',
+          meldung: ergebnis.art === 'fliesstext' ? FLIESSTEXT_MELDUNG : ergebnis.grund,
+        };
       }
       /*
         Der Kern der Zusage „Lehrkrafteingaben werden nie still
