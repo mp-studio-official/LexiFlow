@@ -132,7 +132,16 @@ describe('die neuen Zustandsbausteine stehen bereit — und wer sie benutzt, ste
       beherrschte Vokabeln, Wochenziel und je Paket — und den leeren Zustand
       für vier Fälle eines frischen Kontos.
     */
-    Fortschritt: ['hosted/learner/FortschrittPage.tsx', 'hosted/learner/HeutePage.tsx'],
+    /*
+      Dazu die Motivation (naechste Stufe): Tagesziel und Rundenfortschritt
+      sind genau das, wofuer dieser Baustein gebaut wurde -- eine Zahl
+      neben dem Balken, damit die Auskunft auch ohne ihn funktioniert.
+    */
+    Fortschritt: [
+      'hosted/learner/FortschrittPage.tsx',
+      'hosted/learner/HeutePage.tsx',
+      'hosted/learner/motivation/Motivation.tsx',
+    ],
     /*
       Dazu die Werkstatt (naechste Stufe): Eine Quelle, aus der keine
       einzige Zeile zu lesen war, ist genau der Fall, fuer den dieser

@@ -35,7 +35,11 @@ const hier = resolve(import.meta.dirname);
  * genau der Ort, an dem die erste `.btn`-Regel ohne `.huelle` entsteht —
  * unbemerkt, weil die Wache ja grün ist.
  */
-const BLAETTER = ['portal.css', 'teacher/werkstatt/werkstatt.css'] as const;
+const BLAETTER = [
+  'portal.css',
+  'teacher/werkstatt/werkstatt.css',
+  'learner/motivation/motivation.css',
+] as const;
 
 const ROH = BLAETTER.map((blatt) => readFileSync(resolve(hier, blatt), 'utf8')).join('\n');
 /** Ohne Kommentare — sonst prüft die Wache ihre eigene Begründung mit. */

@@ -1,0 +1,132 @@
+/* ===========================================================================
+   Motivation im Lernbereich
+   ===========================================================================
+
+   Variante B, keine dritte Sprache. Jede Regel auf `.huelle` eingegrenzt;
+   die portable Lerndatei rendert nie `.huelle` und bekommt nichts davon ab.
+
+   Bewegung steht ausnahmslos unter `prefers-reduced-motion`. Was sie zeigt,
+   steht auch als Text da — wer sie abstellt, verliert keine Auskunft.
+   =========================================================================== */
+
+.huelle .motivation-tag {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.huelle .motivation-tag__satz {
+  margin: 0;
+  color: var(--tinte-2);
+  font-size: var(--text-sm);
+}
+
+.huelle .motivation-tag[data-erfuellt='ja'] .motivation-tag__satz {
+  color: var(--gut);
+}
+
+.huelle .motivation-runde {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* ------------------------------------------------------------------ Feier */
+
+/*
+  Keine Überlagerung, kein Fokusfang, kein Zeitschloss: Die Feier steht im
+  Fluss der Seite. Wer weiterklicken will, klickt weiter — die Bewegung
+  läuft dabei einfach weiter oder eben nicht.
+*/
+.huelle .motivation-feier {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border-radius: var(--rund-gross);
+  background: var(--gut-weich);
+  opacity: 0;
+  transform: translateY(var(--space-2));
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.huelle .motivation-feier[data-sichtbar='ja'] {
+  opacity: 1;
+  transform: none;
+}
+
+.huelle .motivation-feier__kopf {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-black);
+}
+
+.huelle .motivation-feier__zahl,
+.huelle .motivation-feier__neu {
+  margin: 0;
+  color: var(--tinte-2);
+  font-size: var(--text-sm);
+}
+
+.huelle .motivation-feier__neu {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+/* ------------------------------------------------------------ Auszeichnungen */
+
+.huelle .motivation-liste {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
+}
+
+.huelle .motivation-liste__eintrag {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--rand);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+}
+
+/*
+  Erreicht wird durch die Fläche **und** die Marke „erreicht" im Text
+  kenntlich. Farbe allein trägt den Unterschied nicht: Wer sie nicht
+  unterscheidet, liest die Marke.
+*/
+.huelle .motivation-liste__eintrag[data-erreicht='ja'] {
+  background: var(--gut-weich);
+  border-color: var(--gut);
+}
+
+.huelle .motivation-liste__titel {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+.huelle .motivation-liste__satz,
+.huelle .motivation-liste__stand {
+  margin: 0;
+  color: var(--tinte-2);
+  font-size: var(--text-sm);
+}
+
+.huelle .motivation-liste__stand {
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------- Bewegung ist Zugabe */
+
+@media (prefers-reduced-motion: reduce) {
+  .huelle .motivation-feier {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
