@@ -79,6 +79,23 @@ describe('was hinausgeht', () => {
 
     expect(Object.keys(gesendet[0]!).sort()).toEqual(['aktion', 'capability', 'id', 'payload']);
   });
+
+  it('reicht den Abbruch nur als Transportoption und nie im JSON-Rumpf weiter', async () => {
+    const steuerung = new AbortController();
+    const aufrufe: Array<{ body: Record<string, unknown>; signal?: AbortSignal }> = [];
+    const transport: AiTransport = async (body, optionen) => {
+      aufrufe.push({ body, ...(optionen?.signal ? { signal: optionen.signal } : {}) });
+      return { status: 200, body: { antwort: { text: 'ok' } } };
+    };
+    await createAiGateway(transport).invoke({
+      connectionId: 'v1',
+      capability: 'learner-coach/hinweis',
+      payload: { lernform: 'walk' },
+      signal: steuerung.signal,
+    });
+    expect(aufrufe[0]?.signal).toBe(steuerung.signal);
+    expect(aufrufe[0]?.body).not.toHaveProperty('signal');
+  });
 });
 
 describe('was hereinkommt', () => {

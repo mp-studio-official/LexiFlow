@@ -30,10 +30,21 @@ import type { AiConnectionSummary, AiGateway } from '../application/repositories
 
 export interface AiTransport {
   /** Ruft `ai-gateway` auf und liefert Status und Rumpf. */
-  (körper: Record<string, unknown>): Promise<{ status: number; body: Record<string, unknown> }>;
+  (
+    körper: Record<string, unknown>,
+    optionen?: { signal?: AbortSignal },
+  ): Promise<{ status: number; body: Record<string, unknown> }>;
 }
 
 export const KI_NICHT_ERREICHBAR = 'Der KI-Zugang ist gerade nicht erreichbar.';
+
+/** Ein kontrollierter Gatewayfehler, dessen Status die Oberfläche auslegen darf. */
+export class AiGatewayFehler extends Error {
+  constructor(readonly status: number, meldung: string) {
+    super(meldung);
+    this.name = 'AiGatewayFehler';
+  }
+}
 
 function alsZusammenfassung(roh: unknown): AiConnectionSummary {
   const zeile = (roh ?? {}) as Record<string, unknown>;
@@ -63,7 +74,10 @@ function alsZusammenfassung(roh: unknown): AiConnectionSummary {
 function pruefe(antwort: { status: number; body: Record<string, unknown> }): Record<string, unknown> {
   if (antwort.status >= 200 && antwort.status < 300) return antwort.body;
   const gemeldet = antwort.body['fehler'];
-  throw new Error(typeof gemeldet === 'string' && gemeldet !== '' ? gemeldet : KI_NICHT_ERREICHBAR);
+  throw new AiGatewayFehler(
+    antwort.status,
+    typeof gemeldet === 'string' && gemeldet !== '' ? gemeldet : KI_NICHT_ERREICHBAR,
+  );
 }
 
 export function createAiGateway(transport: AiTransport): AiGateway {
@@ -108,14 +122,15 @@ export function createAiGateway(transport: AiTransport): AiGateway {
     },
 
     async invoke(input) {
-      const body = pruefe(
-        await transport({
+      const body = pruefe(await transport(
+        {
           aktion: 'aufrufen',
           id: input.connectionId,
           capability: input.capability,
           payload: input.payload,
-        }),
-      );
+        },
+        input.signal ? { signal: input.signal } : undefined,
+      ));
       return body['antwort'];
     },
   };
@@ -133,7 +148,7 @@ export function createAiTransport(input: {
   /** Liefert das Zugangstoken der laufenden Sitzung – oder nichts. */
   accessToken: () => Promise<string | undefined>;
 }): AiTransport {
-  return async (körper) => {
+  return async (körper, optionen) => {
     const token = await input.accessToken();
     if (!token) return { status: 401, body: { fehler: 'Nicht angemeldet.' } };
 
@@ -147,6 +162,7 @@ export function createAiTransport(input: {
           authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(körper),
+        ...(optionen?.signal ? { signal: optionen.signal } : {}),
       },
     );
 

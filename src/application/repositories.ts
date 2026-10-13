@@ -593,7 +593,13 @@ export interface AiGateway {
   deleteConnection(id: string): Promise<void>;
   testConnection(id: string): Promise<{ ok: boolean; message: string }>;
   /** Der einzige Weg zu einem Anbieter. Nur Lehrkräfte, nur auf Klick. */
-  invoke(input: { connectionId: string; capability: string; payload: unknown }): Promise<unknown>;
+  invoke(input: {
+    connectionId: string;
+    capability: string;
+    payload: unknown;
+    /** Bricht nur diesen Aufruf ab; Lernstand und Antwortprüfung bleiben unberührt. */
+    signal?: AbortSignal;
+  }): Promise<unknown>;
 }
 
 /* ------------------------------------------------------------- Die Menge */
