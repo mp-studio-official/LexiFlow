@@ -72,16 +72,24 @@ describe('GitHub Pages bekommt nur das frisch geprüfte Artefakt', () => {
   });
 
   it('prüft vor dem Upload und veröffentlicht erst danach', () => {
+    const solo = ablauf.indexOf('npm run build:solo:pilot');
     const einstieg = ablauf.indexOf('node scripts/pilot-einstieg.mjs');
     const riegel = ablauf.indexOf('npm run verify:deploy');
     const upload = ablauf.indexOf('actions/upload-pages-artifact@v4');
     const deploy = ablauf.indexOf('actions/deploy-pages@v4');
 
+    expect(solo).toBeGreaterThan(-1);
+    expect(solo).toBeLessThan(einstieg);
     expect(einstieg).toBeGreaterThan(-1);
     expect(einstieg).toBeLessThan(riegel);
     expect(riegel).toBeGreaterThan(-1);
     expect(riegel).toBeLessThan(upload);
     expect(upload).toBeLessThan(deploy);
+  });
+
+  it('baut die kontofreie Fassung mit ihrem eigenen öffentlichen Grundpfad', () => {
+    expect(ablauf).toContain('VITE_LEXIFLOW_SOLO_URL: /ohne-konto/');
+    expect(ablauf).toContain('npm run build:solo:pilot');
   });
 
   it('lädt ausschließlich dist hoch', () => {

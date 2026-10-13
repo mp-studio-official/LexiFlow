@@ -60,9 +60,76 @@ self.addEventListener('activate', (event) => {
 });
 `;
 
+export function metadatenFuerAnmeldefreieFassung(html) {
+  return html
+    .replace(
+      'content="https://lexiflow.info/icons/icon-512.png"',
+      'content="https://lexiflow.info/ohne-konto/icons/icon-512.png"',
+    )
+    .replaceAll('content="https://lexiflow.info/"', 'content="https://lexiflow.info/ohne-konto/"')
+    .replace(
+      'href="https://lexiflow.info/"',
+      'href="https://lexiflow.info/ohne-konto/"',
+    );
+}
+
+/**
+ * Der zweite Einstieg muss ein **eigener Build** sein. Eine Kopie der früheren
+ * Startseite verwiese weiterhin auf `/assets/` und registrierte den Service
+ * Worker für `/` – damit könnte sie das Kontoportal erneut übernehmen.
+ */
+export function pruefeAnmeldefreieFassung(html) {
+  if (!html.includes('<div id="root"></div>')) {
+    throw new Error('Die kontofreie Fassung enthält keine React-Wurzel.');
+  }
+  for (const spur of [
+    '/ohne-konto/assets/',
+    'href="/ohne-konto/manifest.webmanifest"',
+    'src="/ohne-konto/registerSW.js"',
+    'href="https://lexiflow.info/ohne-konto/"',
+  ]) {
+    if (!html.includes(spur)) {
+      throw new Error(`Die kontofreie Fassung ist nicht auf /ohne-konto/ begrenzt (${spur}).`);
+    }
+  }
+  if (html.includes('/portal/assets/')) {
+    throw new Error('Die kontofreie Fassung lädt versehentlich das Portalbündel.');
+  }
+}
+
+/**
+ * Die HTML-Datei kann auf die richtigen PWA-Dateien zeigen, während deren
+ * Inhalt weiterhin den früheren Wurzelpfad beansprucht. Dann würde ein Besuch
+ * unter `/ohne-konto/` wieder das Kontoportal unter `/` kontrollieren. Darum
+ * wird der tatsächlich gebaute Vertrag separat geprüft.
+ */
+export function pruefeAnmeldefreiePwa(registrierung, manifestText, serviceWorker) {
+  if (!registrierung.includes("register('/ohne-konto/sw.js'")) {
+    throw new Error('Die kontofreie Fassung registriert nicht ihren eigenen Service Worker.');
+  }
+  if (!registrierung.includes("scope: '/ohne-konto/'")) {
+    throw new Error('Der Service Worker der kontofreien Fassung hat nicht ihren eigenen Geltungsbereich.');
+  }
+
+  let manifest;
+  try {
+    manifest = JSON.parse(manifestText);
+  } catch {
+    throw new Error('Das Manifest der kontofreien Fassung ist kein gültiges JSON.');
+  }
+  if (manifest.start_url !== '/ohne-konto/' || manifest.scope !== '/ohne-konto/') {
+    throw new Error('Das Manifest der kontofreien Fassung verlässt ihren Grundpfad.');
+  }
+  if (!serviceWorker.includes('/ohne-konto/index.html')) {
+    throw new Error('Der Service Worker fällt nicht auf den Einstieg der kontofreien Fassung zurück.');
+  }
+}
+
 export function pilotEinstiegSchreiben(wurzel = resolve(import.meta.dirname, '..')) {
   const dist = resolve(wurzel, 'dist');
   const portal = readFileSync(resolve(dist, 'portal', 'index.html'), 'utf8');
+  const solo = readFileSync(resolve(dist, 'ohne-konto', 'index.html'), 'utf8');
+  pruefeAnmeldefreieFassung(solo);
   writeFileSync(resolve(dist, 'index.html'), hauptdomainWirdPortal(portal), 'utf8');
   /*
    * Wer die frühere PWA schon geöffnet hatte, besitzt noch einen Service

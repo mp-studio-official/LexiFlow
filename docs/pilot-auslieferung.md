@@ -15,9 +15,16 @@ Pilotzweig aus, prüft ihn, baut `dist/` und übergibt dieses Verzeichnis über
 GitHubs offiziellen Pages-Ablauf. Es gibt weder einen `gh-pages`-Push noch
 einen persönlichen Zugriffstoken im Projekt.
 
-Die Pilotadresse lautet:
+Das Kontoportal beginnt an der Hauptadresse und bleibt zusätzlich unter dem
+technischen Portalpfad erreichbar:
 
-`https://lexiflow.info/portal/`
+- `https://lexiflow.info/`
+- `https://lexiflow.info/portal/`
+
+Die kontofreie PWA hat einen eigenen Einstieg und einen auf diesen Pfad
+begrenzten Service Worker:
+
+`https://lexiflow.info/ohne-konto/`
 
 Die bisherige Pages-Adresse
 `https://mp-studio-official.github.io/LexiFlow/` wird nach der Einrichtung
@@ -131,9 +138,10 @@ Der Ablauf:
 2. fährt Typecheck, alle Tests und die drei E2E-Suiten;
 3. baut die portablen Dateien und prüft ihre Größe;
 4. checkt für die Auslieferung frisch aus und baut ohne Fake-Cloud;
-5. prüft `dist/` mit `verify:deploy`, einschließlich Pilotband und Grundpfad;
-6. lädt ausschließlich `dist/` als Pages-Artefakt hoch;
-7. veröffentlicht es über die geschützte Umgebung `github-pages`.
+5. baut die kontofreie PWA zusätzlich mit eigenem Grundpfad und Service Worker;
+6. prüft `dist/` mit `verify:deploy`, einschließlich Pilotband und aller drei Einstiege;
+7. lädt ausschließlich `dist/` als Pages-Artefakt hoch;
+8. veröffentlicht es über die geschützte Umgebung `github-pages`.
 
 ## Rückfall
 

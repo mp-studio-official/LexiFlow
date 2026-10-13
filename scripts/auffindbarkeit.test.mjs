@@ -18,12 +18,13 @@ describe('LexiFlow ist unter der eigenen Domain auffindbar', () => {
     expect(startseite).toMatch(/<meta\s+name="description"/);
   });
 
-  it('weist Suchmaschinen auf genau die öffentliche Startseite hin', () => {
+  it('weist Suchmaschinen auf beide öffentlichen Einstiege hin', () => {
     expect(robots).toContain('User-agent: *');
     expect(robots).toContain('Allow: /');
     expect(robots).toContain('Sitemap: https://lexiflow.info/sitemap.xml');
-    expect(sitemap.match(/<loc>/g)).toHaveLength(1);
+    expect(sitemap.match(/<loc>/g)).toHaveLength(2);
     expect(sitemap).toContain('<loc>https://lexiflow.info/</loc>');
+    expect(sitemap).toContain('<loc>https://lexiflow.info/ohne-konto/</loc>');
   });
 
   it('nimmt die Anmeldeoberfläche aus den Suchergebnissen', () => {

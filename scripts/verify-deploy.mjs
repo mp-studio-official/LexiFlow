@@ -29,6 +29,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pruefeAnmeldefreiePwa } from './pilot-einstieg.mjs';
 
 const wurzel = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = resolve(wurzel, 'dist');
@@ -63,7 +64,7 @@ const textdateien = dateien.filter((pfad) => /\.(html|js|css|json|webmanifest|tx
 
 /* ------------------------------------------------ 1. Beide Einstiege da -- */
 
-const pflicht = ['index.html', 'portal/index.html'];
+const pflicht = ['index.html', 'portal/index.html', 'ohne-konto/index.html'];
 for (const name of pflicht) {
   if (!dateien.some((pfad) => relative(dist, pfad) === name)) {
     meckern(`\`dist/${name}\` fehlt.`);
@@ -159,6 +160,7 @@ for (const pfad of textdateien) {
 const base = process.env['LEXIFLOW_BASE'] ?? '/';
 const startseite = readFileSync(join(dist, 'index.html'), 'utf8');
 const portalseite = readFileSync(join(dist, 'portal', 'index.html'), 'utf8');
+const soloseite = readFileSync(join(dist, 'ohne-konto', 'index.html'), 'utf8');
 
 /*
   Auf der eigenen Domain ist das Portal das Produkt. Die kontofreie
@@ -177,6 +179,36 @@ if (startseite.includes('noindex, nofollow')) {
 }
 if (!startseite.includes('<link rel="canonical" href="https://lexiflow.info/"')) {
   meckern('Die öffentliche Hauptadresse nennt ihre kanonische Adresse nicht.');
+}
+for (const spur of [
+  '/ohne-konto/assets/',
+  'href="/ohne-konto/manifest.webmanifest"',
+  'src="/ohne-konto/registerSW.js"',
+  'href="https://lexiflow.info/ohne-konto/"',
+]) {
+  if (!soloseite.includes(spur)) {
+    meckern(`Die kontofreie Fassung ist nicht auf ihren eigenen Grundpfad begrenzt (${spur}).`);
+  }
+}
+if (soloseite.includes('/portal/assets/')) {
+  meckern('`dist/ohne-konto/index.html` lädt versehentlich das Portalbündel.');
+}
+try {
+  pruefeAnmeldefreiePwa(
+    readFileSync(join(dist, 'ohne-konto', 'registerSW.js'), 'utf8'),
+    readFileSync(join(dist, 'ohne-konto', 'manifest.webmanifest'), 'utf8'),
+    readFileSync(join(dist, 'ohne-konto', 'sw.js'), 'utf8'),
+  );
+} catch (error) {
+  meckern(error instanceof Error ? error.message : String(error));
+}
+
+const portalMitSoloVerweis = textdateien
+  .filter((pfad) => relative(dist, pfad).startsWith('portal/assets/'))
+  .map((pfad) => readFileSync(pfad, 'utf8'))
+  .find((inhalt) => inhalt.includes('LexiFlow ohne Konto'));
+if (!portalMitSoloVerweis?.includes('/ohne-konto/')) {
+  meckern('Das Portal verweist nicht auf die kontofreie Fassung unter `/ohne-konto/`.');
 }
 const ruhestand = readFileSync(join(dist, 'sw.js'), 'utf8');
 for (const spur of ['caches.delete', 'registration.unregister']) {

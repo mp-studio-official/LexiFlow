@@ -55,7 +55,8 @@ export function portalUrlFrom(base: string): string {
  * hinge davon ab, auf welcher Unterseite jemand gerade steht, und mit
  * `HashRouter` steht er fast nie auf der Wurzel.
  */
-export function soloUrlFrom(base: string): string {
+export function soloUrlFrom(base: string, eigeneAdresse?: string): string {
+  if (eigeneAdresse?.trim()) return mitSchraegstrich(eigeneAdresse);
   const grund = mitSchraegstrich(base);
   if (!grund.endsWith(`/${PORTAL_SEGMENT}`)) return grund;
   return grund.slice(0, grund.length - PORTAL_SEGMENT.length);

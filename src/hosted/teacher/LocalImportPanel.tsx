@@ -82,7 +82,15 @@ export function LocalImportPanel({ onUebernommen }: { onUebernommen: () => Promi
       <h2>Auf diesem Gerät liegen {lokale.length} Pakete</h2>
       <p>
         Sie stammen aus{' '}
-        <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> und liegen im
+        <a
+          href={soloUrlFrom(
+            import.meta.env.BASE_URL,
+            import.meta.env['VITE_LEXIFLOW_SOLO_URL'],
+          )}
+        >
+          LexiFlow ohne Konto
+        </a>{' '}
+        und liegen im
         Speicher dieses Browsers. Du kannst sie ins Konto übernehmen – dort lassen sie sich
         veröffentlichen und einer Lerngruppe geben.
       </p>

@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { hauptdomainWirdPortal, serviceWorkerRuhestand } from './pilot-einstieg.mjs';
+import {
+  hauptdomainWirdPortal,
+  metadatenFuerAnmeldefreieFassung,
+  serviceWorkerRuhestand,
+  pruefeAnmeldefreieFassung,
+  pruefeAnmeldefreiePwa,
+} from './pilot-einstieg.mjs';
 
 const portal = `<!doctype html><html><head>
   <meta name="description" content="LexiFlow-Portal" />
@@ -40,5 +46,52 @@ describe('der frühere Offline-Einstieg', () => {
     expect(serviceWorkerRuhestand).toContain('caches.delete(name)');
     expect(serviceWorkerRuhestand).toContain('registration.unregister()');
     expect(serviceWorkerRuhestand).toContain('client.navigate(client.url)');
+  });
+
+  it('bleibt als eigene PWA unter /ohne-konto/ erreichbar', () => {
+    const html = `<!doctype html><html><head>
+      <link rel="canonical" href="https://lexiflow.info/ohne-konto/">
+      <link rel="manifest" href="/ohne-konto/manifest.webmanifest">
+      <script id="vite-plugin-pwa:register-sw" src="/ohne-konto/registerSW.js"></script>
+    </head><body><div id="root"></div>
+      <script type="module" src="/ohne-konto/assets/index-abc.js"></script>
+    </body></html>`;
+
+    expect(() => pruefeAnmeldefreieFassung(html)).not.toThrow();
+    expect(() => pruefeAnmeldefreieFassung(html.replaceAll('/ohne-konto/', '/'))).toThrow(
+      /ohne-konto/,
+    );
+    expect(() => pruefeAnmeldefreieFassung(portal)).toThrow(/kontofreie/);
+  });
+
+  it('nennt als kanonische Adresse nicht das Kontoportal', () => {
+    const rootMetadaten = `<head>
+      <meta property="og:url" content="https://lexiflow.info/" />
+      <meta property="og:image" content="https://lexiflow.info/icons/icon-512.png" />
+      <link rel="canonical" href="https://lexiflow.info/" />
+    </head>`;
+    const html = metadatenFuerAnmeldefreieFassung(rootMetadaten);
+
+    expect(html).toContain('content="https://lexiflow.info/ohne-konto/"');
+    expect(html).toContain('content="https://lexiflow.info/ohne-konto/icons/icon-512.png"');
+    expect(html).toContain('href="https://lexiflow.info/ohne-konto/"');
+    expect(html).not.toContain('<link rel="canonical" href="https://lexiflow.info/"');
+  });
+
+  it('begrenzt Manifest und Service Worker auf den eigenen Pfad', () => {
+    const registrierung = "register('/ohne-konto/sw.js', { scope: '/ohne-konto/' })";
+    const manifest = JSON.stringify({ start_url: '/ohne-konto/', scope: '/ohne-konto/' });
+    const serviceWorker = 'navigateFallback: "/ohne-konto/index.html"';
+
+    expect(() => pruefeAnmeldefreiePwa(registrierung, manifest, serviceWorker)).not.toThrow();
+    expect(() =>
+      pruefeAnmeldefreiePwa(registrierung.replace("scope: '/ohne-konto/'", "scope: '/'"), manifest, serviceWorker),
+    ).toThrow(/Geltungsbereich/);
+    expect(() =>
+      pruefeAnmeldefreiePwa(registrierung, JSON.stringify({ start_url: '/', scope: '/' }), serviceWorker),
+    ).toThrow(/Grundpfad/);
+    expect(() =>
+      pruefeAnmeldefreiePwa(registrierung, manifest, 'navigateFallback: "/index.html"'),
+    ).toThrow(/Einstieg/);
   });
 });

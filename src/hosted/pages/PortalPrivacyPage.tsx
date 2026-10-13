@@ -81,8 +81,16 @@ export function PortalPrivacyPage() {
       </Card>
 
       <p className="small muted">
-        Ganz ohne Konto geht es auch: <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne
-        Anmeldung</a> läuft vollständig im Browser.
+        Ganz ohne Konto geht es auch:{' '}
+        <a
+          href={soloUrlFrom(
+            import.meta.env.BASE_URL,
+            import.meta.env['VITE_LEXIFLOW_SOLO_URL'],
+          )}
+        >
+          LexiFlow ohne Anmeldung
+        </a>{' '}
+        läuft vollständig im Browser.
       </p>
     </div>
   );

@@ -264,7 +264,15 @@ export function PublicShell() {
             Freiwillige Lernhilfe. Lehrkräfte sehen keine individuellen Lernstände.
           </p>
           <p>
-            <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> läuft
+            <a
+              href={soloUrlFrom(
+                import.meta.env.BASE_URL,
+                import.meta.env['VITE_LEXIFLOW_SOLO_URL'],
+              )}
+            >
+              LexiFlow ohne Konto
+            </a>{' '}
+            läuft
             vollständig im Browser – ohne Anmeldung und ohne Server.
           </p>
           <p>
@@ -278,4 +286,3 @@ export function PublicShell() {
     </Huelle>
   );
 }
-

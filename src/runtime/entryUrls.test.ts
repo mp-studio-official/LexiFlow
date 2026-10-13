@@ -49,6 +49,11 @@ describe('vom Portal zurück', () => {
       expect(soloUrlFrom(portalUrlFrom(grund))).toBe(grund);
     }
   });
+
+  it('kann die eigene Adresse der kontofreien Fassung ausdrücklich bekommen', () => {
+    expect(soloUrlFrom('/portal/', '/ohne-konto/')).toBe('/ohne-konto/');
+    expect(soloUrlFrom('/portal/', '/ohne-konto')).toBe('/ohne-konto/');
+  });
 });
 
 describe('die Rückkehradresse nach der Anmeldung', () => {

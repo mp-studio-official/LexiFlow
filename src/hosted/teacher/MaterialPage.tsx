@@ -104,7 +104,15 @@ export function MaterialPage() {
         <EmptyState title="Noch kein Paket im Konto">
           <p>
             Pakete entstehen weiterhin in{' '}
-            <a href={soloUrlFrom(import.meta.env.BASE_URL)}>LexiFlow ohne Konto</a> – dort gibt es
+            <a
+              href={soloUrlFrom(
+                import.meta.env.BASE_URL,
+                import.meta.env['VITE_LEXIFLOW_SOLO_URL'],
+              )}
+            >
+              LexiFlow ohne Konto
+            </a>{' '}
+            – dort gibt es
             die Werkstatt mit Text, Liste und Thema. Hier werden sie veröffentlicht und einer
             Lerngruppe zugewiesen.
           </p>

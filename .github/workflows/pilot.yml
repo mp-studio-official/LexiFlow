@@ -119,7 +119,11 @@ jobs:
           LEXIFLOW_BASE: /
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_LEXIFLOW_SOLO_URL: /ohne-konto/
           # Ausdrücklich **nicht** gesetzt: VITE_LEXIFLOW_FAKE_CLOUD.
+
+      - name: Die kontofreie Fassung unter ihrem eigenen Pfad bauen
+        run: npm run build:solo:pilot
 
       - name: Das Portal an die Hauptadresse setzen
         run: node scripts/pilot-einstieg.mjs

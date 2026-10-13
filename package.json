@@ -8,6 +8,7 @@
     "dev": "vite",
     "dev:portal": "vite --config vite.portal.config.ts",
     "build": "tsc --noEmit && vite build && vite build --config vite.portal.config.ts",
+    "build:solo:pilot": "node scripts/build-pilot-solo.mjs",
     "build:portable": "node scripts/build-portable.mjs",
     "verify:portable": "node scripts/verify-portable.mjs",
     "preview": "vite preview --port 4173",
