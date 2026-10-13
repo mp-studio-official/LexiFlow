@@ -40,8 +40,17 @@ import {
 
 export type Werkstattschritt = 'quelle' | 'liest' | 'vorschau' | 'fehler';
 
+/**
+ * Der Rückfall, wenn Fließtext doch in den Listenweg gerät.
+ *
+ * `WerkstattPage` fängt ihn vorher ab und schickt ihn in die
+ * Textwerkstatt. Diese Meldung bleibt trotzdem stehen: Ein Listenweg,
+ * der aus Prosa klaglos Zeilen baut, war der Fehler, den die Erkennung
+ * gerade abgestellt hat — und ein Automat, der sich darauf verlässt,
+ * dass die Oberfläche mitdenkt, ist kein Automat.
+ */
 const FLIESSTEXT_MELDUNG =
-  'Das ist ein zusammenhängender Text und keine Vokabelliste. Die Textwerkstatt dafür wird im nächsten Schritt eingebaut.';
+  'Das ist ein zusammenhängender Text und keine Vokabelliste. Er gehört in die Textwerkstatt.';
 
 export interface Werkstattstand {
   readonly schritt: Werkstattschritt;

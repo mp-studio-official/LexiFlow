@@ -6,10 +6,20 @@ import { GRADES, type Grade, suggestCefrLevel } from '../../domain/cefr';
 import { newId } from '../../domain/ids';
 import { LEARNING_DIRECTIONS, type LearningDirection, type VocabPack } from '../../domain/schema';
 import { Verbindungsfehler } from '../verbindung';
+import { erkenneQuelle } from '../../import/universal';
+import { Textwerkstatt } from './werkstatt/Textwerkstatt';
 import { Werkstatt } from './werkstatt/Werkstatt';
+import { TEXTVORSCHLAEGE, baueAnfrage, leseAntwort } from './werkstatt/kivertrag';
+import {
+  type Textstand,
+  type Textzug,
+  textZug,
+  textanfang,
+} from './werkstatt/textzustand';
 import {
   type GepruefterEntwurf,
   type Werkstattstand,
+  type Werkstattzug,
   anfang,
   werkstattZug,
 } from './werkstatt/zustand';
@@ -36,6 +46,27 @@ import {
  * Deshalb: Der letzte Schritt der Werkstatt **speichert einen Entwurf**.
  * Was danach möglich ist, steht als Satz daneben, und der Weg dorthin ist
  * ein Verweis, kein Automatismus.
+ *
+ * ## Warum hier zwei Automaten stehen
+ *
+ * Weil es zwei Sachen sind. Eine Vokabelliste wird **gelesen** — Zeilen,
+ * Spalten, fertig. Ein Fließtext wird **analysiert** und danach Wort für
+ * Wort mit der Lehrkraft besprochen. Beides in einen Automaten zu
+ * zwängen hiesse, in jedem Zug zu fragen, welcher Fall gerade gilt.
+ *
+ * Diese Seite ist die Weiche: Sie fragt `erkenneQuelle`, und was
+ * Fließtext ist, geht gar nicht erst in den Listenweg. Die Erkennung
+ * steht dabei an **einer** Stelle — würde die Weiche eigene Regeln
+ * anwenden, gäbe es zwei Meinungen darüber, was ein Text ist.
+ *
+ * ## Warum der KI-Aufruf hier liegt
+ *
+ * Weil `src/integrationsgrenze.test.ts` ihn den Bausteinen verbietet,
+ * und weil es im Portal genau einen Weg zu einem Modell gibt:
+ * `AiGateway.invoke` und dahinter die Serverfunktion mit Tresor und
+ * Rollenprüfung. Fehlt `repositories.ai` — im Pilotbetrieb entfernt ihn
+ * `ohneGesperrteKi` —, bekommt die Textwerkstatt keinen Rückruf und
+ * zeigt die Karte gar nicht erst.
  */
 
 type Seitenstand =
@@ -66,15 +97,90 @@ const RICHTUNGSTEXTE: Readonly<Record<LearningDirection, string>> = {
 
 export function WerkstattPage() {
   const packs = useOptionalRepository('packs');
+  const ai = useOptionalRepository('ai');
   const navigate = useNavigate();
 
   const [stand, setzeStand] = useState<Werkstattstand>(anfang);
+  const [textstand, setzeTextstand] = useState<Textstand>(textanfang);
   const [seite, setzeSeite] = useState<Seitenstand>({ art: 'werkstatt' });
   const [angaben, setzeAngaben] = useState<Angaben>({ grade: '7', direction: 'en-de' });
 
-  const zug = useCallback((naechster: Parameters<typeof werkstattZug>[1]) => {
-    setzeStand((bisher) => werkstattZug(bisher, naechster));
+  const textzug = useCallback((naechster: Textzug) => {
+    setzeTextstand((bisher) => textZug(bisher, naechster));
   }, []);
+
+  /**
+   * Die Weiche.
+   *
+   * Ein Zug, der Text mitbringt, wird vorher gefragt: Prosa oder Liste?
+   * Prosa geht in die Textwerkstatt, alles andere seinen gewohnten Weg.
+   */
+  const zug = useCallback(
+    (naechster: Werkstattzug) => {
+      if (naechster.art === 'text-eingefuegt') {
+        if (erkenneQuelle({ art: 'text', text: naechster.text }).art === 'fliesstext') {
+          setzeTextstand(textZug(textanfang(), { art: 'text-analysiert', text: naechster.text }));
+          return;
+        }
+      }
+      if (naechster.art === 'datei-gelesen' && typeof naechster.quelle !== 'string') {
+        const erkennung = erkenneQuelle(naechster.quelle);
+        if (erkennung.art === 'fliesstext' && naechster.quelle.art === 'datei') {
+          const inhalt = naechster.quelle.inhalt;
+          if (typeof inhalt === 'string') {
+            setzeStand(anfang());
+            setzeTextstand(textZug(textanfang(), { art: 'text-analysiert', text: inhalt }));
+            return;
+          }
+        }
+      }
+      setzeStand((bisher) => werkstattZug(bisher, naechster));
+    },
+    [],
+  );
+
+  /**
+   * Übersetzungsvorschläge holen — der einzige Netzweg dieser Seite.
+   *
+   * Erst auf Klick, nie beim Öffnen. Die Verbindungen werden ebenfalls
+   * erst hier gelesen: Eine Liste, die beim Öffnen geladen wird, ist ein
+   * Serveraufruf für einen Knopf, den vielleicht niemand drückt.
+   */
+  const vorschlaegeHolen = useCallback(async () => {
+    if (!ai) return;
+    textzug({ art: 'ki-gestartet' });
+    const anfrage = baueAnfrage(textstand.zeilen);
+    if (anfrage.kandidaten.length === 0) {
+      textzug({ art: 'ki-vorschlaege', vorschlaege: [] });
+      return;
+    }
+    try {
+      const verbindungen = await ai.listConnections();
+      const passend = verbindungen.find(
+        (verbindung) => verbindung.active && verbindung.capabilities.includes(TEXTVORSCHLAEGE),
+      );
+      if (!passend) {
+        textzug({
+          art: 'ki-gescheitert',
+          grund:
+            'Es ist keine KI-Verbindung hinterlegt, die Übersetzungsvorschläge anbietet. Unter „Einstellungen“ lässt sich eine anlegen.',
+        });
+        return;
+      }
+      const antwort = await ai.invoke({
+        connectionId: passend.id,
+        capability: TEXTVORSCHLAEGE,
+        payload: anfrage,
+      });
+      textzug({ art: 'ki-vorschlaege', vorschlaege: leseAntwort(antwort) });
+    } catch (fehler) {
+      textzug({
+        art: 'ki-gescheitert',
+        grund:
+          fehler instanceof Error ? fehler.message : 'Der KI-Zugang ist gerade nicht erreichbar.',
+      });
+    }
+  }, [ai, textstand.zeilen, textzug]);
 
   /**
    * Die Datei lesen und dem Automaten übergeben.
@@ -177,6 +283,7 @@ export function WerkstattPage() {
               variant="quiet"
               onClick={() => {
                 setzeStand(anfang());
+                setzeTextstand(textanfang());
                 setzeSeite({ art: 'werkstatt' });
               }}
             >
@@ -207,13 +314,17 @@ export function WerkstattPage() {
     );
   }
 
+  const imText = textstand.schritt === 'analysiert';
+
   return (
     <div className="stack">
       <div className="seitenkopf">
         <div className="seitenkopf__text">
           <h1>Neues Lernpaket</h1>
           <p className="muted">
-            Liste einfügen oder Datei wählen — das Format wird erkannt.
+            {imText
+              ? 'Aus deinem Text — ausgewählt und geprüft wird von dir.'
+              : 'Text, Liste oder Datei einfügen — die Quelle wird erkannt.'}
           </p>
         </div>
         <div className="seitenkopf__aktionen">
@@ -223,7 +334,7 @@ export function WerkstattPage() {
         </div>
       </div>
 
-      {stand.schritt === 'vorschau' ? (
+      {stand.schritt === 'vorschau' || imText ? (
         <Card>
           <div className="werkstatt__felder">
             <Field label="Jahrgang" hint="Bestimmt das vorgeschlagene GeR-Niveau.">
@@ -270,17 +381,35 @@ export function WerkstattPage() {
         </Card>
       ) : null}
 
-      <Werkstatt
-        stand={stand}
-        aufZug={zug}
-        aufDatei={(datei) => {
-          void dateiLesen(datei);
-        }}
-        aufFertig={(entwurf) => {
-          void anlegen(entwurf);
-        }}
-        gibtAb={seite.art === 'speichert'}
-      />
+      {imText ? (
+        <Textwerkstatt
+          stand={textstand}
+          aufZug={textzug}
+          aufFertig={(entwurf) => {
+            void anlegen(entwurf);
+          }}
+          {...(ai
+            ? {
+                aufVorschlaege: () => {
+                  void vorschlaegeHolen();
+                },
+              }
+            : {})}
+          gibtAb={seite.art === 'speichert'}
+        />
+      ) : (
+        <Werkstatt
+          stand={stand}
+          aufZug={zug}
+          aufDatei={(datei) => {
+            void dateiLesen(datei);
+          }}
+          aufFertig={(entwurf) => {
+            void anlegen(entwurf);
+          }}
+          gibtAb={seite.art === 'speichert'}
+        />
+      )}
     </div>
   );
 }
