@@ -129,3 +129,66 @@
 .huelle .werkstatt__befunde > li[data-art='fehler'] {
   color: var(--fehler);
 }
+
+/* ---------------------------------------------------------------------------
+   Der Quelltext
+   ---------------------------------------------------------------------------
+
+   Er ist Text und bleibt Text. Woerter sind `<span>`, aufgenommene
+   `<mark>` — die Hervorhebung traegt also schon im Markup Bedeutung und
+   wird hier nur sichtbar gemacht. Farbe allein unterscheidet die
+   Zustaende nicht: Der uebernommene Zustand bekommt zusaetzlich eine
+   Unterstreichung, der gelistete eine gestrichelte.
+   --------------------------------------------------------------------------- */
+
+.huelle .werkstatt__quelltext {
+  max-block-size: 28rem;
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--rand);
+  border-radius: var(--rund-gross);
+  background: var(--flaeche);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.huelle .werkstatt__wort {
+  border-radius: var(--rund);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/*
+  Ein Wort ist kein Knopf und bekommt trotzdem einen sichtbaren Fokus.
+  Ohne diese Regel waere die Tastaturbedienung zwar vorhanden, aber
+  unsichtbar — und damit fuer alle unbenutzbar, die sie am noetigsten
+  haben.
+*/
+.huelle .werkstatt__wort:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.huelle .werkstatt__wort[data-state='taken'] {
+  background: var(--gut-weich);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.huelle .werkstatt__wort[data-state='listed'] {
+  background: var(--warn-weich);
+  text-decoration: underline dashed;
+  text-underline-offset: 3px;
+}
+
+/* Die erweiterte Markierung – eine Wortgruppe wie „depend on“. */
+.huelle .werkstatt__wort[data-selected='true'] {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.huelle .werkstatt__aufnehmen {
+  margin-block: var(--space-3) 0;
+}
