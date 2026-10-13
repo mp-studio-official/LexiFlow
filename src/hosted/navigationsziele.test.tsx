@@ -55,6 +55,7 @@ function oeffne(route: string, userId?: string) {
       </SessionProvider>
     </RepositoryProvider>,
   );
+  return cloud;
 }
 
 /** Wer welches Navigationsprofil bekommt — nur für diesen Test. */
@@ -378,6 +379,24 @@ describe('die Einstellungen (5B.7)', () => {
     */
     expect(screen.queryByRole('link', { name: /Konten und Rollen/ })).toBeNull();
     expect(screen.queryByText(/Konten und Rollen/)).toBeNull();
+  });
+
+  it('zeigt das eigene Profil, speichert den Anzeigenamen und bietet den Kontowechsel an', async () => {
+    const cloud = oeffne('/einstellungen', 'u-lehrerin');
+    const { userEvent } = await import('@testing-library/user-event');
+    const nutzer = userEvent.setup();
+
+    const name = await screen.findByLabelText('Anzeigename');
+    expect(name).toHaveValue('A. Beispiel');
+    await nutzer.clear(name);
+    await nutzer.type(name, 'Frau Ohm');
+    await nutzer.click(screen.getByRole('button', { name: 'Namen speichern' }));
+
+    expect(await screen.findByText('Dein Anzeigename ist gespeichert.')).toBeInTheDocument();
+    expect((await cloud.repositories.profile!.myProfile())?.displayName).toBe('Frau Ohm');
+    expect(
+      screen.getByRole('button', { name: 'Abmelden und Konto wechseln' }),
+    ).toBeInTheDocument();
   });
 
   it('eine Verwaltung findet zusätzlich „Konten und Rollen"', async () => {

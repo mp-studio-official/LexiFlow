@@ -61,7 +61,12 @@ const AREAS_PER_ROLE: Readonly<Record<Role, readonly Area[]>> = {
  * Die Kursliste bleibt unter `/lernen` erreichbar; „Heute" verweist darauf.
  */
 export const HOME_PER_ROLE: Readonly<Record<Role, string>> = {
-  admin: '/verwaltung',
+  /*
+    Administration ist eine zusätzliche Befugnis, kein eigener
+    Arbeitsmodus. Auch sie beginnt deshalb auf dem Lehrkraft-Dashboard;
+    Konten und Rollen bleiben über Einstellungen erreichbar.
+  */
+  admin: '/start',
   teacher: '/start',
   student: '/heute',
 };

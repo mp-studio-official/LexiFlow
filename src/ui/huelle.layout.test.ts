@@ -79,6 +79,7 @@ describe('kein Layoutsprung bei Hover, Fokus oder aktivem Zustand', () => {
     for (const eigenschaft of ['inline-size', 'min-inline-size', 'max-inline-size']) {
       expect(zusammen, `${eigenschaft} fehlt`).toMatch(new RegExp(`${eigenschaft}:\\s*76px`));
     }
+    expect(Number(/z-index:\s*(\d+)/.exec(inBreit)?.[1] ?? 0)).toBeGreaterThan(1);
   });
 
   it('der Tooltip liegt außerhalb des Flusses', () => {

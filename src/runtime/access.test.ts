@@ -117,6 +117,7 @@ describe('Vollständigkeit', () => {
     // führen – das wäre eine Anmeldung, die sofort in einer Sperre endet.
     expect(HOME_PER_ROLE.student).not.toContain('kurse');
     expect(HOME_PER_ROLE.student).not.toContain('verwaltung');
+    expect(HOME_PER_ROLE.admin).toBe(HOME_PER_ROLE.teacher);
   });
 
   it('isRole nimmt genau die bekannten Rollen', () => {

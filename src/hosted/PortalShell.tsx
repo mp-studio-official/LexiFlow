@@ -49,8 +49,14 @@ function Marke() {
  */
 function useMarkePfad(): string {
   const { status, role } = useSession();
-  if (status === 'angemeldet' && role) return HOME_PER_ROLE[role];
-  return '/';
+  /*
+    `Huelle` rendert absichtlich einen echten Verweis und kennt den Router
+    nicht. Das Portal benutzt aber einen HashRouter. Ohne `#` lädt ein Klick
+    die gesamte Adresse neu und verlässt unter `/portal/` sogar die
+    Portal-Anwendung.
+  */
+  if (status === 'angemeldet' && role) return `#${HOME_PER_ROLE[role]}`;
+  return '#/';
 }
 
 /** Die sichtbaren Ziele eines Profils, in der Form, die die Hülle braucht. */
@@ -67,7 +73,7 @@ function zieleFuerHuelle(profil: Profil, groesse: Groesse): Navigationsziel[] {
 }
 
 /** „Abmelden" — eine Handlung, kein Ort. Deshalb ein Rückruf, kein Pfad. */
-function useAbmelden(): Huellenaktion | undefined {
+export function useAbmelden(): Huellenaktion | undefined {
   const auth = useOptionalRepository('auth');
   const { status } = useSession();
   const navigate = useNavigate();
@@ -257,7 +263,7 @@ export function PublicShell() {
       zieleSchreibtisch={[]}
       zieleTelefon={[]}
       marke={<Marke />}
-      markePfad="/"
+      markePfad="#/"
       fusszeile={
         <>
           <p>

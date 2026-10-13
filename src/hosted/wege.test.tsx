@@ -211,7 +211,7 @@ describe('der öffentliche Bereich bleibt öffentlich', () => {
     await screen.findByRole('heading', { name: LANDUNG, level: 1 });
     expect(screen.getByRole('link', { name: 'LexiFlow – Startseite' })).toHaveAttribute(
       'href',
-      '/',
+      '#/',
     );
     expect(screen.getByRole('link', { name: 'Zum Inhalt springen' })).toHaveAttribute(
       'href',
@@ -231,11 +231,12 @@ describe('die Marke führt zum Rollenstart', () => {
     // Seit 5B.4: der Rollenstart der Lernenden ist „Heute", nicht die Kursliste.
     ['u-lernend', '/heute'],
     ['u-lehrerin', '/start'],
-    ['u-verwaltung', '/verwaltung'],
+    // Administration ist eine Lehrkraft mit Zusatzrechten, kein eigener Start.
+    ['u-verwaltung', '/start'],
   ])('%s → %s', async (konto, ziel) => {
-    oeffne(ziel === '/verwaltung' ? '/verwaltung' : '/lernen', konto);
+    oeffne('/lernen', konto);
     const marken = await screen.findAllByRole('link', { name: 'LexiFlow – Startseite' });
-    for (const marke of marken) expect(marke.getAttribute('href')).toBe(ziel);
+    for (const marke of marken) expect(marke.getAttribute('href')).toBe(`#${ziel}`);
   });
 });
 
