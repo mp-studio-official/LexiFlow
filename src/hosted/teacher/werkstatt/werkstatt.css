@@ -90,7 +90,24 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
+}
+
+/*
+  Das Tippziel ist die Beschriftung, nicht das Kästchen.
+
+  Ein `input[type=checkbox]` ist 18 × 18 px, und daran ändert keine
+  Mindesthöhe an der Zeile darüber etwas — gemessen im Browser bei allen
+  vier Breiten. Die Zeile war hoch genug, das Kästchen nicht, und
+  getroffen werden muss das Kästchen. Die Beschriftung umschliesst es und
+  schaltet mit; sie bekommt deshalb die Fläche.
+*/
+.huelle .werkstatt__auswahl .checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   min-block-size: var(--tap-target);
+  min-inline-size: var(--tap-target);
+  padding-inline-end: var(--space-2);
 }
 
 .huelle .werkstatt__auswahltext {
