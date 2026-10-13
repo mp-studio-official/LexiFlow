@@ -1,5 +1,100 @@
 # Übergabe: die nächste Stufe
 
+Zweig `claude/product-wiring`, Worktree `.worktrees/product-wiring`, ab
+`25d92b7` auf `codex/integrate-next-product`.
+
+> **Stand: verdrahtet.** Die Bausteine der vorigen Stufe hängen jetzt an
+> echten Routen und echten Daten. Was unten unter „Was Codex verdrahten
+> muss" stand, ist erledigt — bis auf den Lerncoach, der ausdrücklich bei
+> Codex bleibt.
+
+## 0. Die Verdrahtung — Commits und Routen
+
+| Commit | Inhalt |
+| --- | --- |
+| `0133e51` | Werkstatt produktiv: `#/pakete/neu`, Entwurf statt Automatik |
+| `54af440` | Motivation produktiv: Tagesziel, Auszeichnungen, Rundenbalken, Feier |
+| `6f43695` | Sprachliche Hilfen in der Übungsrunde |
+| `6571c3d` | Das Wörterbuch bleibt aus dem Portalbündel |
+
+### Geänderte Routen
+
+| Route | Änderung |
+| --- | --- |
+| `#/pakete/neu` | **neu** — die Werkstatt, innerhalb des bestehenden Lehrkraftriegels |
+| `#/pakete` | Einstiegsknopf „Neues Lernpaket"; der Kopf steht jetzt auch im Ladefehler |
+| `#/heute` | Tagesziel im Abschnitt „Ziele" |
+| `#/fortschritt` | neuer Abschnitt „Auszeichnungen" (acht statt sieben) |
+| `/lernen/kurs/:id/ueben/:packId` | Rundenbalken, Abschlussfeier, gestufte Hinweise, Fehlererklärung, Formtafel, Beispielsatz |
+
+**Kein neues Hauptnavigationsziel.** Die Werkstatt ist eine Handlung an
+den Lernpaketen, kein Ort daneben; E23 lässt kein Ziel zu, das nur
+manchmal etwas bedeutet. Eine Prüfung hält fest, dass `#/pakete/neu` in
+keiner der beiden Navigationen auftaucht.
+
+### Entscheidungen, die nicht automatisch fallen
+
+Die Werkstatt **legt einen Entwurf an**. Sie veröffentlicht nicht und
+weist keiner Lerngruppe zu: Beides sind Entscheidungen einer Lehrkraft
+über etwas, das danach andere sehen. Der Abschlussbildschirm erklärt, was
+als Nächstes möglich ist, und verweist auf „Lernpakete" — der Weg dorthin
+ist ein Verweis, kein Automatismus. Der Knopf heisst deshalb „Lernpaket
+anlegen" und nicht mehr „Veröffentlichen und zuweisen".
+
+**Jahrgang und Abfragerichtung werden gefragt**, weil `PackMeta` sie
+verlangt und eine Vokabelliste sie nicht hergibt. `cefrLevelOverridden`
+bleibt `false`: Niemand hat hier etwas abweichend gesetzt.
+
+### Messung
+
+`npm run portal:messen` gegen den gebauten Stand, **17 Routen × vier
+Breiten** (390/768/1024/1440): kein waagerechter Überlauf, kein Tippziel
+unter 44 × 44 px, jedes per Tabulator erreichbare Element mit sichtbarem
+Fokus, keine Konsolenfehler.
+
+Die Messung selbst hat dabei drei eigene Fehler offengelegt:
+
+1. Sie prüfte Fokus mit `el.focus()` und las die berechnete Umrandung —
+   und meldete auf **jeder** Route Befunde. Zu Unrecht: Der Ring hängt an
+   `:focus-visible`, und das setzt Chromium bei programmatischem Fokus
+   absichtlich nicht. Jetzt wird wirklich getabbt.
+2. Ihr Sichtbarkeitsfilter übersah nicht gerenderte Teilbäume (die
+   Telefonnavigation am Schreibtisch). `getClientRects()` sagt, was
+   wirklich dasteht.
+3. Die gemessene lernende Person hatte keine bestätigte Zeitzone — damit
+   blieben Woche, Serie, Wochenziel **und** das neue Tagesziel
+   unbeziffert. Vier Breiten lang wurde eine Seite voller „zeigen wir
+   erst, wenn …" aufgenommen. Die Messung bestätigt die Zone jetzt.
+
+### Bekannte Grenzen dieser Stufe
+
+1. **Die Übungsrunde wird nicht im Browser gemessen.** Sie braucht einen
+   Kurs mit zugewiesenem Paket, und das Messkonto hat keinen. Rundenbalken,
+   Hinweistreppe, Fehlerkarte, Formtafel und Beispielsatz sind über
+   Integrationsprüfungen abgedeckt, nicht über eine Aufnahme.
+2. **Die Feier in der Runde kennt nur eine Auszeichnung.** „Ein Paket
+   durch" — alles andere braucht Lerntage, Serie und Gesamtstand, die
+   diese Seite nicht lädt. Ein zusätzlicher Abruf nur zum Feiern wäre
+   Datenhunger.
+3. **Benutzte Hinweise beeinflussen den Lernstand nicht.** `checkAnswer`
+   bleibt die alleinige Instanz, das Leitner-Fach steigt wie bisher.
+   **Offene Produktentscheidung** — siehe unten.
+4. **Der Lerncoach ist nicht in `PracticePage` eingebaut.** Ausdrücklich
+   bei Codex.
+5. **Die Vorschau der Werkstatt bearbeitet Englisch, Deutsch und die
+   Auswahl.** Wortart, Beispielsätze und Notizen bleiben, wie erkannt; sie
+   zu ändern geht im vorhandenen Paketeditor.
+
+### Offene Produktentscheidungen
+
+| Frage | Heute | Warum offen |
+| --- | --- | --- |
+| Sollen benutzte Hinweise den Lernstand beeinflussen? | nein | Das ändert die Bedeutung eines Leitner-Fachs. Keine Frage, die sich beim Verdrahten nebenbei beantworten lässt. |
+| Wo wird die Bestätigung des KI-Datenhinweises gespeichert? | noch nirgends | `localStorage` genügt für einen ersten Schritt und vergisst beim Gerätewechsel. |
+| Soll die Werkstatt einen Schritt „veröffentlichen und zuweisen" anbieten? | nein | Heute führt ein Verweis auf „Lernpakete". Ein Schritt mehr im Assistenten wäre bequemer und nähme die Entscheidung näher an das Speichern heran. |
+
+---
+
 Zweig `claude/next-product-experience`, Worktree
 `.worktrees/next-product-experience`, ab `486abb6`. Der Pilotzweig ist
 unberührt; nichts davon ist ausgeliefert, verdrahtet oder an eine Route
@@ -11,7 +106,11 @@ Rolle oder eine Kennung.
 
 ---
 
-## 1. Was Codex verdrahten muss — in dieser Reihenfolge
+## 1. Wie verdrahtet wurde — als Beleg, nicht als Auftrag
+
+> **Erledigt.** Die Schritte unten standen hier als Anleitung; sie
+> beschreiben jetzt, was in `0133e51`, `54af440` und `6f43695` wirklich
+> geschehen ist. Offen ist allein 1.4, der Lerncoach.
 
 ### 1.1 Werkstatt unter `#/werkstatt`
 
@@ -89,7 +188,7 @@ sie anders gelöst als jemand ohne.
 > unverändert, und das soll sie bleiben, bis jemand das ausdrücklich
 > entscheidet.
 
-### 1.4 Lerncoach
+### 1.4 Lerncoach — **weiterhin offen, bei Codex**
 
 ```tsx
 import { Lerncoach } from './learner/ki-ui/Lerncoach';
