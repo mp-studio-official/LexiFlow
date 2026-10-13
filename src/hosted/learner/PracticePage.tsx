@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useOptionalRepository } from '../../application/RepositoryContext';
+import { zaehleBeherrschung } from '../../domain/beherrschung';
+import {
+  type Auszeichnung,
+  auszeichnungen,
+  frischErreicht,
+  rundenfortschritt,
+} from '../../domain/motivation';
+import { Abschlussfeier, Rundenbalken } from './motivation/Motivation';
 import {
   alsLernstand,
   antwortEreignis,
@@ -33,7 +41,8 @@ import './runde.css';
 import { ExerciseView } from '../../routes/student/ExerciseView';
 import { Alert, Button, Card } from '../../ui/components';
 import type { AnswerCheckResult } from '../../domain/answerCheck';
-import type { EntryProgress, VocabPack } from '../../domain/schema';
+import { activeDirections } from '../../domain/schema';
+import type { EntryProgress, TaskDirection, VocabPack } from '../../domain/schema';
 import type { ProgressEvent } from '../../application/repositories';
 import { Verbindungsfehler } from '../verbindung';
 
@@ -109,6 +118,33 @@ function passtZurAuswahl(
   return auswahl === 'faellig' ? isDue(stand, jetzt) : istSchwierig(stand);
 }
 
+/**
+ * Die Auszeichnungen, soweit dieses eine Paket sie belegen kann.
+ *
+ * Nur `paketstaende` ist gefüllt. Die übrigen Felder bleiben leer, und das
+ * ist keine Nachlässigkeit: Eine erfundene Null bei „Lerntage" wäre eine
+ * Behauptung über etwas, das diese Seite nicht weiss. Leer heisst „nicht
+ * erreicht" — in beiden Ständen gleich, also nie frisch.
+ */
+function paketauszeichnungen(
+  paket: VocabPack,
+  staende: ReadonlyMap<string, EntryProgress>,
+  richtungen: readonly TaskDirection[],
+): Auszeichnung[] {
+  if (richtungen.length === 0) return [];
+  return auszeichnungen({
+    lerntage: [],
+    beherrschung: { beherrscht: 0, offen: 0, gesamt: 0 },
+    paketstaende: [
+      zaehleBeherrschung(
+        paket.entries.map((eintrag) => eintrag.id),
+        staende,
+        richtungen,
+      ),
+    ],
+  });
+}
+
 export function PracticePage() {
   const { courseId, packId } = useParams();
   const navigate = useNavigate();
@@ -167,6 +203,24 @@ export function PracticePage() {
   */
   const staende = useRef(new Map<string, EntryProgress>());
 
+  /**
+   * Die Auszeichnungen, wie sie **vor** dieser Runde standen.
+   *
+   * `frischErreicht` vergleicht zwei Stände; ein zweiter Aufruf am Ende
+   * gegen denselben Stand ergäbe immer eine leere Liste. Festgehalten wird
+   * deshalb beim Laden, einmal.
+   *
+   * Was hier verglichen werden kann, ist bewusst **weniger** als auf „Mein
+   * Fortschritt": Diese Seite kennt nur die Lernstände dieses einen Pakets
+   * — keine Lerntage, keine Serie, keinen Gesamtstand. Also kann hier auch
+   * nur eines frisch werden: „Ein Paket durch". Alles andere steht in
+   * beiden Ständen auf „nicht erreicht" und taucht nie fälschlich auf. Ein
+   * zusätzlicher Abruf, nur um mehr feiern zu können, wäre genau der
+   * Datenhunger, den dieser Bereich nicht haben soll.
+   */
+  const vorDerRunde = useRef<readonly Auszeichnung[]>([]);
+  const richtungen = useRef<readonly TaskDirection[]>([]);
+
   const laden = useCallback(async () => {
     if (!publication || !progress || !courseId || !packId) return;
     try {
@@ -197,6 +251,8 @@ export function PracticePage() {
         Auswahl mit einer gültigen Option wäre eine Attrappe.
       */
       const richtung = effectiveDirection(gefunden.pack.meta.direction, richtungswahl);
+      richtungen.current = activeDirections(richtung);
+      vorDerRunde.current = paketauszeichnungen(gefunden.pack, staende.current, richtungen.current);
       const jetzt = new Date();
       /*
         Ein Zufallsgenerator für Planung **und** Aufgabenbau — mit dem Seed aus
@@ -429,6 +485,20 @@ export function PracticePage() {
       <div className="stack">
         {ausgang}
         <h1>{gezaehlt === 0 ? 'Gerade nichts fällig' : 'Runde beendet'}</h1>
+        {/*
+          Gefeiert wird nur, wenn wirklich etwas passiert ist. Eine Runde,
+          in der nichts fällig war, mit „Runde geschafft" zu quittieren
+          wäre ein Lob für das Öffnen einer Seite.
+        */}
+        {gezaehlt > 0 ? (
+          <Abschlussfeier
+            frisch={frischErreicht(
+              vorDerRunde.current,
+              paketauszeichnungen(pack, staende.current, richtungen.current),
+            )}
+            runde={rundenfortschritt(gezaehlt, gezaehlt)}
+          />
+        ) : null}
         <Card>
           <p>
             {gezaehlt === 0
@@ -465,6 +535,15 @@ export function PracticePage() {
       {nachfrage}
       {ausgang}
       <h1>{pack.meta.title}</h1>
+      {/*
+        `items.length` wächst, wenn eine falsche Antwort die Aufgabe
+        wieder einreiht — der Balken springt dann zurück. Das ist richtig
+        so: Die Runde **ist** länger geworden. Eine feste Zielzahl wäre
+        die bequemere Zahl und die falsche.
+      */}
+      <Rundenbalken
+        stand={rundenfortschritt(state.items.length - remainingCount(state), state.items.length)}
+      />
       <p className="small muted">
         Noch {remainingCount(state)} in dieser Runde
       </p>

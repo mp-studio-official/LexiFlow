@@ -79,6 +79,15 @@ export interface Fortschrittsbild {
   gesamt: Beherrschungsstand;
   kurse: Kursfortschritt[];
   schwierige: SchwierigesWort[];
+  /**
+   * Die gezählten Lerntage, so wie sie hereinkamen.
+   *
+   * Sie wurden bisher benutzt und weggeworfen — `woche` behielt nur die
+   * letzten sieben Tage. Die Auszeichnungen fragen aber nach dem **ersten**
+   * Lerntag überhaupt, und der liegt oft weiter zurück. Durchgereicht statt
+   * neu geholt: Es ist derselbe Aufruf, den diese Seite ohnehin macht.
+   */
+  lerntage: readonly Tageszaehlung[];
 }
 
 /** Die zugewiesenen Fassungen eines Kurses, so wie die Seite sie hereinreicht. */
@@ -199,6 +208,7 @@ export function fortschrittsbild(input: {
 
   const bild: Fortschrittsbild = {
     woche: [],
+    lerntage: input.lerntage,
     gesamt: summiereBeherrschung(kurse.map((kurs) => kurs.stand)),
     kurse,
     schwierige: schwierigeWoerter(input.material, proPaket),

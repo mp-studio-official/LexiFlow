@@ -9,6 +9,8 @@ import { zeitzonenliste } from './Zeitzonenfrage';
 import { zeitzonenVorschlag } from '../../domain/zeitzone';
 import { WOCHENZIEL_MAX, WOCHENZIEL_MIN } from '../../domain/zeitzone';
 import { fortschrittsbild, type Fortschrittsbild, type Kursmaterial } from './fortschrittDaten';
+import { auszeichnungen } from '../../domain/motivation';
+import { Auszeichnungsliste } from './motivation/Motivation';
 import './fortschritt.css';
 
 /**
@@ -154,6 +156,7 @@ export function FortschrittInhalt({
       <Wocheteil bild={bild} />
       <Zielteil bild={bild} speichern={zielSetzen} />
       <Beherrschtteil bild={bild} />
+      <Auszeichnungsteil bild={bild} />
       <Kursteil bild={bild} />
       <Schwierigteil bild={bild} />
       <Zeitzonenteil bild={bild} speichern={zoneSetzen} />
@@ -432,6 +435,44 @@ function Beherrschtteil({ bild }: { bild: Fortschrittsbild }) {
 }
 
 /* ------------------------------------------ 6: nach Kurs und Paket ------ */
+
+/**
+ * Die Auszeichnungen.
+ *
+ * ## Warum hier und nicht auf „Heute"
+ *
+ * Weil sie eine Bilanz sind und kein Tagesgeschäft. „Heute" beantwortet
+ * „was ist jetzt dran", diese Seite „wie weit bin ich" — und dorthin
+ * gehört, was man einmal erreicht hat.
+ *
+ * ## Woher die Zahlen kommen
+ *
+ * Ausschliesslich aus `bild`. Kein zusätzlicher Abruf: Lerntage,
+ * Beherrschungsstände je Paket, Serie und Wochenziel stehen alle schon da,
+ * weil die übrigen Abschnitte dieser Seite sie ohnehin anzeigen.
+ */
+function Auszeichnungsteil({ bild }: { bild: Fortschrittsbild }) {
+  const paketstaende = bild.kurse.flatMap((kurs) => kurs.pakete.map((paket) => paket.stand));
+  return (
+    <Bereich titel="Auszeichnungen" kennung="auszeichnungen">
+      <Auszeichnungsliste
+        auszeichnungen={auszeichnungen({
+          lerntage: bild.lerntage,
+          beherrschung: bild.gesamt,
+          paketstaende,
+          ...(bild.serie ? { serie: bild.serie } : {}),
+          ...(bild.wochenziel === undefined ? {} : { wochenziel: bild.wochenziel }),
+          ...(bild.lerntageDerWoche === undefined
+            ? {}
+            : { lerntageDerWoche: bild.lerntageDerWoche }),
+        })}
+      />
+      <p className="small muted fortschritt__text">
+        Nur für dich. Lehrkräfte sehen davon nichts, und es gibt keinen Vergleich mit anderen.
+      </p>
+    </Bereich>
+  );
+}
 
 function Kursteil({ bild }: { bild: Fortschrittsbild }) {
   return (

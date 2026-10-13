@@ -137,6 +137,7 @@ describe('Ein frisches Konto sieht eine vollständige Seite', () => {
       'Diese Woche',
       'Wochenziel',
       'Beherrscht und offen',
+      'Auszeichnungen',
       'Nach Kurs und Paket',
       'Schwierige Wörter',
       'Zeitzone',

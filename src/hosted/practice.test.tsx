@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { RepositoryProvider } from '../application/RepositoryContext';
@@ -65,6 +65,40 @@ async function eineAntwort(user: ReturnType<typeof userEvent.setup>) {
   // hier der Weg des Lernstands, nicht ob die Antwort stimmt.
   const auswahl = screen.getAllByRole('button').filter((knopf) => knopf.textContent);
   await user.click(auswahl[0]!);
+}
+
+/**
+ * Eine **richtige** Antwort geben — egal, welche Form der Planer wählt.
+ *
+ * `eineAntwort` oben klickt blind die erste Möglichkeit; für den Lernstand
+ * genügt das. Wo es darauf ankommt, dass eine Vokabel wirklich aufsteigt,
+ * genügt es nicht: Eine falsche Antwort reiht die Aufgabe wieder ein, und
+ * bei einem Paket mit einer Vokabel läuft die Runde dann im Kreis.
+ */
+async function eineRichtigeAntwort(
+  user: ReturnType<typeof userEvent.setup>,
+  erlaubt: readonly string[],
+) {
+  const loesung = screen.queryByRole('button', { name: 'Lösung anzeigen' });
+  if (loesung) {
+    await user.click(loesung);
+    await user.click(await screen.findByRole('button', { name: 'Gewusst' }));
+    return;
+  }
+
+  const feld = screen.queryByRole('textbox');
+  if (feld) {
+    await user.clear(feld);
+    await user.type(feld, erlaubt[0]!);
+    await user.click(screen.getByRole('button', { name: 'Antwort prüfen' }));
+    return;
+  }
+
+  const treffer = screen
+    .getAllByRole('button')
+    .find((knopf) => erlaubt.some((wert) => knopf.textContent?.trim() === wert));
+  if (!treffer) throw new Error('Keine richtige Möglichkeit gefunden.');
+  await user.click(treffer);
 }
 
 describe('Üben im Portal', () => {
@@ -152,6 +186,129 @@ describe('Üben im Portal', () => {
     expect(staende[0]!.rev).toBe(2);
 
     cloud.repositories.progress!.recordEvents = echt;
+  });
+
+  it('zeigt den Rundenfortschritt als Zahl, nicht nur als Balken', async () => {
+    const { cloud, courseId, packId } = await kursMitPaket();
+    const user = zeige(cloud, `/lernen/kurs/${courseId}/ueben/${packId}`);
+    const balken = await screen.findByRole('progressbar', { name: /Runde/ });
+    expect(balken).toHaveAttribute('aria-valuenow', '0');
+    const gesamt = Number(balken.getAttribute('aria-valuemax'));
+    expect(gesamt).toBeGreaterThan(0);
+
+    await eineAntwort(user);
+    await user.click(await screen.findByRole('button', { name: 'Weiter' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('progressbar', { name: /Runde/ })).toHaveAttribute(
+        'aria-valuenow',
+        '1',
+      ),
+    );
+  });
+
+  it('feiert die beendete Runde — und nur, wenn wirklich etwas passiert ist', async () => {
+    const { cloud, courseId, packId } = await kursMitPaket();
+    const user = zeige(cloud, `/lernen/kurs/${courseId}/ueben/${packId}`);
+    await screen.findByRole('progressbar', { name: /Runde/ });
+
+    /*
+      So lange antworten, bis die Runde zu Ende ist. Wie viele Aufgaben das
+      sind, entscheidet der Planer; eine feste Zahl hier wäre eine Annahme
+      über ihn.
+    */
+    for (let versuch = 0; versuch < 40; versuch += 1) {
+      if (screen.queryByRole('heading', { name: 'Runde beendet' })) break;
+      await eineAntwort(user);
+      const weiter = screen.queryByRole('button', { name: 'Weiter' });
+      if (weiter) await user.click(weiter);
+    }
+
+    expect(await screen.findByRole('heading', { name: 'Runde beendet' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/Runde geschafft/);
+  });
+
+  it('nennt beim Abschluss, was frisch erreicht wurde', async () => {
+    /*
+      Die eine Auszeichnung, die eine Übungsrunde aus eigener Kenntnis
+      belegen kann: „Ein Paket durch". Alles andere — Lerntage, Serie,
+      Gesamtstand — kennt diese Seite nicht, und ein zusätzlicher Abruf,
+      nur um mehr feiern zu können, wäre genau der Datenhunger, den dieser
+      Bereich nicht haben soll.
+
+      Vorbereitet wird bis **kurz vor** der Beherrschung: Fach 4 gilt als
+      beherrscht, und dorthin führen drei richtige Antworten. Zwei stehen
+      vorher im Konto, die dritte fällt in der Runde.
+    */
+    const cloud = createFakeCloud();
+    cloud.signInAs('u-lehrerin');
+    const kurs = await cloud.repositories.courses!.createCourse({ title: 'Englisch 7b' });
+    const { code } = await cloud.repositories.invitations!.createInvite(kurs.id, {});
+    const vorlage = makePack();
+    const pack = {
+      meta: { ...vorlage.meta, direction: 'en-de' as const },
+      entries: [vorlage.entries[0]!],
+    };
+    await cloud.repositories.packs!.saveDraft(pack);
+    const revision = await cloud.repositories.publication!.publish(pack.meta.id);
+    await cloud.repositories.publication!.assignToCourse(
+      kurs.id,
+      pack.meta.id,
+      revision.revision,
+      0,
+    );
+
+    cloud.signInAs('u-lernend');
+    await cloud.repositories.invitations!.redeemCode(code);
+
+    let vorher: Parameters<typeof antwortEreignis>[0]['vorher'];
+    for (let runde = 0; runde < 2; runde += 1) {
+      const { event, nachher } = antwortEreignis({
+        courseId: kurs.id,
+        packId: pack.meta.id,
+        entryId: pack.entries[0]!.id,
+        direction: 'en-de',
+        outcome: 'correct',
+        /*
+          Lange her: Fach 3 ist drei Tage fällig. Mit einer Uhr von heute
+          wäre die Vokabel nicht dran, die Runde leer — und die Prüfung
+          grün, ohne etwas gesehen zu haben.
+        */
+        now: new Date('2026-01-01T08:00:00Z'),
+        ...(vorher ? { vorher } : {}),
+      });
+      await cloud.repositories.progress!.recordEvents([event]);
+      vorher = nachher;
+    }
+    expect(vorher?.box).toBe(3);
+
+    const user = zeige(cloud, `/lernen/kurs/${kurs.id}/ueben/${pack.meta.id}?auswahl=alle`);
+    await screen.findByRole('progressbar', { name: /Runde/ });
+
+    for (let versuch = 0; versuch < 20; versuch += 1) {
+      if (screen.queryByRole('heading', { name: 'Runde beendet' })) break;
+      await eineRichtigeAntwort(user, pack.entries[0]!.germanAnswers);
+      const weiter = screen.queryByRole('button', { name: 'Weiter' });
+      if (weiter) await user.click(weiter);
+    }
+
+    await screen.findByRole('heading', { name: 'Runde beendet' });
+    expect(screen.getByRole('status')).toHaveTextContent(/Ein Paket durch/);
+  });
+
+  it('feiert nichts, wenn gar nichts fällig war', async () => {
+    const { cloud, courseId, packId } = await kursMitPaket();
+    const user = zeige(cloud, `/lernen/kurs/${courseId}/ueben/${packId}?auswahl=schwierig`);
+    /*
+      „Schwierige Wörter" gibt es in einem frischen Konto nicht — die Runde
+      ist leer. Ein Lob dafür, eine Seite geöffnet zu haben, wäre genau die
+      Sorte Motivation, die dieser Bereich nicht haben soll.
+    */
+    expect(
+      await screen.findByRole('heading', { name: 'Gerade nichts fällig' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Runde geschafft/)).toBeNull();
+    expect(user).toBeDefined();
   });
 
   it('sagt es, wenn das Paket nicht (mehr) im Kurs liegt', async () => {
