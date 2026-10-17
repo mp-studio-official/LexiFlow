@@ -35,13 +35,22 @@ export const PILOT_BAND_TEXT =
 /**
  * Der KI-Zustand im Pilot.
  *
- * `'gesperrt'` heißt: sichtbar und bestimmt abgeschaltet. Nicht „kein
- * Schlüssel hinterlegt", nicht „der Anbieter antwortet nicht" – abgeschaltet,
- * und die Seite sagt es.
+ * `'gesperrt'` heißt für Lernendenfunktionen: sichtbar und bestimmt
+ * abgeschaltet. Nicht „kein Schlüssel hinterlegt", nicht „der Anbieter
+ * antwortet nicht" – abgeschaltet, und die Oberfläche sagt es.
  */
 export const KI_IM_PILOT: 'gesperrt' | 'frei' = 'gesperrt';
 
+/**
+ * Die eng begrenzte Lehrkraftfreigabe für die Textwerkstatt.
+ *
+ * Sie ist absichtlich eine zweite Entscheidung: Übersetzungsvorschläge für
+ * ausgewählte Wörter dürfen freigegeben werden, ohne damit Schüler:innen-KI
+ * oder beliebige künftige Fähigkeiten zu öffnen.
+ */
+export const TEXTWERKSTATT_KI_IM_PILOT: 'gesperrt' | 'frei' = 'frei';
+
 /** Der Satz, der an der Stelle steht, an der sonst KI wäre. */
 export const KI_GESPERRT_TEXT =
-  'KI ist im ersten Pilot noch nicht freigegeben. Hinterlegte Zugänge bleiben ' +
+  'KI für Lernende ist im ersten Pilot noch nicht freigegeben. Hinterlegte Zugänge bleiben ' +
   'erhalten und werden nicht benutzt; eine Freigabe ist ein eigener Schritt.';

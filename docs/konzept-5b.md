@@ -1507,3 +1507,15 @@ nächsten Tag gutgeschrieben.
 > Der Preis ist benannt und wird **nicht verdeckt**: keine heimliche
 > Verwendung von Clientzeit, keine Mischform, keine „Kulanzstunde". Wenn die
 > Anzeige später erklärt, warum ein Tag fehlt, dann mit diesem Satz.
+
+### E29 — KI im Pilot ist nach Fähigkeit freigegeben
+
+Für Lehrkräfte ist ausschließlich `teacher-text/suggestions` freigegeben.
+Nach der lokalen Textanalyse wählt die Lehrkraft Wörter aus und löst den
+Abruf ausdrücklich aus. Gesendet werden nur diese Wörter und ihre jeweiligen
+Quellsätze, niemals der vollständige Text, Namen oder Lernstände. Vorschläge
+füllen nur leere Felder und bleiben bearbeitbar.
+
+Der Lerncoach für Schüler:innen und jede andere KI-Fähigkeit bleiben im Pilot
+gesperrt. Die Grenze liegt vor dem Gatewayaufruf und wird nicht nur durch eine
+ausgeblendete Oberfläche dargestellt.

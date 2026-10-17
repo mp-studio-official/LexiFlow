@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useOptionalRepository } from '../../application/RepositoryContext';
 import { Alert, Button, Card, EmptyState } from '../../ui/components';
 import type { AiConnectionSummary } from '../../application/repositories';
-import { KI_GESPERRT_TEXT, KI_IM_PILOT } from '../pilot';
+import { KI_GESPERRT_TEXT, TEXTWERKSTATT_KI_IM_PILOT } from '../pilot';
 
 /**
  * Der KI-Zugang einer Lehrkraft – im Konto.
@@ -104,7 +104,7 @@ export function AiPage() {
     stünde an dieser Stelle „In dieser Fassung gibt es keinen KI-Zugang" –
     richtig, aber nichtssagend. Wer das liest, sucht den Schalter.
   */
-  if (KI_IM_PILOT === 'gesperrt') {
+  if (TEXTWERKSTATT_KI_IM_PILOT === 'gesperrt') {
     return (
       <div className="stack">
         <h1>KI-Zugang</h1>
@@ -161,6 +161,12 @@ export function AiPage() {
   return (
     <div className="stack">
       <h1>KI-Zugang</h1>
+
+      <Alert tone="info" title="Im Pilot nur für die Textwerkstatt">
+        Der Zugang darf derzeit Übersetzungsvorschläge für Wörter liefern, die du in der
+        Textwerkstatt ausdrücklich ausgewählt hast. Der Lerncoach für Schüler:innen bleibt
+        gesperrt.
+      </Alert>
 
       <Alert tone="info" title="Was mit dem Schlüssel passiert">
         Er geht einmal an den Server, wird dort verschlüsselt abgelegt und kommt nie wieder heraus –

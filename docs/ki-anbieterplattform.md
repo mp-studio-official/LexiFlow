@@ -3,8 +3,11 @@
 Stand: 13. Oktober 2026
 
 Diese Arbeit läuft parallel zum Pilot. `ai-gateway` und Migration 17 sind seit
-dem 13. Oktober 2026 im Staging deployt; im Pilot bleibt KI sichtbar gesperrt.
-Es gab noch keinen echten Anbieteraufruf.
+dem 13. Oktober 2026 im Staging deployt. Seit dem 17. Oktober ist im Pilot
+ausschließlich `teacher-text/suggestions` freigegeben: Eine Lehrkraft kann für
+selbst ausgewählte Wörter Übersetzungsvorschläge abrufen. Lernendenassistenz
+und alle anderen Fähigkeiten bleiben sichtbar und technisch gesperrt. Ein
+echter Anbieteraufruf bleibt vor der Auslieferung abzunehmen.
 
 ## Was dieser Block leistet
 

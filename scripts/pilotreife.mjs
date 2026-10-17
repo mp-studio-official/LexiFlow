@@ -239,23 +239,26 @@ pruefung(
 
 pruefung(
   7,
-  'KI ist bestimmt gesperrt, nicht zufällig aus',
+  'KI ist im Pilot nach Fähigkeit begrenzt',
   () => {
     const pilot = lies('src', 'hosted', 'pilot.ts');
     if (pilot === null) return '`src/hosted/pilot.ts` fehlt';
     if (!/KI_IM_PILOT.*'gesperrt'/.test(pilot)) return '`KI_IM_PILOT` steht nicht auf gesperrt';
+    if (!/TEXTWERKSTATT_KI_IM_PILOT.*'frei'/.test(pilot)) {
+      return 'die Textwerkstatt ist nicht ausdrücklich freigegeben';
+    }
     /*
-      Zwei Stellen, und beide sind nötig: Die Anwendung nimmt den Zugang aus
-      dem Speicherverbund (das ist die Sperre), die Seite erklärt es (das ist
-      der Unterschied zwischen „gesperrt" und „kaputt").
+      Zwei Stellen, und beide sind nötig: Die Anwendung begrenzt den Zugang
+      im Speicherverbund auf die eine Fähigkeit, die Seite erklärt den
+      Umfang. Eine ausgeblendete Schaltfläche wäre keine Sperre.
     */
     const anwendung = lies('src', 'hosted', 'HostedApp.tsx');
     const seite = lies('src', 'hosted', 'teacher', 'AiPage.tsx');
     if (anwendung === null || seite === null) return 'Dateien fehlen';
-    if (!/ohneGesperrteKi/.test(anwendung)) return 'der Zugang wird nicht entfernt';
-    return /KI_IM_PILOT/.test(seite);
+    if (!/TEXT_SUGGESTION_CAPABILITY/.test(anwendung)) return 'die Fähigkeitsgrenze fehlt';
+    return /TEXTWERKSTATT_KI_IM_PILOT/.test(seite);
   },
-  '`KI_IM_PILOT` auf `gesperrt`, `ohneGesperrteKi` in `HostedApp.tsx`, Erklärung in `AiPage.tsx`.',
+  'Lerncoach gesperrt, Lehrkraft-Textwerkstatt frei; andere Fähigkeiten werden vor dem Gateway abgewiesen.',
 );
 
 /* ------------------------------------------------------------------ 8 */

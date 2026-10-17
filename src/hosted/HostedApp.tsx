@@ -15,7 +15,13 @@ import { RecoveryPage } from './pages/RecoveryPage';
 import { PortalPrivacyPage } from './pages/PortalPrivacyPage';
 import { SetupPage } from './pages/SetupPage';
 import type { Repositories } from '../application/repositories';
-import { IST_PILOT, KI_IM_PILOT, PILOT_BAND_TEXT } from './pilot';
+import {
+  IST_PILOT,
+  KI_IM_PILOT,
+  PILOT_BAND_TEXT,
+  TEXTWERKSTATT_KI_IM_PILOT,
+} from './pilot';
+import { TEXT_SUGGESTION_CAPABILITY } from '../application/textSuggestions';
 
 /**
  * Das Webportal.
@@ -329,6 +335,26 @@ function Testband() {
  */
 export function ohneGesperrteKi(speicher: Repositories): Repositories {
   if (KI_IM_PILOT !== 'gesperrt' || !speicher.ai) return speicher;
+  if (TEXTWERKSTATT_KI_IM_PILOT === 'frei') {
+    const ai = speicher.ai;
+    return {
+      ...speicher,
+      ai: {
+        listConnections: () => ai.listConnections(),
+        saveConnection: (input) => ai.saveConnection(input),
+        deleteConnection: (id) => ai.deleteConnection(id),
+        testConnection: (id) => ai.testConnection(id),
+        invoke: (input) => {
+          if (input.capability !== TEXT_SUGGESTION_CAPABILITY) {
+            return Promise.reject(
+              new Error('Diese KI-Funktion ist im Pilot noch nicht freigegeben.'),
+            );
+          }
+          return ai.invoke(input);
+        },
+      },
+    };
+  }
   const { ai: _gesperrt, ...ohneKi } = speicher;
   return ohneKi;
 }

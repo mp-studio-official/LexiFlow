@@ -52,13 +52,14 @@ Die Oberfläche selbst liegt bei **GitHub Pages**.
 
 ## Künstliche Intelligenz
 
-**Im Pilot abgeschaltet.** Nicht „zufällig aus", sondern bestimmt: Die
-Anwendung hat keinen Weg zu einem KI-Anbieter, und die Seite sagt das auch.
-Es werden **keine** Texte oder Eingaben Ihres Kindes an einen KI-Dienst
-gesendet.
+**Für Lernende im Pilot abgeschaltet.** Es werden **keine** Texte, Antworten,
+Lernstände oder sonstigen Eingaben Ihres Kindes an einen KI-Dienst gesendet.
 
-Falls das später freigegeben werden soll, wird vorher informiert – mit
-Anbieter, Datenfluss und einem eigenen Hinweis.
+Eine Lehrkraft kann bei der Materialerstellung für selbst ausgewählte
+englische Wörter Übersetzungsvorschläge abrufen. Dabei gehen nur das Wort und
+der zugehörige Satz aus dem Unterrichtsmaterial an den von der Lehrkraft
+eingerichteten Anbieter – keine Namen und keine Lerndaten. Vor dem Abruf zeigt
+LexiFlow diesen Datenfluss an; ohne ausdrücklichen Klick wird nichts gesendet.
 
 ## Wie lange, und wie wieder weg
 

@@ -64,9 +64,9 @@ import {
  * Weil `src/integrationsgrenze.test.ts` ihn den Bausteinen verbietet,
  * und weil es im Portal genau einen Weg zu einem Modell gibt:
  * `AiGateway.invoke` und dahinter die Serverfunktion mit Tresor und
- * Rollenprüfung. Fehlt `repositories.ai` — im Pilotbetrieb entfernt ihn
- * `ohneGesperrteKi` —, bekommt die Textwerkstatt keinen Rückruf und
- * zeigt die Karte gar nicht erst.
+ * Rollenprüfung. Im Pilot lässt `ohneGesperrteKi` ausschließlich die
+ * Fähigkeit `teacher-text/suggestions` hindurch; der Lerncoach bleibt
+ * gesperrt. Fehlt `repositories.ai`, bleibt die Werkstatt manuell nutzbar.
  */
 
 type Seitenstand =

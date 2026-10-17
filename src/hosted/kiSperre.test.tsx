@@ -1,11 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { RepositoryProvider } from '../application/RepositoryContext';
 import { createFakeCloud } from '../application/fakeCloudRepositories';
 import { HostedApp, HostedRoutes, ohneGesperrteKi } from './HostedApp';
 import { SessionProvider } from './SessionContext';
-import { IST_PILOT, KI_IM_PILOT, PILOT_BAND_TEXT } from './pilot';
+import {
+  IST_PILOT,
+  KI_IM_PILOT,
+  PILOT_BAND_TEXT,
+  TEXTWERKSTATT_KI_IM_PILOT,
+} from './pilot';
+import { TEXT_SUGGESTION_CAPABILITY } from '../application/textSuggestions';
 
 /**
  * Die Pilotgrenze an der Oberfläche: Band und KI-Sperre.
@@ -61,18 +67,39 @@ describe('die Pilotkennzeichnung', () => {
 });
 
 describe('die KI-Sperre im Pilot', () => {
-  it('ist bestimmt und nicht zufällig', () => {
+  it('sperrt den Lerncoach und gibt nur die Lehrkraft-Textwerkstatt frei', () => {
     expect(KI_IM_PILOT).toBe('gesperrt');
+    expect(TEXTWERKSTATT_KI_IM_PILOT).toBe('frei');
   });
 
-  it('nimmt den Zugang aus dem Speicherverbund', () => {
+  it('lässt Übersetzungsvorschläge durch', async () => {
     /*
-      Der eigentliche Riegel. Eine Fälschung mit KI-Zugang geht hinein; was
-      die Ansichten bekommen, hat keinen.
+      Der positive Teil des Riegels: Genau diese eine Fähigkeit erreicht das
+      eigentliche Gateway. Ohne ihn könnte die negative Prüfung auch dadurch
+      grün werden, dass schlicht jede KI-Fähigkeit gesperrt bleibt.
     */
     const cloud = createFakeCloud();
     expect(cloud.repositories.ai).toBeDefined();
-    expect(ohneGesperrteKi(cloud.repositories).ai).toBeUndefined();
+    const invoke = vi.spyOn(cloud.repositories.ai!, 'invoke').mockResolvedValue({ suggestions: [] });
+    await ohneGesperrteKi(cloud.repositories).ai!.invoke({
+      connectionId: 'v1',
+      capability: TEXT_SUGGESTION_CAPABILITY,
+      payload: {},
+    });
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('blockiert jede andere Fähigkeit vor dem eigentlichen Gateway', async () => {
+    const cloud = createFakeCloud();
+    const invoke = vi.spyOn(cloud.repositories.ai!, 'invoke');
+    await expect(
+      ohneGesperrteKi(cloud.repositories).ai!.invoke({
+        connectionId: 'v1',
+        capability: 'learner-coach/hinweis',
+        payload: {},
+      }),
+    ).rejects.toThrow(/im Pilot noch nicht freigegeben/);
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it('lässt alles andere unangetastet', () => {
@@ -80,25 +107,25 @@ describe('die KI-Sperre im Pilot', () => {
       Eine Sperre, die nebenbei die Kurse mitnimmt, fiele erst im Pilot auf.
     */
     const cloud = createFakeCloud();
-    const vorher = Object.keys(cloud.repositories).filter((name) => name !== 'ai').sort();
+    const vorher = Object.keys(cloud.repositories).sort();
     expect(Object.keys(ohneGesperrteKi(cloud.repositories)).sort()).toEqual(vorher);
   });
 
-  it('erklärt auf der KI-Seite, dass es am Pilot liegt', async () => {
+  it('öffnet den Zugang nur für die Textwerkstatt', async () => {
     zeigeSeite('/ki');
-    expect(await screen.findByText(/Im Pilot nicht freigegeben/)).toBeInTheDocument();
-    expect(screen.getByText(/noch nicht freigegeben/)).toBeInTheDocument();
+    expect(await screen.findByText(/Im Pilot nur für die Textwerkstatt/)).toBeInTheDocument();
+    expect(screen.getByText(/Lerncoach für Schüler:innen bleibt/)).toBeInTheDocument();
   });
 
-  it('sagt zu, dass hinterlegte Zugänge erhalten bleiben', async () => {
+  it('erklärt, dass der Schlüssel nur den sicheren Serverweg nimmt', async () => {
     zeigeSeite('/ki');
-    expect(await screen.findByText(/bleiben\s+erhalten/)).toBeInTheDocument();
+    expect(await screen.findByText(/wird dort verschlüsselt abgelegt/)).toBeInTheDocument();
   });
 
-  it('bietet kein Feld für einen Schlüssel an', async () => {
+  it('bietet der Lehrkraft die Verbindungseinrichtung an', async () => {
     zeigeSeite('/ki');
-    await screen.findByText(/Im Pilot nicht freigegeben/);
-    expect(screen.queryByLabelText('API-Schlüssel')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Anbieter')).not.toBeInTheDocument();
+    await screen.findByText(/Im Pilot nur für die Textwerkstatt/);
+    expect(screen.getByLabelText('API-Schlüssel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Anbieter')).toBeInTheDocument();
   });
 });

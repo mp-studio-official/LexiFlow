@@ -47,9 +47,9 @@ import './werkstatt.css';
  *
  * ## Warum der KI-Knopf fehlen darf
  *
- * `aufVorschlaege` ist optional. Fehlt der Rückruf — weil die
- * Pilotsperre den KI-Zugang entfernt hat oder keine Verbindung
- * hinterlegt ist —, erscheint der Knopf gar nicht erst. Ein Knopf, der
+ * `aufVorschlaege` ist optional. Fehlt der Rückruf — weil keine
+ * freigegebene KI-Fähigkeit vorhanden ist —, erscheint der Knopf gar
+ * nicht erst. Ein Knopf, der
  * nichts auslöst, ist schlimmer als keiner, und die Werkstatt
  * funktioniert ohne ihn vollständig.
  */
