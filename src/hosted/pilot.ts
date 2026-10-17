@@ -41,6 +41,9 @@ export const PILOT_BAND_TEXT =
  */
 export const KI_IM_PILOT: 'gesperrt' | 'frei' = 'gesperrt';
 
+/** Die vier fest begrenzten Lerncoach-Handlungen sind im Pilot freigegeben. */
+export const LERNCOACH_KI_IM_PILOT: 'gesperrt' | 'frei' = 'frei';
+
 /**
  * Die eng begrenzte Lehrkraftfreigabe für die Textwerkstatt.
  *
@@ -52,5 +55,5 @@ export const TEXTWERKSTATT_KI_IM_PILOT: 'gesperrt' | 'frei' = 'frei';
 
 /** Der Satz, der an der Stelle steht, an der sonst KI wäre. */
 export const KI_GESPERRT_TEXT =
-  'KI für Lernende ist im ersten Pilot noch nicht freigegeben. Hinterlegte Zugänge bleiben ' +
+  'Andere KI-Funktionen sind im ersten Pilot noch nicht freigegeben. Hinterlegte Zugänge bleiben ' +
   'erhalten und werden nicht benutzt; eine Freigabe ist ein eigener Schritt.';

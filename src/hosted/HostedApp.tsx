@@ -18,6 +18,7 @@ import type { Repositories } from '../application/repositories';
 import {
   IST_PILOT,
   KI_IM_PILOT,
+  LERNCOACH_KI_IM_PILOT,
   PILOT_BAND_TEXT,
   TEXTWERKSTATT_KI_IM_PILOT,
 } from './pilot';
@@ -335,8 +336,19 @@ function Testband() {
  */
 export function ohneGesperrteKi(speicher: Repositories): Repositories {
   if (KI_IM_PILOT !== 'gesperrt' || !speicher.ai) return speicher;
-  if (TEXTWERKSTATT_KI_IM_PILOT === 'frei') {
+  if (TEXTWERKSTATT_KI_IM_PILOT === 'frei' || LERNCOACH_KI_IM_PILOT === 'frei') {
     const ai = speicher.ai;
+    const erlaubt = new Set([
+      ...(TEXTWERKSTATT_KI_IM_PILOT === 'frei' ? [TEXT_SUGGESTION_CAPABILITY] : []),
+      ...(LERNCOACH_KI_IM_PILOT === 'frei'
+        ? [
+            'learner-coach/fehler-erklaeren',
+            'learner-coach/hinweis',
+            'learner-coach/anderer-satz',
+            'learner-coach/warum-richtig',
+          ]
+        : []),
+    ]);
     return {
       ...speicher,
       ai: {
@@ -345,7 +357,7 @@ export function ohneGesperrteKi(speicher: Repositories): Repositories {
         deleteConnection: (id) => ai.deleteConnection(id),
         testConnection: (id) => ai.testConnection(id),
         invoke: (input) => {
-          if (input.capability !== TEXT_SUGGESTION_CAPABILITY) {
+          if (!erlaubt.has(input.capability)) {
             return Promise.reject(
               new Error('Diese KI-Funktion ist im Pilot noch nicht freigegeben.'),
             );

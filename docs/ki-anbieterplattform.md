@@ -4,10 +4,13 @@ Stand: 13. Oktober 2026
 
 Diese Arbeit läuft parallel zum Pilot. `ai-gateway` und Migration 17 sind seit
 dem 13. Oktober 2026 im Staging deployt. Seit dem 17. Oktober ist im Pilot
-ausschließlich `teacher-text/suggestions` freigegeben: Eine Lehrkraft kann für
-selbst ausgewählte Wörter Übersetzungsvorschläge abrufen. Lernendenassistenz
-und alle anderen Fähigkeiten bleiben sichtbar und technisch gesperrt. Ein
-echter Anbieteraufruf bleibt vor der Auslieferung abzunehmen.
+`teacher-text/suggestions` sowie vier feste `learner-coach/*`-Handlungen
+freigegeben. Eine Lehrkraft kann für selbst ausgewählte Wörter
+Übersetzungsvorschläge abrufen; Lernende können ausschließlich mit ihrem
+eigenen Zugang einen Fehler erklären, einen Hinweis, einen anderen Satz oder
+die Erklärung einer richtigen Antwort anfordern. Freier Chat und alle anderen
+Fähigkeiten bleiben technisch gesperrt. Ein echter Anbieteraufruf bleibt vor
+der Auslieferung abzunehmen.
 
 ## Was dieser Block leistet
 

@@ -212,6 +212,7 @@ export function LerncoachEinbettung({
 }
 
 function ZugangEinrichten({ ai, nachSpeichern }: { ai: AiGateway; nachSpeichern: () => Promise<void> }) {
+  const [offen, setOffen] = useState(false);
   const [zugangId, setZugangId] = useState<ZugangId>('gemini');
   const [modell, setModell] = useState('');
   const [schluessel, setSchluessel] = useState('');
@@ -220,6 +221,21 @@ function ZugangEinrichten({ ai, nachSpeichern }: { ai: AiGateway; nachSpeichern:
   const [speichert, setSpeichert] = useState(false);
   const zugang = ZUGAENGE.find((eintrag) => eintrag.id === zugangId)!;
   const eigeneAdresse = zugang.id === 'kompatibel';
+
+  if (!offen) {
+    return (
+      <Card className="ki-coach" quiet>
+        <h3 className="ki-coach__titel">Lerncoach</h3>
+        <p className="small muted">
+          Optional: Lass dir einen Fehler erklären, einen Hinweis oder einen anderen Beispielsatz
+          geben. Dafür brauchst du einen eigenen API-Zugang.
+        </p>
+        <Button variant="quiet" onClick={() => setOffen(true)}>
+          Eigenen Lerncoach verbinden
+        </Button>
+      </Card>
+    );
+  }
 
   async function speichern() {
     setSpeichert(true);
@@ -250,6 +266,11 @@ function ZugangEinrichten({ ai, nachSpeichern }: { ai: AiGateway; nachSpeichern:
         Du brauchst einen API-Schlüssel des Anbieters. Ein normales ChatGPT-, Claude- oder
         Gemini-Konto ist nicht automatisch ein API-Zugang. Der Schlüssel wird verschlüsselt
         gespeichert und später nicht mehr angezeigt.
+      </p>
+      <p className="small muted">
+        Beim Verbinden wird nur der Zugang geprüft. Vor der ersten Lernhilfe zeigt LexiFlow noch
+        einmal, welche Angaben zur aktuellen Aufgabe an diesen Anbieter gehen. Name, Lern-ID,
+        Kurs und bisheriger Lernstand werden nie mitgesendet.
       </p>
       {fehler ? <Alert tone="error">{fehler}</Alert> : null}
       <div className="field">
@@ -307,6 +328,9 @@ function ZugangEinrichten({ ai, nachSpeichern }: { ai: AiGateway; nachSpeichern:
         onClick={() => void speichern()}
       >
         {speichert ? 'Wird verbunden …' : 'Zugang verbinden'}
+      </Button>
+      <Button variant="quiet" onClick={() => setOffen(false)}>
+        Einrichtung schließen
       </Button>
     </Card>
   );

@@ -52,8 +52,16 @@ Die Oberfläche selbst liegt bei **GitHub Pages**.
 
 ## Künstliche Intelligenz
 
-**Für Lernende im Pilot abgeschaltet.** Es werden **keine** Texte, Antworten,
-Lernstände oder sonstigen Eingaben Ihres Kindes an einen KI-Dienst gesendet.
+Der Lerncoach ist freiwillig und funktioniert nur, wenn für das Lernkonto ein
+eigener API-Zugang eingerichtet wird. Es gibt **kein freies Chatfeld**. Er kann
+nur einen konkreten Fehler erklären, einen Hinweis oder einen anderen
+Beispielsatz geben und erklären, warum eine Antwort richtig ist.
+
+Vor der ersten Nutzung zeigt LexiFlow an, welche Angaben übertragen werden:
+die aktuelle Vokabel, Abfragerichtung, gegebenenfalls ein von der Lehrkraft
+freigegebener Beispielsatz und die eine aktuelle Antwort. **Nicht** übertragen
+werden Name, Lern-ID, Kurs oder bisheriger Lernstand. Die KI entscheidet nie
+über richtig oder falsch und verändert den Lernstand nicht.
 
 Eine Lehrkraft kann bei der Materialerstellung für selbst ausgewählte
 englische Wörter Übersetzungsvorschläge abrufen. Dabei gehen nur das Wort und

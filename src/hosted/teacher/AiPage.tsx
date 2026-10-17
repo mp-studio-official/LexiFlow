@@ -164,8 +164,8 @@ export function AiPage() {
 
       <Alert tone="info" title="Im Pilot nur für die Textwerkstatt">
         Der Zugang darf derzeit Übersetzungsvorschläge für Wörter liefern, die du in der
-        Textwerkstatt ausdrücklich ausgewählt hast. Der Lerncoach für Schüler:innen bleibt
-        gesperrt.
+        Textwerkstatt ausdrücklich ausgewählt hast. Lernende können nur mit ihrem eigenen
+        Zugang und vier fest begrenzten Lerncoach-Handlungen arbeiten.
       </Alert>
 
       <Alert tone="info" title="Was mit dem Schlüssel passiert">

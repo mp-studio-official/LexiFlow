@@ -53,7 +53,7 @@ import type { EntryProgress, TaskDirection, VocabPack } from '../../domain/schem
 import type { ProgressEvent } from '../../application/repositories';
 import { Verbindungsfehler } from '../verbindung';
 import { useSession } from '../SessionContext';
-import { KI_IM_PILOT } from '../pilot';
+import { LERNCOACH_KI_IM_PILOT } from '../pilot';
 import { LerncoachEinbettung } from './LerncoachEinbettung';
 
 /**
@@ -671,7 +671,7 @@ export function PracticePage() {
         ) : null}
       </Card>
 
-      {KI_IM_PILOT !== 'gesperrt' ? (
+      {LERNCOACH_KI_IM_PILOT === 'frei' ? (
         <LerncoachEinbettung
           freigegeben
           {...(session?.userId ? { profilId: session.userId } : {})}

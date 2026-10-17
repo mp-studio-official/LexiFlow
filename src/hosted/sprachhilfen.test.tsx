@@ -83,6 +83,11 @@ async function runde() {
   return { cloud, user, courseId, packId };
 }
 
+/** Das Antwortfeld der Aufgabe, nicht ein mögliches Einstellungsfeld des Lerncoachs. */
+function antwortfeld(): HTMLElement {
+  return screen.getByRole('textbox', { name: /Deine Übersetzung von/ });
+}
+
 describe('gestufte Hinweise in der Runde', () => {
   it('stehen vor der Antwort bereit, ohne gleich etwas zu verraten', async () => {
     await runde();
@@ -103,7 +108,7 @@ describe('gestufte Hinweise in der Runde', () => {
     await user.click(screen.getByRole('button', { name: /Hinweis/ }));
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
 
-    await user.type(screen.getByRole('textbox'), 'quatsch');
+    await user.type(antwortfeld(), 'quatsch');
     await user.click(screen.getByRole('button', { name: 'Antwort prüfen' }));
     await user.click(await screen.findByRole('button', { name: 'Weiter' }));
 
@@ -116,7 +121,7 @@ describe('gestufte Hinweise in der Runde', () => {
     await user.click(screen.getByRole('button', { name: /Hinweis/ }));
     await user.click(screen.getByRole('button', { name: /Noch ein Hinweis/ }));
 
-    const feld = screen.getByRole('textbox');
+    const feld = antwortfeld();
     await user.type(feld, 'went');
     await user.click(screen.getByRole('button', { name: 'Antwort prüfen' }));
 
@@ -134,7 +139,7 @@ describe('gestufte Hinweise in der Runde', () => {
 describe('die Rückmeldung erklärt, statt nur zu urteilen', () => {
   it('erkennt die Grundform statt der Lernform', async () => {
     const { user } = await runde();
-    await user.type(screen.getByRole('textbox'), 'go');
+    await user.type(antwortfeld(), 'go');
     await user.click(screen.getByRole('button', { name: 'Antwort prüfen' }));
     const erklaerung = await screen.findByText(/Das ist die Grundform/);
     /*
@@ -147,7 +152,7 @@ describe('die Rückmeldung erklärt, statt nur zu urteilen', () => {
 
   it('zeigt die Formen so, wie die Lehrkraft sie eingegeben hat', async () => {
     const { user } = await runde();
-    await user.type(screen.getByRole('textbox'), 'went');
+    await user.type(antwortfeld(), 'went');
     await user.click(screen.getByRole('button', { name: 'Antwort prüfen' }));
 
     const vergangenheit = await screen.findByText('Past Simple');
@@ -158,7 +163,7 @@ describe('die Rückmeldung erklärt, statt nur zu urteilen', () => {
 
   it('zeigt den freigegebenen Beispielsatz, Übersetzung erst auf Wunsch', async () => {
     const { user } = await runde();
-    await user.type(screen.getByRole('textbox'), 'went');
+    await user.type(antwortfeld(), 'went');
     await user.click(screen.getByRole('button', { name: 'Antwort prüfen' }));
 
     expect(await screen.findByText('We went home early.')).toBeInTheDocument();
@@ -169,7 +174,7 @@ describe('die Rückmeldung erklärt, statt nur zu urteilen', () => {
 
   it('verschwindet wieder, sobald die nächste Aufgabe dran ist', async () => {
     const { user } = await runde();
-    await user.type(screen.getByRole('textbox'), 'went');
+    await user.type(antwortfeld(), 'went');
     await user.click(screen.getByRole('button', { name: 'Antwort prüfen' }));
     await user.click(await screen.findByRole('button', { name: 'Weiter' }));
     expect(screen.queryByText('Past Simple')).toBeNull();

@@ -49,13 +49,15 @@ Der persönliche Zugang kann wieder entfernt werden. Vor dem Löschen steht
 eine zweite, ausdrückliche Bestätigung, weil der Schlüssel anschließend nicht
 wiederhergestellt werden kann.
 
-## Noch nicht für den Pilot freigegeben
+## Für den Pilot freigegeben
 
-`KI_IM_PILOT` bleibt auf `gesperrt`. Dadurch entfernt `HostedApp` das
-KI-Repository vollständig aus dem Pilot und `PracticePage` zeichnet keine
-Lerncoach-Oberfläche.
+Seit dem 17. Oktober 2026 ist `LERNCOACH_KI_IM_PILOT` auf `frei`. Das Portal
+lässt ausschließlich die vier oben genannten Fähigkeiten zum Gateway durch;
+ein freier oder nur ähnlich benannter Auftrag wird bereits davor abgewiesen.
+Ohne selbst eingerichteten Zugang wird kein Anbieter angesprochen.
 
-Vor einer Freigabe mit Minderjährigen müssen außerhalb des Codes feststehen:
+Für die tatsächliche Nutzung mit Minderjährigen müssen außerhalb des Codes
+weiterhin feststehen und den Beteiligten mitgeteilt werden:
 
 - welche Anbieter für die konkrete Pilotgruppe zulässig sind,
 - ob deren Alters- und Kontobedingungen erfüllt sind,
@@ -63,13 +65,13 @@ Vor einer Freigabe mit Minderjährigen müssen außerhalb des Codes feststehen:
   verantwortet,
 - und ob ein kostenloses Kontingent tatsächlich vorhanden ist.
 
-Die technische Freigabe ist danach ein eigener Commit und kein versteckter
-Umgebungswert.
+Die technische Freigabe ist ein eigener, sichtbarer Commit und kein
+Umgebungswert. Der Datenhinweis steht vor dem ersten Aufruf direkt im Ablauf.
 
 ## Stagingstand vom 13. Oktober 2026
 
 Migration 17 ist angewandt und `ai-gateway` ist mit der Lernendenbegrenzung
 deployt. Ein fremder Ursprung wird mit 403 abgewiesen; der erlaubte
 Pilotursprung ohne gültige Sitzung mit 401. Ein echter Anbieteraufruf und die
-Prüfung mit einem künstlichen Lernendenkonto stehen noch aus. Deshalb bleibt
-die Pilotoberfläche gesperrt.
+Prüfung mit einem künstlichen Lernendenkonto stehen vor der Auslieferung noch
+aus.

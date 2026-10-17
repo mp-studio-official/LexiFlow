@@ -247,6 +247,9 @@ pruefung(
     if (!/TEXTWERKSTATT_KI_IM_PILOT.*'frei'/.test(pilot)) {
       return 'die Textwerkstatt ist nicht ausdrücklich freigegeben';
     }
+    if (!/LERNCOACH_KI_IM_PILOT.*'frei'/.test(pilot)) {
+      return 'der Lerncoach ist nicht ausdrücklich freigegeben';
+    }
     /*
       Zwei Stellen, und beide sind nötig: Die Anwendung begrenzt den Zugang
       im Speicherverbund auf die eine Fähigkeit, die Seite erklärt den
@@ -258,7 +261,7 @@ pruefung(
     if (!/TEXT_SUGGESTION_CAPABILITY/.test(anwendung)) return 'die Fähigkeitsgrenze fehlt';
     return /TEXTWERKSTATT_KI_IM_PILOT/.test(seite);
   },
-  'Lerncoach gesperrt, Lehrkraft-Textwerkstatt frei; andere Fähigkeiten werden vor dem Gateway abgewiesen.',
+  'Textwerkstatt und vier feste Lerncoach-Handlungen frei; andere Fähigkeiten werden vor dem Gateway abgewiesen.',
 );
 
 /* ------------------------------------------------------------------ 8 */

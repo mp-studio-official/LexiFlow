@@ -1516,6 +1516,13 @@ Abruf ausdrücklich aus. Gesendet werden nur diese Wörter und ihre jeweiligen
 Quellsätze, niemals der vollständige Text, Namen oder Lernstände. Vorschläge
 füllen nur leere Felder und bleiben bearbeitbar.
 
-Der Lerncoach für Schüler:innen und jede andere KI-Fähigkeit bleiben im Pilot
-gesperrt. Die Grenze liegt vor dem Gatewayaufruf und wird nicht nur durch eine
-ausgeblendete Oberfläche dargestellt.
+Zusätzlich sind genau vier Lerncoach-Handlungen für Schüler:innen freigegeben:
+Fehler erklären, Hinweis geben, einen anderen Beispielsatz zeigen und eine
+richtige Antwort erklären. Sie verwenden ausschließlich den eigenen Zugang
+der lernenden Person. Es gibt kein freies Chatfeld; Name, Lern-ID, Kurs und
+Lernverlauf sind nicht Teil des Auftrags. Die Antwort entscheidet nie über
+richtig oder falsch und verändert keinen Lernstand.
+
+Jede andere KI-Fähigkeit bleibt gesperrt. Die Grenze liegt vor dem
+Gatewayaufruf und wird nicht nur durch eine ausgeblendete Oberfläche
+dargestellt.

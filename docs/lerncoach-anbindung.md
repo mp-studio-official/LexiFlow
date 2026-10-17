@@ -26,21 +26,20 @@ Die OpenAI Responses API verwendet dafür `text.format` mit
 `type: "json_schema"` und `strict: true`, entsprechend der
 [offiziellen OpenAI-Dokumentation zu Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses).
 
-## Was weiterhin absichtlich gesperrt ist
+## Pilotfreigabe vom 17. Oktober 2026
 
-Pilot 0.1 bleibt unverändert: `KI_IM_PILOT = 'gesperrt'` entfernt das
-KI-Repository aus dem Portal. Der neue Adapter wird von keiner produktiven
-Route importiert.
+`LERNCOACH_KI_IM_PILOT = 'frei'` bindet den Adapter in die produktive
+Übungsrunde ein. Die übergeordnete Pilotgrenze bleibt bestehen und lässt nur
+die vier festen `learner-coach/*`-Fähigkeiten sowie die Lehrkraft-Textwerkstatt
+durch. Freier Chat und unbekannte Fähigkeiten erreichen das Gateway nicht.
 
-Die Serverfunktion lässt weiterhin nur `teacher` und `admin` zu und liest nur
-deren eigene Verbindung. Eine lernende Person kann daher weder einen
-Lehrkraftschlüssel verwenden noch einen eigenen Schlüssel speichern. Das ist
-kein fehlender UI-Schalter, sondern ein Datenbank- und Berechtigungsriegel.
+Die Serverfunktion liest ausschließlich die Verbindung der angemeldeten
+Person. Lernende können einen eigenen Zugang verwalten, aber niemals den
+Schlüssel einer Lehrkraft sehen oder benutzen.
 
-## Eigene Schlüssel von Lernenden — eigener Folgeblock
+## Eigene Schlüssel von Lernenden
 
-Für persönliche Schüler-Schlüssel braucht es vor einer Freigabe eine eigene
-Entscheidung und anschließend mindestens:
+Der persönliche Schlüsselweg ist mit Migration 17 und dem Gateway umgesetzt:
 
 1. eine getrennte, verschlüsselte Verbindungstabelle oder eine explizit
    erweiterte Eigentumsregel für Lernende;
@@ -54,9 +53,9 @@ Entscheidung und anschließend mindestens:
    beauftragen dürfen;
 7. Abnahme mit einem künstlichen Lernkonto und ohne echte Schülerdaten.
 
-Bis dieser Block entschieden und geprüft ist, bleibt die Oberfläche entweder
-gesperrt oder verwendet ausschließlich einen ausdrücklich für den Lerncoach
-freigegebenen Schulzugang. Persönliche Chat-Abonnements sind keine API-Zugänge.
+Persönliche Chat-Abonnements sind keine API-Zugänge. Ob Anbieter- und
+Altersbedingungen für die konkrete Pilotgruppe passen, bleibt eine
+organisatorische Voraussetzung vor echten Schülerdaten.
 
 ## Übergabe an die produktive Übungsrunde
 
@@ -71,6 +70,5 @@ anzuschließen:
 - `aufHinweisVerstanden`: ruft
   `coachHinweisBestaetigen(localStorage, profile.id)` auf.
 
-Vorher bleibt der Adapter unbenutzt. So kann die sichtbare Integration später
-in einem kleinen Commit erfolgen, ohne Sicherheitsregeln gleichzeitig neu zu
-erfinden.
+Diese Verdrahtung steht jetzt produktiv in `PracticePage`; die vier Werte
+werden dort aus Pilotgrenze, Sitzung und persönlicher Verbindung gebildet.

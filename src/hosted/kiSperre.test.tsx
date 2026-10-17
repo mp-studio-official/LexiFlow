@@ -8,6 +8,7 @@ import { SessionProvider } from './SessionContext';
 import {
   IST_PILOT,
   KI_IM_PILOT,
+  LERNCOACH_KI_IM_PILOT,
   PILOT_BAND_TEXT,
   TEXTWERKSTATT_KI_IM_PILOT,
 } from './pilot';
@@ -67,9 +68,10 @@ describe('die Pilotkennzeichnung', () => {
 });
 
 describe('die KI-Sperre im Pilot', () => {
-  it('sperrt den Lerncoach und gibt nur die Lehrkraft-Textwerkstatt frei', () => {
+  it('gibt Textwerkstatt und den eng begrenzten Lerncoach frei', () => {
     expect(KI_IM_PILOT).toBe('gesperrt');
     expect(TEXTWERKSTATT_KI_IM_PILOT).toBe('frei');
+    expect(LERNCOACH_KI_IM_PILOT).toBe('frei');
   });
 
   it('lässt Übersetzungsvorschläge durch', async () => {
@@ -89,13 +91,29 @@ describe('die KI-Sperre im Pilot', () => {
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    'learner-coach/fehler-erklaeren',
+    'learner-coach/hinweis',
+    'learner-coach/anderer-satz',
+    'learner-coach/warum-richtig',
+  ])('lässt die feste Lerncoach-Fähigkeit %s durch', async (capability) => {
+    const cloud = createFakeCloud();
+    const invoke = vi.spyOn(cloud.repositories.ai!, 'invoke').mockResolvedValue({ text: 'Hilfe' });
+    await ohneGesperrteKi(cloud.repositories).ai!.invoke({
+      connectionId: 'v1',
+      capability,
+      payload: {},
+    });
+    expect(invoke).toHaveBeenCalledWith({ connectionId: 'v1', capability, payload: {} });
+  });
+
   it('blockiert jede andere Fähigkeit vor dem eigentlichen Gateway', async () => {
     const cloud = createFakeCloud();
     const invoke = vi.spyOn(cloud.repositories.ai!, 'invoke');
     await expect(
       ohneGesperrteKi(cloud.repositories).ai!.invoke({
         connectionId: 'v1',
-        capability: 'learner-coach/hinweis',
+        capability: 'learner-coach/freier-chat',
         payload: {},
       }),
     ).rejects.toThrow(/im Pilot noch nicht freigegeben/);
@@ -114,7 +132,7 @@ describe('die KI-Sperre im Pilot', () => {
   it('öffnet den Zugang nur für die Textwerkstatt', async () => {
     zeigeSeite('/ki');
     expect(await screen.findByText(/Im Pilot nur für die Textwerkstatt/)).toBeInTheDocument();
-    expect(screen.getByText(/Lerncoach für Schüler:innen bleibt/)).toBeInTheDocument();
+    expect(screen.getByText(/vier fest begrenzten Lerncoach-Handlungen/)).toBeInTheDocument();
   });
 
   it('erklärt, dass der Schlüssel nur den sicheren Serverweg nimmt', async () => {

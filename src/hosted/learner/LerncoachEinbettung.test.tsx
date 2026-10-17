@@ -76,7 +76,9 @@ describe('die produktive Einbettung des Lerncoachs', () => {
         hinweisSpeicher={speicher()}
       />,
     );
-    await screen.findByText('Eigenen Lerncoach verbinden');
+    await user.click(await screen.findByRole('button', { name: 'Eigenen Lerncoach verbinden' }));
+    expect(screen.getByText(/Beim Verbinden wird nur der Zugang geprüft/)).toBeInTheDocument();
+    expect(screen.getByText(/Name, Lern-ID,\s+Kurs und bisheriger Lernstand/)).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Anbieter'), 'openai');
     await user.type(screen.getByLabelText('Modellname'), 'gpt-test');
     await user.type(screen.getByLabelText('API-Schlüssel'), 'sk-test-geheim1234');
@@ -138,7 +140,7 @@ describe('die produktive Einbettung des Lerncoachs', () => {
         hinweisSpeicher={speicher()}
       />,
     );
-    await screen.findByText('Eigenen Lerncoach verbinden');
+    await user.click(await screen.findByRole('button', { name: 'Eigenen Lerncoach verbinden' }));
     expect(screen.queryByLabelText('API-Adresse')).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Anbieter'), 'kompatibel');
     expect(screen.getByLabelText('API-Adresse')).toBeInTheDocument();
@@ -166,6 +168,6 @@ describe('die produktive Einbettung des Lerncoachs', () => {
     expect(screen.getByText(/nicht wiederherstellen/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Wirklich entfernen' }));
     await waitFor(() => expect(ai.deleteConnection).toHaveBeenCalledWith('meiner'));
-    await screen.findByText('Eigenen Lerncoach verbinden');
+    await screen.findByRole('button', { name: 'Eigenen Lerncoach verbinden' });
   });
 });
