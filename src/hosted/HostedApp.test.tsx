@@ -35,6 +35,9 @@ describe('ohne Anmeldung', () => {
   it('zeigt die öffentliche Startseite', async () => {
     setup('/');
     expect(await screen.findByRole('heading', { name: 'LexiFlow', level: 1 })).toBeInTheDocument();
+    const anmelden = screen.getByRole('link', { name: 'Anmelden' });
+    expect(anmelden).toHaveAttribute('href', '/anmelden');
+    expect(anmelden).toHaveClass('btn', 'btn--primary');
   });
 
   it('lässt Beitritt per Code und Wiederherstellung offen', async () => {

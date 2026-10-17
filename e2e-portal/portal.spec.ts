@@ -28,6 +28,10 @@ test.describe('zwei Auslieferungen unter einem Grundpfad', () => {
     expect(antwort?.status()).toBe(200);
     await expect(page.getByRole('heading', { name: 'LexiFlow', level: 1 })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Mit Code beitreten' })).toBeVisible();
+    const anmelden = page.getByRole('link', { name: 'Anmelden' });
+    await expect(anmelden).toBeVisible();
+    await anmelden.click();
+    await expect(page.getByRole('heading', { name: 'Anmelden', level: 1 })).toBeVisible();
   });
 
   test('@smoke das Portal lädt nichts außerhalb seines eigenen Pfads', async ({ page }) => {

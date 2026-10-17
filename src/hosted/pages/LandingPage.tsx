@@ -43,9 +43,11 @@ export function LandingPage() {
           <Card quiet>
             <h2>Du hast schon ein Konto</h2>
             <p>
-              <Link to="/anmelden">Anmelden</Link> – Lehrkräfte mit ihrer E-Mail-Adresse, Lernende
-              mit ihrer Lern-ID.
+              Lehrkräfte melden sich mit ihrer E-Mail-Adresse an, Lernende mit ihrer Lern-ID.
             </p>
+            <Link className="btn btn--primary" to="/anmelden">
+              Anmelden
+            </Link>
           </Card>
         </div>
       )}
