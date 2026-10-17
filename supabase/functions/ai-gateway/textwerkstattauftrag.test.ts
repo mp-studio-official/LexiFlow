@@ -28,6 +28,14 @@ describe('der serverseitige Textwerkstattauftrag', () => {
     expect(JSON.stringify(auftrag)).not.toContain('apiKey');
   });
 
+  it('erfüllt den strikten OpenAI-Vertrag auch für optionale Vorschlagsfelder', () => {
+    const auftrag = textwerkstattAuftrag(TEXTWERKSTATT_CAPABILITY, GUELTIG);
+    const element = auftrag?.schema.properties.suggestions.items;
+    expect(element?.required).toEqual(Object.keys(element?.properties ?? {}));
+    expect(element?.properties.complementPattern.type).toEqual(['string', 'null']);
+    expect(element?.properties.germanSentence.type).toEqual(['string', 'null']);
+  });
+
   it('nimmt weder einen bloßen Volltext noch leere oder fremde Aufträge an', () => {
     expect(textwerkstattAuftrag(TEXTWERKSTATT_CAPABILITY, { sourceText: 'ganzer Text' })).toBeUndefined();
     expect(textwerkstattAuftrag(TEXTWERKSTATT_CAPABILITY, { ...GUELTIG, candidates: [] })).toBeUndefined();
@@ -83,5 +91,27 @@ describe('der serverseitige Textwerkstattauftrag', () => {
         partOfSpeech: 'verb',
       }],
     }, new Set(['c-customs']))).toBeUndefined();
+  });
+
+  it('behandelt die im strikten Schema nötigen Nullwerte weiterhin als optionale Angaben', () => {
+    expect(textwerkstattAntwort({
+      suggestions: [{
+        candidateId: 'c-customs',
+        german: 'Bräuche',
+        learningForm: 'customs (pl.)',
+        lemma: 'custom',
+        partOfSpeech: 'noun',
+        complementPattern: null,
+        germanSentence: null,
+      }],
+    }, new Set(['c-customs']))).toEqual({
+      suggestions: [{
+        candidateId: 'c-customs',
+        german: 'Bräuche',
+        learningForm: 'customs (pl.)',
+        lemma: 'custom',
+        partOfSpeech: 'noun',
+      }],
+    });
   });
 });
