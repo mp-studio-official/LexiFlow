@@ -632,30 +632,34 @@ test.describe('Üben auf dem Telefon', () => {
 /**
  * Der KI-Zugang im Browser.
  *
- * Der Pilot hält KI bewusst geschlossen. Hier geht es um das, was nur ein
- * Browser zeigen kann: Die Sperre ist sichtbar und erklärt, und es gibt weder
- * ein Schlüsselfeld noch einen Speichern-Weg. Daneben bleiben Rollenriegel,
- * Telefonlayout und Vorlesehilfe geprüft.
+ * Der Pilot gibt KI nur für zwei bestimmte Wege frei: Übersetzungsvorschläge
+ * in der Textwerkstatt und die vier festen Handlungen des persönlichen
+ * Lerncoachs. Hier geht es um das, was nur ein Browser zeigen kann: Die Grenze
+ * und der Datenfluss sind sichtbar erklärt, und eine Lehrkraft kann ihren
+ * eigenen Zugang hinterlegen. Daneben bleiben Rollenriegel, Telefonlayout und
+ * Vorlesehilfe geprüft.
  */
 
 test.describe('KI-Zugang', () => {
-  test('@smoke sagt eindeutig, dass KI im Pilot nicht freigegeben ist', async ({ page }) => {
+  test('@smoke erklärt die begrenzte Freigabe im Pilot', async ({ page }) => {
     await alsLehrkraft(page);
     await page.goto('./portal/#/ki');
     await page.getByRole('heading', { name: 'KI-Zugang', level: 1 }).waitFor();
 
-    await expect(page.getByText('Im Pilot nicht freigegeben')).toBeVisible();
-    await expect(page.getByText(/Bis dahin stellt das Portal keine Anfrage/)).toBeVisible();
+    await expect(page.getByText('Im Pilot nur für die Textwerkstatt')).toBeVisible();
+    await expect(page.getByText(/Übersetzungsvorschläge für Wörter/)).toBeVisible();
+    await expect(page.getByText(/vier fest begrenzten Lerncoach-Handlungen/)).toBeVisible();
   });
 
-  test('@smoke bietet im Pilot keinen Weg für einen Schlüssel an', async ({ page }) => {
+  test('@smoke bietet einen erklärten Weg für den eigenen Schlüssel an', async ({ page }) => {
     await alsLehrkraft(page);
     await page.goto('./portal/#/ki');
     await page.getByRole('heading', { name: 'KI-Zugang', level: 1 }).waitFor();
 
-    await expect(page.getByLabel('API-Schlüssel')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
-    await expect(page.locator('body')).not.toContainText('generativelanguage.googleapis.com');
+    await expect(page.getByLabel('API-Schlüssel')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Speichern' })).toBeVisible();
+    await expect(page.getByText(/wird dort verschlüsselt abgelegt/)).toBeVisible();
+    await expect(page.getByText(/dein Browser spricht nie mit dem Anbieter/)).toBeVisible();
   });
 
   test('@smoke eine lernende Person kommt nicht hinein', async ({ page }) => {
