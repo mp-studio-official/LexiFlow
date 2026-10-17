@@ -44,7 +44,7 @@ function setup(repositories?: FakeCloud['repositories']) {
  * das gemeldet.
  */
 function kandidatenliste(): HTMLElement {
-  const liste = document.querySelector<HTMLElement>('.werkstatt__kandidaten');
+  const liste = document.querySelector<HTMLElement>('.werkstatt__kompaktliste');
   if (!liste) throw new Error('Die Kandidatenliste fehlt.');
   return liste;
 }
@@ -66,7 +66,7 @@ describe('der Scotland/Wales-Text geht durch den ganzen Ablauf', () => {
     const { user } = setup();
     await textEinfuegen(user);
 
-    expect(await screen.findByRole('heading', { name: 'Vorschläge' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Wörter auswählen' })).toBeInTheDocument();
     /*
       Die Kernzusage dieses Auftrags. Vorher stand hier eine Vorschau mit
       „Vokabeln", deren englische Seite ganze Absätze waren.
@@ -77,30 +77,35 @@ describe('der Scotland/Wales-Text geht durch den ganzen Ablauf', () => {
     );
   });
 
-  it('zeigt echte Wortkandidaten mit ihren Quellsätzen', async () => {
+  it('zeigt zunächst 15 echte Wortkandidaten kompakt und die Details erst danach', async () => {
     const { user } = setup();
     await textEinfuegen(user);
-    await screen.findByRole('heading', { name: 'Vorschläge' });
+    await screen.findByRole('heading', { name: 'Wörter auswählen' });
 
-    expect(screen.getByText(/Vorschläge aus \d+ Sätzen/)).toBeInTheDocument();
-    for (const zitat of document.querySelectorAll('.werkstatt__satz q')) {
-      expect(SCOTLAND_WALES).toContain(zitat.textContent ?? '');
-    }
+    expect(screen.getByText(/mögliche Lernwörter aus \d+ Sätzen/)).toBeInTheDocument();
+    expect(document.querySelectorAll('.werkstatt__kompaktzeile')).toHaveLength(15);
+    expect(document.querySelectorAll('.werkstatt__satz')).toHaveLength(0);
+
+    await user.click(within(kandidatenliste()).getAllByRole('checkbox')[0]!);
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
+    const detail = screen.getByText(/Details zu/).closest('details');
+    expect(detail).not.toHaveAttribute('open');
+    expect(SCOTLAND_WALES).toContain(detail?.querySelector('q')?.textContent ?? '');
   });
 
   it('legt erst nach Auswahl, Eingabe und Klick einen Entwurf an', async () => {
     const { cloud, user } = setup();
     await textEinfuegen(user);
-    await screen.findByRole('heading', { name: 'Vorschläge' });
+    await screen.findByRole('heading', { name: 'Wörter auswählen' });
 
-    expect(screen.getByRole('button', { name: 'Lernpaket anlegen' })).toBeDisabled();
-
-    await user.type(screen.getByLabelText(/Name des Lernpakets/), 'Scotland and Wales');
+    expect(screen.queryByRole('button', { name: 'Lernpaket anlegen' })).toBeNull();
 
     const liste = kandidatenliste();
     const ersterKandidat = within(liste).getAllByRole('checkbox')[0]!;
     await user.click(ersterKandidat);
-    await user.type(screen.getByLabelText(/Deutsche Bedeutung/), 'die Hauptstadt');
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
+    await user.type(screen.getByLabelText(/Name des Lernpakets/), 'Scotland and Wales');
+    await user.type(screen.getByLabelText(/Deutsche Bedeutung für/), 'die Hauptstadt');
 
     const anlegen = screen.getByRole('button', { name: 'Lernpaket anlegen' });
     expect(anlegen).toBeEnabled();
@@ -117,11 +122,12 @@ describe('der Scotland/Wales-Text geht durch den ganzen Ablauf', () => {
   it('veröffentlicht nichts und weist nichts zu', async () => {
     const { cloud, user } = setup();
     await textEinfuegen(user);
-    await screen.findByRole('heading', { name: 'Vorschläge' });
-    await user.type(screen.getByLabelText(/Name des Lernpakets/), 'Scotland and Wales');
+    await screen.findByRole('heading', { name: 'Wörter auswählen' });
     const liste = kandidatenliste();
     await user.click(within(liste).getAllByRole('checkbox')[0]!);
-    await user.type(screen.getByLabelText(/Deutsche Bedeutung/), 'die Hauptstadt');
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
+    await user.type(screen.getByLabelText(/Name des Lernpakets/), 'Scotland and Wales');
+    await user.type(screen.getByLabelText(/Deutsche Bedeutung für/), 'die Hauptstadt');
     await user.click(screen.getByRole('button', { name: 'Lernpaket anlegen' }));
     await screen.findByRole('heading', { name: 'Lernpaket angelegt' });
 
@@ -160,7 +166,7 @@ describe('die KI im Pilotbetrieb', () => {
     const { ai: _gesperrt, ...ohneKi } = cloud.repositories;
     const { user } = setup(ohneKi);
     await textEinfuegen(user);
-    await screen.findByRole('heading', { name: 'Vorschläge' });
+    await screen.findByRole('heading', { name: 'Wörter auswählen' });
 
     /*
       Die Pilotsperre an der Oberfläche. `ohneGesperrteKi` entfernt
@@ -168,7 +174,7 @@ describe('die KI im Pilotbetrieb', () => {
       nichts auslösen kann — und muss trotzdem vollständig bedienbar sein.
     */
     expect(screen.queryByRole('heading', { name: 'Übersetzungsvorschläge holen' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Lernpaket anlegen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alle 15 auswählen' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Analysierter Text' })).toBeInTheDocument();
   });
 
@@ -184,7 +190,7 @@ describe('die KI im Pilotbetrieb', () => {
 
     const { user } = setup(mitKi);
     await textEinfuegen(user);
-    await screen.findByRole('heading', { name: 'Vorschläge' });
+    await screen.findByRole('heading', { name: 'Wörter auswählen' });
 
     /*
       Die schärfste Gegenprobe dieses Blocks: Weder das Öffnen der Seite
@@ -216,10 +222,11 @@ describe('die KI im Pilotbetrieb', () => {
 
     const { user } = setup(mitKi);
     await textEinfuegen(user);
-    await screen.findByRole('heading', { name: 'Vorschläge' });
+    await screen.findByRole('heading', { name: 'Wörter auswählen' });
 
     const liste = kandidatenliste();
     await user.click(within(liste).getAllByRole('checkbox')[0]!);
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
     await user.click(screen.getByRole('button', { name: /Vorschläge für 1 Wort holen/ }));
 
     await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
@@ -250,9 +257,10 @@ describe('die KI im Pilotbetrieb', () => {
     };
     const { user } = setup(mitKi);
     await textEinfuegen(user);
-    await screen.findByRole('heading', { name: 'Vorschläge' });
+    await screen.findByRole('heading', { name: 'Wörter auswählen' });
     const liste = kandidatenliste();
     await user.click(within(liste).getAllByRole('checkbox')[0]!);
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
     await user.click(screen.getByRole('button', { name: /Vorschläge für 1 Wort holen/ }));
 
     expect(await screen.findByText(/keine KI-Verbindung hinterlegt/)).toBeInTheDocument();

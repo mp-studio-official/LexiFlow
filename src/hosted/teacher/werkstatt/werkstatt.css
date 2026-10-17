@@ -22,6 +22,13 @@
   gap: var(--space-3);
 }
 
+.huelle .werkstatt__schritt {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--tinte-2);
+}
+
 /*
   Das Dateifeld bekommt dieselbe Höhe wie jedes andere Bedienelement.
   Browser liefern es in drei verschiedenen Gestalten aus; ohne diese Zeilen
@@ -214,6 +221,13 @@
   }
 }
 
+/* Auf schmalen Bildschirmen kommt die Entscheidung vor dem langen Lesetext. */
+@media (max-width: 63.99rem) {
+  .huelle .werkstatt__auswahlkarte {
+    order: -1;
+  }
+}
+
 .huelle .werkstatt__kandidaten {
   display: grid;
   gap: var(--space-3);
@@ -222,6 +236,113 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/*
+  Auswahl ist eine Liste, kein Formularstapel.
+
+  Eine Zeile zeigt nur die Entscheidung, die an dieser Stelle getroffen
+  wird: Wort hinein oder nicht. Übersetzung, Quellsatz und Grammatik
+  gehören in den folgenden Schritt. Damit bleiben auch 15 Vorschläge auf
+  einem Laptop als Ganzes erfassbar.
+*/
+.huelle .werkstatt__listen-kopf {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.huelle .werkstatt__werkzeuge {
+  margin-block: var(--space-3);
+}
+
+.huelle .werkstatt__kompaktliste,
+.huelle .werkstatt__uebersetzungsliste {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--rand);
+}
+
+.huelle .werkstatt__kompaktzeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 52px;
+  padding-inline: var(--space-2);
+  border-block-end: 1px solid var(--rand);
+}
+
+.huelle .werkstatt__kompaktzeile[data-aufgenommen='ja'] {
+  background: var(--accent-soft);
+}
+
+.huelle .werkstatt__kompaktwort {
+  font-weight: 700;
+}
+
+.huelle .werkstatt__kurzinfo {
+  max-inline-size: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.huelle .werkstatt__weiter {
+  margin-block-start: var(--space-4);
+  justify-content: flex-end;
+}
+
+/* Im zweiten Schritt ist nur die Übersetzung offen; alles Fachliche klappt auf. */
+.huelle .werkstatt__uebersetzungszeile {
+  padding-block: var(--space-3);
+  border-block-end: 1px solid var(--rand);
+}
+
+.huelle .werkstatt__uebersetzung {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.7fr) minmax(12rem, 1.3fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.huelle .werkstatt__englisch {
+  align-self: center;
+  overflow-wrap: anywhere;
+}
+
+.huelle .werkstatt__details {
+  margin-block-start: var(--space-2);
+}
+
+.huelle .werkstatt__details > summary {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--tap-target);
+  color: var(--tinte-2);
+  cursor: pointer;
+}
+
+.huelle .werkstatt__details[open] > summary {
+  margin-block-end: var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .huelle .werkstatt__kompaktzeile,
+  .huelle .werkstatt__uebersetzung {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .huelle .werkstatt__kompaktzeile {
+    padding-block: var(--space-1);
+  }
+
+  .huelle .werkstatt__kurzinfo {
+    padding-inline-start: calc(18px + var(--space-2));
+  }
 }
 
 .huelle .werkstatt__filter {

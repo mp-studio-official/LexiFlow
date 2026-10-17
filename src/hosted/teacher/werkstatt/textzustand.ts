@@ -102,6 +102,11 @@ export type Textzug =
   | { readonly art: 'aufgenommen'; readonly id: string }
   | { readonly art: 'abgewaehlt'; readonly id: string }
   | {
+      readonly art: 'auswahl-gesetzt';
+      readonly ids: readonly string[];
+      readonly aufgenommen: boolean;
+    }
+  | {
       readonly art: 'zeile-geaendert';
       readonly id: string;
       readonly teil: Partial<
@@ -200,6 +205,18 @@ export function textZug(stand: Textstand, zug: Textzug): Textstand {
         Arbeit, die ein Klick vernichtet.
       */
       return { ...stand, zeilen: ersetze(stand.zeilen, zug.id, (zeile) => ({ ...zeile, aufgenommen: false })) };
+
+    case 'auswahl-gesetzt': {
+      const ids = new Set(zug.ids);
+      return {
+        ...stand,
+        zeilen: stand.zeilen.map((zeile) =>
+          ids.has(zeile.kandidat.id)
+            ? { ...zeile, aufgenommen: zug.aufgenommen }
+            : zeile,
+        ),
+      };
+    }
 
     case 'zeile-geaendert':
       return {

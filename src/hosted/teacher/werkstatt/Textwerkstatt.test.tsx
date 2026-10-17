@@ -44,33 +44,36 @@ describe('der erste Schritt fragt nach Text, nicht nach einer Liste', () => {
   });
 });
 
-describe('die Prüfansicht zeigt echte Kandidaten aus dem Text', () => {
-  it('zeigt den Quelltext und die Vorschläge nebeneinander', () => {
+describe('Schritt 1 zeigt eine kompakte Auswahl statt einer Wand aus Formularen', () => {
+  it('zeigt den Quelltext und die Wortauswahl nebeneinander', () => {
     zeichne(analysiert());
     expect(screen.getByRole('group', { name: 'Analysierter Text' }).textContent).toBe(
       SCOTLAND_WALES,
     );
-    expect(screen.getByRole('heading', { name: 'Vorschläge' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Wörter auswählen' })).toBeInTheDocument();
   });
 
-  it('sagt, wie viele Vorschläge aus wie vielen Sätzen stammen', () => {
+  it('sagt, wie viele mögliche Lernwörter aus wie vielen Sätzen stammen', () => {
     const stand = analysiert();
-    expect(
-      screen.queryByText(new RegExp(`${stand.zeilen.length} Vorschläge aus ${stand.saetze} Sätzen`)),
-    ).toBeNull();
     zeichne(stand);
     expect(
-      screen.getByText(new RegExp(`${stand.zeilen.length} Vorschläge aus ${stand.saetze} Sätzen`)),
+      screen.getByText(new RegExp(`${stand.zeilen.length} mögliche Lernwörter aus ${stand.saetze} Sätzen`)),
     ).toBeInTheDocument();
   });
 
-  it('zeigt zu jedem Vorschlag seinen Quellsatz aus dem Text', () => {
+  it('zeigt zuerst genau 15 kompakte Zeilen ohne Quellsätze und Formulare', () => {
     zeichne(analysiert());
-    const zitate = document.querySelectorAll('.werkstatt__satz q');
-    expect(zitate.length).toBeGreaterThan(10);
-    for (const zitat of zitate) {
-      expect(SCOTLAND_WALES).toContain(zitat.textContent ?? '');
-    }
+    expect(document.querySelectorAll('.werkstatt__kompaktzeile')).toHaveLength(15);
+    expect(document.querySelectorAll('.werkstatt__satz')).toHaveLength(0);
+    expect(screen.queryByLabelText(/Deutsche Bedeutung für/)).toBeNull();
+
+    const woerter = [...document.querySelectorAll('.werkstatt__kompaktwort')].map(
+      (element) => element.textContent?.toLowerCase(),
+    );
+    expect(woerter).toEqual(
+      expect.arrayContaining(['capital city', 'tradition', 'culture', 'language', 'separate']),
+    );
+    expect(woerter).not.toEqual(expect.arrayContaining(['five', 'million', 'people', 'art']));
   });
 
   it('hakt keinen Vorschlag von allein an', () => {
@@ -80,21 +83,32 @@ describe('die Prüfansicht zeigt echte Kandidaten aus dem Text', () => {
     expect(kaestchen.filter((feld) => (feld as HTMLInputElement).checked)).toHaveLength(0);
   });
 
-  it('zeigt die Eingabefelder erst, wenn ein Wort aufgenommen ist', () => {
-    const stand = analysiert();
-    zeichne(stand);
-    expect(screen.queryByLabelText(/Deutsche Bedeutung/)).toBeNull();
-
-    const mitWort = textZug(stand, { art: 'aufgenommen', id: stand.zeilen[0]!.kandidat.id });
-    zeichne(mitWort);
-    expect(screen.getAllByLabelText(/Deutsche Bedeutung/)).toHaveLength(1);
+  it('blendet alle Treffer erst auf ausdrücklichen Klick ein', async () => {
+    const { user } = zeichne(analysiert());
+    expect(document.querySelectorAll('.werkstatt__kompaktzeile')).toHaveLength(15);
+    await user.click(screen.getByRole('button', { name: 'Alle 67 zeigen' }));
+    expect(document.querySelectorAll('.werkstatt__kompaktzeile')).toHaveLength(67);
   });
 
-  it('sperrt das Anlegen, solange etwas fehlt — und sagt was', () => {
-    zeichne(analysiert());
-    expect(screen.getByRole('button', { name: 'Lernpaket anlegen' })).toBeDisabled();
-    expect(screen.getByText('Dem Lernpaket fehlt noch ein Name.')).toBeInTheDocument();
-    expect(screen.getByText('Es ist noch kein Wort aufgenommen.')).toBeInTheDocument();
+  it('kann die sichtbaren 15 mit einem einzigen Zug auswählen', async () => {
+    const { aufZug, user } = zeichne(analysiert());
+    await user.click(screen.getByRole('button', { name: 'Alle 15 auswählen' }));
+    expect(aufZug).toHaveBeenCalledWith({
+      art: 'auswahl-gesetzt',
+      ids: expect.arrayContaining([expect.any(String)]),
+      aufgenommen: true,
+    });
+  });
+
+  it('öffnet Übersetzungen erst im zweiten Schritt und hält Details geschlossen', async () => {
+    const stand = analysiert();
+    const mitWort = textZug(stand, { art: 'aufgenommen', id: stand.zeilen[0]!.kandidat.id });
+    const { user } = zeichne(mitWort);
+    expect(screen.queryByLabelText(/Deutsche Bedeutung für/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
+    expect(screen.getByRole('heading', { name: 'Übersetzungen' })).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/Deutsche Bedeutung für/)).toHaveLength(1);
+    expect(screen.getByText(/Details zu/).closest('details')).not.toHaveAttribute('open');
   });
 
   it('verspricht beim fertigen Stand ausdrücklich keinen Versand', async () => {
@@ -105,6 +119,7 @@ describe('die Prüfansicht zeigt echte Kandidaten aus dem Text', () => {
     stand = textZug(stand, { art: 'zeile-geaendert', id, teil: { german: 'etwas' } });
 
     const { aufFertig, user } = zeichne(stand);
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
     expect(screen.getByText(/nicht veröffentlicht und keiner Lerngruppe zugewiesen/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Lernpaket anlegen' }));
     expect(aufFertig).toHaveBeenCalledTimes(1);
@@ -113,11 +128,11 @@ describe('die Prüfansicht zeigt echte Kandidaten aus dem Text', () => {
 });
 
 describe('die KI ist optional und ruft nicht von allein', () => {
-  it('zeigt ohne Rückruf keinen KI-Knopf — die Werkstatt bleibt vollständig', () => {
+  it('zeigt ohne Rückruf keinen KI-Knopf — die Auswahl bleibt vollständig', () => {
     zeichne(analysiert());
     expect(screen.queryByRole('heading', { name: 'Übersetzungsvorschläge holen' })).toBeNull();
     expect(screen.getByRole('group', { name: 'Analysierter Text' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Lernpaket anlegen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alle 15 auswählen' })).toBeInTheDocument();
   });
 
   it('ruft beim Öffnen keinen Anbieter', () => {
@@ -131,12 +146,6 @@ describe('die KI ist optional und ruft nicht von allein', () => {
     expect(aufVorschlaege).not.toHaveBeenCalled();
   });
 
-  it('fordert ohne Auswahl erst zur Auswahl auf und sperrt den Knopf', () => {
-    zeichne(analysiert(), { aufVorschlaege: vi.fn() });
-    expect(screen.getByText(/Nimm zuerst Wörter auf/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Vorschläge für/ })).toBeDisabled();
-  });
-
   it('ruft erst auf Klick und sagt vorher, was hinausgeht', async () => {
     const stand = textZug(analysiert(), {
       art: 'aufgenommen',
@@ -145,6 +154,7 @@ describe('die KI ist optional und ruft nicht von allein', () => {
     const aufVorschlaege = vi.fn();
     const { user } = zeichne(stand, { aufVorschlaege });
 
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
     expect(screen.getByText(/an die KI-Verbindung/)).toBeInTheDocument();
     expect(screen.getByText(/Ohne diesen Klick wird nichts gesendet/)).toBeInTheDocument();
     expect(aufVorschlaege).not.toHaveBeenCalled();
@@ -153,27 +163,32 @@ describe('die KI ist optional und ruft nicht von allein', () => {
     expect(aufVorschlaege).toHaveBeenCalledTimes(1);
   });
 
-  it('nennt verworfene Vorschläge, statt sie zu verschweigen', () => {
+  it('nennt verworfene Vorschläge im Übersetzungsschritt, statt sie zu verschweigen', async () => {
     let stand = analysiert();
+    stand = textZug(stand, { art: 'aufgenommen', id: stand.zeilen[0]!.kandidat.id });
     stand = textZug(stand, { art: 'ki-gestartet' });
     stand = textZug(stand, {
       art: 'ki-vorschlaege',
       vorschlaege: [{ kandidatId: 'erfunden', german: 'die Burg' }],
     });
-    zeichne(stand, { aufVorschlaege: vi.fn() });
+    const { user } = zeichne(stand, { aufVorschlaege: vi.fn() });
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
     expect(screen.getByText(/gehörte zu keinem Wort aus deinem Text/)).toBeInTheDocument();
     expect(screen.queryByText('die Burg')).toBeNull();
   });
 
-  it('bleibt nach einem Fehlschlag benutzbar', () => {
-    const stand = textZug(textZug(analysiert(), { art: 'ki-gestartet' }), {
+  it('bleibt nach einem Fehlschlag benutzbar', async () => {
+    let stand = analysiert();
+    stand = textZug(stand, { art: 'aufgenommen', id: stand.zeilen[0]!.kandidat.id });
+    stand = textZug(textZug(stand, { art: 'ki-gestartet' }), {
       art: 'ki-gescheitert',
       grund: 'Der KI-Zugang ist gerade nicht erreichbar.',
     });
-    zeichne(stand, { aufVorschlaege: vi.fn() });
+    const { user } = zeichne(stand, { aufVorschlaege: vi.fn() });
+    await user.click(screen.getByRole('button', { name: '1 Wort übersetzen' }));
     expect(screen.getByText(/nicht erreichbar/)).toBeInTheDocument();
     expect(screen.getByText(/lassen sich eintippen/)).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Analysierter Text' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Übersetzungen' })).toBeInTheDocument();
   });
 });
 

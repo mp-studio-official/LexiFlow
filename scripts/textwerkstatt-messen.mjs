@@ -136,20 +136,19 @@ for (const breite of BREITEN) {
     await seite.getByRole('button', { name: /Weiter|Text analysieren/ }).click();
 
     /* --- 2. Analysiert ---------------------------------------------- */
-    await seite.getByRole('heading', { name: 'Vorschläge' }).waitFor({ timeout: 10_000 });
+    await seite.getByRole('heading', { name: 'Wörter auswählen' }).waitFor({ timeout: 10_000 });
     await seite.waitForTimeout(400);
     await pruefe(seite, 'werkstatt-analysiert', breite);
 
     const bild = await seite.evaluate(() => {
       const bereich = document.querySelector('[aria-label="Analysierter Text"]');
-      const zitate = [...document.querySelectorAll('.werkstatt__satz q')].map((q) => q.textContent);
       return {
         quelltext: bereich?.textContent ?? '',
-        kandidaten: document.querySelectorAll('.werkstatt__zeile').length,
+        kandidaten: document.querySelectorAll('.werkstatt__kompaktzeile').length,
         angehakt: [
-          ...document.querySelectorAll('.werkstatt__zeile .werkstatt__auswahl input[type=checkbox]'),
+          ...document.querySelectorAll('.werkstatt__kompaktzeile input[type=checkbox]'),
         ].filter((k) => k.checked).length,
-        zitate,
+        details: document.querySelectorAll('.werkstatt__satz').length,
         markiert: document.querySelectorAll('.werkstatt__quelltext mark').length,
       };
     });
@@ -157,17 +156,16 @@ for (const breite of BREITEN) {
     if (bild.quelltext !== SCOTLAND_WALES) {
       befunde.push(`werkstatt-analysiert @ ${breite}px: Quelltext weicht vom eingefügten ab`);
     }
-    if (bild.kandidaten < 20) {
-      befunde.push(`werkstatt-analysiert @ ${breite}px: nur ${bild.kandidaten} Kandidaten`);
+    if (bild.kandidaten !== 15) {
+      befunde.push(`werkstatt-analysiert @ ${breite}px: ${bild.kandidaten} statt 15 kompakte Kandidaten`);
     }
     if (bild.angehakt !== 0) {
       befunde.push(`werkstatt-analysiert @ ${breite}px: ${bild.angehakt} vorausgewählt`);
     }
-    const fremd = bild.zitate.filter((z) => !SCOTLAND_WALES.includes(z ?? ''));
-    if (fremd.length > 0) {
-      befunde.push(`werkstatt-analysiert @ ${breite}px: ${fremd.length} Zitate nicht aus dem Text`);
+    if (bild.details !== 0) {
+      befunde.push(`werkstatt-analysiert @ ${breite}px: Details stehen schon in der Auswahl`);
     }
-    zahlen.push({ breite, kandidaten: bild.kandidaten, zitate: bild.zitate.length });
+    zahlen.push({ breite, kandidaten: bild.kandidaten });
 
     await seite.screenshot({ path: `${ORDNER}/${breite}-2-analysiert.png`, fullPage: true });
 
@@ -191,19 +189,28 @@ for (const breite of BREITEN) {
     }
 
     /* --- 4. Drei Wörter aufnehmen und übersetzen --------------------- */
-    await seite.getByLabel(/Name des Lernpakets/).fill('Scotland and Wales');
-    /*
-      Nur das Kästchen, das aufnimmt.
-
-      `.werkstatt__kandidaten input[type=checkbox]` traf auch das Kästchen
-      „Satz als Beispiel übernehmen", das erst **nach** dem Aufnehmen in
-      derselben Zeile erscheint. `nth(1)` landete damit in Zeile eins
-      statt in Zeile zwei, und die Messung brach an einem Feld ab, das es
-      zu Recht nicht gab.
-    */
-    const kaestchen = seite.locator('.werkstatt__zeile .werkstatt__auswahl input[type=checkbox]');
+    const kaestchen = seite.locator('.werkstatt__kompaktzeile input[type=checkbox]');
     for (const i of [0, 1, 2]) await kaestchen.nth(i).check();
-    const felder = seite.getByLabel('Deutsche Bedeutung');
+    await seite.getByRole('button', { name: '3 Wörter übersetzen' }).click();
+    await seite.getByRole('heading', { name: 'Übersetzungen' }).waitFor();
+    const fachdetails = await seite.evaluate(() => ({
+      gesamt: document.querySelectorAll('.werkstatt__details').length,
+      offen: document.querySelectorAll('.werkstatt__details[open]').length,
+      zitate: [...document.querySelectorAll('.werkstatt__details q')].map((q) => q.textContent),
+    }));
+    if (fachdetails.gesamt !== 3 || fachdetails.offen !== 0) {
+      befunde.push(
+        `werkstatt-ausgewaehlt @ ${breite}px: ${fachdetails.gesamt} Details, ${fachdetails.offen} offen`,
+      );
+    }
+    const fremdeDetails = fachdetails.zitate.filter((zitat) => !SCOTLAND_WALES.includes(zitat ?? ''));
+    if (fremdeDetails.length > 0) {
+      befunde.push(
+        `werkstatt-ausgewaehlt @ ${breite}px: ${fremdeDetails.length} Quellsätze nicht aus dem Text`,
+      );
+    }
+    await seite.getByLabel(/Name des Lernpakets/).fill('Scotland and Wales');
+    const felder = seite.getByLabel(/Deutsche Bedeutung für/);
     const wie = ['die eine', 'die zweite', 'die dritte'];
     for (const i of [0, 1, 2]) await felder.nth(i).fill(wie[i]);
     await seite.waitForTimeout(300);
@@ -263,7 +270,7 @@ for (const breite of BREITEN) {
     }
 
     for (const zeile of konsole) befunde.push(`@ ${breite}px Konsole: ${zeile}`);
-    console.log('  %dpx  %d Kandidaten, %d Zitate', breite, bild.kandidaten, bild.zitate.length);
+    console.log('  %dpx  %d kompakte Vorschläge, Übersetzungen im zweiten Schritt', breite, bild.kandidaten);
   } catch (fehler) {
     befunde.push(`@ ${breite}px abgebrochen: ${fehler.message.split('\n').slice(0, 4).join(' | ')}`);
     console.log('  %dpx  ABBRUCH: %s', breite, fehler.message.split('\n').slice(0, 6).join('\n       '));

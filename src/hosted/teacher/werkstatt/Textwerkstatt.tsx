@@ -4,6 +4,7 @@ import { PART_OF_SPEECH, PART_OF_SPEECH_LABELS, type PartOfSpeech } from '../../
 import { pickFromSource } from '../../../import/sourcePick';
 import { mergeMultiwordTokens, tokenizeSource } from '../../../import/sourceTokens';
 import { Quelltext, Quelltextlegende } from './Quelltext';
+import { kompakteVorschlaege } from './kompaktauswahl';
 import { datenschutzsatz, zuFragende } from './kivertrag';
 import {
   type Kandidatenzeile,
@@ -30,10 +31,12 @@ import './werkstatt.css';
  * `geminiAssistant` — den direkten Anbieteraufruf aus dem Browser. Eine
  * „portierte" Fassung wäre eine Neufassung mit altem Namen gewesen.
  *
- * Übernommen sind ihre **Entscheidungen**: Quelltext und Prüfliste
- * nebeneinander, ein Wort im Text nimmt sich selbst auf, jede Zeile ist
- * einzeln prüf-, änder- und entfernbar, und gespeichert wird erst auf
- * ausdrücklichen Klick.
+ * Übernommen sind ihre **Entscheidungen**: Quelltext und kompakte
+ * Auswahlliste nebeneinander, ein Wort im Text nimmt sich selbst auf,
+ * jede Zeile ist einzeln prüf-, änder- und entfernbar, und gespeichert
+ * wird erst auf ausdrücklichen Klick. Übersetzung und Fachdaten folgen
+ * in einem eigenen zweiten Schritt; sonst wird aus einer Auswahl eine
+ * Wand aus Formularen.
  *
  * ## Warum es keine Vorauswahl gibt
  *
@@ -143,7 +146,8 @@ function Pruefschritt({
   aufVorschlaege?: () => void;
   gibtAb: boolean;
 }) {
-  const [nurAufgenommene, setNurAufgenommene] = useState(false);
+  const [phase, setPhase] = useState<'auswahl' | 'uebersetzen'>('auswahl');
+  const [alleAnzeigen, setAlleAnzeigen] = useState(false);
 
   /*
     Zerlegung und Kandidaten aus **einer** Analyse.
@@ -157,10 +161,15 @@ function Pruefschritt({
   }, [stand.text, stand.zeilen]);
 
   const gewaehlt = aufgenommene(stand);
-  const fehlt = wasFehlt(stand);
-  const fertig = textIstFertig(stand);
   const offen = zuFragende(stand.zeilen).length;
-  const sichtbar = nurAufgenommene ? gewaehlt : stand.zeilen;
+  const geordnet = useMemo(() => {
+    const empfohlen = kompakteVorschlaege(stand.zeilen, 15);
+    const empfohlenIds = new Set(empfohlen.map((zeile) => zeile.kandidat.id));
+    return [...empfohlen, ...stand.zeilen.filter((zeile) => !empfohlenIds.has(zeile.kandidat.id))];
+  }, [stand.zeilen]);
+  const erste = geordnet.slice(0, 15);
+  const sichtbar = alleAnzeigen ? geordnet : erste;
+  const alleSichtbarenAufgenommen = sichtbar.every((zeile) => zeile.aufgenommen);
 
   function aufnehmenAusText(von: number, bis: number) {
     const auswahl = pickFromSource({
@@ -177,40 +186,33 @@ function Pruefschritt({
     if (auswahl.kind === 'new') aufZug({ art: 'aus-quelltext', auswahl });
   }
 
+  if (phase === 'uebersetzen') {
+    return (
+      <Uebersetzungsschritt
+        stand={stand}
+        aufZug={aufZug}
+        aufFertig={aufFertig}
+        aufZurueck={() => setPhase('auswahl')}
+        geordneteAuswahl={geordnet.filter((zeile) => zeile.aufgenommen)}
+        {...(aufVorschlaege === undefined ? {} : { aufVorschlaege })}
+        offen={offen}
+        gibtAb={gibtAb}
+      />
+    );
+  }
+
   return (
     <div className="stack werkstatt">
-      <Card>
+      <Card quiet>
+        <p className="werkstatt__schritt">Schritt 1 von 2 · Wörter auswählen</p>
         <p className="werkstatt__erkennung" role="status">
-          {stand.zeilen.length} Vorschläge aus {stand.saetze} Sätzen. Nichts davon ist
-          ausgewählt — du entscheidest, was ins Lernpaket kommt.
+          {stand.zeilen.length} mögliche Lernwörter aus {stand.saetze} Sätzen. Zuerst siehst du
+          15 kompakte Vorschläge; weitere kannst du jederzeit einblenden.
         </p>
-        <p className="small muted werkstatt__zusammenfassung">
-          Ausgeblendet: {stand.ausgeblendeteFunktionswoerter} Funktionswörter und{' '}
-          {stand.ausgeblendeteEigennamen} vermutete Eigennamen. Du kannst sie im Text links
-          trotzdem anklicken.
-        </p>
-        <Field label="Name des Lernpakets" hint="Zum Beispiel der Titel des Textes.">
-          {(props) => (
-            <input
-              {...props}
-              type="text"
-              value={stand.titel}
-              onChange={(ereignis) => aufZug({ art: 'titel-geaendert', titel: ereignis.target.value })}
-            />
-          )}
-        </Field>
       </Card>
 
-      {aufVorschlaege ? (
-        <Kivorschlagskarte
-          stand={stand}
-          offen={offen}
-          aufVorschlaege={aufVorschlaege}
-        />
-      ) : null}
-
       <div className="werkstatt__zweispaltig">
-        <Card>
+        <Card className="werkstatt__quellkarte">
           <h2 className="werkstatt__titel">Dein Text</h2>
           <div className="small muted werkstatt__hinweis">
             <Quelltextlegende />
@@ -222,31 +224,163 @@ function Pruefschritt({
           />
         </Card>
 
-        <Card>
-          <div className="row werkstatt__handlungen">
-            <h2 className="werkstatt__titel">Vorschläge</h2>
-            <Badge>{gewaehlt.length} aufgenommen</Badge>
+        <Card className="werkstatt__auswahlkarte">
+          <div className="row werkstatt__handlungen werkstatt__listen-kopf">
+            <div>
+              <h2 className="werkstatt__titel">Wörter auswählen</h2>
+              <p className="small muted werkstatt__offen">
+                Übersetzungen und weitere Angaben kommen im nächsten Schritt.
+              </p>
+            </div>
+            <Badge>{gewaehlt.length} ausgewählt</Badge>
           </div>
-          <label className="checkbox werkstatt__filter">
-            <input
-              type="checkbox"
-              checked={nurAufgenommene}
-              onChange={(ereignis) => setNurAufgenommene(ereignis.target.checked)}
-            />
-            <span className="werkstatt__auswahltext">Nur aufgenommene zeigen</span>
-          </label>
 
-          {sichtbar.length === 0 ? (
-            <p className="muted">Noch nichts aufgenommen.</p>
-          ) : (
-            <ul className="werkstatt__kandidaten">
-              {sichtbar.map((zeile) => (
-                <Kandidat key={zeile.kandidat.id} zeile={zeile} aufZug={aufZug} />
-              ))}
-            </ul>
-          )}
+          <div className="row werkstatt__handlungen werkstatt__werkzeuge">
+            <Button
+              variant="default"
+              onClick={() =>
+                aufZug({
+                  art: 'auswahl-gesetzt',
+                  ids: sichtbar.map((zeile) => zeile.kandidat.id),
+                  aufgenommen: !alleSichtbarenAufgenommen,
+                })
+              }
+            >
+              {alleSichtbarenAufgenommen
+                ? `Diese ${sichtbar.length} abwählen`
+                : `Alle ${sichtbar.length} auswählen`}
+            </Button>
+            {stand.zeilen.length > 15 ? (
+              <Button variant="quiet" onClick={() => setAlleAnzeigen((bisher) => !bisher)}>
+                {alleAnzeigen ? 'Nur erste 15 zeigen' : `Alle ${stand.zeilen.length} zeigen`}
+              </Button>
+            ) : null}
+          </div>
+
+          <ul className="werkstatt__kompaktliste">
+            {sichtbar.map((zeile) => (
+              <KompakterKandidat key={zeile.kandidat.id} zeile={zeile} aufZug={aufZug} />
+            ))}
+          </ul>
+
+          <div className="row werkstatt__handlungen werkstatt__weiter">
+            <Button
+              variant="primary"
+              disabled={gewaehlt.length === 0}
+              onClick={() => setPhase('uebersetzen')}
+            >
+              {gewaehlt.length === 0
+                ? 'Wörter auswählen'
+                : `${gewaehlt.length} ${gewaehlt.length === 1 ? 'Wort' : 'Wörter'} übersetzen`}
+            </Button>
+          </div>
         </Card>
       </div>
+
+      <Button variant="quiet" onClick={() => aufZug({ art: 'verworfen' })}>
+        Anderen Text einfügen
+      </Button>
+    </div>
+  );
+}
+
+function KompakterKandidat({
+  zeile,
+  aufZug,
+}: {
+  zeile: Kandidatenzeile;
+  aufZug: (zug: Textzug) => void;
+}) {
+  const id = zeile.kandidat.id;
+  return (
+    <li className="werkstatt__kompaktzeile" data-aufgenommen={zeile.aufgenommen ? 'ja' : undefined}>
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          checked={zeile.aufgenommen}
+          onChange={(ereignis) =>
+            aufZug({ art: ereignis.target.checked ? 'aufgenommen' : 'abgewaehlt', id })
+          }
+        />
+        <span className="werkstatt__kompaktwort">{zeile.kandidat.english}</span>
+      </label>
+      <span className="small muted werkstatt__kurzinfo">
+        {zeile.german.trim() ||
+          (zeile.kandidat.occurrences === 1
+            ? '1× im Text'
+            : `${zeile.kandidat.occurrences}× im Text`)}
+      </span>
+    </li>
+  );
+}
+
+function Uebersetzungsschritt({
+  stand,
+  aufZug,
+  aufFertig,
+  aufZurueck,
+  geordneteAuswahl,
+  aufVorschlaege,
+  offen,
+  gibtAb,
+}: {
+  stand: Textstand;
+  aufZug: (zug: Textzug) => void;
+  aufFertig: (entwurf: GepruefterEntwurf) => void;
+  aufZurueck: () => void;
+  geordneteAuswahl: readonly Kandidatenzeile[];
+  aufVorschlaege?: () => void;
+  offen: number;
+  gibtAb: boolean;
+}) {
+  const gewaehlt = geordneteAuswahl;
+  const fehlt = wasFehlt(stand);
+  const fertig = textIstFertig(stand);
+
+  return (
+    <div className="stack werkstatt">
+      <Card quiet>
+        <p className="werkstatt__schritt">Schritt 2 von 2 · Übersetzen und prüfen</p>
+        <div className="row werkstatt__handlungen">
+          <p className="werkstatt__erkennung" role="status">
+            {gewaehlt.length} {gewaehlt.length === 1 ? 'Wort' : 'Wörter'} ausgewählt. Trage jetzt
+            die deutsche Bedeutung ein; weitere Angaben sind optional.
+          </p>
+          <Button variant="quiet" onClick={aufZurueck}>Auswahl ändern</Button>
+        </div>
+      </Card>
+
+      <Card>
+        <Field label="Name des Lernpakets" hint="Zum Beispiel der Titel des Textes.">
+          {(props) => (
+            <input
+              {...props}
+              type="text"
+              value={stand.titel}
+              onChange={(ereignis) =>
+                aufZug({ art: 'titel-geaendert', titel: ereignis.target.value })
+              }
+            />
+          )}
+        </Field>
+      </Card>
+
+      {aufVorschlaege ? (
+        <Kivorschlagskarte stand={stand} offen={offen} aufVorschlaege={aufVorschlaege} />
+      ) : null}
+
+      <Card>
+        <h2 className="werkstatt__titel">Übersetzungen</h2>
+        <p className="small muted werkstatt__hinweis">
+          Die Pflichtangaben stehen direkt in der Liste. Quellsatz, Wortart und Lernform findest
+          du nur bei Bedarf unter „Details“.
+        </p>
+        <ul className="werkstatt__uebersetzungsliste">
+          {gewaehlt.map((zeile) => (
+            <Uebersetzungszeile key={zeile.kandidat.id} zeile={zeile} aufZug={aufZug} />
+          ))}
+        </ul>
+      </Card>
 
       <Card>
         <div className="row werkstatt__handlungen">
@@ -260,15 +394,11 @@ function Pruefschritt({
           >
             {gibtAb ? 'Wird angelegt …' : 'Lernpaket anlegen'}
           </Button>
-          <Button variant="quiet" onClick={() => aufZug({ art: 'verworfen' })}>
-            Anderen Text einfügen
-          </Button>
+          <Button variant="quiet" onClick={aufZurueck}>Auswahl ändern</Button>
         </div>
         {fehlt.length > 0 ? (
           <ul className="werkstatt__befunde" role="status">
-            {fehlt.map((satz) => (
-              <li key={satz}>{satz}</li>
-            ))}
+            {fehlt.map((satz) => <li key={satz}>{satz}</li>)}
           </ul>
         ) : (
           <p className="small muted werkstatt__offen" role="status">
@@ -329,7 +459,7 @@ function Kivorschlagskarte({
   );
 }
 
-function Kandidat({
+function Uebersetzungszeile({
   zeile,
   aufZug,
 }: {
@@ -345,44 +475,32 @@ function Kandidat({
   }
 
   return (
-    <li className="werkstatt__zeile" data-aufgenommen={zeile.aufgenommen ? 'ja' : undefined}>
-      <div className="werkstatt__auswahl">
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={zeile.aufgenommen}
-            onChange={(ereignis) =>
-              aufZug({ art: ereignis.target.checked ? 'aufgenommen' : 'abgewaehlt', id })
-            }
-          />
-          <span className="werkstatt__auswahltext">
-            <strong>{zeile.kandidat.english}</strong>
-          </span>
-        </label>
+    <li className="werkstatt__uebersetzungszeile">
+      <div className="werkstatt__uebersetzung">
+        <strong className="werkstatt__englisch">{zeile.kandidat.english}</strong>
+        <Field label={`Deutsche Bedeutung für ${zeile.kandidat.english}`}>
+          {(props) => (
+            <input
+              {...props}
+              type="text"
+              value={zeile.german}
+              placeholder="Deutsche Übersetzung"
+              onChange={(ereignis) => aendere({ german: ereignis.target.value })}
+            />
+          )}
+        </Field>
         {zeile.herkunft === 'quelltext' ? <Badge>aus dem Text ergänzt</Badge> : null}
         {zeile.vorschlagUebernommen ? <Badge>KI-Vorschlag</Badge> : null}
       </div>
 
-      <p className="small muted werkstatt__formen">{formen}</p>
-      {beugungen.length > 0 ? (
-        <p className="small muted werkstatt__formen">{beugungen.join(' · ')}</p>
-      ) : null}
-      <p className="small werkstatt__satz">
-        <q>{zeile.kandidat.sourceSentence}</q>
-      </p>
-
-      {zeile.aufgenommen ? (
+      <details className="werkstatt__details">
+        <summary>Details zu {zeile.kandidat.english}</summary>
         <div className="werkstatt__felder">
-          <Field label="Deutsche Bedeutung" hint="Mehrere durch Komma trennen.">
-            {(props) => (
-              <input
-                {...props}
-                type="text"
-                value={zeile.german}
-                onChange={(ereignis) => aendere({ german: ereignis.target.value })}
-              />
-            )}
-          </Field>
+          <p className="small muted werkstatt__formen">{formen}</p>
+          {beugungen.length > 0 ? (
+            <p className="small muted werkstatt__formen">{beugungen.join(' · ')}</p>
+          ) : null}
+          <p className="small werkstatt__satz"><q>{zeile.kandidat.sourceSentence}</q></p>
           <Field label="Lernform" hint="Leer lassen heisst: die Form aus dem Text gilt.">
             {(props) => (
               <input
@@ -422,8 +540,11 @@ function Kandidat({
             />
             <span className="werkstatt__auswahltext">Satz aus dem Text als Beispiel übernehmen</span>
           </label>
+          <Button variant="quiet" onClick={() => aufZug({ art: 'abgewaehlt', id })}>
+            Dieses Wort nicht verwenden
+          </Button>
         </div>
-      ) : null}
+      </details>
     </li>
   );
 }

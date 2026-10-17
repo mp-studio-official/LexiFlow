@@ -93,6 +93,17 @@ describe('nichts ist vorausgewählt', () => {
 });
 
 describe('die Lehrkraft behält die Kontrolle', () => {
+  it('setzt eine sichtbare Auswahl in einem Zug und lässt den Rest unverändert', () => {
+    const stand = analysiert();
+    const ids = stand.zeilen.slice(0, 15).map((zeile) => zeile.kandidat.id);
+    const jetzt = textZug(stand, { art: 'auswahl-gesetzt', ids, aufgenommen: true });
+    expect(aufgenommene(jetzt)).toHaveLength(15);
+    expect(jetzt.zeilen.slice(15).every((zeile) => !zeile.aufgenommen)).toBe(true);
+
+    const wiederLeer = textZug(jetzt, { art: 'auswahl-gesetzt', ids, aufgenommen: false });
+    expect(aufgenommene(wiederLeer)).toHaveLength(0);
+  });
+
   it('nimmt auf und wählt wieder ab, ohne die Eingabe zu verlieren', () => {
     const stand = analysiert();
     const id = idVon(stand, 'capital');
