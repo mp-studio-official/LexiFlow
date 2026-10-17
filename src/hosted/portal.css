@@ -49,6 +49,24 @@
   font-size: var(--text-3xl);
 }
 
+/* ------------------------------------------------------------- Anmeldung */
+
+/*
+  Vor der Anmeldung gibt es keine Icon-Leiste, die den Arbeitsbereich
+  begrenzt. Ohne eine eigene Lesebreite wuchs das Formular deshalb auf großen
+  Bildschirmen bis fast an beide Fensterränder: zwei kurze Felder wurden zu
+  meterlangen Linien, während darunter eine leere Seite blieb.
+
+  Die Anmeldung ist eine Aufgabe, kein Dashboard. Eine ruhige, zentrierte
+  Spalte hält Rollenwahl, Felder und Hilfswege als eine erkennbare Einheit.
+  Am Telefon bleibt sie mit `100%` vollständig im vorhandenen Seitenrand.
+*/
+.huelle .anmeldung {
+  inline-size: min(100%, 42rem);
+  margin-inline: auto;
+  padding-block-start: clamp(var(--space-2), 4vh, var(--space-8));
+}
+
 /* ------------------------------------------------------------ Schaltflächen */
 
 /*

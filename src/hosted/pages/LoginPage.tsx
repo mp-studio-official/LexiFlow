@@ -58,7 +58,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="anmeldung stack">
       <h1>Anmelden</h1>
 
       <div className="segmented" role="group" aria-label="Art der Anmeldung">

@@ -86,6 +86,18 @@ test.describe('der Service Worker verschluckt das Portal nicht', () => {
 });
 
 test.describe('Anmeldung unter dem Unterpfad', () => {
+  test('@a11y bleibt auf breiten Bildschirmen eine lesbare Formularspalte', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('./portal/#/anmelden');
+
+    const formular = page.locator('.anmeldung');
+    await expect(formular).toBeVisible();
+    const kasten = await formular.boundingBox();
+    expect(kasten).not.toBeNull();
+    expect(kasten!.width).toBeLessThanOrEqual(680);
+    expect(Math.abs(kasten!.x - (1440 - kasten!.width) / 2)).toBeLessThanOrEqual(2);
+  });
+
   test('@smoke eine lernende Person kommt herein und landet auf Heute', async ({ page }) => {
     await page.goto('./portal/#/anmelden');
 
