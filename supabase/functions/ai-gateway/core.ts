@@ -160,6 +160,14 @@ export const WEITERLEITUNG =
   'Der Anbieter hat auf eine andere Adresse umgeleitet. Das ist nicht zulässig.';
 export const ZU_GROSS = 'Die Antwort des Anbieters ist zu groß.';
 export const ANBIETER_NICHT_ERREICHBAR = 'Der Anbieter ist gerade nicht erreichbar.';
+export const ANBIETER_SCHLUESSEL_ABGELEHNT =
+  'Der Anbieter hat den API-Schlüssel abgelehnt oder für dieses Konto keinen Zugriff erlaubt.';
+export const ANBIETER_MODELL_FEHLT =
+  'Der Anbieter kennt das eingetragene Modell nicht oder hat es für diesen API-Schlüssel nicht freigegeben.';
+export const ANBIETER_LIMIT =
+  'Der Anbieter meldet ein Limit oder fehlendes API-Guthaben. Prüfe Abrechnung und Nutzungslimits beim Anbieter.';
+export const ANBIETER_ANFRAGE_UNGUELTIG =
+  'Der Anbieter konnte die Anfrage mit dieser Modellkonfiguration nicht verarbeiten.';
 export const KEIN_NETZ_ANBIETER =
   'Dieses Modell läuft im Browser. Es wird nicht über den Server aufgerufen.';
 export const KI_GESPERRT = 'KI-Aufrufe sind in dieser Fassung nicht freigegeben.';
@@ -168,6 +176,23 @@ export const GATEWAY_FAEHIGKEITEN = [
   ...COACH_AKTIONEN.map((aktion) => `learner-coach/${aktion}`),
   TEXTWERKSTATT_CAPABILITY,
 ] as const;
+
+/**
+ * Legt nur den HTTP-Status aus, niemals den Anbieter-Rumpf.
+ *
+ * Anbieterantworten können Teile der Anfrage, interne Kennungen oder sogar
+ * den Schlüssel wiederholen. Die Oberfläche braucht trotzdem mehr als den
+ * bisherigen Sammelsatz: 401 ist eine andere Reparatur als 429. Deshalb
+ * bleiben die Kategorien absichtlich grob und frei von fremdem Text.
+ */
+export function anbieterAblehnung(status: number): string {
+  if (status === 401 || status === 403) return ANBIETER_SCHLUESSEL_ABGELEHNT;
+  if (status === 404) return ANBIETER_MODELL_FEHLT;
+  if (status === 429) return ANBIETER_LIMIT;
+  if (status === 400 || status === 422) return ANBIETER_ANFRAGE_UNGUELTIG;
+  if (status >= 500) return ANBIETER_NICHT_ERREICHBAR;
+  return 'Der Anbieter hat die Anfrage abgelehnt.';
+}
 
 /* ------------------------------------------------------------ Helfer ---- */
 
@@ -417,7 +442,7 @@ async function anfragen(
   if (antwort.abgeschnitten) return { status: 502, body: { fehler: ZU_GROSS } };
 
   if (antwort.status < 200 || antwort.status >= 300) {
-    return { status: 502, body: { fehler: 'Der Anbieter hat die Anfrage abgelehnt.' } };
+    return { status: 502, body: { fehler: anbieterAblehnung(antwort.status) } };
   }
   try {
     const gelesen = anbieterAntwort(zeile.adapter, antwort.text);

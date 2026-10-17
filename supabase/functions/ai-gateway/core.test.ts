@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
+  ANBIETER_ANFRAGE_UNGUELTIG,
+  ANBIETER_LIMIT,
+  ANBIETER_MODELL_FEHLT,
   ANBIETER_NICHT_ERREICHBAR,
+  ANBIETER_SCHLUESSEL_ABGELEHNT,
   GATEWAY_FAEHIGKEITEN,
   KI_GESPERRT,
   KEIN_NETZ_ANBIETER,
@@ -560,6 +564,32 @@ describe('aus dem neutralen Auftrag wird eine echte Anbieteranfrage', () => {
     );
 
     expect(antwort).toEqual({ status: 502, body: { fehler: ANBIETER_NICHT_ERREICHBAR } });
+  });
+
+  it.each([
+    [400, ANBIETER_ANFRAGE_UNGUELTIG],
+    [401, ANBIETER_SCHLUESSEL_ABGELEHNT],
+    [403, ANBIETER_SCHLUESSEL_ABGELEHNT],
+    [404, ANBIETER_MODELL_FEHLT],
+    [422, ANBIETER_ANFRAGE_UNGUELTIG],
+    [429, ANBIETER_LIMIT],
+    [503, ANBIETER_NICHT_ERREICHBAR],
+    [418, 'Der Anbieter hat die Anfrage abgelehnt.'],
+  ])('legt Anbieterstatus %i ohne fremden Antworttext aus', async (status, meldung) => {
+    const { ports } = fakePorts({
+      antwort: { status, text: 'GEHEIMER FREMDTEXT sk-darf-nicht-zum-browser' },
+    });
+    await angelegt(ports, { adapter: 'openai-kompatibel', model: 'gpt-test' });
+
+    const antwort = await handle(
+      { aktion: 'aufrufen', id: 'verbindung-1', capability: 'suggest-from-text', payload: {} },
+      LEHRERIN,
+      ports,
+    );
+
+    expect(antwort).toEqual({ status: 502, body: { fehler: meldung } });
+    expect(JSON.stringify(antwort.body)).not.toContain('GEHEIMER FREMDTEXT');
+    expect(JSON.stringify(antwort.body)).not.toContain('sk-darf-nicht-zum-browser');
   });
 });
 
